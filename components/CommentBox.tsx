@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import dynamic from 'next/dynamic'
+import data from '@emoji-mart/data'
 
-const EMOJI_LIST = ['😍', '🥰', '❤️', '👍', '👎', '🔥', '✨', '💯', '😂', '🤔', '😅', '🙈', '💸', '🛍️', '👗', '🎀']
+// emoji-mart uses browser APIs, must be client-only
+const Picker = dynamic(() => import('@emoji-mart/react'), { ssr: false })
 
 interface Comment {
   id: string
@@ -25,13 +28,24 @@ export default function CommentBox({ itemId, author, initialComments }: CommentB
   const [submitting, setSubmitting] = useState(false)
   const [showEmoji, setShowEmoji] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const emojiRef = useRef<HTMLDivElement>(null)
+
+  // Close emoji picker on outside click
+  useEffect(() => {
+    if (!showEmoji) return
+    function onClickOutside(e: MouseEvent) {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
+        setShowEmoji(false)
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [showEmoji])
 
   // Build tree: top-level + replies map
   const topLevel = comments.filter((c) => !c.parent_id)
   const repliesMap = comments.reduce<Record<string, Comment[]>>((acc, c) => {
-    if (c.parent_id) {
-      acc[c.parent_id] = [...(acc[c.parent_id] ?? []), c]
-    }
+    if (c.parent_id) acc[c.parent_id] = [...(acc[c.parent_id] ?? []), c]
     return acc
   }, {})
 
@@ -41,12 +55,8 @@ export default function CommentBox({ itemId, author, initialComments }: CommentB
     inputRef.current?.focus()
   }
 
-  function cancelReply() {
-    setReplyTo(null)
-  }
-
-  function insertEmoji(emoji: string) {
-    setText((prev) => prev + emoji)
+  function insertEmoji(emoji: { native: string }) {
+    setText((prev) => prev + emoji.native)
     setShowEmoji(false)
     inputRef.current?.focus()
   }
@@ -79,7 +89,6 @@ export default function CommentBox({ itemId, author, initialComments }: CommentB
   async function handleDelete(id: string) {
     const res = await fetch(`/api/comments/${id}`, { method: 'DELETE' })
     if (res.ok) {
-      // remove comment and its replies
       setComments((prev) => prev.filter((c) => c.id !== id && c.parent_id !== id))
     }
   }
@@ -116,8 +125,6 @@ export default function CommentBox({ itemId, author, initialComments }: CommentB
             </button>
           )}
         </div>
-
-        {/* Replies */}
         {replies.length > 0 && (
           <div className="mt-2 space-y-2">
             {replies.map((r) => (
@@ -148,35 +155,32 @@ export default function CommentBox({ itemId, author, initialComments }: CommentB
           {replyTo && (
             <div className="flex items-center gap-2 text-xs text-gray-500 bg-pink-50 px-3 py-1.5 rounded-lg">
               <span>回复 <span className="font-medium text-pink-500">@{replyTo.author}</span></span>
-              <button onClick={cancelReply} className="ml-auto text-gray-400 hover:text-gray-600">取消</button>
+              <button onClick={() => setReplyTo(null)} className="ml-auto text-gray-400 hover:text-gray-600">取消</button>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="flex gap-2">
-            <div className="flex-1 flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-pink-300">
-              {/* Emoji button */}
-              <div className="relative">
+            {/* Input row — no overflow-hidden so picker can escape */}
+            <div className="flex-1 flex items-center border border-gray-200 rounded-xl focus-within:border-pink-300 bg-white">
+              {/* Emoji trigger — sits outside form's overflow context */}
+              <div ref={emojiRef} className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowEmoji((v) => !v)}
-                  className="px-2 py-2 text-gray-400 hover:text-yellow-500 transition-colors text-base leading-none"
+                  className="px-2.5 py-2 text-base leading-none text-gray-400 hover:text-yellow-500 transition-colors"
                 >
                   😊
                 </button>
                 {showEmoji && (
-                  <div className="absolute bottom-full left-0 mb-1 bg-white border border-gray-200 rounded-xl shadow-lg p-2 z-10 w-52">
-                    <div className="grid grid-cols-8 gap-1">
-                      {EMOJI_LIST.map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => insertEmoji(emoji)}
-                          className="text-xl hover:scale-125 transition-transform"
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="absolute bottom-full left-0 mb-2 z-50">
+                    <Picker
+                      data={data}
+                      onEmojiSelect={insertEmoji}
+                      locale="zh"
+                      previewPosition="none"
+                      skinTonePosition="none"
+                      theme="light"
+                    />
                   </div>
                 )}
               </div>
@@ -185,13 +189,13 @@ export default function CommentBox({ itemId, author, initialComments }: CommentB
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder={replyTo ? `回复 @${replyTo.author}…` : '写点什么…'}
-                className="flex-1 py-2 pr-2 text-sm focus:outline-none bg-transparent"
+                className="flex-1 py-2 pr-3 text-sm focus:outline-none bg-transparent"
               />
             </div>
             <button
               type="submit"
               disabled={submitting || !text.trim()}
-              className="px-4 py-2 bg-pink-500 text-white text-sm rounded-xl disabled:opacity-50 hover:bg-pink-600 transition-colors"
+              className="px-4 py-2 bg-pink-500 text-white text-sm rounded-xl disabled:opacity-50 hover:bg-pink-600 transition-colors shrink-0"
             >
               发送
             </button>
