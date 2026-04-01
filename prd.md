@@ -149,29 +149,29 @@ DELETE /api/comments/[id]      删除自己的评论
 ## 阶段规划
 
 ### Phase 0 — 环境搭建（预计 30min）
-- [ ] `npx create-next-app@latest` 初始化项目
-- [ ] 安装依赖：`@supabase/supabase-js`, `@supabase/ssr`, `sharp`（图片压缩）
-- [ ] Supabase 项目创建，执行数据库 migration
-- [ ] `.env.local` 配置 `SUPABASE_URL` + `SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_ROLE_KEY`
-- [ ] Vercel 项目创建，关联 GitHub 仓库，配置环境变量
+- [x] `npx create-next-app@latest` 初始化项目
+- [x] 安装依赖：`@supabase/supabase-js`, `@supabase/ssr`, `sharp`（图片压缩）
+- [x] Supabase 项目创建，执行数据库 migration
+- [x] `.env.local` 配置 `SUPABASE_URL` + `SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_ROLE_KEY`
+- [x] Vercel 项目创建，关联 GitHub 仓库，配置环境变量
 
 ### Phase 1 — 核心流程 MVP（预计 2-3h）
 目标：能跑通「创建会话 → 上传图片 → 显示网格」
 
-- [ ] 首页：会话列表 + 新建会话按钮
-- [ ] 新建会话 API + 页面（生成随机 token）
-- [ ] 图片上传：客户端压缩 → POST 到 API Route → 上传 Supabase Storage → 写 items 表
-- [ ] 会话页：网格展示已上传图片（无评分，仅图片）
-- [ ] 部署到 Vercel，验证 Supabase 连通性
+- [x] 首页：会话列表 + 新建会话按钮
+- [x] 新建会话 API + 页面（生成随机 token）
+- [x] 图片上传：客户端压缩 → POST 到 API Route → 上传 Supabase Storage → 写 items 表
+- [x] 会话页：网格展示已上传图片（无评分，仅图片）
+- [x] 部署到 Vercel，验证 Supabase 连通性
 
 ### Phase 2 — 评分与评论（预计 1-2h）
 目标：打分核心交互完成
 
-- [ ] 作者身份选择（本地 localStorage 存「我」/ 「她」）
-- [ ] 星级评分组件（5星，点击即保存）
-- [ ] 评论输入框 + 提交
-- [ ] 网格卡片显示平均分 + 评论数
-- [ ] 按评分排序功能
+- [x] 作者身份选择（本地 localStorage 存「Arthur」/ 「Grace」）
+- [x] 星级评分组件（5星，点击即保存）
+- [x] 评论输入框 + 提交
+- [x] 网格卡片显示平均分 + 评论数
+- [x] 按评分排序功能
 
 ### Phase 3 — 决策与体验打磨（预计 1h）
 目标：真实可用

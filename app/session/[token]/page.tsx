@@ -1,8 +1,10 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase'
 import ImageGrid from '@/components/ImageGrid'
 import UploadZone from '@/components/UploadZone'
+import SortControl from '@/components/SortControl'
 
 interface Item {
   id: string
@@ -17,10 +19,13 @@ interface Item {
 
 export default async function SessionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>
+  searchParams: Promise<{ sort?: string }>
 }) {
   const { token } = await params
+  const { sort = 'time' } = await searchParams
 
   const { data: session, error: sessionError } = await supabaseAdmin
     .from('sessions')
@@ -46,6 +51,16 @@ export default async function SessionPage({
       commentCount: (item.comments as unknown[])?.length ?? 0,
     }
   })
+
+  const sortedItems =
+    sort === 'rating'
+      ? [...items].sort((a, b) => {
+          if (a.avgScore === null && b.avgScore === null) return 0
+          if (a.avgScore === null) return 1
+          if (b.avgScore === null) return -1
+          return b.avgScore - a.avgScore
+        })
+      : items
 
   const buyCount = items.filter((i) => i.decision === 'buy').length
 
@@ -77,8 +92,17 @@ export default async function SessionPage({
           <UploadZone sessionToken={token} />
         </div>
 
+        {/* Sort Control */}
+        {items.length > 1 && (
+          <div className="mb-4">
+            <Suspense>
+              <SortControl current={sort} />
+            </Suspense>
+          </div>
+        )}
+
         {/* Image Grid */}
-        <ImageGrid items={items} sessionToken={token} />
+        <ImageGrid items={sortedItems} sessionToken={token} />
       </div>
     </main>
   )
