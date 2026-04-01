@@ -107,7 +107,7 @@ export default async function SessionPage({
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-start gap-3 mb-6">
-          <Link href="/" className="text-gray-400 hover:text-gray-600 mt-1">
+          <Link href="/wardrobe" className="text-gray-400 hover:text-gray-600 mt-1">
             ←
           </Link>
           <div className="flex-1 min-w-0">
