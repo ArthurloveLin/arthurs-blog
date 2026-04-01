@@ -87,6 +87,20 @@ export default async function SessionPage({
           </div>
         </div>
 
+        {/* Stats bar */}
+        {items.length > 0 && (
+          <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm mb-4 text-sm">
+            <div className="flex-1 flex items-center gap-4">
+              <span className="text-gray-500">共 <span className="font-semibold text-gray-800">{items.length}</span> 件</span>
+              <span className="text-green-600">已选 <span className="font-semibold">{buyCount}</span> 件</span>
+              <span className="text-gray-400">待定 <span className="font-medium">{items.filter((i) => i.decision === 'pending').length}</span> 件</span>
+            </div>
+            {session.budget && (
+              <span className="text-xs text-gray-400 shrink-0">预算 ¥{session.budget}</span>
+            )}
+          </div>
+        )}
+
         {/* Upload Zone */}
         <div className="mb-6">
           <UploadZone sessionToken={token} />

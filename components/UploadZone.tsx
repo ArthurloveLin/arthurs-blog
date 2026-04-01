@@ -8,9 +8,11 @@ interface UploadZoneProps {
   sessionToken: string
 }
 
+type FileProgress = 'pending' | 'compressing' | 'uploading' | 'done' | 'error'
+
 interface UploadStatus {
   name: string
-  progress: 'pending' | 'uploading' | 'done' | 'error'
+  progress: FileProgress
   error?: string
 }
 
@@ -42,9 +44,11 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
 
     await Promise.all(
       accepted.map(async (file, i) => {
-        updateStatus(i, { progress: 'uploading' })
         try {
+          updateStatus(i, { progress: 'compressing' })
           const compressed = await compressImage(file)
+
+          updateStatus(i, { progress: 'uploading' })
           const fd = new FormData()
           fd.append('file', compressed, `${file.name}.webp`)
           fd.append('sessionToken', sessionToken)
@@ -66,8 +70,7 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
 
     setUploading(false)
     router.refresh()
-
-    setTimeout(() => setUploads([]), 2000)
+    setTimeout(() => setUploads([]), 2500)
   }
 
   function onDrop(e: DragEvent) {
@@ -83,6 +86,10 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
     }
   }
 
+  const doneCount = uploads.filter((u) => u.progress === 'done' || u.progress === 'error').length
+  const totalCount = uploads.length
+  const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
+
   return (
     <div className="w-full">
       <div
@@ -97,9 +104,7 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
         onDrop={onDrop}
       >
         <div className="text-3xl mb-2">👗</div>
-        <p className="text-sm text-gray-500">
-          点击选择图片，或拖拽到这里
-        </p>
+        <p className="text-sm text-gray-500">点击选择图片，或拖拽到这里</p>
         <p className="text-xs text-gray-400 mt-1">JPG / PNG / WebP，每张最大 5MB</p>
         <input
           ref={inputRef}
@@ -112,27 +117,41 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
       </div>
 
       {uploads.length > 0 && (
-        <div className="mt-3 space-y-1">
+        <div className="mt-3 space-y-2">
+          {/* Overall progress bar */}
+          {uploading && (
+            <div>
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>上传进度</span>
+                <span>{doneCount} / {totalCount}</span>
+              </div>
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-pink-500 rounded-full transition-all duration-300"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Per-file status */}
           {uploads.map((u, i) => (
             <div key={i} className="flex items-center gap-2 text-sm">
-              <span className="flex-1 truncate text-gray-600">{u.name}</span>
-              {u.progress === 'pending' && <span className="text-gray-400">等待中</span>}
-              {u.progress === 'uploading' && (
-                <span className="text-blue-500 animate-pulse">上传中…</span>
+              <span className="flex-1 truncate text-gray-600 text-xs">{u.name}</span>
+              {u.progress === 'pending' && <span className="text-gray-400 text-xs">等待中</span>}
+              {u.progress === 'compressing' && (
+                <span className="text-blue-400 text-xs animate-pulse">压缩中…</span>
               )}
-              {u.progress === 'done' && <span className="text-green-500">✓</span>}
+              {u.progress === 'uploading' && (
+                <span className="text-pink-500 text-xs animate-pulse">上传中…</span>
+              )}
+              {u.progress === 'done' && <span className="text-green-500 text-xs">✓ 完成</span>}
               {u.progress === 'error' && (
-                <span className="text-red-500 text-xs">{u.error}</span>
+                <span className="text-red-500 text-xs">{u.error ?? '失败'}</span>
               )}
             </div>
           ))}
         </div>
-      )}
-
-      {uploading && (
-        <p className="text-xs text-gray-400 mt-2 text-center">
-          正在压缩并上传，请稍候…
-        </p>
       )}
     </div>
   )

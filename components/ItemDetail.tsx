@@ -8,6 +8,8 @@ import CommentBox from './CommentBox'
 
 const AUTHORS = ['Arthur', 'Grace']
 
+type Decision = 'buy' | 'skip' | 'pending'
+
 interface Rating {
   score: number
   author: string
@@ -23,6 +25,7 @@ interface Comment {
 interface Item {
   id: string
   image_url: string
+  decision: Decision
   ratings: Rating[]
   comments: Comment[]
 }
@@ -32,8 +35,16 @@ interface ItemDetailProps {
   token: string
 }
 
+const DECISION_CONFIG: { value: Decision; label: string; active: string; inactive: string }[] = [
+  { value: 'buy', label: '买', active: 'bg-green-500 text-white', inactive: 'bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-600' },
+  { value: 'pending', label: '待定', active: 'bg-yellow-400 text-white', inactive: 'bg-gray-100 text-gray-600 hover:bg-yellow-50 hover:text-yellow-600' },
+  { value: 'skip', label: '不买', active: 'bg-gray-500 text-white', inactive: 'bg-gray-100 text-gray-600 hover:bg-gray-200' },
+]
+
 export default function ItemDetail({ item, token }: ItemDetailProps) {
   const [author, setAuthorState] = useState('')
+  const [decision, setDecision] = useState<Decision>(item.decision)
+  const [savingDecision, setSavingDecision] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('wardrobe_author')
@@ -45,8 +56,26 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
     setAuthorState(name)
   }
 
-  const myRating = item.ratings.find((r) => r.author === author)?.score ?? null
+  async function handleDecision(value: Decision) {
+    if (savingDecision) return
+    setSavingDecision(true)
+    const prev = decision
+    setDecision(value)
+    try {
+      const res = await fetch(`/api/items/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision: value }),
+      })
+      if (!res.ok) throw new Error('Failed')
+    } catch {
+      setDecision(prev)
+    } finally {
+      setSavingDecision(false)
+    }
+  }
 
+  const myRating = item.ratings.find((r) => r.author === author)?.score ?? null
   const allScores = item.ratings.map((r) => r.score)
   const avgScore =
     allScores.length > 0
@@ -73,6 +102,25 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
             className="object-contain"
             sizes="(max-width: 640px) 100vw, 512px"
           />
+        </div>
+
+        {/* Decision */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">决策</h2>
+          <div className="flex gap-2">
+            {DECISION_CONFIG.map(({ value, label, active, inactive }) => (
+              <button
+                key={value}
+                disabled={savingDecision}
+                onClick={() => handleDecision(value)}
+                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-60 ${
+                  decision === value ? active : inactive
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Author Picker */}
@@ -113,8 +161,7 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
             <div className="mt-3 pt-3 border-t border-gray-50 flex gap-4">
               {item.ratings.map((r) => (
                 <div key={r.author} className="text-xs text-gray-500">
-                  <span className="font-medium text-pink-400">{r.author}</span>
-                  {' '}
+                  <span className="font-medium text-pink-400">{r.author}</span>{' '}
                   <span className="text-yellow-400">{'★'.repeat(Math.round(r.score))}</span>
                   <span className="text-gray-300">{'★'.repeat(5 - Math.round(r.score))}</span>
                   {' '}{r.score.toFixed(1)}
