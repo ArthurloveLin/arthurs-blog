@@ -6,6 +6,7 @@ import ImageGrid from '@/components/ImageGrid'
 import UploadZone from '@/components/UploadZone'
 import SortControl from '@/components/SortControl'
 import FinalListToggle from '@/components/FinalListToggle'
+import RealtimeSync from '@/components/RealtimeSync'
 
 interface Item {
   id: string
@@ -102,6 +103,7 @@ export default async function SessionPage({
 
   return (
     <main className="min-h-screen bg-gray-50">
+      <RealtimeSync sessionId={session.id} />
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-start gap-3 mb-6">
