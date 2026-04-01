@@ -11,7 +11,7 @@ export default async function ItemPage({
 
   const { data: item, error } = await supabaseAdmin
     .from('items')
-    .select(`*, ratings(score, author), comments(id, author, content, created_at, parent_id)`)
+    .select(`id, image_url, decision, price, notes, ratings(score, author), comments(id, author, content, created_at, parent_id)`)
     .eq('id', id)
     .single()
 

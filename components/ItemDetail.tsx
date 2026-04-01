@@ -29,6 +29,7 @@ interface Item {
   image_url: string
   decision: Decision
   price: number | null
+  notes: string | null
   ratings: Rating[]
   comments: Comment[]
 }
@@ -50,7 +51,9 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
   const [savingDecision, setSavingDecision] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [price, setPrice] = useState<string>(item.price !== null ? String(item.price) : '')
+  const [notes, setNotes] = useState<string>(item.notes ?? '')
   const priceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const stored = localStorage.getItem('wardrobe_author')
@@ -94,12 +97,28 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
     }, 600)
   }
 
+  function handleNotesChange(val: string) {
+    setNotes(val)
+    if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
+    notesTimerRef.current = setTimeout(() => {
+      fetch(`/api/items/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: val || null }),
+      })
+    }, 600)
+  }
+
   const myRating = item.ratings.find((r) => r.author === author)?.score ?? null
   const allScores = item.ratings.map((r) => r.score)
   const avgScore =
     allScores.length > 0
       ? allScores.reduce((a, b) => a + b, 0) / allScores.length
       : null
+  const arthurRating = item.ratings.find((r) => r.author === 'Arthur')
+  const graceRating = item.ratings.find((r) => r.author === 'Grace')
+  const scoreDiff =
+    arthurRating && graceRating ? Math.abs(arthurRating.score - graceRating.score) : null
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -204,17 +223,39 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
           <StarRating itemId={item.id} author={author} initialScore={myRating} />
 
           {item.ratings.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-gray-50 flex gap-4">
-              {item.ratings.map((r) => (
-                <div key={r.author} className="text-xs text-gray-500">
-                  <span className="font-medium text-pink-400">{r.author}</span>{' '}
-                  <span className="text-yellow-400">{'★'.repeat(Math.round(r.score))}</span>
-                  <span className="text-gray-300">{'★'.repeat(5 - Math.round(r.score))}</span>
-                  {' '}{r.score.toFixed(1)}
+            <div className="mt-3 pt-3 border-t border-gray-50 space-y-2">
+              <div className="flex gap-4">
+                {item.ratings.map((r) => (
+                  <div key={r.author} className="text-xs text-gray-500">
+                    <span className="font-medium text-pink-400">{r.author}</span>{' '}
+                    <span className="text-yellow-400">{'★'.repeat(Math.round(r.score))}</span>
+                    <span className="text-gray-300">{'★'.repeat(5 - Math.round(r.score))}</span>
+                    {' '}{r.score.toFixed(1)}
+                  </div>
+                ))}
+              </div>
+              {scoreDiff !== null && scoreDiff >= 2 && (
+                <div className="flex items-center gap-1.5 bg-orange-50 rounded-lg px-3 py-2">
+                  <span className="text-orange-500 text-sm">⚡</span>
+                  <span className="text-xs text-orange-600 font-medium">
+                    两人分歧较大（相差 {scoreDiff.toFixed(1)} 分），需要讨论～
+                  </span>
                 </div>
-              ))}
+              )}
             </div>
           )}
+        </div>
+
+        {/* Notes */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-2">备注</h2>
+          <textarea
+            value={notes}
+            onChange={(e) => handleNotesChange(e.target.value)}
+            placeholder="品牌、店铺链接、尺码、颜色等信息…"
+            rows={3}
+            className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-pink-300 placeholder-gray-300"
+          />
         </div>
 
         {/* Comments */}

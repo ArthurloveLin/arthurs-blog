@@ -8,6 +8,7 @@ const SORTS = [
   { value: 'arthur', label: 'Arthur' },
   { value: 'grace', label: 'Grace' },
   { value: 'price', label: '价格' },
+  { value: 'position', label: '手动排序' },
 ]
 
 export default function SortControl({ current }: { current: string }) {

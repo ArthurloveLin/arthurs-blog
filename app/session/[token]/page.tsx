@@ -5,12 +5,14 @@ import { supabaseAdmin } from '@/lib/supabase'
 import ImageGrid from '@/components/ImageGrid'
 import UploadZone from '@/components/UploadZone'
 import SortControl from '@/components/SortControl'
+import FinalListToggle from '@/components/FinalListToggle'
 
 interface Item {
   id: string
   image_url: string
   decision: 'buy' | 'skip' | 'pending'
   price: number | null
+  position: number
   created_at: string
   avgScore: number | null
   arthurScore: number | null
@@ -25,10 +27,10 @@ export default async function SessionPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>
-  searchParams: Promise<{ sort?: string }>
+  searchParams: Promise<{ sort?: string; view?: string }>
 }) {
   const { token } = await params
-  const { sort = 'time' } = await searchParams
+  const { sort = 'time', view = 'all' } = await searchParams
 
   const { data: session, error: sessionError } = await supabaseAdmin
     .from('sessions')
@@ -61,7 +63,10 @@ export default async function SessionPage({
     }
   })
 
-  const sortedItems = [...items].sort((a, b) => {
+  const isFinalView = view === 'final'
+  const displayItems = isFinalView ? items.filter((i) => i.decision === 'buy') : items
+
+  const sortedItems = [...displayItems].sort((a, b) => {
     switch (sort) {
       case 'rating':
         if (a.avgScore === null && b.avgScore === null) return 0
@@ -83,12 +88,17 @@ export default async function SessionPage({
         if (a.price === null) return 1
         if (b.price === null) return -1
         return a.price - b.price
+      case 'position':
+        return a.position - b.position
       default:
         return 0 // already ordered by created_at from DB
     }
   })
 
   const buyCount = items.filter((i) => i.decision === 'buy').length
+  const totalBuyPrice = items
+    .filter((i) => i.decision === 'buy' && i.price !== null)
+    .reduce((sum, i) => sum + (i.price ?? 0), 0)
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -111,24 +121,43 @@ export default async function SessionPage({
         {/* Stats bar */}
         {items.length > 0 && (
           <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm mb-4 text-sm">
-            <div className="flex-1 flex items-center gap-4">
+            <div className="flex-1 flex items-center gap-4 flex-wrap">
               <span className="text-gray-500">共 <span className="font-semibold text-gray-800">{items.length}</span> 件</span>
               <span className="text-green-600">已选 <span className="font-semibold">{buyCount}</span> 件</span>
               <span className="text-gray-400">待定 <span className="font-medium">{items.filter((i) => i.decision === 'pending').length}</span> 件</span>
+              {totalBuyPrice > 0 && (
+                <span className="text-pink-500 font-semibold">已选 ¥{totalBuyPrice}</span>
+              )}
             </div>
             {session.budget && (
-              <span className="text-xs text-gray-400 shrink-0">预算 ¥{session.budget}</span>
+              <span className={`text-xs shrink-0 font-medium ${
+                totalBuyPrice > session.budget ? 'text-red-500' : 'text-gray-400'
+              }`}>
+                预算 ¥{session.budget}
+                {totalBuyPrice > session.budget && ' ⚠️超'}
+              </span>
             )}
           </div>
         )}
 
-        {/* Upload Zone */}
-        <div className="mb-6">
-          <UploadZone sessionToken={token} />
-        </div>
+        {/* View Toggle */}
+        {items.length > 0 && (
+          <div className="mb-4">
+            <Suspense>
+              <FinalListToggle current={view} />
+            </Suspense>
+          </div>
+        )}
+
+        {/* Upload Zone — only in all view */}
+        {!isFinalView && (
+          <div className="mb-6">
+            <UploadZone sessionToken={token} />
+          </div>
+        )}
 
         {/* Sort Control */}
-        {items.length > 1 && (
+        {sortedItems.length > 1 && (
           <div className="mb-4">
             <Suspense>
               <SortControl current={sort} />
@@ -136,8 +165,23 @@ export default async function SessionPage({
           </div>
         )}
 
+        {/* Final list heading */}
+        {isFinalView && (
+          <div className="mb-4 flex items-center gap-2">
+            <h2 className="text-base font-semibold text-gray-700">最终清单</h2>
+            <span className="text-xs text-gray-400">共 {sortedItems.length} 件</span>
+            {totalBuyPrice > 0 && (
+              <span className="ml-auto text-sm font-bold text-pink-500">合计 ¥{totalBuyPrice}</span>
+            )}
+          </div>
+        )}
+
         {/* Image Grid */}
-        <ImageGrid items={sortedItems} sessionToken={token} />
+        <ImageGrid
+          items={sortedItems}
+          sessionToken={token}
+          draggable={sort === 'position'}
+        />
       </div>
     </main>
   )

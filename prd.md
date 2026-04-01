@@ -193,109 +193,7 @@ DELETE /api/comments/[id]      删除自己的评论
 **背景**：`*.vercel.app` 和 `*.supabase.co` 在国内均被 GFW 封锁，需通过 Cloudflare Workers 做反向代理。
 方案成本：免费（CF Workers 免费额度 10万次/天，完全够用）。
 
----
-
-#### 4.1 前端中转（Vercel → CF Worker）
-
-**目标**：用户访问你的 CF Worker 域名，Worker 将请求透传给 Vercel 部署。
-
-**步骤**：
-1. Cloudflare 控制台 → Workers & Pages → 新建 Worker
-2. 命名如 `wardrobe-front`，粘贴以下代码并部署
-3. 得到域名如 `wardrobe-front.your-name.workers.dev`（或绑定自定义域名）
-
-```js
-// Worker 名称建议：wardrobe-front
-// 将 VERCEL_HOST 替换为你的 Vercel 部署域名（不含 https://）
-const VERCEL_HOST = 'your-project.vercel.app'
-
-export default {
-  async fetch(request) {
-    const url = new URL(request.url)
-    url.hostname = VERCEL_HOST
-
-    const newRequest = new Request(url.toString(), {
-      method: request.method,
-      headers: request.headers,
-      body: request.method !== 'GET' && request.method !== 'HEAD'
-        ? request.body
-        : undefined,
-      redirect: 'follow',
-    })
-
-    return fetch(newRequest)
-  },
-}
-```
-
----
-
-#### 4.2 后端中转（Supabase → CF Worker）
-
-**目标**：前端发往 Supabase 的 API 请求经过 Worker 中转，绕过封锁。
-
-**步骤**：
-1. 新建第二个 Worker，命名如 `wardrobe-supabase`
-2. 粘贴以下代码，将 `SUPABASE_HOST` 替换为你的项目地址（格式：`xxxx.supabase.co`）
-
-```js
-// Worker 名称建议：wardrobe-supabase
-// 将 SUPABASE_HOST 替换为你的 Supabase 项目域名（不含 https://）
-const SUPABASE_HOST = 'xxxxxxxxxxxx.supabase.co'
-
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info',
-}
-
-export default {
-  async fetch(request) {
-    // 处理预检请求
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS_HEADERS })
-    }
-
-    const url = new URL(request.url)
-    url.hostname = SUPABASE_HOST
-
-    const newRequest = new Request(url.toString(), {
-      method: request.method,
-      headers: request.headers,
-      body: request.method !== 'GET' && request.method !== 'HEAD'
-        ? request.body
-        : undefined,
-      redirect: 'follow',
-    })
-
-    const response = await fetch(newRequest)
-
-    // 注入 CORS 头，避免浏览器跨域报错
-    const newResponse = new Response(response.body, response)
-    Object.entries(CORS_HEADERS).forEach(([k, v]) => newResponse.headers.set(k, v))
-    return newResponse
-  },
-}
-```
-
----
-
-#### 4.3 更新前端 Supabase 配置
-
-部署好 `wardrobe-supabase` Worker 后，将其域名配置到环境变量，替换原来的 Supabase URL。
-
-**Vercel 环境变量**（在 Vercel 项目设置中更新）：
-```
-NEXT_PUBLIC_SUPABASE_URL = https://wardrobe-supabase.your-name.workers.dev
-```
-
-`lib/supabase.ts` 代码无需改动，因为已通过环境变量注入 URL。
-
-> ⚠️ `SUPABASE_SERVICE_ROLE_KEY` 等私钥仍正常填写原 Supabase 值，只有 URL 指向 Worker。
-
----
-
-#### 4.4 操作检查清单
+#### 4.1 操作检查清单
 
 - [ ] 创建 `wardrobe-front` Worker，填入 Vercel host，部署并记录域名
 - [ ] 创建 `wardrobe-supabase` Worker，填入 Supabase host，部署并记录域名
@@ -305,12 +203,55 @@ NEXT_PUBLIC_SUPABASE_URL = https://wardrobe-supabase.your-name.workers.dev
 - [ ] 验证图片上传、评分、评论功能均通过 Worker 正常工作
 - [ ] （可选）在 Cloudflare 为 Worker 绑定自定义域名，替换 `*.workers.dev`
 
-### Phase 5 — 可选增强（后续迭代）
-- [ ] 多维评分（颜值 / 实用 / 性价比）+ 雷达图
-- [ ] 拖拽排序图片顺序
-- [ ] 导出「决定购买」清单（PDF / 截图）
-- [ ] 历史会话归档、删除
+#### 4.2 域名方案（彻底解决 `*.workers.dev` 被封问题）
 
+**背景**：`*.workers.dev` 本身也被 GFW 封锁，Worker 透传虽然配置正确，但国内仍无法访问。
+根本解法是绑定一个自定义域名。
+
+**购买域名**
+- 推荐阿里云 / 腾讯云购买 `.top` / `.xyz` 后缀，首年 ¥5~15
+- 或在 Cloudflare Registrar 购买 `.com`，约 $10/年，买完无需迁移 NS
+- 解析到境外服务器（Vercel）**无需备案**
+
+**DNS 配置**（域名 NS 迁移到 Cloudflare 后，在 CF 控制台添加两条记录）
+
+| 类型 | 名称 | 内容 | 代理 |
+|------|------|------|------|
+| CNAME | `@`（或 `www`） | `cname.vercel-dns.com` | 橙云开启 |
+| CNAME | `api` | `wardrobe-supabase.s230132196.workers.dev` | 橙云开启 |
+
+**操作检查清单**
+- [ ] 购买域名，将 NS 改为 Cloudflare（或直接在 CF Registrar 购买）
+- [ ] CF 添加 CNAME `@` → `cname.vercel-dns.com`（橙云开启）
+- [ ] CF 添加 CNAME `api` → `wardrobe-supabase.s230132196.workers.dev`（橙云开启）
+- [ ] Vercel 项目 Settings → Domains → 绑定自定义域名（如 `yourdomain.top`）
+- [ ] `wardrobe-supabase` Worker → Settings → Domains → 绑定 `api.yourdomain.top`
+- [ ] 更新 `.env.local` 和 Vercel 环境变量：`NEXT_PUBLIC_SUPABASE_URL=https://api.yourdomain.top`
+- [ ] 重新触发 Vercel 部署，用国内网络验证前后端均正常
+- [ ] `wardrobe-front` Worker 可直接删除，不再需要
+
+### Phase 5 — 可选增强（后续迭代）
+
+#### 评分与决策
+- [ ] 多维评分（颜值 / 实用 / 性价比）+ 雷达图展示
+- [ ] 两人评分差异高亮（分歧最大的单品置顶提示）
+- [ ] 「最终清单」视图：只展示标记为「买」的单品，方便结算
+
+#### 图片与内容管理
+- [ ] 拖拽排序图片顺序
+- [ ] 会话内分组 / 标签（如：上衣 / 裤子 / 鞋子）
+- [ ] 单品备注字段（记录品牌、店铺链接等）
+- [ ] 图片批量删除
+
+#### 会话管理
+- [ ] 历史会话归档、删除
+- [ ] 会话标题 / 备注编辑
+- [ ] 预算超支提醒（已选总价 > 预算时高亮提示）
+- [ ] 历史消费汇总（总花费按月/会话统计）
+
+#### 协作体验
+- [ ] 实时同步（Supabase Realtime，两人同时操作时自动刷新）
+- [ ] 用滚动横幅显示xx正在评价中(这个需求难吗？)
 
 ---
 
