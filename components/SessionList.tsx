@@ -28,7 +28,7 @@ export default function SessionList({ sessions, showArchived }: SessionListProps
   async function handleArchive(session: Session) {
     setLoading(session.id)
     try {
-      await fetch(`/api/sessions/${session.id}`, {
+      await fetch(`/api/sessions/${session.token}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ archived: !session.archived }),
@@ -39,11 +39,11 @@ export default function SessionList({ sessions, showArchived }: SessionListProps
     }
   }
 
-  async function handleDelete(id: string) {
-    setLoading(id)
+  async function handleDelete(session: Session) {
+    setLoading(session.id)
     setConfirmDelete(null)
     try {
-      await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
+      await fetch(`/api/sessions/${session.token}`, { method: 'DELETE' })
       router.refresh()
     } finally {
       setLoading(null)
@@ -106,7 +106,7 @@ export default function SessionList({ sessions, showArchived }: SessionListProps
                       取消
                     </button>
                     <button
-                      onClick={() => handleDelete(session.id)}
+                      onClick={() => handleDelete(session)}
                       className="px-4 py-1.5 text-sm rounded-xl bg-red-500 text-white hover:bg-red-600"
                     >
                       确认删除
