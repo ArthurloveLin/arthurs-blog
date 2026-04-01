@@ -221,12 +221,12 @@ DELETE /api/comments/[id]      删除自己的评论
 | CNAME | `api` | `wardrobe-supabase.s230132196.workers.dev` | 橙云开启 |
 
 **操作检查清单**
-- [ ] 购买域名，将 NS 改为 Cloudflare（或直接在 CF Registrar 购买）
-- [ ] CF 添加 CNAME `@` → `cname.vercel-dns.com`（橙云开启）
-- [ ] CF 添加 CNAME `api` → `wardrobe-supabase.s230132196.workers.dev`（橙云开启）
-- [ ] Vercel 项目 Settings → Domains → 绑定自定义域名（如 `yourdomain.top`）
-- [ ] `wardrobe-supabase` Worker → Settings → Domains → 绑定 `api.yourdomain.top`
-- [ ] 更新 `.env.local` 和 Vercel 环境变量：`NEXT_PUBLIC_SUPABASE_URL=https://api.yourdomain.top`
+- [x] 购买域名，将 NS 改为 Cloudflare（或直接在 CF Registrar 购买）
+- [x] CF 添加 CNAME `@` → `cname.vercel-dns.com`（橙云开启）
+- [x] CF 添加 CNAME `api` → `wardrobe-supabase.s230132196.workers.dev`（橙云开启）
+- [x] Vercel 项目 Settin- [x Domains → 绑定自定义域名（如 `yourdomain.top`）
+- [x] `wardrobe-supabase` Worker → Settings → Domains → 绑定 `api.yourdomain.top`
+- [x] 更新 `.env.local` 和 Vercel 环境变量：`NEXT_PUBLIC_SUPABASE_URL=https://api.arthurlovegrace.top`
 - [ ] 重新触发 Vercel 部署，用国内网络验证前后端均正常
 - [ ] `wardrobe-front` Worker 可直接删除，不再需要
 
@@ -234,14 +234,14 @@ DELETE /api/comments/[id]      删除自己的评论
 
 #### 评分与决策
 - [ ] 多维评分（颜值 / 实用 / 性价比）+ 雷达图展示
-- [ ] 两人评分差异高亮（分歧最大的单品置顶提示）
-- [ ] 「最终清单」视图：只展示标记为「买」的单品，方便结算
+- [x] 两人评分差异高亮（分歧最大的单品置顶提示）
+- [x] 「最终清单」视图：只展示标记为「买」的单品，方便结算
 
 #### 图片与内容管理
-- [ ] 拖拽排序图片顺序
+- [x] 拖拽排序图片顺序
 - [ ] 会话内分组 / 标签（如：上衣 / 裤子 / 鞋子）
-- [ ] 单品备注字段（记录品牌、店铺链接等）
-- [ ] 图片批量删除
+- [x] 单品备注字段（记录品牌、店铺链接等）
+- [x] 图片批量删除
 
 #### 会话管理
 - [ ] 历史会话归档、删除
