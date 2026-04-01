@@ -1,0 +1,85 @@
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { supabaseAdmin } from '@/lib/supabase'
+import ImageGrid from '@/components/ImageGrid'
+import UploadZone from '@/components/UploadZone'
+
+interface Item {
+  id: string
+  image_url: string
+  decision: 'buy' | 'skip' | 'pending'
+  created_at: string
+  avgScore: number | null
+  commentCount: number
+  ratings: { score: number; author: string }[]
+  comments: { id: string }[]
+}
+
+export default async function SessionPage({
+  params,
+}: {
+  params: Promise<{ token: string }>
+}) {
+  const { token } = await params
+
+  const { data: session, error: sessionError } = await supabaseAdmin
+    .from('sessions')
+    .select('*')
+    .eq('token', token)
+    .single()
+
+  if (sessionError || !session) notFound()
+
+  const { data: rawItems } = await supabaseAdmin
+    .from('items')
+    .select(`*, ratings(score, author), comments(id)`)
+    .eq('session_id', session.id)
+    .order('created_at', { ascending: true })
+
+  const items: Item[] = (rawItems ?? []).map((item) => {
+    const scores = (item.ratings as { score: number }[] ?? []).map((r) => r.score)
+    const avgScore =
+      scores.length > 0 ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length : null
+    return {
+      ...item,
+      avgScore,
+      commentCount: (item.comments as unknown[])?.length ?? 0,
+    }
+  })
+
+  const buyCount = items.filter((i) => i.decision === 'buy').length
+
+  return (
+    <main className="min-h-screen bg-gray-50">
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="flex items-start gap-3 mb-6">
+          <Link href="/" className="text-gray-400 hover:text-gray-600 mt-1">
+            ←
+          </Link>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold text-gray-800 truncate">
+              {session.title || '选衣会话'}
+            </h1>
+            {session.note && (
+              <p className="text-sm text-gray-500 mt-0.5">{session.note}</p>
+            )}
+            <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+              <span>{items.length} 件</span>
+              {buyCount > 0 && <span className="text-green-500">{buyCount} 件已选购</span>}
+              {session.budget && <span>预算 ¥{session.budget}</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Upload Zone */}
+        <div className="mb-6">
+          <UploadZone sessionToken={token} />
+        </div>
+
+        {/* Image Grid */}
+        <ImageGrid items={items} sessionToken={token} />
+      </div>
+    </main>
+  )
+}
