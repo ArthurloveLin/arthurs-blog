@@ -45,7 +45,7 @@ export default function NewSession() {
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-6">
-          <Link href="/" className="text-gray-400 hover:text-gray-600">
+          <Link href="/wardrobe" className="text-gray-400 hover:text-gray-600">
             ← 返回
           </Link>
           <h1 className="text-xl font-bold text-gray-800">新建选衣会话</h1>
