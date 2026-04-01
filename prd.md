@@ -187,7 +187,125 @@ DELETE /api/comments/[id]      删除自己的评论
 - [x] 评论盖楼(评论也可以作为一层楼展开，论坛基础功能)
 - [x] 评论emoji支持
 
-### Phase 4 — 可选增强（后续迭代）
+
+### Phase 4 — 国内访问中转（Cloudflare Workers）
+
+**背景**：`*.vercel.app` 和 `*.supabase.co` 在国内均被 GFW 封锁，需通过 Cloudflare Workers 做反向代理。
+方案成本：免费（CF Workers 免费额度 10万次/天，完全够用）。
+
+---
+
+#### 4.1 前端中转（Vercel → CF Worker）
+
+**目标**：用户访问你的 CF Worker 域名，Worker 将请求透传给 Vercel 部署。
+
+**步骤**：
+1. Cloudflare 控制台 → Workers & Pages → 新建 Worker
+2. 命名如 `wardrobe-front`，粘贴以下代码并部署
+3. 得到域名如 `wardrobe-front.your-name.workers.dev`（或绑定自定义域名）
+
+```js
+// Worker 名称建议：wardrobe-front
+// 将 VERCEL_HOST 替换为你的 Vercel 部署域名（不含 https://）
+const VERCEL_HOST = 'your-project.vercel.app'
+
+export default {
+  async fetch(request) {
+    const url = new URL(request.url)
+    url.hostname = VERCEL_HOST
+
+    const newRequest = new Request(url.toString(), {
+      method: request.method,
+      headers: request.headers,
+      body: request.method !== 'GET' && request.method !== 'HEAD'
+        ? request.body
+        : undefined,
+      redirect: 'follow',
+    })
+
+    return fetch(newRequest)
+  },
+}
+```
+
+---
+
+#### 4.2 后端中转（Supabase → CF Worker）
+
+**目标**：前端发往 Supabase 的 API 请求经过 Worker 中转，绕过封锁。
+
+**步骤**：
+1. 新建第二个 Worker，命名如 `wardrobe-supabase`
+2. 粘贴以下代码，将 `SUPABASE_HOST` 替换为你的项目地址（格式：`xxxx.supabase.co`）
+
+```js
+// Worker 名称建议：wardrobe-supabase
+// 将 SUPABASE_HOST 替换为你的 Supabase 项目域名（不含 https://）
+const SUPABASE_HOST = 'xxxxxxxxxxxx.supabase.co'
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info',
+}
+
+export default {
+  async fetch(request) {
+    // 处理预检请求
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS_HEADERS })
+    }
+
+    const url = new URL(request.url)
+    url.hostname = SUPABASE_HOST
+
+    const newRequest = new Request(url.toString(), {
+      method: request.method,
+      headers: request.headers,
+      body: request.method !== 'GET' && request.method !== 'HEAD'
+        ? request.body
+        : undefined,
+      redirect: 'follow',
+    })
+
+    const response = await fetch(newRequest)
+
+    // 注入 CORS 头，避免浏览器跨域报错
+    const newResponse = new Response(response.body, response)
+    Object.entries(CORS_HEADERS).forEach(([k, v]) => newResponse.headers.set(k, v))
+    return newResponse
+  },
+}
+```
+
+---
+
+#### 4.3 更新前端 Supabase 配置
+
+部署好 `wardrobe-supabase` Worker 后，将其域名配置到环境变量，替换原来的 Supabase URL。
+
+**Vercel 环境变量**（在 Vercel 项目设置中更新）：
+```
+NEXT_PUBLIC_SUPABASE_URL = https://wardrobe-supabase.your-name.workers.dev
+```
+
+`lib/supabase.ts` 代码无需改动，因为已通过环境变量注入 URL。
+
+> ⚠️ `SUPABASE_SERVICE_ROLE_KEY` 等私钥仍正常填写原 Supabase 值，只有 URL 指向 Worker。
+
+---
+
+#### 4.4 操作检查清单
+
+- [ ] 创建 `wardrobe-front` Worker，填入 Vercel host，部署并记录域名
+- [ ] 创建 `wardrobe-supabase` Worker，填入 Supabase host，部署并记录域名
+- [ ] 在 Vercel 环境变量中将 `NEXT_PUBLIC_SUPABASE_URL` 改为 Worker 域名
+- [ ] 重新触发 Vercel 部署（让新环境变量生效）
+- [ ] 用国内网络访问 CF Worker 域名，验证页面正常加载
+- [ ] 验证图片上传、评分、评论功能均通过 Worker 正常工作
+- [ ] （可选）在 Cloudflare 为 Worker 绑定自定义域名，替换 `*.workers.dev`
+
+### Phase 5 — 可选增强（后续迭代）
 - [ ] 多维评分（颜值 / 实用 / 性价比）+ 雷达图
 - [ ] 拖拽排序图片顺序
 - [ ] 导出「决定购买」清单（PDF / 截图）
