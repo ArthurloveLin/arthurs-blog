@@ -69,13 +69,15 @@ export default function Lightbox({ imageUrl, detailUrl, onClose, onPrev, onNext 
 
       {/* Top bar */}
       <div className="absolute top-4 right-4 flex gap-2">
-        <Link
-          href={detailUrl}
-          onClick={(e) => e.stopPropagation()}
-          className="px-3 py-1.5 bg-white/10 text-white text-xs rounded-full hover:bg-white/20 transition-colors"
-        >
-          查看详情
-        </Link>
+        {detailUrl && (
+          <Link
+            href={detailUrl}
+            onClick={(e) => e.stopPropagation()}
+            className="px-3 py-1.5 bg-white/10 text-white text-xs rounded-full hover:bg-white/20 transition-colors"
+          >
+            查看详情
+          </Link>
+        )}
         <button
           onClick={onClose}
           className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"

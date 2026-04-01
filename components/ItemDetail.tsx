@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import StarRating from './StarRating'
 import CommentBox from './CommentBox'
+import Lightbox from './Lightbox'
 
 const AUTHORS = ['Arthur', 'Grace']
 
@@ -45,6 +46,7 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
   const [author, setAuthorState] = useState('')
   const [decision, setDecision] = useState<Decision>(item.decision)
   const [savingDecision, setSavingDecision] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('wardrobe_author')
@@ -93,8 +95,11 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
           <h1 className="text-lg font-semibold text-gray-800">图片详情</h1>
         </div>
 
-        {/* Image */}
-        <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 shadow-sm mb-5">
+        {/* Image — tap to enlarge */}
+        <button
+          className="relative w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 shadow-sm mb-5 block"
+          onClick={() => setLightboxOpen(true)}
+        >
           <Image
             src={item.image_url}
             alt="衣服图片"
@@ -102,7 +107,18 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
             className="object-contain"
             sizes="(max-width: 640px) 100vw, 512px"
           />
-        </div>
+          <div className="absolute bottom-2 right-2 bg-black/30 text-white text-xs px-2 py-0.5 rounded-full">
+            点击放大
+          </div>
+        </button>
+
+        {lightboxOpen && (
+          <Lightbox
+            imageUrl={item.image_url}
+            detailUrl=""
+            onClose={() => setLightboxOpen(false)}
+          />
+        )}
 
         {/* Decision */}
         <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
