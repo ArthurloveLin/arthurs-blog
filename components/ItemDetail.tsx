@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
-import StarRating from './StarRating'
+import MultiDimRating from './MultiDimRating'
 import CommentBox from './CommentBox'
 import Lightbox from './Lightbox'
 
@@ -12,8 +12,11 @@ const AUTHORS = ['Arthur', 'Grace']
 type Decision = 'buy' | 'skip' | 'pending'
 
 interface Rating {
-  score: number
+  score: number | null
   author: string
+  appearance_score: number | null
+  practicality_score: number | null
+  value_score: number | null
 }
 
 interface Comment {
@@ -109,8 +112,13 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
     }, 600)
   }
 
-  const myRating = item.ratings.find((r) => r.author === author)?.score ?? null
-  const allScores = item.ratings.map((r) => r.score)
+  const myRatingData = item.ratings.find((r) => r.author === author)
+  const myDimScores = {
+    appearance_score: myRatingData?.appearance_score ?? null,
+    practicality_score: myRatingData?.practicality_score ?? null,
+    value_score: myRatingData?.value_score ?? null,
+  }
+  const allScores = item.ratings.map((r) => r.score).filter((s): s is number => s != null)
   const avgScore =
     allScores.length > 0
       ? allScores.reduce((a, b) => a + b, 0) / allScores.length
@@ -118,7 +126,9 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
   const arthurRating = item.ratings.find((r) => r.author === 'Arthur')
   const graceRating = item.ratings.find((r) => r.author === 'Grace')
   const scoreDiff =
-    arthurRating && graceRating ? Math.abs(arthurRating.score - graceRating.score) : null
+    arthurRating?.score != null && graceRating?.score != null
+      ? Math.abs(arthurRating.score - graceRating.score)
+      : null
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -213,35 +223,25 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
         {/* Rating */}
         <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">我的评分</h2>
+            <h2 className="text-sm font-semibold text-gray-700">多维评分</h2>
             {avgScore !== null && (
               <span className="text-xs text-gray-400">
-                平均 {avgScore.toFixed(1)} 分（{allScores.length} 人）
+                综合 {avgScore.toFixed(1)} 分（{allScores.length} 人）
               </span>
             )}
           </div>
-          <StarRating itemId={item.id} author={author} initialScore={myRating} />
-
-          {item.ratings.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-gray-50 space-y-2">
-              <div className="flex gap-4">
-                {item.ratings.map((r) => (
-                  <div key={r.author} className="text-xs text-gray-500">
-                    <span className="font-medium text-pink-400">{r.author}</span>{' '}
-                    <span className="text-yellow-400">{'★'.repeat(Math.round(r.score))}</span>
-                    <span className="text-gray-300">{'★'.repeat(5 - Math.round(r.score))}</span>
-                    {' '}{r.score.toFixed(1)}
-                  </div>
-                ))}
-              </div>
-              {scoreDiff !== null && scoreDiff >= 2 && (
-                <div className="flex items-center gap-1.5 bg-orange-50 rounded-lg px-3 py-2">
-                  <span className="text-orange-500 text-sm">⚡</span>
-                  <span className="text-xs text-orange-600 font-medium">
-                    两人分歧较大（相差 {scoreDiff.toFixed(1)} 分），需要讨论～
-                  </span>
-                </div>
-              )}
+          <MultiDimRating
+            itemId={item.id}
+            author={author}
+            myScores={myDimScores}
+            allRatings={item.ratings}
+          />
+          {scoreDiff !== null && scoreDiff >= 2 && (
+            <div className="flex items-center gap-1.5 bg-orange-50 rounded-lg px-3 py-2 mt-3">
+              <span className="text-orange-500 text-sm">⚡</span>
+              <span className="text-xs text-orange-600 font-medium">
+                两人综合分歧较大（相差 {scoreDiff.toFixed(1)} 分），需要讨论～
+              </span>
             </div>
           )}
         </div>
