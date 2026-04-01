@@ -2,6 +2,14 @@
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 
+const SORTS = [
+  { value: 'time', label: '时间' },
+  { value: 'rating', label: '综合评分' },
+  { value: 'arthur', label: 'Arthur' },
+  { value: 'grace', label: 'Grace' },
+  { value: 'price', label: '价格' },
+]
+
 export default function SortControl({ current }: { current: string }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -14,28 +22,21 @@ export default function SortControl({ current }: { current: string }) {
   }
 
   return (
-    <div className="flex gap-2 text-xs">
-      <span className="text-gray-400 self-center">排序：</span>
-      <button
-        onClick={() => setSort('time')}
-        className={`px-3 py-1 rounded-full transition-colors ${
-          current === 'time'
-            ? 'bg-pink-500 text-white'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-        }`}
-      >
-        上传时间
-      </button>
-      <button
-        onClick={() => setSort('rating')}
-        className={`px-3 py-1 rounded-full transition-colors ${
-          current === 'rating'
-            ? 'bg-pink-500 text-white'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-        }`}
-      >
-        评分
-      </button>
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-xs text-gray-400">排序：</span>
+      {SORTS.map(({ value, label }) => (
+        <button
+          key={value}
+          onClick={() => setSort(value)}
+          className={`px-3 py-1 rounded-full text-xs transition-colors ${
+            current === value
+              ? 'bg-pink-500 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
     </div>
   )
 }

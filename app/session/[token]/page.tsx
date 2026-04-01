@@ -10,8 +10,11 @@ interface Item {
   id: string
   image_url: string
   decision: 'buy' | 'skip' | 'pending'
+  price: number | null
   created_at: string
   avgScore: number | null
+  arthurScore: number | null
+  graceScore: number | null
   commentCount: number
   ratings: { score: number; author: string }[]
   comments: { id: string }[]
@@ -42,25 +45,48 @@ export default async function SessionPage({
     .order('created_at', { ascending: true })
 
   const items: Item[] = (rawItems ?? []).map((item) => {
-    const scores = (item.ratings as { score: number }[] ?? []).map((r) => r.score)
-    const avgScore =
-      scores.length > 0 ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length : null
+    const ratings = (item.ratings as { score: number; author: string }[]) ?? []
+    const scores = ratings.map((r) => r.score)
+    const avgScore = scores.length > 0
+      ? scores.reduce((a, b) => a + b, 0) / scores.length
+      : null
+    const arthurScore = ratings.find((r) => r.author === 'Arthur')?.score ?? null
+    const graceScore = ratings.find((r) => r.author === 'Grace')?.score ?? null
     return {
       ...item,
       avgScore,
+      arthurScore,
+      graceScore,
       commentCount: (item.comments as unknown[])?.length ?? 0,
     }
   })
 
-  const sortedItems =
-    sort === 'rating'
-      ? [...items].sort((a, b) => {
-          if (a.avgScore === null && b.avgScore === null) return 0
-          if (a.avgScore === null) return 1
-          if (b.avgScore === null) return -1
-          return b.avgScore - a.avgScore
-        })
-      : items
+  const sortedItems = [...items].sort((a, b) => {
+    switch (sort) {
+      case 'rating':
+        if (a.avgScore === null && b.avgScore === null) return 0
+        if (a.avgScore === null) return 1
+        if (b.avgScore === null) return -1
+        return b.avgScore - a.avgScore
+      case 'arthur':
+        if (a.arthurScore === null && b.arthurScore === null) return 0
+        if (a.arthurScore === null) return 1
+        if (b.arthurScore === null) return -1
+        return b.arthurScore - a.arthurScore
+      case 'grace':
+        if (a.graceScore === null && b.graceScore === null) return 0
+        if (a.graceScore === null) return 1
+        if (b.graceScore === null) return -1
+        return b.graceScore - a.graceScore
+      case 'price':
+        if (a.price === null && b.price === null) return 0
+        if (a.price === null) return 1
+        if (b.price === null) return -1
+        return a.price - b.price
+      default:
+        return 0 // already ordered by created_at from DB
+    }
+  })
 
   const buyCount = items.filter((i) => i.decision === 'buy').length
 
@@ -79,11 +105,6 @@ export default async function SessionPage({
             {session.note && (
               <p className="text-sm text-gray-500 mt-0.5">{session.note}</p>
             )}
-            <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-              <span>{items.length} 件</span>
-              {buyCount > 0 && <span className="text-green-500">{buyCount} 件已选购</span>}
-              {session.budget && <span>预算 ¥{session.budget}</span>}
-            </div>
           </div>
         </div>
 

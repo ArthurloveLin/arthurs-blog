@@ -8,6 +8,7 @@ interface Item {
   id: string
   image_url: string
   decision: 'buy' | 'skip' | 'pending'
+  price: number | null
   created_at: string
   avgScore: number | null
   commentCount: number
@@ -62,7 +63,10 @@ export default function ImageGrid({ items, sessionToken }: ImageGridProps) {
               />
             </div>
 
-            <div className="p-2">
+            <div className="p-2 space-y-0.5">
+              {item.price !== null && (
+                <p className="text-xs font-semibold text-gray-700">¥{item.price}</p>
+              )}
               {item.avgScore !== null ? (
                 <p className="text-xs text-yellow-500 font-medium">
                   {'★'.repeat(Math.round(item.avgScore))}

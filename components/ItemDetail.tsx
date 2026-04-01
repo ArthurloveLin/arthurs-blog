@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import StarRating from './StarRating'
 import CommentBox from './CommentBox'
 import Lightbox from './Lightbox'
@@ -21,12 +21,14 @@ interface Comment {
   author: string
   content: string
   created_at: string
+  parent_id: string | null
 }
 
 interface Item {
   id: string
   image_url: string
   decision: Decision
+  price: number | null
   ratings: Rating[]
   comments: Comment[]
 }
@@ -47,6 +49,8 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
   const [decision, setDecision] = useState<Decision>(item.decision)
   const [savingDecision, setSavingDecision] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [price, setPrice] = useState<string>(item.price !== null ? String(item.price) : '')
+  const priceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const stored = localStorage.getItem('wardrobe_author')
@@ -75,6 +79,19 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
     } finally {
       setSavingDecision(false)
     }
+  }
+
+  function handlePriceChange(val: string) {
+    if (val !== '' && !/^\d+$/.test(val)) return
+    setPrice(val)
+    if (priceTimerRef.current) clearTimeout(priceTimerRef.current)
+    priceTimerRef.current = setTimeout(() => {
+      fetch(`/api/items/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ price: val === '' ? null : Number(val) }),
+      })
+    }, 600)
   }
 
   const myRating = item.ratings.find((r) => r.author === author)?.score ?? null
@@ -120,9 +137,22 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
           />
         )}
 
-        {/* Decision */}
+        {/* Decision + Price */}
         <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">决策</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-700">决策</h2>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-400">¥</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={price}
+                onChange={(e) => handlePriceChange(e.target.value)}
+                placeholder="填写价格"
+                className="w-24 text-sm text-right border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-pink-300"
+              />
+            </div>
+          </div>
           <div className="flex gap-2">
             {DECISION_CONFIG.map(({ value, label, active, inactive }) => (
               <button

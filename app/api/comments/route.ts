@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
-  const { item_id, author, content } = await req.json()
+  const { item_id, author, content, parent_id } = await req.json()
 
   if (!item_id || !author || !content?.trim()) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('comments')
-    .insert({ item_id, author, content: content.trim() })
+    .insert({ item_id, author, content: content.trim(), parent_id: parent_id ?? null })
     .select()
     .single()
 
