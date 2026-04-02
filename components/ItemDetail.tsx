@@ -76,6 +76,7 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
   function setAuthor(name: string) {
     localStorage.setItem('wardrobe_author', name)
     setAuthorState(name)
+    window.dispatchEvent(new Event('wardrobe_author_changed'))
   }
 
   async function handleDecision(value: Decision) {
