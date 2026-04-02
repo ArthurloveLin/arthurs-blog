@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import MultiDimRating from './MultiDimRating'
 import CommentBox from './CommentBox'
 import Lightbox from './Lightbox'
+import { updatePresenceActivity } from './ActivityBanner'
 
 const AUTHORS = ['Arthur', 'Grace']
 const CATEGORIES = ['上衣', '裤子', '鞋子', '配饰', '其他']
@@ -64,6 +65,12 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
   useEffect(() => {
     const stored = localStorage.getItem('wardrobe_author')
     if (stored) setAuthorState(stored)
+    
+    // Trigger activity update
+    updatePresenceActivity('正在看图')
+    return () => {
+      updatePresenceActivity('正在浏览')
+    }
   }, [])
 
   function setAuthor(name: string) {

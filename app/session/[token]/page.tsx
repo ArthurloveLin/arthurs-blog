@@ -7,6 +7,7 @@ import SortControl from '@/components/SortControl'
 import FinalListToggle from '@/components/FinalListToggle'
 import SessionHeader from '@/components/SessionHeader'
 import RealtimeSync from '@/components/RealtimeSync'
+import ActivityBanner from '@/components/ActivityBanner'
 
 interface Item {
   id: string
@@ -105,6 +106,7 @@ export default async function SessionPage({
   return (
     <main className="min-h-screen bg-gray-50">
       <RealtimeSync sessionId={session.id} />
+      <ActivityBanner sessionId={session.id} />
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Header */}
         <SessionHeader session={session} />
