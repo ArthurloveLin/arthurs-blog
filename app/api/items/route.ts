@@ -5,6 +5,7 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData()
   const file = formData.get('file') as File | null
   const sessionToken = formData.get('sessionToken') as string | null
+  const category = formData.get('category') as string | null
 
   if (!file || !sessionToken) {
     return NextResponse.json({ error: 'Missing file or sessionToken' }, { status: 400 })
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
       session_id: session.id,
       image_url: publicUrl,
       image_path: imagePath,
+      category: category,
     })
     .select()
     .single()

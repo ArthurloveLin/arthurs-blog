@@ -8,6 +8,7 @@ import CommentBox from './CommentBox'
 import Lightbox from './Lightbox'
 
 const AUTHORS = ['Arthur', 'Grace']
+const CATEGORIES = ['上衣', '裤子', '鞋子', '配饰', '其他']
 
 type Decision = 'buy' | 'skip' | 'pending'
 
@@ -33,6 +34,7 @@ interface Item {
   decision: Decision
   price: number | null
   notes: string | null
+  category: string | null
   ratings: Rating[]
   comments: Comment[]
 }
@@ -55,6 +57,7 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [price, setPrice] = useState<string>(item.price !== null ? String(item.price) : '')
   const [notes, setNotes] = useState<string>(item.notes ?? '')
+  const [category, setCategory] = useState<string>(item.category ?? '')
   const priceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -112,6 +115,19 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
     }, 600)
   }
 
+  async function handleCategoryChange(val: string) {
+    setCategory(val)
+    try {
+      await fetch(`/api/items/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: val || null }),
+      })
+    } catch (err) {
+      console.error('Failed to update category', err)
+    }
+  }
+
   const myRatingData = item.ratings.find((r) => r.author === author)
   const myDimScores = {
     appearance_score: myRatingData?.appearance_score ?? null,
@@ -165,6 +181,36 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
             onClose={() => setLightboxOpen(false)}
           />
         )}
+
+        {/* Category */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">分类</h2>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => handleCategoryChange('')}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                category === ''
+                  ? 'bg-pink-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              未分类
+            </button>
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => handleCategoryChange(cat)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  category === cat
+                    ? 'bg-pink-500 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Decision + Price */}
         <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
