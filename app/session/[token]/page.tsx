@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase'
@@ -6,7 +5,9 @@ import ImageGrid from '@/components/ImageGrid'
 import UploadZone from '@/components/UploadZone'
 import SortControl from '@/components/SortControl'
 import FinalListToggle from '@/components/FinalListToggle'
+import SessionHeader from '@/components/SessionHeader'
 import RealtimeSync from '@/components/RealtimeSync'
+import ActivityBanner from '@/components/ActivityBanner'
 
 interface Item {
   id: string
@@ -105,21 +106,10 @@ export default async function SessionPage({
   return (
     <main className="min-h-screen bg-gray-50">
       <RealtimeSync sessionId={session.id} />
+      <ActivityBanner sessionId={session.id} />
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="flex items-start gap-3 mb-6">
-          <Link href="/wardrobe" className="text-gray-400 hover:text-gray-600 mt-1">
-            ←
-          </Link>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-gray-800 truncate">
-              {session.title || '选衣会话'}
-            </h1>
-            {session.note && (
-              <p className="text-sm text-gray-500 mt-0.5">{session.note}</p>
-            )}
-          </div>
-        </div>
+        <SessionHeader session={session} />
 
         {/* Stats bar */}
         {items.length > 0 && (
