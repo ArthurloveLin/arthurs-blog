@@ -120,9 +120,9 @@
    - 等待 DNS 检查通过后，勾选底部的 **Enforce HTTPS**（如果可用）。
 
 ### 阶段 3：主项目联动
-- [ ] 按照本文第四部分的说明，修改 `wardrobe-picks/app/page.tsx`。
-- [ ] 提交代码并推送至 Vercel 进行部署。
-- [ ] 从国内网络环境访问 `yourdomain.com`，点击卡片验证能否顺利跳转并极速加载 `trendradar.yourdomain.com`。
+- [x] 按照本文第四部分的说明，修改 `wardrobe-picks/app/page.tsx`。
+- [x] 提交代码并推送至 Vercel 进行部署。
+- [ ] 从国内网络环境访问 `yourdomain.com`，点击卡片验证能否顺利跳转并极速加载 `trendradar.arthurlovegrace.top`。
 
 ---
 
