@@ -184,7 +184,7 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
         ))
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {displayItems.map((item, index) => {
+          {displayItems.map((item) => {
             const scoreDiff =
               item.arthurScore !== null && item.graceScore !== null
                 ? Math.abs(item.arthurScore - item.graceScore)
