@@ -11,6 +11,7 @@ interface Item {
   decision: 'buy' | 'skip' | 'pending'
   price: number | null
   position: number
+  category: string | null
   created_at: string
   avgScore: number | null
   arthurScore: number | null
@@ -39,6 +40,29 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
   }
 
   const displayItems = draggable ? orderedItems : initialItems
+
+  // Group items if categories exist
+  const hasCategories = initialItems.some((i) => i.category)
+  const groupedItems = !draggable && hasCategories
+    ? initialItems.reduce((acc, item) => {
+        const cat = item.category || '未分类'
+        if (!acc[cat]) acc[cat] = []
+        acc[cat].push(item)
+        return acc
+      }, {} as Record<string, Item[]>)
+    : null
+
+  const CATEGORY_ORDER = ['上衣', '裤子', '鞋子', '配饰', '其他', '未分类']
+  const sortedCategoryKeys = groupedItems
+    ? Object.keys(groupedItems).sort((a, b) => {
+        const indexA = CATEGORY_ORDER.indexOf(a)
+        const indexB = CATEGORY_ORDER.indexOf(b)
+        if (indexA === -1 && indexB === -1) return a.localeCompare(b)
+        if (indexA === -1) return 1
+        if (indexB === -1) return -1
+        return indexA - indexB
+      })
+    : []
 
   async function handleDelete(id: string) {
     if (!confirm('确定删除这张图片吗？')) return
@@ -117,62 +141,77 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
   }
 
   const grid = (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-      {displayItems.map((item, index) => {
-        const scoreDiff =
-          item.arthurScore !== null && item.graceScore !== null
-            ? Math.abs(item.arthurScore - item.graceScore)
-            : null
-        const hasConflict = scoreDiff !== null && scoreDiff >= 2
-
-        if (draggable) {
-          return (
-            <Draggable key={item.id} draggableId={item.id} index={index}>
-              {(provided, snapshot) => (
+    <div className="space-y-8">
+      {groupedItems ? (
+        sortedCategoryKeys.map((cat) => (
+          <div key={cat} className="space-y-3">
+            <h3 className="text-sm font-bold text-gray-500 flex items-center gap-2">
+              <span className="w-1 h-4 bg-pink-400 rounded-full" />
+              {cat}
+              <span className="text-xs font-normal text-gray-300">
+                ({groupedItems[cat].length})
+              </span>
+            </h3>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {groupedItems[cat].map((item) => (
                 <div
-                  ref={provided.innerRef}
-                  {...provided.draggableProps}
-                  {...provided.dragHandleProps}
-                  className={`relative group rounded-xl overflow-hidden bg-gray-100 shadow-sm transition-shadow ${
-                    snapshot.isDragging ? 'shadow-xl ring-2 ring-pink-400' : ''
-                  }`}
+                  key={item.id}
+                  className="relative group rounded-xl overflow-hidden bg-gray-100 shadow-sm"
                 >
                   <ItemCard
                     item={item}
                     sessionToken={sessionToken}
                     deleting={deleting}
                     onDelete={handleDelete}
-                    hasConflict={hasConflict}
-                    scoreDiff={scoreDiff}
+                    hasConflict={
+                      item.arthurScore !== null &&
+                      item.graceScore !== null &&
+                      Math.abs(item.arthurScore - item.graceScore) >= 2
+                    }
+                    scoreDiff={
+                      item.arthurScore !== null && item.graceScore !== null
+                        ? Math.abs(item.arthurScore - item.graceScore)
+                        : null
+                    }
                     selectMode={selectMode}
                     selected={selected.has(item.id)}
                     onToggleSelect={toggleSelect}
                   />
                 </div>
-              )}
-            </Draggable>
-          )
-        }
-
-        return (
-          <div
-            key={item.id}
-            className="relative group rounded-xl overflow-hidden bg-gray-100 shadow-sm"
-          >
-            <ItemCard
-              item={item}
-              sessionToken={sessionToken}
-              deleting={deleting}
-              onDelete={handleDelete}
-              hasConflict={hasConflict}
-              scoreDiff={scoreDiff}
-              selectMode={selectMode}
-              selected={selected.has(item.id)}
-              onToggleSelect={toggleSelect}
-            />
+              ))}
+            </div>
           </div>
-        )
-      })}
+        ))
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {displayItems.map((item, index) => {
+            const scoreDiff =
+              item.arthurScore !== null && item.graceScore !== null
+                ? Math.abs(item.arthurScore - item.graceScore)
+                : null
+            const hasConflict = scoreDiff !== null && scoreDiff >= 2
+
+            return (
+              <div
+                key={item.id}
+                className="relative group rounded-xl overflow-hidden bg-gray-100 shadow-sm"
+              >
+                <ItemCard
+                  item={item}
+                  sessionToken={sessionToken}
+                  deleting={deleting}
+                  onDelete={handleDelete}
+                  hasConflict={hasConflict}
+                  scoreDiff={scoreDiff}
+                  selectMode={selectMode}
+                  selected={selected.has(item.id)}
+                  onToggleSelect={toggleSelect}
+                />
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 

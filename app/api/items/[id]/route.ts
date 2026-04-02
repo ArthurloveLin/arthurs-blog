@@ -37,6 +37,7 @@ export async function PATCH(
   if (body.position !== undefined) updates.position = body.position
   if (body.price !== undefined) updates.price = body.price
   if (body.notes !== undefined) updates.notes = body.notes
+  if (body.category !== undefined) updates.category = body.category
 
   const { data, error } = await supabaseAdmin
     .from('items')
