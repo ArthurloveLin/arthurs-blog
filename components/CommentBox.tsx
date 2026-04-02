@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import data from '@emoji-mart/data'
+import { updatePresenceActivity } from './ActivityBanner'
 
 // emoji-mart uses browser APIs, must be client-only
 const Picker = dynamic(() => import('@emoji-mart/react'), { ssr: false })
@@ -188,6 +189,7 @@ export default function CommentBox({ itemId, author, initialComments }: CommentB
                 ref={inputRef}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
+                onFocus={() => updatePresenceActivity('正在评论')}
                 placeholder={replyTo ? `回复 @${replyTo.author}…` : '写点什么…'}
                 className="flex-1 py-2 pr-3 text-sm focus:outline-none bg-transparent"
               />
