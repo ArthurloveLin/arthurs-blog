@@ -26,6 +26,9 @@ export default function SessionList({ sessions, showArchived }: SessionListProps
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
   async function handleArchive(session: Session) {
+    if (!session.archived && !confirm('确定要归档这个会话吗？归档后它将从主页移除，但仍可在“已归档”中查看。')) {
+      return
+    }
     setLoading(session.id)
     try {
       await fetch(`/api/sessions/${session.token}`, {
@@ -59,7 +62,7 @@ export default function SessionList({ sessions, showArchived }: SessionListProps
       {archivedCount > 0 && (
         <div className="mb-3 text-center">
           <Link
-            href={showArchived ? '/' : '/?archived=1'}
+            href={showArchived ? '/wardrobe' : '/wardrobe?archived=1'}
             className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
           >
             {showArchived ? '隐藏已归档' : `查看 ${archivedCount} 个已归档会话`}
