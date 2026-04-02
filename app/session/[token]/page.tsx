@@ -14,6 +14,7 @@ interface Item {
   decision: 'buy' | 'skip' | 'pending'
   price: number | null
   position: number
+  category: string | null
   created_at: string
   avgScore: number | null
   arthurScore: number | null
