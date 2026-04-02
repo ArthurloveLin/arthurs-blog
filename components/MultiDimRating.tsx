@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { updatePresenceActivity } from './ActivityBanner'
 
 const DIMS = [
   { key: 'appearance_score' as const, label: '颜值', color: '#f472b6' },
@@ -191,6 +192,7 @@ export default function MultiDimRating({
 
   async function handleDimChange(key: DimKey, val: number) {
     if (!author || saving) return
+    updatePresenceActivity('正在打分')
     const newScores = { ...scores, [key]: val }
     setScores(newScores)
 
