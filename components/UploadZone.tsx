@@ -16,12 +16,15 @@ interface UploadStatus {
   error?: string
 }
 
+const CATEGORIES = ['上衣', '裤子', '鞋子', '配饰', '其他']
+
 export default function UploadZone({ sessionToken }: UploadZoneProps) {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [uploads, setUploads] = useState<UploadStatus[]>([])
   const [uploading, setUploading] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState('')
 
   function updateStatus(index: number, update: Partial<UploadStatus>) {
     setUploads((prev) =>
@@ -52,6 +55,9 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
           const fd = new FormData()
           fd.append('file', compressed, `${file.name}.webp`)
           fd.append('sessionToken', sessionToken)
+          if (selectedCategory) {
+            fd.append('category', selectedCategory)
+          }
 
           const res = await fetch('/api/items', { method: 'POST', body: fd })
           if (!res.ok) {
@@ -92,6 +98,33 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
 
   return (
     <div className="w-full">
+      <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
+        <span className="text-xs text-gray-400 shrink-0">上传分类：</span>
+        <button
+          onClick={() => setSelectedCategory('')}
+          className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+            selectedCategory === ''
+              ? 'bg-pink-500 text-white'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          不限
+        </button>
+        {CATEGORIES.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+              selectedCategory === cat
+                ? 'bg-pink-500 text-white'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       <div
         className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors ${
           dragging
@@ -104,7 +137,9 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
         onDrop={onDrop}
       >
         <div className="text-3xl mb-2">👗</div>
-        <p className="text-sm text-gray-500">点击选择图片，或拖拽到这里</p>
+        <p className="text-sm text-gray-500">
+          {selectedCategory ? `上传到「${selectedCategory}」` : '点击选择图片，或拖拽到这里'}
+        </p>
         <p className="text-xs text-gray-400 mt-1">JPG / PNG / WebP，每张最大 5MB</p>
         <input
           ref={inputRef}

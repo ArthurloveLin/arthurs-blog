@@ -195,13 +195,13 @@ DELETE /api/comments/[id]      删除自己的评论
 
 #### 4.1 操作检查清单
 
-- [ ] 创建 `wardrobe-front` Worker，填入 Vercel host，部署并记录域名
-- [ ] 创建 `wardrobe-supabase` Worker，填入 Supabase host，部署并记录域名
-- [ ] 在 Vercel 环境变量中将 `NEXT_PUBLIC_SUPABASE_URL` 改为 Worker 域名
-- [ ] 重新触发 Vercel 部署（让新环境变量生效）
-- [ ] 用国内网络访问 CF Worker 域名，验证页面正常加载
-- [ ] 验证图片上传、评分、评论功能均通过 Worker 正常工作
-- [ ] （可选）在 Cloudflare 为 Worker 绑定自定义域名，替换 `*.workers.dev`
+- [x] 创建 `wardrobe-front` Worker，填入 Vercel host，部署并记录域名
+- [x] 创建 `wardrobe-supabase` Worker，填入 Supabase host，部署并记录域名
+- [x] 在 Vercel 环境变量中将 `NEXT_PUBLIC_SUPABASE_URL` 改为 Worker 域名
+- [x] 重新触发 Vercel 部署（让新环境变量生效）
+- [x] 用国内网络访问 CF Worker 域名，验证页面正常加载
+- [x] 验证图片上传、评分、评论功能均通过 Worker 正常工作
+- [x] （可选）在 Cloudflare 为 Worker 绑定自定义域名，替换 `*.workers.dev`
 
 #### 4.2 域名方案（彻底解决 `*.workers.dev` 被封问题）
 
@@ -227,8 +227,8 @@ DELETE /api/comments/[id]      删除自己的评论
 - [x] Vercel 项目 Settin- [x Domains → 绑定自定义域名（如 `yourdomain.top`）
 - [x] `wardrobe-supabase` Worker → Settings → Domains → 绑定 `api.yourdomain.top`
 - [x] 更新 `.env.local` 和 Vercel 环境变量：`NEXT_PUBLIC_SUPABASE_URL=https://api.arthurlovegrace.top`
-- [ ] 重新触发 Vercel 部署，用国内网络验证前后端均正常
-- [ ] `wardrobe-front` Worker 可直接删除，不再需要
+- [x] 重新触发 Vercel 部署，用国内网络验证前后端均正常
+- [x] `wardrobe-front` Worker 可直接删除，不再需要
 
 ### Phase 5 — 可选增强（后续迭代）
 
@@ -239,7 +239,7 @@ DELETE /api/comments/[id]      删除自己的评论
 
 #### 图片与内容管理
 - [x] 拖拽排序图片顺序
-- [ ] 会话内分组 / 标签（如：上衣 / 裤子 / 鞋子）
+- [x] 会话内分组 / 标签（如：上衣 / 裤子 / 鞋子）
 - [x] 单品备注字段（记录品牌、店铺链接等）
 - [x] 图片批量删除
 
