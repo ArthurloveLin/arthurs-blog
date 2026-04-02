@@ -13,15 +13,17 @@ const modules = [
     active: true,
   },
   {
-    href: '#',
+    href: 'https://trendradar.arthurlovegrace.top',
     emoji: '📰',
     title: '新闻汇总',
     description: '聚合多源资讯，每日快览科技、财经、生活热点',
     color: 'from-sky-50 to-blue-50',
     border: 'border-sky-100',
-    badge: 'bg-gray-100 text-gray-400',
-    badgeText: '即将上线',
-    active: false,
+    badge: 'bg-sky-100 text-sky-600',
+    badgeText: '使用中',
+    active: true,
+    target: '_blank',
+    rel: 'noopener noreferrer',
   },
 ]
 
@@ -43,6 +45,7 @@ export default function HomePage() {
             <Link
               key={mod.href}
               href={mod.href}
+              {...(mod.target ? { target: mod.target, rel: mod.rel } : {})}
               className={`
                 group relative rounded-2xl border bg-gradient-to-br p-5
                 ${mod.color} ${mod.border}
