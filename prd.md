@@ -14,6 +14,7 @@
 - 数据库：Supabase (PostgreSQL)
 - 图片存储：Supabase Storage
 - 部署：Vercel
+- 国内加速：Cloudflare Workers (可选)
 
 ---
 
@@ -26,6 +27,7 @@
 - 会话有唯一分享链接，双方通过链接进入同一会话
 - 无需注册登录，通过链接 token 区分会话
 - 历史会话列表页，按时间倒序展示
+- 支持会话归档，隐藏已完成的活动
 
 ### F2 — 批量上传图片
 - 支持多选图片（`input[multiple]`）或拖拽上传
@@ -36,235 +38,143 @@
 
 ### F3 — 网格展示
 - 瀑布流或等高网格展示所有图片
-- 每张卡片显示：图片缩略图、星级评分、评论摘要（truncate）
-- 支持按「上传时间」「平均评分」排序
+- 每张卡片显示：图片缩略图、星级评分、评论数、价格
+- 支持按「上传时间」「综合评分」「价格」「各维度评分」排序
 - 点击图片放大查看（lightbox）
 
 ### F4 — 打分与评论
 - 星级评分：1 ~ 5 星（支持半星可选）
-- 评分维度（二选一方案）：
-  - 方案 A：单一综合评分（简单）
-  - 方案 B：多维评分（颜值 / 实用 / 性价比），展示雷达图（复杂，可后期迭代）
-- 每张图片支持多条评论（双方各自可评）
+- 评分维度：
+  - 单一综合评分 (score)
+  - 多维评分：颜值 (appearance_score) / 实用 (practicality_score) / 性价比 (value_score)
+- 每张图片支持多条评论，并支持楼中楼回复 (parent_id)
 - 评分 + 评论实时保存（防抖 500ms）
 - 乐观更新 UI（先更新界面，再保存到数据库）
 
 ### F5 — 决策标记
 - 每件衣服可标记为「买」/ 「不买」/ 「待定」
-- 会话页顶部显示「已选 X 件 / 总预算」（预算可设置）
-- 支持导出决策结果（可选，后期迭代）
+- 会话页顶部统计栏：显示已选件数和总预算进度
+- 「最终清单」视图：一键筛选标记为「买」的单品
 
 ---
 
 ## 数据模型
 
 ```sql
--- 会话
-sessions (
+-- 会话 (sessions)
+CREATE TABLE sessions (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  title       text,
-  note        text,
-  token       text UNIQUE NOT NULL,  -- 分享链接 token
+  title       text,                  -- 会话标题
+  note        text,                  -- 备注
+  token       text UNIQUE NOT NULL,  -- 分享链接唯一标识
   budget      integer,               -- 预算（元）
+  archived    boolean DEFAULT false NOT NULL, -- 是否已归档
   created_at  timestamptz DEFAULT now()
-)
+);
 
--- 衣服条目
-items (
+-- 衣服条目 (items)
+CREATE TABLE items (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id  uuid REFERENCES sessions(id) ON DELETE CASCADE,
-  image_url   text NOT NULL,
-  image_path  text NOT NULL,         -- Supabase Storage path
-  position    integer DEFAULT 0,     -- 手动排序用
-  decision    text CHECK (decision IN ('buy','skip','pending')) DEFAULT 'pending',
+  image_url   text NOT NULL,         -- 图片公开访问 URL
+  image_path  text NOT NULL,         -- Supabase Storage 内部路径
+  position    integer DEFAULT 0,     -- 手动排序位置
+  decision    text CHECK (decision IN ('buy','skip','pending')) DEFAULT 'pending', -- 决策状态
+  price       integer,               -- 价格
+  notes       text,                  -- 单品详情备注（品牌/链接等）
+  category    text,                  -- 分类（如：上衣、裙子、鞋子）
   created_at  timestamptz DEFAULT now()
-)
+);
 
--- 评分
-ratings (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  item_id     uuid REFERENCES items(id) ON DELETE CASCADE,
-  author      text NOT NULL,         -- 'me' 或 '她'（由前端本地存储决定）
-  score       numeric(2,1) CHECK (score >= 1 AND score <= 5),
-  created_at  timestamptz DEFAULT now(),
+-- 评分 (ratings)
+CREATE TABLE ratings (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id            uuid REFERENCES items(id) ON DELETE CASCADE,
+  author             text NOT NULL,         -- 评价人（'Arthur' / 'Grace'）
+  score              numeric(2,1) CHECK (score >= 1 AND score <= 5), -- 综合分
+  appearance_score   numeric(2,1) CHECK (appearance_score >= 1 AND appearance_score <= 5), -- 颜值
+  practicality_score numeric(2,1) CHECK (practicality_score >= 1 AND practicality_score <= 5), -- 实用
+  value_score        numeric(2,1) CHECK (value_score >= 1 AND value_score <= 5), -- 性价比
+  created_at         timestamptz DEFAULT now(),
   UNIQUE(item_id, author)
-)
+);
 
--- 评论
-comments (
+-- 评论 (comments)
+CREATE TABLE comments (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   item_id     uuid REFERENCES items(id) ON DELETE CASCADE,
+  parent_id   uuid REFERENCES comments(id) ON DELETE CASCADE, -- 楼中楼回复支持
   author      text NOT NULL,
   content     text NOT NULL,
   created_at  timestamptz DEFAULT now()
-)
+);
 ```
+
+---
+
+## 环境变量配置
+
+启动任何新环境前，需在根目录创建 `.env.local`：
+
+```env
+# Supabase 基本配置
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
+
+# (可选) 国内访问加速
+# NEXT_PUBLIC_SUPABASE_URL 可以替换为绑定的自定义域名/Worker域名
+```
+
+- `NEXT_PUBLIC_SUPABASE_URL`: Supabase API Endpoint
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: 客户端匿名访问 Key
+- `SUPABASE_SERVICE_ROLE_KEY`: 服务端 Admin Key（绝对不可泄露给前端）
 
 ---
 
 ## 页面结构
 
 ```
-/                         → 首页（历史会话列表 + 新建会话按钮）
-/session/new              → 新建会话表单
-/session/[token]          → 会话主页（网格 + 上传 + 排序）
-/session/[token]/item/[id]→ 单件详情（大图 + 评分 + 评论）
+/                         → 首页（快速进入历史或创建新会话）
+/wardrobe                 → 选衣记录（完整会话列表，含归档切换）
+/session/new              → 创建会话
+/session/[token]          → 会话主页（网格展示、上传、打分、筛选）
+/session/[token]/item/[id]→ 单品详情页（多维打分、楼中楼评论、备注编辑）
 ```
 
 ---
 
 ## API Routes
 
-```
-POST   /api/sessions           创建会话
-GET    /api/sessions           获取会话列表
-
-GET    /api/sessions/[token]   获取会话详情 + 所有 items（含平均分）
-POST   /api/items              上传单张图片（multipart/form-data）
-DELETE /api/items/[id]         删除图片（同时删除 Storage 文件）
-
-PATCH  /api/items/[id]         更新 decision / position
-
-PUT    /api/ratings            新增或更新评分（upsert by item_id + author）
-POST   /api/comments           新增评论
-DELETE /api/comments/[id]      删除自己的评论
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/sessions` | `GET` | 获取近期会话列表 |
+| `/api/sessions` | `POST` | 创建新会话 (title, note, budget) |
+| `/api/sessions/[token]` | `GET` | 获取会话详情 + items (含平均分 & 评论数) |
+| `/api/sessions/[token]` | `PATCH` | 更新会话属性 (title, note, budget, archived) |
+| `/api/sessions/[token]` | `DELETE` | 删除会话（含级联删除 Storage 里的图片） |
+| `/api/items` | `POST` | 上传单张图片并创建记录 |
+| `/api/items/[id]` | `PATCH` | 更新单品 (decision, price, notes, category) |
+| `/api/items/[id]` | `DELETE` | 删除单品及其 Storage 文件 |
+| `/api/items/bulk-delete` | `POST` | 批量删除单品 |
+| `/api/ratings` | `PUT` | 新增或更新评分 (upsert) |
+| `/api/comments` | `POST` | 发布评论 (支持 parent_id) |
+| `/api/comments/[id]` | `DELETE` | 删除评论 |
 
 ---
 
 ## Supabase 配置要点
 
-### Storage Bucket
-- Bucket 名：`wardrobe`
-- 设置为 **public**（图片通过 CDN URL 直接访问，无需鉴权）
-- 路径规则：`{session_token}/{item_id}.webp`
+### 1. Storage Bucket
+- 创建名为 `wardrobe` 的 **Public** Bucket。
+- **Policies**: 启用 `SELECT` 和 `INSERT` 给所有人（或基于 session token 校验）。
 
-### RLS（Row Level Security）
-- 本项目不做用户认证，RLS 策略设为：
-  - 通过 `session token` 校验（在 API Route 中手动 validate，Supabase 用 service_role key 操作）
-  - 或临时禁用 RLS，等用户量上来再加
+### 2. RLS (Row Level Security)
+- 目前主要依赖 API Routes 使用 `service_role` 进行管理，前端通过 token 隔离。
+- 若需更高级安全性，可配置 RLS 策略。
 
----
-
-## 阶段规划
-
-### Phase 0 — 环境搭建（预计 30min）
-- [x] `npx create-next-app@latest` 初始化项目
-- [x] 安装依赖：`@supabase/supabase-js`, `@supabase/ssr`, `sharp`（图片压缩）
-- [x] Supabase 项目创建，执行数据库 migration
-- [x] `.env.local` 配置 `SUPABASE_URL` + `SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_ROLE_KEY`
-- [x] Vercel 项目创建，关联 GitHub 仓库，配置环境变量
-
-### Phase 1 — 核心流程 MVP（预计 2-3h）
-目标：能跑通「创建会话 → 上传图片 → 显示网格」
-
-- [x] 首页：会话列表 + 新建会话按钮
-- [x] 新建会话 API + 页面（生成随机 token）
-- [x] 图片上传：客户端压缩 → POST 到 API Route → 上传 Supabase Storage → 写 items 表
-- [x] 会话页：网格展示已上传图片（无评分，仅图片）
-- [x] 部署到 Vercel，验证 Supabase 连通性
-
-### Phase 2 — 评分与评论（预计 1-2h）
-目标：打分核心交互完成
-
-- [x] 作者身份选择（本地 localStorage 存「Arthur」/ 「Grace」）
-- [x] 星级评分组件（5星，点击即保存）
-- [x] 评论输入框 + 提交
-- [x] 网格卡片显示平均分 + 评论数
-- [x] 按评分排序功能
-
-### Phase 3 — 决策与体验打磨（预计 1h）
-目标：真实可用
-
-- [x] 「买 / 不买 / 待定」标记按钮
-- [x] 会话顶部统计栏（已选 X 件）
-- [x] 图片放大 Lightbox
-- [x] 上传进度条
-- [x] 移动端响应式优化（主要在手机上用）
-- [x] 空状态页面设计
-- [x] 价格填写、按价格排序
-- [x] 添加排序维度按价格排序、按arthur评分排序、按grace评分排序
-- [x] 评论盖楼(评论也可以作为一层楼展开，论坛基础功能)
-- [x] 评论emoji支持
-
-
-### Phase 4 — 国内访问中转（Cloudflare Workers）
-
-**背景**：`*.vercel.app` 和 `*.supabase.co` 在国内均被 GFW 封锁，需通过 Cloudflare Workers 做反向代理。
-方案成本：免费（CF Workers 免费额度 10万次/天，完全够用）。
-
-#### 4.1 操作检查清单
-
-- [x] 创建 `wardrobe-front` Worker，填入 Vercel host，部署并记录域名
-- [x] 创建 `wardrobe-supabase` Worker，填入 Supabase host，部署并记录域名
-- [x] 在 Vercel 环境变量中将 `NEXT_PUBLIC_SUPABASE_URL` 改为 Worker 域名
-- [x] 重新触发 Vercel 部署（让新环境变量生效）
-- [x] 用国内网络访问 CF Worker 域名，验证页面正常加载
-- [x] 验证图片上传、评分、评论功能均通过 Worker 正常工作
-- [x] （可选）在 Cloudflare 为 Worker 绑定自定义域名，替换 `*.workers.dev`
-
-#### 4.2 域名方案（彻底解决 `*.workers.dev` 被封问题）
-
-**背景**：`*.workers.dev` 本身也被 GFW 封锁，Worker 透传虽然配置正确，但国内仍无法访问。
-根本解法是绑定一个自定义域名。
-
-**购买域名**
-- 推荐阿里云 / 腾讯云购买 `.top` / `.xyz` 后缀，首年 ¥5~15
-- 或在 Cloudflare Registrar 购买 `.com`，约 $10/年，买完无需迁移 NS
-- 解析到境外服务器（Vercel）**无需备案**
-
-**DNS 配置**（域名 NS 迁移到 Cloudflare 后，在 CF 控制台添加两条记录）
-
-| 类型 | 名称 | 内容 | 代理 |
-|------|------|------|------|
-| CNAME | `@`（或 `www`） | `cname.vercel-dns.com` | 橙云开启 |
-| CNAME | `api` | `wardrobe-supabase.s230132196.workers.dev` | 橙云开启 |
-
-**操作检查清单**
-- [x] 购买域名，将 NS 改为 Cloudflare（或直接在 CF Registrar 购买）
-- [x] CF 添加 CNAME `@` → `cname.vercel-dns.com`（橙云开启）
-- [x] CF 添加 CNAME `api` → `wardrobe-supabase.s230132196.workers.dev`（橙云开启）
-- [x] Vercel 项目 Settin- [x Domains → 绑定自定义域名（如 `yourdomain.top`）
-- [x] `wardrobe-supabase` Worker → Settings → Domains → 绑定 `api.yourdomain.top`
-- [x] 更新 `.env.local` 和 Vercel 环境变量：`NEXT_PUBLIC_SUPABASE_URL=https://api.arthurlovegrace.top`
-- [x] 重新触发 Vercel 部署，用国内网络验证前后端均正常
-- [x] `wardrobe-front` Worker 可直接删除，不再需要
-
-### Phase 5 — 可选增强（后续迭代）
-
-#### 评分与决策
-- [x] 多维评分（颜值 / 实用 / 性价比）+ 雷达图展示
-- [x] 两人评分差异高亮（分歧最大的单品置顶提示）
-- [x] 「最终清单」视图：只展示标记为「买」的单品，方便结算
-
-#### 图片与内容管理
-- [x] 拖拽排序图片顺序
-- [x] 会话内分组 / 标签（如：上衣 / 裤子 / 鞋子）
-- [x] 单品备注字段（记录品牌、店铺链接等）
-- [x] 图片批量删除
-
-#### 会话管理
-- [x] 历史会话归档、删除
-- [x] 会话标题 / 备注编辑
-
-
-#### 协作体验
-- [x] 实时同步（Supabase Realtime，两人同时操作时自动刷新）
-- [ ] 顶部在线状态 & 活动横幅：使用 Supabase Presence 实时显示「xx 在线」或「xx 正在评价/评论」。
-  - 设计决策：采用顶部动态横幅而非滚动字幕，兼顾实时感与可读性。
-  - 活动状态：进入详情页、操作评分、输入评论时更新状态。
-
----
-
-## 非功能要求
-
-| 项目 | 要求 |
-|------|------|
-| 移动端优先 | 主要使用场景是手机浏览器 |
-| 图片加载 | 缩略图使用 `next/image`，懒加载 |
-| 并发上传 | 多图并发，单次上传失败不阻塞其他图片 |
-| 防止误删 | 删除图片前二次确认 |
-| 离线友好 | 评分/评论操作网络中断时提示重试 |
+### 3. Realtime (可选)
+- 启用 `sessions` 和 `items` 表的 Realtime 订阅，实现双人同步操作自动刷新。
 
 ---
 
@@ -272,39 +182,35 @@ DELETE /api/comments/[id]      删除自己的评论
 
 ```
 app/
-  page.tsx                   # 首页（会话列表）
-  session/
-    new/page.tsx             # 新建会话
-    [token]/
-      page.tsx               # 会话主页
-      item/[id]/page.tsx     # 单件详情
-api/
-  sessions/route.ts
-  sessions/[token]/route.ts
-  items/route.ts
-  items/[id]/route.ts
-  ratings/route.ts
-  comments/route.ts
-  comments/[id]/route.ts
-components/
-  ImageGrid.tsx
-  UploadZone.tsx
-  StarRating.tsx
-  CommentBox.tsx
-  DecisionBadge.tsx
-  Lightbox.tsx
+├── api/                   # Serverless API 端点
+├── session/
+│   ├── [token]/           # 会话主页
+│   │   ├── item/[id]/     # 单品详情
+│   └── new/               # 新建会话
+├── wardrobe/              # 记录归档页
+├── globals.css            # 全局样式
+├── layout.tsx             # 根布局（包含全站字体与背景）
+└── page.tsx               # 首页入口
+components/                # 核心 React 组件
+├── ActivityBanner.tsx     # 顶部活动状态
+├── ImageGrid.tsx          # 瀑布流/网格展示
+├── ItemDetail.tsx         # 详情卡片
+├── RealtimeSync.tsx       # 实时同步逻辑
+├── UploadZone.tsx         # 压缩上传组件
+└── ...
 lib/
-  supabase.ts                # client + server supabase 初始化
-  compress.ts                # 客户端图片压缩工具
+├── compress.ts            # 客户端图片压缩工具
+└── supabase.ts            # Supabase 客户端初始化
 supabase/
-  migrations/
-    001_init.sql             # 建表 SQL
+└── migrations/            # 数据库版本迁移记录
+workers/                   # Cloudflare Workers 加速脚本
 ```
 
 ---
 
-## 给 Claude Code 的提示
+## 部署与迁移建议
 
-> 开始开发前请先完成 Phase 0 的环境搭建，并确认 Supabase 连通后再进入 Phase 1。
-> 优先保证 Phase 1-3 的核心流程完整可用，Phase 4 为可选迭代项。
-> 移动端优先，所有组件先考虑手机布局再适配桌面。
+1. **环境克隆**：在新的 Supabase 项目中运行 `supabase/migrations` 下的所有 SQL。
+2. **存储初始化**：手动创建 `wardrobe` Bucket 并设置为 Public。
+3. **域名加速**：若在国内访问缓慢，部署 `workers/` 目录下的脚本到 Cloudflare。
+4. **移动端建议**：确保 `meta viewport` 正确，图片上传前必须进行客户端压缩以节省带宽。
