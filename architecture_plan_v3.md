@@ -197,6 +197,8 @@ wardrobe-picks/
 | `react-markdown` 或 `next-mdx-remote` | 渲染 Markdown 内容 |
 | `rehype-highlight` / `rehype-prism` | 代码块语法高亮 |
 | `remark-gfm` | 支持 GitHub Flavored Markdown 表格/任务列表等 |
+| `shadcn/ui` | Admin UI 组件（表格、按钮、表单等） |
+| `next-themes` | 暗色 / 亮色 / 多主题切换 |
 
 ---
 
@@ -230,7 +232,95 @@ wardrobe-picks/
 
 ---
 
-## 八、注意事项
+## 八、后台管理与主题方案
+
+### 决策：自行 Vibe Coding，而非引入现成 CMS
+
+**不采用 Ghost / Payload 等现成架构的原因：**
+- Obsidian → Supabase 写作流程会被打断，两套内容系统冲突
+- Wardrobe、News Aggregation 等工具难以与独立 CMS 共存于同一 Next.js 项目
+- Supabase 本身已承担后端职责，引入 CMS 框架是重复建设
+
+**自行实现所需新增内容有限：**
+- Admin panel = 对现有 `posts` 表的 CRUD + 发布状态管理，用 shadcn/ui 搭几个页面即可
+- 主题切换 = CSS 变量 + `next-themes`，数十行代码
+
+### 新增依赖
+
+| 包 | 用途 |
+|---|---|
+| `shadcn/ui` | Admin UI 组件（表格、按钮、表单等） |
+| `next-themes` | 暗色 / 亮色 / 多主题切换 |
+
+### 新增路由
+
+| URL | 说明 |
+|---|---|
+| `/admin` | 文章管理（列表、发布/下线、手动触发 reindex） |
+| `/admin/posts/[slug]` | 单篇文章详情与状态操作 |
+
+> Admin 路由需加中间件鉴权（Supabase Auth 或简单 token），避免公开暴露。
+
+### 主题实现思路
+
+用 CSS 变量定义设计 token（颜色、字体），`next-themes` 负责在 `<html>` 上切换 `data-theme` 属性，配合 Tailwind 的 `dark:` 前缀或自定义 CSS 变量即可支持多套主题，无需改动组件逻辑。
+
+---
+
+## 九、Obsidian 工作流已知痛点与缓解方案
+
+> 本节记录该方案的固有局限，供后续迭代参考。
+
+### 痛点一：同步状态不透明
+
+**问题**：remotely-save 同步成功 ≠ 博客已更新，中间还需 reindex 步骤，写完文章不确定"到底发没发出去"。
+
+**缓解**：
+- Admin 页面展示 `posts` 表最新同步时间与文章状态
+- 提供一键 reindex 按钮，消除"不知道有没有生效"的心智负担
+- 后续可升级为 Supabase Edge Function + Storage Webhook，实现上传即触发
+
+### 痛点二：`published: true` 机制脆弱
+
+**问题**：忘写 frontmatter、手滑拼错，文章静默不发布，排查成本高。
+
+**缓解**：
+- 在 Obsidian 中创建**文章模板**（Templates 插件），预填所有必要 frontmatter 字段
+- reindex 接口对缺少 `title` 或 `published` 字段的文件记录警告日志，Admin 页面展示"异常文件"列表
+
+### 痛点三：Obsidian Markdown 与 Web Markdown 不兼容
+
+**问题**：Wiki 链接 `[[note]]`、Callout 语法、Dataview 查询等在网页端全部失效，写作时需时刻留意。
+
+**缓解**：
+- 明确约定**博客专用写法规范**（见下表），与个人笔记目录分开存放
+- `[[note]]` 内链：reindex 时可选择性转换为站内链接 `/blog/[slug]`，或直接忽略
+
+| 语法 | Obsidian 支持 | Web 支持 | 建议 |
+|---|---|---|---|
+| 标准 Markdown | ✅ | ✅ | 优先使用 |
+| Wiki 链接 `[[]]` | ✅ | ❌ | 博客文章中避免，或 reindex 时转换 |
+| Callout `> [!note]` | ✅ | 需自定义 | 可用 remark 插件支持 |
+| Dataview | ✅ | ❌ | 博客文章中禁用 |
+| GFM 表格 / 任务列表 | ✅ | ✅（remark-gfm） | 正常使用 |
+
+### 痛点四：图片路径问题
+
+**问题**：Obsidian 内部图片引用（相对路径或 `![[image.png]]`）在 Web 端路径失效。
+
+**缓解**：reindex 接口已规划做路径替换（见注意事项第 1 条），将本地引用转为 Supabase Storage 公开 URL。附件与 `.md` 文件一同通过 remotely-save 上传到同一 bucket 即可。
+
+### 痛点五：多设备同步冲突
+
+**问题**：换设备或重装 Obsidian 后同步历史可能丢失，多设备同时编辑存在冲突风险。
+
+**缓解**：
+- Supabase Storage 作为单一数据源，设备本地只是缓存，重装后重新同步即可恢复
+- 避免多设备同时编辑同一文件；冲突文件会以带时间戳的副本形式保留，需手动合并
+
+---
+
+## 十、注意事项
 
 1. **图片处理**：Obsidian 中的图片附件也会同步到 Storage。文章中的图片引用路径需要转换为 Supabase Storage 公开 URL，reindex 接口处理时需做路径替换。
 
