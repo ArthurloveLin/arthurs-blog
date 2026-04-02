@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, RealtimeChannel } from '@supabase/supabase-js'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,8 +20,7 @@ interface ActivityBannerProps {
 
 export default function ActivityBanner({ sessionId }: ActivityBannerProps) {
   const [presenceList, setPresenceList] = useState<PresenceState[]>([])
-  const [currentActivity, setCurrentActivity] = useState<string>('')
-  const channelRef = useRef<any>(null)
+  const channelRef = useRef<RealtimeChannel | null>(null)
 
   useEffect(() => {
     const author = localStorage.getItem('wardrobe_author') || '访客'
@@ -42,7 +41,7 @@ export default function ActivityBanner({ sessionId }: ActivityBannerProps) {
         const list: PresenceState[] = []
         
         Object.keys(state).forEach((key) => {
-          const presences = state[key] as any[]
+          const presences = state[key] as unknown as PresenceState[]
           presences.forEach((p) => {
             list.push({
               user: key,
@@ -64,8 +63,9 @@ export default function ActivityBanner({ sessionId }: ActivityBannerProps) {
       })
 
     // Listen for custom activity events from other components
-    const handleActivityUpdate = (e: any) => {
-      const { activity } = e.detail
+    const handleActivityUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ activity: string }>
+      const { activity } = customEvent.detail
       channel.track({
         activity,
         lastActive: Date.now(),
