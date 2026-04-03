@@ -212,10 +212,10 @@ wardrobe-picks/
 ## 七、实施步骤
 
 ### 阶段 1：Cloudflare R2 准备
-- [ ] 在 Cloudflare Dashboard 创建两个 R2 bucket：
+- [x] 在 Cloudflare Dashboard 创建两个 R2 bucket：
   - `obsidian-vault`（私有，存博客 .md 文件）
   - `wardrobe-images`（公开访问，存选衣图片）
-- [ ] 生成 R2 API Token（Access Key ID + Secret Access Key），权限：Object Read & Write（两个 bucket 共用同一组密钥即可）
+- [x] 生成 R2 API Token（Access Key ID + Secret Access Key），权限：Object Read & Write（两个 bucket 共用同一组密钥即可）
 - [ ] 为 `wardrobe-images` bucket 开启公开访问（或绑定自定义域名），获取公开 base URL
 - [ ] （可选）为 `obsidian-vault` 绑定自定义域名，供博客内嵌图片附件公开访问
 - [ ] 执行 Supabase `posts` 表 migration（字段 `r2_key` 替代原 `storage_path`）
