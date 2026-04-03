@@ -270,30 +270,8 @@ wardrobe-picks/
 - [x] 在 Obsidian 写一篇带 `published: true` 的**中文名**笔记，同步后触发 reindex，确认博客首页出现该文章
 - [x] 验证文章详情页代码高亮、Markdown 渲染正常
 - [x] 验证 Navbar 工具模块跳转正常
-- [ ] 验证 wardrobe 模块：上传新图片存入 R2，URL 可正常访问；删除 item 同步从 R2 移除文件
+- [x] 验证 wardrobe 模块：上传新图片存入 R2，URL 可正常访问；删除 item 同步从 R2 移除文件
 
-#### 5.2 自动触发 reindex（R2 Event Notifications + Cloudflare Worker）
-
-> 目标：remotely-save 同步完成后，R2 自动触发 Worker，Worker 调用 reindex 接口，无需手动操作。
-
-**步骤一：给 reindex 接口加 secret 保护**
-- [ ] 在 `.env.local` 和 Vercel 环境变量中新增 `REINDEX_SECRET=<随机字符串>`
-- [ ] 修改 `/api/blog/reindex/route.ts`：校验请求头 `Authorization: Bearer <secret>`，不匹配则返回 401
-
-**步骤二：创建 Cloudflare Worker**
-- [ ] 在 Cloudflare Dashboard → Workers & Pages → Create Worker
-- [ ] Worker 逻辑：接收 R2 Event Notification → 验证来源 → POST 到 `https://arthurlovegrace.top/api/blog/reindex`，携带 `Authorization` 头
-- [ ] 在 Worker 的 Secret 变量中配置 `REINDEX_SECRET`
-
-**步骤三：配置 R2 Event Notifications**
-- [ ] 进入 Cloudflare Dashboard → R2 → `obsidian-vault` bucket → Event Notifications
-- [ ] 新增规则：触发事件选 `object-put`（文件上传/更新），目标选刚创建的 Worker
-- [ ] （可选）前缀过滤：只监听 `.md` 结尾的文件，避免图片附件也触发
-
-**步骤四：验证全链路**
-- [ ] 在 Obsidian 写一篇新文章，触发 remotely-save 同步
-- [ ] 在 Cloudflare Worker 日志中确认 Worker 被触发
-- [ ] 约 5-10 秒后刷新博客首页，确认新文章自动出现，无需手动 reindex
 
 ---
 
