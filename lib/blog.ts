@@ -86,6 +86,20 @@ export async function getAdjacentPosts(publishedAt: string): Promise<{ prev: Pos
   return { prev: prev ?? null, next: next ?? null }
 }
 
+// 删除 r2_key 不在给定列表中的所有记录（reindex 用于清理已删除文件）
+export async function deletePostsNotIn(r2Keys: string[]): Promise<number> {
+  if (r2Keys.length === 0) return 0
+
+  const { data, error } = await supabaseAdmin
+    .from('posts')
+    .delete()
+    .not('r2_key', 'in', `(${r2Keys.map((k) => `"${k}"`).join(',')})`)
+    .select('id')
+
+  if (error) throw new Error(error.message)
+  return data?.length ?? 0
+}
+
 // 仅服务端（reindex 接口使用）
 export async function upsertPost(post: {
   slug: string
