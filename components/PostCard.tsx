@@ -3,11 +3,10 @@ import type { Post } from '@/lib/blog'
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  const d = new Date(dateStr)
+  const date = d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+  const time = d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return time === '00:00' ? date : `${date} ${time}`
 }
 
 export default function PostCard({ post }: { post: Post }) {
