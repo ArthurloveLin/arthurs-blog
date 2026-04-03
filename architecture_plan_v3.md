@@ -1,8 +1,8 @@
 
 # 项目架构规划 v3：个人博客 + Obsidian 同步
 
-> 规划日期：2026-04-02  
-> 目标：将 Hub 首页重构为个人博客，Obsidian 笔记通过 Supabase Storage 同步，两个工具模块迁移至导航栏
+> 规划日期：2026-04-02（存储层于 2026-04-03 从 Supabase Storage 迁移至 Cloudflare R2）  
+> 目标：将 Hub 首页重构为个人博客，Obsidian 笔记通过 Cloudflare R2 同步，两个工具模块迁移至导航栏
 
 ---
 
@@ -12,8 +12,8 @@
 |---|---|---|
 | 首页 | 两张模块卡片（Hub） | 个人博客（文章列表） |
 | 导航 | 无 | 顶部 Navbar，内含两个工具模块入口 |
-| 笔记存储 | Obsidian 本地 + 坚果云 WebDAV | Obsidian 本地 + Supabase Storage（S3 兼容） |
-| 博客数据源 | 无 | Supabase（Storage 存文件 + DB 存索引） |
+| 笔记存储 | Obsidian 本地 + 坚果云 WebDAV | Obsidian 本地 + Cloudflare R2（S3 兼容，中文文件名友好） |
+| 博客数据源 | 无 | Cloudflare R2（存 .md 文件） + Supabase DB（存索引） |
 
 ---
 
@@ -21,13 +21,13 @@
 
 ### 核心原理
 
-Supabase Storage 支持 AWS S3 兼容 API（签名 v4），可直接作为 S3 端点使用。  
+Cloudflare R2 原生支持 AWS S3 兼容 API（签名 v4），对 UTF-8 文件名（含中文）支持完整，解决了 Supabase Storage 中文文件名同步异常的问题。  
 Obsidian 社区插件 **remotely-save** 原生支持 S3 兼容服务，无需开发任何代码。
 
 ```
 Obsidian（本地写作）
   └── remotely-save 插件（S3 模式）
-       └── Supabase Storage（obsidian-vault bucket）
+       └── Cloudflare R2（obsidian-vault bucket）
             └── Next.js 博客读取 .md 文件并渲染
 ```
 
@@ -36,13 +36,16 @@ Obsidian（本地写作）
 | 参数 | 值 |
 |---|---|
 | Service | S3 or S3-compatible |
-| Endpoint | `https://<project-ref>.supabase.co/storage/v1/s3` |
-| Region | `ap-southeast-1`（或任意填写） |
-| Access Key ID | Supabase Storage Access Key |
-| Secret Access Key | Supabase Storage Secret Key |
+| Endpoint | `https://<account-id>.r2.cloudflarestorage.com` |
+| Region | `auto` |
+| Access Key ID | R2 Access Key ID |
+| Secret Access Key | R2 Secret Access Key |
 | Bucket Name | `obsidian-vault` |
+| Path Style | Force path style（勾选） |
 
-> Supabase Storage 的 S3 密钥可在项目设置 → Storage → S3 Access Keys 中生成。
+> R2 密钥在 Cloudflare Dashboard → R2 → Manage R2 API Tokens 中生成。  
+> Account ID 在 Cloudflare Dashboard 右侧边栏可找到。  
+> **迁移原因**：Supabase Storage 对中文文件名 `.md` 支持异常，R2 完整支持 UTF-8 对象 key。
 
 ### 博客可见性控制
 
@@ -63,17 +66,17 @@ published: true   # 仅 true 时对外展示
 
 ## 三、数据架构
 
-### 方案：Storage 存文件 + DB 存索引（推荐）
+### 方案：R2 存文件 + Supabase DB 存索引（推荐）
 
-直接读取 Storage 中的所有 `.md` 文件性能差、成本高。引入一张轻量的 `posts` 索引表解决：
+直接读取 R2 中的所有 `.md` 文件性能差、成本高。引入一张轻量的 `posts` 索引表解决：
 
 ```
-Supabase Storage (obsidian-vault/)
-  └── 触发器/定时任务 → 解析 frontmatter → 写入 posts 表
+Cloudflare R2 (obsidian-vault/)
+  └── 触发器/定时任务 → 解析 frontmatter → 写入 posts 表（Supabase DB）
 
 Next.js 博客
-  └── 查询 posts 表（列表页、标签筛选）
-  └── 读取 Storage 中的 .md 文件（文章详情页）
+  └── 查询 posts 表（列表页、标签筛选）—— Supabase DB
+  └── 读取 R2 中的 .md 文件（文章详情页）—— AWS SDK v3 + R2 endpoint
 ```
 
 ### 新增 Supabase 表：`posts`
@@ -85,7 +88,7 @@ create table posts (
   title        text not null,
   summary      text,                          -- 摘要（frontmatter excerpt 或自动截取）
   tags         text[] default '{}',
-  storage_path text not null,                 -- Storage 中的文件路径
+  r2_key       text not null,                 -- R2 中的对象 key（原文件名，含中文亦可）
   published    boolean default false,
   published_at timestamptz,
   updated_at   timestamptz default now()
@@ -97,15 +100,17 @@ create policy "公开已发布文章" on posts
   for select using (published = true);
 ```
 
+> 字段名从 `storage_path` 改为 `r2_key`，语义更准确，值为 R2 对象 key（如 `博客/我的第一篇文章.md`）。
+
 ### 索引同步触发方式（三选一）
 
 | 方式 | 适合场景 | 复杂度 |
 |---|---|---|
 | **手动触发**：访问 `/api/blog/reindex` 接口 | 写完文章后手动刷新 | ★☆☆ |
-| **GitHub Actions 定时任务**：每小时扫描 Storage 变化 | 无需手动操作 | ★★☆ |
-| **Supabase Edge Function + Storage Webhook** | 上传即触发，近实时 | ★★★ |
+| **GitHub Actions 定时任务**：每小时用 AWS SDK 扫描 R2 变化 | 无需手动操作 | ★★☆ |
+| **Cloudflare R2 Event Notifications + Worker** | 上传即触发，近实时 | ★★★ |
 
-> **建议起步使用手动触发**，后续升级为 Edge Function 方式。
+> **建议起步使用手动触发**，后续升级为 R2 Event Notifications + Cloudflare Worker 方式。
 
 ---
 
@@ -176,15 +181,16 @@ wardrobe-picks/
 │   └── api/
 │       ├── blog/
 │       │   └── reindex/
-│       │       └── route.ts  ← 新增：手动触发重新索引
+│       │       └── route.ts  ← 新增：手动触发重新索引（读 R2 → 解析 frontmatter → upsert Supabase posts 表）
 │       └── ...               ← 其余 API 不变
 ├── components/
 │   ├── Navbar.tsx            ← 新增
 │   ├── PostCard.tsx          ← 新增：文章卡片
 │   └── MarkdownRenderer.tsx  ← 新增：MD 渲染器
 └── lib/
-    ├── supabase/             ← 现有
-    └── blog.ts               ← 新增：博客数据查询函数
+    ├── supabase/             ← 现有（仅用于 DB 操作）
+    ├── r2.ts                 ← 新增：R2 client（@aws-sdk/client-s3 + R2 endpoint）
+    └── blog.ts               ← 新增：博客数据查询函数（列表从 Supabase DB，文件从 R2）
 ```
 
 ---
@@ -199,25 +205,58 @@ wardrobe-picks/
 | `remark-gfm` | 支持 GitHub Flavored Markdown 表格/任务列表等 |
 | `shadcn/ui` | Admin UI 组件（表格、按钮、表单等） |
 | `next-themes` | 暗色 / 亮色 / 多主题切换 |
+| `@aws-sdk/client-s3` | 连接 Cloudflare R2（S3 兼容），读取 .md 文件与附件 |
 
 ---
 
 ## 七、实施步骤
 
-### 阶段 1：Supabase 侧准备
-- [ ] 在 Supabase Storage 创建 `obsidian-vault` bucket（private）
-- [ ] 生成 S3 Access Key / Secret
-- [ ] 执行 `posts` 表 migration
+### 阶段 1：Cloudflare R2 准备
+- [ ] 在 Cloudflare Dashboard 创建两个 R2 bucket：
+  - `obsidian-vault`（私有，存博客 .md 文件）
+  - `wardrobe-images`（公开访问，存选衣图片）
+- [ ] 生成 R2 API Token（Access Key ID + Secret Access Key），权限：Object Read & Write（两个 bucket 共用同一组密钥即可）
+- [ ] 为 `wardrobe-images` bucket 开启公开访问（或绑定自定义域名），获取公开 base URL
+- [ ] （可选）为 `obsidian-vault` 绑定自定义域名，供博客内嵌图片附件公开访问
+- [ ] 执行 Supabase `posts` 表 migration（字段 `r2_key` 替代原 `storage_path`）
 - [ ] 配置 RLS 策略
+- [ ] 在项目 `.env.local` 中新增环境变量：
+  ```
+  R2_ACCOUNT_ID=
+  R2_ACCESS_KEY_ID=
+  R2_SECRET_ACCESS_KEY=
+  R2_BLOG_BUCKET=obsidian-vault
+  R2_WARDROBE_BUCKET=wardrobe-images
+  R2_WARDROBE_PUBLIC_URL=     # wardrobe-images 的公开 base URL，用于拼接 image_url
+  R2_BLOG_PUBLIC_DOMAIN=      # 可选，obsidian-vault 绑定自定义域后填写
+  ```
 
 ### 阶段 2：Obsidian 同步配置
-- [ ] 安装 remotely-save 插件，配置 S3 端点指向 Supabase Storage
-- [ ] 测试同步，确认 `.md` 文件出现在 `obsidian-vault` bucket 中
+- [ ] 安装 remotely-save 插件，配置 S3 端点指向 Cloudflare R2
+  - Endpoint: `https://<account-id>.r2.cloudflarestorage.com`
+  - Region: `auto`
+  - 勾选 Force path style
+- [ ] 测试同步，确认中文名 `.md` 文件正常出现在 R2 bucket 中
 - [ ] 约定 frontmatter 规范（title / date / tags / published）
 
 ### 阶段 3：博客后端
-- [ ] 实现 `/api/blog/reindex` 接口（读 Storage → 解析 frontmatter → upsert posts 表）
-- [ ] 实现 `lib/blog.ts`（`getPosts`、`getPostBySlug`、`getPostsByTag`）
+- [ ] 新增 `lib/r2.ts`：初始化 S3Client 指向 R2 endpoint，导出 `getR2Object`、`listR2Objects`、`putR2Object`、`deleteR2Object` 工具函数（博客和 wardrobe 共用）
+- [ ] 实现 `/api/blog/reindex` 接口（ListObjectsV2 读 R2 → 下载 .md → 解析 frontmatter → upsert Supabase posts 表）
+- [ ] 实现 `lib/blog.ts`（`getPosts`、`getPostBySlug`、`getPostsByTag`；列表查 Supabase DB，文件内容读 R2）
+
+### 阶段 3.5：wardrobe 图片迁移至 R2
+
+> wardrobe 的业务数据（items、sessions、ratings 等）继续留在 Supabase DB，只把图片文件从 Supabase Storage 迁移到 R2 `wardrobe-images` bucket。
+
+**代码改动（3 个文件）：**
+- [ ] `app/api/items/route.ts`（上传）：将 `supabaseAdmin.storage.from('wardrobe').upload(...)` 替换为 `putR2Object`（来自 `lib/r2.ts`），`image_url` 改为 `${R2_WARDROBE_PUBLIC_URL}/${imagePath}` 拼接
+- [ ] `app/api/items/[id]/route.ts`（单删）：将 `supabaseAdmin.storage.from('wardrobe').remove([image_path])` 替换为 `deleteR2Object`
+- [ ] `app/api/items/bulk-delete/route.ts`（批删）：同上，批量调用 `deleteR2Object`
+
+**数据迁移（存量图片）：**
+- [ ] 编写一次性迁移脚本：从 Supabase Storage `wardrobe` bucket 列出所有文件 → 下载 → 上传到 R2 `wardrobe-images` bucket（key 保持 `{sessionToken}/{itemId}.webp` 格式不变）
+- [ ] 用新的 R2 公开 URL 批量更新 `items` 表的 `image_url` 字段（`image_path` 字段值不变，仅 URL 前缀变更）
+- [ ] 验证所有存量图片可正常访问后，删除 Supabase Storage `wardrobe` bucket 中的文件
 
 ### 阶段 4：前端重构
 - [ ] 新增全局 `Navbar` 组件，改造 `app/layout.tsx`
@@ -226,9 +265,10 @@ wardrobe-picks/
 - [ ] 新增 `app/blog/tags/[tag]/page.tsx` 标签筛选页
 
 ### 阶段 5：验收
-- [ ] 在 Obsidian 写一篇带 `published: true` 的笔记，同步后触发 reindex，确认博客首页出现该文章
-- [ ] 验证文章详情页代码高亮、图片（Storage URL）、内链渲染正常
+- [ ] 在 Obsidian 写一篇带 `published: true` 的**中文名**笔记，同步后触发 reindex，确认博客首页出现该文章
+- [ ] 验证文章详情页代码高亮、图片（R2 公开域名 URL）、内链渲染正常
 - [ ] 验证 Navbar 工具模块跳转正常
+- [ ] 验证 wardrobe 模块：上传新图片存入 R2，URL 可正常访问；删除 item 同步从 R2 移除文件；存量图片 URL 全部切换为 R2 域名后页面显示正常
 
 ---
 
@@ -237,9 +277,9 @@ wardrobe-picks/
 ### 决策：自行 Vibe Coding，而非引入现成 CMS
 
 **不采用 Ghost / Payload 等现成架构的原因：**
-- Obsidian → Supabase 写作流程会被打断，两套内容系统冲突
+- Obsidian → R2 写作流程会被打断，两套内容系统冲突
 - Wardrobe、News Aggregation 等工具难以与独立 CMS 共存于同一 Next.js 项目
-- Supabase 本身已承担后端职责，引入 CMS 框架是重复建设
+- Supabase DB + Cloudflare R2 已承担后端职责，引入 CMS 框架是重复建设
 
 **自行实现所需新增内容有限：**
 - Admin panel = 对现有 `posts` 表的 CRUD + 发布状态管理，用 shadcn/ui 搭几个页面即可
@@ -278,7 +318,7 @@ wardrobe-picks/
 **缓解**：
 - Admin 页面展示 `posts` 表最新同步时间与文章状态
 - 提供一键 reindex 按钮，消除"不知道有没有生效"的心智负担
-- 后续可升级为 Supabase Edge Function + Storage Webhook，实现上传即触发
+- 后续可升级为 R2 Event Notifications + Cloudflare Worker，实现上传即触发
 
 ### 痛点二：`published: true` 机制脆弱
 
@@ -308,25 +348,25 @@ wardrobe-picks/
 
 **问题**：Obsidian 内部图片引用（相对路径或 `![[image.png]]`）在 Web 端路径失效。
 
-**缓解**：reindex 接口已规划做路径替换（见注意事项第 1 条），将本地引用转为 Supabase Storage 公开 URL。附件与 `.md` 文件一同通过 remotely-save 上传到同一 bucket 即可。
+**缓解**：reindex 接口做路径替换，将本地引用转为 R2 公开域名 URL（需为 bucket 绑定自定义域或使用 R2 public URL）。附件与 `.md` 文件一同通过 remotely-save 上传到同一 bucket 即可。
 
 ### 痛点五：多设备同步冲突
 
 **问题**：换设备或重装 Obsidian 后同步历史可能丢失，多设备同时编辑存在冲突风险。
 
 **缓解**：
-- Supabase Storage 作为单一数据源，设备本地只是缓存，重装后重新同步即可恢复
+- Cloudflare R2 作为单一数据源，设备本地只是缓存，重装后重新同步即可恢复
 - 避免多设备同时编辑同一文件；冲突文件会以带时间戳的副本形式保留，需手动合并
 
 ---
 
 ## 十、注意事项
 
-1. **图片处理**：Obsidian 中的图片附件也会同步到 Storage。文章中的图片引用路径需要转换为 Supabase Storage 公开 URL，reindex 接口处理时需做路径替换。
+1. **图片处理**：Obsidian 中的图片附件也会同步到 R2。文章中的图片引用路径需要转换为 R2 公开 URL（通过绑定自定义域或开启 R2 public access），reindex 接口处理时需做路径替换。
 
-2. **隐私隔离**：`obsidian-vault` bucket 设为 private，Next.js 用 Service Role Key 读取文件内容，前端永远不直接暴露 bucket 访问权限。
+2. **隐私隔离**：`obsidian-vault` bucket 不开启全局公开访问，Next.js 用 R2 API Token 在服务端读取 `.md` 文件内容；图片附件可放在独立 public 子路径或单独 bucket 以便直接访问。
 
-3. **slug 生成规则**：建议以文件名（去掉 `.md`）作为 slug，如 `my-first-post.md` → slug `my-first-post`。frontmatter 可显式指定覆盖。
+3. **slug 生成规则**：建议以文件名（去掉 `.md`）作为 slug，中文文件名做 URL encode 或在 frontmatter 显式指定英文 slug 覆盖（推荐后者）。
 
 4. **现有功能零影响**：wardrobe、session、所有 API routes 完全不受此次改造影响。
 
