@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import matter from 'gray-matter'
 import { listR2Objects, getR2Object } from '@/lib/r2'
 import { upsertPost } from '@/lib/blog'
@@ -58,6 +59,10 @@ export async function POST() {
     skipped: results.filter((r) => r.status === 'skip').length,
     errors: results.filter((r) => r.status === 'error').length,
   }
+
+  revalidatePath('/')
+  revalidatePath('/blog/[slug]', 'page')
+  revalidatePath('/blog/tags/[tag]', 'page')
 
   return NextResponse.json({ summary, details: results })
 }
