@@ -216,19 +216,19 @@ wardrobe-picks/
   - `obsidian-vault`（私有，存博客 .md 文件）
   - `wardrobe-images`（公开访问，存选衣图片）
 - [x] 生成 R2 API Token（Access Key ID + Secret Access Key），权限：Object Read & Write（两个 bucket 共用同一组密钥即可）
-- [ ] 为 `wardrobe-images` bucket 开启公开访问（或绑定自定义域名），获取公开 base URL
-- [ ] （可选）为 `obsidian-vault` 绑定自定义域名，供博客内嵌图片附件公开访问
+- [x] 为 `wardrobe-images` bucket 开启公开访问（或绑定自定义域名），获取公开 base URL
+- [x] （可选）为 `obsidian-vault` 绑定自定义域名，供博客内嵌图片附件公开访问
 - [ ] 执行 Supabase `posts` 表 migration（字段 `r2_key` 替代原 `storage_path`）
 - [ ] 配置 RLS 策略
 - [ ] 在项目 `.env.local` 中新增环境变量：
   ```
-  R2_ACCOUNT_ID=
-  R2_ACCESS_KEY_ID=
-  R2_SECRET_ACCESS_KEY=
+  R2_ACCOUNT_ID=6748757663e36aa566fa418d53cce8a4
+  R2_ACCESS_KEY_ID=ccc369d76d7c4afa0e7d243b8e01484f
+  R2_SECRET_ACCESS_KEY=756735d2fbd3b668d31495b1bb9a148e5be8124823a024829d3af9b360e9740d
   R2_BLOG_BUCKET=obsidian-vault
   R2_WARDROBE_BUCKET=wardrobe-images
-  R2_WARDROBE_PUBLIC_URL=     # wardrobe-images 的公开 base URL，用于拼接 image_url
-  R2_BLOG_PUBLIC_DOMAIN=      # 可选，obsidian-vault 绑定自定义域后填写
+  R2_WARDROBE_PUBLIC_URL=images.arthurlovegrace.top     # wardrobe-images 的公开 base URL，用于拼接 image_url
+  R2_BLOG_PUBLIC_DOMAIN=obsidian.arthurlovegrace.top      # 可选，obsidian-vault 绑定自定义域后填写
   ```
 
 ### 阶段 2：Obsidian 同步配置
