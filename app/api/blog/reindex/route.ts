@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import matter from 'gray-matter'
 import { listR2Objects, getR2Object } from '@/lib/r2'
-import { upsertPost } from '@/lib/blog'
+import { upsertPost, deletePostsNotIn } from '@/lib/blog'
 
 const BLOG_BUCKET = process.env.R2_BLOG_BUCKET!
 
@@ -52,12 +53,19 @@ export async function POST() {
     }
   }
 
+  const deleted = await deletePostsNotIn(mdKeys)
+
   const summary = {
     total: mdKeys.length,
     indexed: results.filter((r) => r.status === 'ok').length,
     skipped: results.filter((r) => r.status === 'skip').length,
     errors: results.filter((r) => r.status === 'error').length,
+    deleted,
   }
+
+  revalidatePath('/')
+  revalidatePath('/blog/[slug]', 'page')
+  revalidatePath('/blog/tags/[tag]', 'page')
 
   return NextResponse.json({ summary, details: results })
 }
