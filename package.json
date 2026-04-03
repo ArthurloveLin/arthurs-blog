@@ -9,13 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1023.0",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
     "@hello-pangea/dnd": "^18.0.1",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.101.1",
     "browser-image-compression": "^2.0.2",
+    "dotenv": "^17.4.0",
     "emoji-mart": "^5.6.0",
+    "gray-matter": "^4.0.3",
     "next": "15.5.14",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -30,6 +33,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.14",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }
