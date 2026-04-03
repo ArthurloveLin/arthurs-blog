@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
         hostname: 'api.arthurlovegrace.top',
         pathname: '/storage/v1/object/public/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.arthurlovegrace.top',
+      },
     ],
   },
 };
