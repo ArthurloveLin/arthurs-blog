@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { putR2Object } from '@/lib/r2'
+
+const WARDROBE_BUCKET = process.env.R2_WARDROBE_BUCKET!
+const WARDROBE_PUBLIC_URL = process.env.R2_WARDROBE_PUBLIC_URL!
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData()
@@ -25,27 +29,16 @@ export async function POST(request: NextRequest) {
   const imagePath = `${sessionToken}/${itemId}.webp`
 
   const arrayBuffer = await file.arrayBuffer()
-  const { error: uploadError } = await supabaseAdmin.storage
-    .from('wardrobe')
-    .upload(imagePath, arrayBuffer, {
-      contentType: 'image/webp',
-      upsert: false,
-    })
+  await putR2Object(WARDROBE_BUCKET, imagePath, Buffer.from(arrayBuffer), 'image/webp')
 
-  if (uploadError) {
-    return NextResponse.json({ error: uploadError.message }, { status: 500 })
-  }
-
-  const { data: { publicUrl } } = supabaseAdmin.storage
-    .from('wardrobe')
-    .getPublicUrl(imagePath)
+  const imageUrl = `https://${WARDROBE_PUBLIC_URL}/${imagePath}`
 
   const { data: item, error: itemError } = await supabaseAdmin
     .from('items')
     .insert({
       id: itemId,
       session_id: session.id,
-      image_url: publicUrl,
+      image_url: imageUrl,
       image_path: imagePath,
       category: category,
     })
@@ -53,7 +46,6 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (itemError) {
-    await supabaseAdmin.storage.from('wardrobe').remove([imagePath])
     return NextResponse.json({ error: itemError.message }, { status: 500 })
   }
 

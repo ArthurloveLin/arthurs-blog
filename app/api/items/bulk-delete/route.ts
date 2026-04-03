@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { deleteR2Object } from '@/lib/r2'
+
+const WARDROBE_BUCKET = process.env.R2_WARDROBE_BUCKET!
 
 export async function POST(request: NextRequest) {
   const { ids } = await request.json()
@@ -15,9 +18,7 @@ export async function POST(request: NextRequest) {
   if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 })
 
   const paths = (items ?? []).map((i) => i.image_path).filter(Boolean)
-  if (paths.length > 0) {
-    await supabaseAdmin.storage.from('wardrobe').remove(paths)
-  }
+  await Promise.all(paths.map((path) => deleteR2Object(WARDROBE_BUCKET, path)))
 
   const { error } = await supabaseAdmin.from('items').delete().in('id', ids)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

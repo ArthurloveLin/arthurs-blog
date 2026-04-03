@@ -218,9 +218,9 @@ wardrobe-picks/
 - [x] 生成 R2 API Token（Access Key ID + Secret Access Key），权限：Object Read & Write（两个 bucket 共用同一组密钥即可）
 - [x] 为 `wardrobe-images` bucket 开启公开访问（或绑定自定义域名），获取公开 base URL
 - [x] （可选）为 `obsidian-vault` 绑定自定义域名，供博客内嵌图片附件公开访问
-- [ ] 执行 Supabase `posts` 表 migration（字段 `r2_key` 替代原 `storage_path`）
-- [ ] 配置 RLS 策略
-- [ ] 在项目 `.env.local` 中新增环境变量：
+- [x] 执行 Supabase `posts` 表 migration（字段 `r2_key` 替代原 `storage_path`）
+- [x] 配置 RLS 策略
+- [x] 在项目 `.env.local` 中新增环境变量：
   ```
   R2_ACCOUNT_ID=6748757663e36aa566fa418d53cce8a4
   R2_ACCESS_KEY_ID=ccc369d76d7c4afa0e7d243b8e01484f
@@ -232,29 +232,29 @@ wardrobe-picks/
   ```
 
 ### 阶段 2：Obsidian 同步配置
-- [ ] 安装 remotely-save 插件，配置 S3 端点指向 Cloudflare R2
+- [x] 安装 remotely-save 插件，配置 S3 端点指向 Cloudflare R2
   - Endpoint: `https://<account-id>.r2.cloudflarestorage.com`
   - Region: `auto`
   - 勾选 Force path style
-- [ ] 测试同步，确认中文名 `.md` 文件正常出现在 R2 bucket 中
-- [ ] 约定 frontmatter 规范（title / date / tags / published）
+- [x] 测试同步，确认中文名 `.md` 文件正常出现在 R2 bucket 中
+- [x] 约定 frontmatter 规范（title / date / tags / published）
 
 ### 阶段 3：博客后端
-- [ ] 新增 `lib/r2.ts`：初始化 S3Client 指向 R2 endpoint，导出 `getR2Object`、`listR2Objects`、`putR2Object`、`deleteR2Object` 工具函数（博客和 wardrobe 共用）
-- [ ] 实现 `/api/blog/reindex` 接口（ListObjectsV2 读 R2 → 下载 .md → 解析 frontmatter → upsert Supabase posts 表）
-- [ ] 实现 `lib/blog.ts`（`getPosts`、`getPostBySlug`、`getPostsByTag`；列表查 Supabase DB，文件内容读 R2）
+- [x] 新增 `lib/r2.ts`：初始化 S3Client 指向 R2 endpoint，导出 `getR2Object`、`listR2Objects`、`putR2Object`、`deleteR2Object` 工具函数（博客和 wardrobe 共用）
+- [x] 实现 `/api/blog/reindex` 接口（ListObjectsV2 读 R2 → 下载 .md → 解析 frontmatter → upsert Supabase posts 表）
+- [x] 实现 `lib/blog.ts`（`getPosts`、`getPostBySlug`、`getPostsByTag`；列表查 Supabase DB，文件内容读 R2）
 
 ### 阶段 3.5：wardrobe 图片迁移至 R2
 
 > wardrobe 的业务数据（items、sessions、ratings 等）继续留在 Supabase DB，只把图片文件从 Supabase Storage 迁移到 R2 `wardrobe-images` bucket。
 
 **代码改动（3 个文件）：**
-- [ ] `app/api/items/route.ts`（上传）：将 `supabaseAdmin.storage.from('wardrobe').upload(...)` 替换为 `putR2Object`（来自 `lib/r2.ts`），`image_url` 改为 `${R2_WARDROBE_PUBLIC_URL}/${imagePath}` 拼接
-- [ ] `app/api/items/[id]/route.ts`（单删）：将 `supabaseAdmin.storage.from('wardrobe').remove([image_path])` 替换为 `deleteR2Object`
-- [ ] `app/api/items/bulk-delete/route.ts`（批删）：同上，批量调用 `deleteR2Object`
+- [x] `app/api/items/route.ts`（上传）：将 `supabaseAdmin.storage.from('wardrobe').upload(...)` 替换为 `putR2Object`（来自 `lib/r2.ts`），`image_url` 改为 `${R2_WARDROBE_PUBLIC_URL}/${imagePath}` 拼接
+- [x] `app/api/items/[id]/route.ts`（单删）：将 `supabaseAdmin.storage.from('wardrobe').remove([image_path])` 替换为 `deleteR2Object`
+- [x] `app/api/items/bulk-delete/route.ts`（批删）：同上，批量调用 `deleteR2Object`
 
 **数据迁移（存量图片）：**
-- [ ] 编写一次性迁移脚本：从 Supabase Storage `wardrobe` bucket 列出所有文件 → 下载 → 上传到 R2 `wardrobe-images` bucket（key 保持 `{sessionToken}/{itemId}.webp` 格式不变）
+- [x] 编写一次性迁移脚本：从 Supabase Storage `wardrobe` bucket 列出所有文件 → 下载 → 上传到 R2 `wardrobe-images` bucket（key 保持 `{sessionToken}/{itemId}.webp` 格式不变）
 - [ ] 用新的 R2 公开 URL 批量更新 `items` 表的 `image_url` 字段（`image_path` 字段值不变，仅 URL 前缀变更）
 - [ ] 验证所有存量图片可正常访问后，删除 Supabase Storage `wardrobe` bucket 中的文件
 
