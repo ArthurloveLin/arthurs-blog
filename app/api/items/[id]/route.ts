@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { deleteR2Object } from '@/lib/r2'
+
+const WARDROBE_BUCKET = process.env.R2_WARDROBE_BUCKET!
 
 export async function DELETE(
   _request: NextRequest,
@@ -17,7 +20,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Item not found' }, { status: 404 })
   }
 
-  await supabaseAdmin.storage.from('wardrobe').remove([item.image_path])
+  await deleteR2Object(WARDROBE_BUCKET, item.image_path)
 
   const { error } = await supabaseAdmin.from('items').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
