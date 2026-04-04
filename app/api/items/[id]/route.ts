@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { deleteR2Object } from '@/lib/r2'
+import { isAdminRequest } from '@/lib/auth'
 
 const WARDROBE_BUCKET = process.env.R2_WARDROBE_BUCKET!
 
@@ -8,6 +9,10 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { id } = await params
 
   const { data: item, error: fetchError } = await supabaseAdmin
@@ -32,6 +37,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { id } = await params
   const body = await request.json()
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import { useAuth } from './AuthProvider'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,23 +21,9 @@ interface ActivityBannerProps {
 
 export default function ActivityBanner({ sessionId }: ActivityBannerProps) {
   const [presenceList, setPresenceList] = useState<PresenceState[]>([])
-  const [author, setAuthor] = useState<string>('')
-  
-  useEffect(() => {
-    // 1. 获取初始身份
-    const getAuthor = () => localStorage.getItem('wardrobe_author') || '访客'
-    setAuthor(getAuthor())
-
-    // 2. 监听身份变化 (跨组件/跨标签页)
-    const handleStorage = () => setAuthor(getAuthor())
-    window.addEventListener('storage', handleStorage)
-    window.addEventListener('wardrobe_author_changed', handleStorage)
-
-    return () => {
-      window.removeEventListener('storage', handleStorage)
-      window.removeEventListener('wardrobe_author_changed', handleStorage)
-    }
-  }, [])
+  const { displayName, role, loading } = useAuth()
+  // 管理员显示 displayName，其余一律"游客"
+  const author = role === 'admin' ? (displayName ?? '管理员') : '游客'
 
   useEffect(() => {
     if (!author) return
