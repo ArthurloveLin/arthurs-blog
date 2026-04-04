@@ -1,62 +1,116 @@
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import matter from 'gray-matter'
-import { listR2Objects, getR2Object } from '@/lib/r2'
-import { upsertPost, deletePostsNotIn } from '@/lib/blog'
+import { listR2ObjectsWithMeta, getR2Object } from '@/lib/r2'
+import { upsertPost, upsertSiteConfig, deletePostsNotIn, getPostsMetadata } from '@/lib/blog'
 
 const BLOG_BUCKET = process.env.R2_BLOG_BUCKET!
+const CONCURRENCY = 10
 
 function generateSlug(r2Key: string, frontmatterSlug?: string): string {
   if (frontmatterSlug) return frontmatterSlug
-  // 去掉路径前缀和 .md 后缀，中文保留（URL encode 由浏览器处理）
   const filename = r2Key.split('/').pop()!.replace(/\.md$/i, '')
   return encodeURIComponent(filename)
 }
 
+async function processFile(
+  key: string,
+  domain: string | undefined
+): Promise<{ slug: string; status: 'ok' | 'skip'; reason?: string }> {
+  const raw = await getR2Object(BLOG_BUCKET, key)
+  const { data: fm, content: mdContent, excerpt } = matter(raw, { excerpt: true, excerpt_separator: '<!-- more -->' })
+
+  if (fm.type === 'site_config') {
+    const entries: Record<string, string> = {}
+    if (typeof fm.author_name === 'string') entries.author_name = fm.author_name
+    if (typeof fm.author_bio === 'string') entries.author_bio = fm.author_bio
+    if (typeof fm.author_avatar_url === 'string') entries.author_avatar_url = fm.author_avatar_url
+    if (Object.keys(entries).length > 0) await upsertSiteConfig(entries)
+    return { slug: '', status: 'ok', reason: 'site_config' }
+  }
+
+  if (!fm.title) return { slug: '', status: 'skip', reason: 'missing title' }
+  if (fm.published !== true) return { slug: '', status: 'skip', reason: 'published != true' }
+
+  const slug = generateSlug(key, fm.slug)
+  const summary = fm.summary ?? fm.excerpt ?? (excerpt?.trim().slice(0, 200)) ?? null
+
+  await upsertPost({
+    slug,
+    title: fm.title,
+    summary,
+    tags: Array.isArray(fm.tags) ? fm.tags : [],
+    category: typeof fm.category === 'string' ? fm.category : null,
+    cover_image: (() => {
+      const firstImageMatch = mdContent.match(/!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/)
+      const rawImg = typeof fm.cover_image === 'string'
+        ? fm.cover_image
+        : (firstImageMatch?.[1] ?? null)
+      if (!rawImg) return null
+      if (rawImg.startsWith('http')) return rawImg
+      if (!domain) return null
+      const noteDir = key.includes('/') ? key.split('/').slice(0, -1).join('/') + '/' : ''
+      const imagePath = rawImg.includes('/')
+        ? rawImg.split('/').map(encodeURIComponent).join('/')
+        : `images/${encodeURIComponent(rawImg.trim())}`
+      return `https://${domain}/${noteDir}${imagePath}`
+    })(),
+    r2_key: key,
+    published: true,
+    published_at: fm.date ? new Date(fm.date).toISOString() : new Date().toISOString(),
+  })
+
+  return { slug, status: 'ok' }
+}
+
 export async function POST() {
-  const keys = await listR2Objects(BLOG_BUCKET)
-  const mdKeys = keys.filter((k) => k.endsWith('.md'))
+  const domain = process.env.R2_BLOG_PUBLIC_DOMAIN
 
-  const results: { key: string; slug: string; status: 'ok' | 'skip' | 'error'; reason?: string }[] = []
+  // P0+P1: 并行拉取 R2 列表和 DB 已有元数据
+  const [allObjects, existingPosts] = await Promise.all([
+    listR2ObjectsWithMeta(BLOG_BUCKET),
+    getPostsMetadata(),
+  ])
 
-  for (const key of mdKeys) {
-    try {
-      const raw = await getR2Object(BLOG_BUCKET, key)
-      const { data: fm, excerpt } = matter(raw, { excerpt: true, excerpt_separator: '<!-- more -->' })
+  const mdObjects = allObjects.filter((o) => o.key.endsWith('.md'))
+  const mdKeys = mdObjects.map((o) => o.key)
 
-      if (!fm.title) {
-        results.push({ key, slug: '', status: 'skip', reason: 'missing title' })
-        continue
-      }
+  // P1: 建立 r2_key → DB updated_at 的映射，用于跳过未变更文件
+  const dbMap = new Map(existingPosts.map((p) => [p.r2_key, new Date(p.updated_at)]))
 
-      if (fm.published !== true) {
-        results.push({ key, slug: '', status: 'skip', reason: 'published != true' })
-        continue
-      }
+  const toProcess = mdObjects.filter(({ key, lastModified }) => {
+    if (!dbMap.has(key)) return true       // 新文件
+    if (!lastModified) return true          // R2 无时间戳，保守处理
+    return lastModified > dbMap.get(key)!  // 文件在上次 reindex 后有修改
+  })
 
-      const slug = generateSlug(key, fm.slug)
-      const summary = fm.summary ?? fm.excerpt ?? (excerpt?.trim().slice(0, 200)) ?? null
+  const unchangedCount = mdObjects.length - toProcess.length
 
-      await upsertPost({
-        slug,
-        title: fm.title,
-        summary,
-        tags: Array.isArray(fm.tags) ? fm.tags : [],
-        r2_key: key,
-        published: true,
-        published_at: fm.date ? new Date(fm.date).toISOString() : new Date().toISOString(),
+  type Result = { key: string; slug: string; status: 'ok' | 'skip' | 'error' | 'unchanged'; reason?: string }
+  const results: Result[] = []
+
+  // P0: 分批并行处理需要更新的文件
+  for (let i = 0; i < toProcess.length; i += CONCURRENCY) {
+    const batch = toProcess.slice(i, i + CONCURRENCY)
+    const batchResults = await Promise.all(
+      batch.map(async ({ key }) => {
+        try {
+          const result = await processFile(key, domain)
+          return { key, ...result }
+        } catch (err) {
+          return { key, slug: '', status: 'error' as const, reason: String(err) }
+        }
       })
-
-      results.push({ key, slug, status: 'ok' })
-    } catch (err) {
-      results.push({ key, slug: '', status: 'error', reason: String(err) })
-    }
+    )
+    results.push(...batchResults)
   }
 
   const deleted = await deletePostsNotIn(mdKeys)
 
   const summary = {
     total: mdKeys.length,
+    processed: toProcess.length,
+    unchanged: unchangedCount,
     indexed: results.filter((r) => r.status === 'ok').length,
     skipped: results.filter((r) => r.status === 'skip').length,
     errors: results.filter((r) => r.status === 'error').length,

@@ -2,26 +2,190 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F5F5F7;
+  --foreground: #1D1D1F;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: #7c3aed;
+  --primary-foreground: #faf5ff;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #1f2937;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --accent: #f3f4f6;
+  --accent-foreground: #1f2937;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #7c3aed;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card: #171717;
+  --card-foreground: #ededed;
+  --popover: #171717;
+  --popover-foreground: #ededed;
+  --primary: #a78bfa;
+  --primary-foreground: #0a0a0a;
+  --secondary: #262626;
+  --secondary-foreground: #fafafa;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #262626;
+  --accent-foreground: #fafafa;
+  --destructive: #dc2626;
+  --destructive-foreground: #fafafa;
+  --border: #262626;
+  --input: #262626;
+  --ring: #a78bfa;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Prose customization for dark mode */
+.dark .prose {
+  color: var(--foreground);
+}
+
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4,
+.dark .prose h5,
+.dark .prose h6 {
+  color: var(--foreground);
+}
+
+.dark .prose strong {
+  color: var(--foreground);
+}
+
+.dark .prose a {
+  color: var(--primary);
+}
+
+.dark .prose a:hover {
+  color: var(--primary-foreground);
+}
+
+.dark .prose code {
+  background-color: var(--secondary);
+  color: var(--foreground);
+}
+
+.dark .prose pre {
+  background-color: var(--secondary);
+}
+
+.dark .prose blockquote {
+  border-color: var(--primary);
+  color: var(--muted-foreground);
+}
+
+.dark .prose hr {
+  border-color: var(--border);
+}
+
+.dark .prose ul,
+.dark .prose ol {
+  color: var(--foreground);
+}
+
+/* Blob animations */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
 }

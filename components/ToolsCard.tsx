@@ -1,0 +1,77 @@
+import Link from 'next/link'
+
+const tools = [
+  {
+    href: '/wardrobe',
+    label: '选衣记录',
+    description: '穿搭灵感与服装管理',
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
+      </svg>
+    ),
+    external: false,
+  },
+  {
+    href: 'https://trendradar.arthurlovegrace.top',
+    label: '新闻汇总',
+    description: '每日热点聚合阅读',
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
+      </svg>
+    ),
+    external: true,
+  },
+]
+
+export default function ToolsCard() {
+  return (
+    <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-5">
+
+      {/* Title */}
+      <h3 className="font-mono text-[10px] tracking-[0.18em] text-[#86868B] dark:text-zinc-500 uppercase mb-3">
+        我的工具
+      </h3>
+
+      {/* Tool links */}
+      <ul className="space-y-1">
+        {tools.map((tool) => {
+          const inner = (
+            <div className="flex items-center gap-3 py-2 px-1 rounded-lg hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 transition-colors duration-150 group cursor-pointer">
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#F5F5F7] dark:bg-zinc-800 flex items-center justify-center text-[#86868B] dark:text-zinc-400 group-hover:bg-[#1D1D1F] group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-[#1D1D1F] transition-all duration-200">
+                {tool.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[#1D1D1F] dark:text-zinc-300 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors leading-none mb-0.5">
+                  {tool.label}
+                </p>
+                <p className="text-[11px] text-[#86868B] dark:text-zinc-500 leading-none">
+                  {tool.description}
+                </p>
+              </div>
+              {tool.external && (
+                <svg className="w-3 h-3 text-[#86868B] dark:text-zinc-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              )}
+            </div>
+          )
+
+          return (
+            <li key={tool.href}>
+              {tool.external ? (
+                <a href={tool.href} target="_blank" rel="noopener noreferrer">
+                  {inner}
+                </a>
+              ) : (
+                <Link href={tool.href}>{inner}</Link>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+
+    </div>
+  )
+}
