@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getPosts } from '@/lib/blog'
+import { getPosts, getCategories } from '@/lib/blog'
 import type { Post } from '@/lib/blog'
 import ReindexButton from '@/components/ReindexButton'
 import PostCard from '@/components/PostCard'
@@ -9,7 +9,6 @@ import TagsCloudCard from '@/components/TagsCloudCard'
 import RecentPostsCard from '@/components/RecentPostsCard'
 import ArchiveCard from '@/components/ArchiveCard'
 import ToolsCard from '@/components/ToolsCard'
-import { mockCategories } from '@/lib/mockData'
 
 export const revalidate = 60
 
@@ -35,6 +34,7 @@ export default async function HomePage() {
     // Supabase unreachable (e.g. local dev) — render empty state
   }
 
+  const categories = await getCategories().catch(() => [])
   const tags = collectTags(posts)
 
   return (
@@ -65,10 +65,10 @@ export default async function HomePage() {
             <div className="sticky top-24 space-y-4">
               <AuthorProfileCard
                 postsCount={posts.length}
-                categoriesCount={mockCategories.length}
+                categoriesCount={categories.length}
                 tagsCount={tags.length}
               />
-              <CategoriesCard categories={mockCategories} />
+              <CategoriesCard categories={categories} />
               <TagsCloudCard tags={tags.length > 0 ? tags : []} />
             </div>
           </aside>
