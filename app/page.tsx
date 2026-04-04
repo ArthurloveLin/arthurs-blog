@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getPosts, getCategories } from '@/lib/blog'
+import { getPosts, getPostsByCategory, getPostsByTags, getPostsByYear, getYearArchive, getPostsCount, getCategories, getSiteConfig, getAllTags } from '@/lib/blog'
 import type { Post } from '@/lib/blog'
 import ReindexButton from '@/components/ReindexButton'
 import PostCard from '@/components/PostCard'
@@ -12,30 +12,43 @@ import ToolsCard from '@/components/ToolsCard'
 
 export const revalidate = 60
 
-function collectTags(posts: Post[]): { tag: string; count: number }[] {
-  const tagMap = new Map<string, number>()
-  posts.forEach((post) => {
-    post.tags.forEach((tag) => {
-      tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1)
-    })
-  })
-  return Array.from(tagMap.entries())
-    .map(([tag, count]) => ({ tag, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 14)
-}
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string; tags?: string; year?: string }>
+}) {
+  const { category, tags: tagsParam, year: yearParam } = await searchParams
+  const activeCategory = category ? decodeURIComponent(category) : null
+  const activeTags = tagsParam
+    ? tagsParam.split(',').map((t) => decodeURIComponent(t)).filter(Boolean)
+    : []
+  const activeYear = yearParam ? parseInt(yearParam, 10) : null
 
+  const currentYear = new Date().getFullYear()
 
-export default async function HomePage() {
   let posts: Post[] = []
+  let fetchError = false
   try {
-    posts = await getPosts(20, 0)
+    if (activeCategory) {
+      posts = await getPostsByCategory(activeCategory, 20, 0)
+    } else if (activeTags.length > 0) {
+      posts = await getPostsByTags(activeTags, 20, 0)
+    } else if (activeYear) {
+      posts = await getPostsByYear(activeYear, 50, 0)
+    } else {
+      posts = await getPostsByYear(currentYear, 50, 0)
+    }
   } catch {
-    // Supabase unreachable (e.g. local dev) — render empty state
+    fetchError = true
   }
 
-  const categories = await getCategories().catch(() => [])
-  const tags = collectTags(posts)
+  const [categories, tags, siteConfig, totalPostsCount, yearArchive] = await Promise.all([
+    getCategories().catch(() => []),
+    getAllTags().catch(() => []),
+    getSiteConfig().catch(() => ({})),
+    getPostsCount().catch(() => 0),
+    getYearArchive().catch(() => []),
+  ])
 
   return (
     <main className="min-h-screen bg-[#F5F5F7] dark:bg-zinc-950">
@@ -64,31 +77,64 @@ export default async function HomePage() {
           <aside className="hidden md:block md:col-span-4 lg:col-span-3">
             <div className="sticky top-24 space-y-4">
               <AuthorProfileCard
-                postsCount={posts.length}
+                postsCount={totalPostsCount}
                 categoriesCount={categories.length}
                 tagsCount={tags.length}
+                name={siteConfig.author_name}
+                bio={siteConfig.author_bio}
+                avatarUrl={siteConfig.author_avatar_url}
               />
-              <CategoriesCard categories={categories} />
-              <TagsCloudCard tags={tags.length > 0 ? tags : []} />
+              <CategoriesCard categories={categories} activeCategory={activeCategory} />
+              <TagsCloudCard tags={tags.slice(0, 14)} activeTags={activeTags} />
             </div>
           </aside>
 
           {/* ── Main Feed ────────────────────────────────────────────── */}
           {/* Desktop: col-span-6 | Tablet: col-span-8 | Mobile: full */}
           <section className="md:col-span-8 lg:col-span-6">
-            {/* Feed header */}
-            <div className="flex items-center justify-between mb-5 pb-3 border-b border-zinc-100 dark:border-zinc-800/70">
-              <span className="font-mono text-[11px] tracking-[0.15em] text-[#86868B] dark:text-zinc-500 uppercase">
-                {posts.length > 0 ? `${posts.length} 篇文章` : '文章'}
-              </span>
+            {/* Feed header / Category filter banner */}
+            <div className="flex items-center justify-between mb-5 px-4 py-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+              {activeCategory || activeTags.length > 0 || activeYear ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-[10px] tracking-[0.15em] text-[#86868B] dark:text-zinc-500 uppercase">
+                    {activeCategory ? '分类' : activeTags.length > 0 ? '标签' : '归档'}
+                  </span>
+                  <span className="text-sm font-medium text-[#1D1D1F] dark:text-zinc-100">
+                    {activeCategory ?? (activeTags.length > 0 ? activeTags.join(' + ') : `${activeYear} 年`)}
+                  </span>
+                  <span className="text-xs text-[#86868B] dark:text-zinc-500">· 共 {posts.length} 篇</span>
+                  <Link
+                    href="/"
+                    className="ml-1 text-xs text-[#86868B] dark:text-zinc-500 hover:text-[#1D1D1F] dark:hover:text-zinc-300 transition-colors"
+                  >
+                    ✕
+                  </Link>
+                </div>
+              ) : (
+                <span className="font-mono text-[11px] tracking-[0.15em] text-[#86868B] dark:text-zinc-500 uppercase">
+                  {posts.length > 0 ? `${posts.length} 篇文章` : '文章'}
+                </span>
+              )}
               <ReindexButton />
             </div>
 
-            {/* Empty state */}
+            {/* Empty / error state */}
             {posts.length === 0 && (
               <div className="py-24 flex flex-col items-center gap-2">
-                <span className="font-mono text-xs text-zinc-300 dark:text-zinc-700">— 暂无文章 —</span>
-                <span className="text-xs text-[#86868B] dark:text-zinc-600">点击同步按钮获取最新内容</span>
+                <span className="font-mono text-xs text-zinc-300 dark:text-zinc-700">
+                  {fetchError ? '— 加载失败 —' : '— 暂无文章 —'}
+                </span>
+                <span className="text-xs text-[#86868B] dark:text-zinc-600">
+                  {fetchError
+                    ? '数据库连接异常，请刷新重试'
+                    : activeCategory
+                    ? '该分类下暂无文章'
+                    : activeTags.length > 0
+                    ? '该标签下暂无文章'
+                    : activeYear
+                    ? `${activeYear} 年暂无归档文章`
+                    : '点击同步按钮获取最新内容'}
+                </span>
               </div>
             )}
 
@@ -107,7 +153,7 @@ export default async function HomePage() {
           <aside className="hidden lg:block lg:col-span-3">
             <div className="sticky top-24 space-y-4">
               <RecentPostsCard posts={posts} />
-              <ArchiveCard posts={posts} />
+              <ArchiveCard archive={yearArchive} activeYear={activeYear} />
               <ToolsCard />
             </div>
           </aside>

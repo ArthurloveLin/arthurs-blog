@@ -2,9 +2,19 @@ import Link from 'next/link'
 
 interface TagsCloudCardProps {
   tags: { tag: string; count: number }[]
+  activeTags?: string[]
 }
 
-export default function TagsCloudCard({ tags }: TagsCloudCardProps) {
+function buildTagsUrl(activeTags: string[], toggleTag: string): string {
+  const isActive = activeTags.includes(toggleTag)
+  const next = isActive
+    ? activeTags.filter((t) => t !== toggleTag)
+    : [...activeTags, toggleTag]
+  if (next.length === 0) return '/'
+  return `/?tags=${next.map((t) => encodeURIComponent(t)).join(',')}`
+}
+
+export default function TagsCloudCard({ tags, activeTags = [] }: TagsCloudCardProps) {
   if (tags.length === 0) return null
 
   return (
@@ -17,16 +27,23 @@ export default function TagsCloudCard({ tags }: TagsCloudCardProps) {
 
       {/* Tags cloud */}
       <div className="flex flex-wrap gap-2">
-        {tags.map(({ tag, count }) => (
-          <Link
-            key={tag}
-            href={`/blog/tags/${encodeURIComponent(tag)}`}
-            className="inline-flex items-center gap-1 rounded-full bg-[#F5F5F7] dark:bg-zinc-800 px-3 py-1 text-sm text-[#1D1D1F] dark:text-zinc-300 hover:bg-[#1D1D1F] hover:text-white dark:hover:bg-white dark:hover:text-[#1D1D1F] transition-all duration-200"
-          >
-            {tag}
-            <span className="text-[10px] text-[#86868B] dark:text-zinc-500 tabular-nums">{count}</span>
-          </Link>
-        ))}
+        {tags.map(({ tag, count }) => {
+          const isActive = activeTags.includes(tag)
+          return (
+            <Link
+              key={tag}
+              href={buildTagsUrl(activeTags, tag)}
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm transition-all duration-200 ${
+                isActive
+                  ? 'bg-[#1D1D1F] text-white dark:bg-white dark:text-[#1D1D1F]'
+                  : 'bg-[#F5F5F7] dark:bg-zinc-800 text-[#1D1D1F] dark:text-zinc-300 hover:bg-[#1D1D1F] hover:text-white dark:hover:bg-white dark:hover:text-[#1D1D1F]'
+              }`}
+            >
+              {tag}
+              <span className={`text-[10px] tabular-nums ${isActive ? 'text-white/60 dark:text-zinc-900/60' : 'text-[#86868B] dark:text-zinc-500'}`}>{count}</span>
+            </Link>
+          )
+        })}
       </div>
 
     </div>
