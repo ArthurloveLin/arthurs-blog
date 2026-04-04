@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase'
+import { getUserRole } from '@/lib/auth'
 import ImageGrid from '@/components/ImageGrid'
 import UploadZone from '@/components/UploadZone'
 import SortControl from '@/components/SortControl'
@@ -34,6 +35,7 @@ export default async function SessionPage({
 }) {
   const { token } = await params
   const { sort = 'time', view = 'all' } = await searchParams
+  const isAdmin = (await getUserRole()) === 'admin'
 
   const { data: session, error: sessionError } = await supabaseAdmin
     .from('sessions')
@@ -109,7 +111,7 @@ export default async function SessionPage({
       <ActivityBanner sessionId={session.id} />
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Header */}
-        <SessionHeader session={session} />
+        <SessionHeader session={session} isAdmin={isAdmin} />
 
         {/* Stats bar */}
         {items.length > 0 && (
@@ -142,8 +144,8 @@ export default async function SessionPage({
           </div>
         )}
 
-        {/* Upload Zone — only in all view */}
-        {!isFinalView && (
+        {/* Upload Zone — admin only, only in all view */}
+        {isAdmin && !isFinalView && (
           <div className="mb-6">
             <UploadZone sessionToken={token} />
           </div>

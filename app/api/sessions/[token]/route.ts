@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { isAdminRequest } from '@/lib/auth'
 
 export async function GET(
   _request: NextRequest,
@@ -50,6 +51,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
   const { token } = await params
   const body = await req.json()
 
@@ -78,6 +82,9 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
   const { token } = await params
 
   // 先查出 session id

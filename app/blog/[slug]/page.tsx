@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getPostBySlug, getAdjacentPosts } from '@/lib/blog'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
+import CommentBox from '@/components/CommentBox'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export const revalidate = 60
 
@@ -23,7 +25,15 @@ export default async function BlogPostPage({
   if (!result) notFound()
 
   const { post, content } = result
-  const { prev, next } = await getAdjacentPosts(post.published_at!)
+  const [{ prev, next }, { data: initialComments }] = await Promise.all([
+    getAdjacentPosts(post.published_at!),
+    supabaseAdmin
+      .from('comments')
+      .select('id, author, content, created_at, parent_id')
+      .eq('target_type', 'blog_post')
+      .eq('target_id', post.id)
+      .order('created_at', { ascending: true }),
+  ])
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
@@ -58,6 +68,15 @@ export default async function BlogPostPage({
 
       {/* Content */}
       <MarkdownRenderer content={content} />
+
+      {/* Comments */}
+      <section className="mt-12 pt-8 border-t border-gray-100">
+        <CommentBox
+          targetType="blog_post"
+          targetId={post.id}
+          initialComments={initialComments ?? []}
+        />
+      </section>
 
       {/* Prev / Next navigation */}
       {(prev || next) && (

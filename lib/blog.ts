@@ -245,6 +245,32 @@ export async function getSiteConfig(): Promise<Record<string, string>> {
   return Object.fromEntries((data ?? []).map((r) => [r.key, r.value]))
 }
 
+export async function getCommentCount(postId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('comments')
+    .select('*', { count: 'exact', head: true })
+    .eq('target_type', 'blog_post')
+    .eq('target_id', postId)
+  if (error) return 0
+  return count ?? 0
+}
+
+export async function getCommentCounts(postIds: string[]): Promise<Record<string, number>> {
+  if (postIds.length === 0) return {}
+  const { data, error } = await supabase
+    .from('comments')
+    .select('target_id')
+    .eq('target_type', 'blog_post')
+    .in('target_id', postIds)
+  if (error) return {}
+  const counts: Record<string, number> = {}
+  for (const row of data ?? []) {
+    const id = row.target_id as string
+    counts[id] = (counts[id] ?? 0) + 1
+  }
+  return counts
+}
+
 // 仅服务端（reindex 接口使用）
 export async function getPostsMetadata(): Promise<{ r2_key: string; updated_at: string }[]> {
   const { data, error } = await supabaseAdmin

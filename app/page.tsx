@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { getPostsByCategory, getPostsByTags, getPostsByYear, getYearArchive, getPostsCount, getCategories, getSiteConfig, getAllTags } from '@/lib/blog'
+import { getPostsByCategory, getPostsByTags, getPostsByYear, getYearArchive, getPostsCount, getCategories, getSiteConfig, getAllTags, getCommentCounts } from '@/lib/blog'
 import type { Post } from '@/lib/blog'
 import ReindexButton from '@/components/ReindexButton'
+import { getUserRole } from '@/lib/auth'
 import PostCard from '@/components/PostCard'
 import AuthorProfileCard from '@/components/AuthorProfileCard'
 import CategoriesCard from '@/components/CategoriesCard'
@@ -18,6 +19,7 @@ export default async function HomePage({
   searchParams: Promise<{ category?: string; tags?: string; year?: string }>
 }) {
   const { category, tags: tagsParam, year: yearParam } = await searchParams
+  const isAdmin = (await getUserRole()) === 'admin'
   const activeCategory = category ? decodeURIComponent(category) : null
   const activeTags = tagsParam
     ? tagsParam.split(',').map((t) => decodeURIComponent(t)).filter(Boolean)
@@ -42,12 +44,13 @@ export default async function HomePage({
     fetchError = true
   }
 
-  const [categories, tags, siteConfig, totalPostsCount, yearArchive] = await Promise.all([
+  const [categories, tags, siteConfig, totalPostsCount, yearArchive, commentCounts] = await Promise.all([
     getCategories().catch(() => []),
     getAllTags().catch(() => []),
     getSiteConfig().catch(() => ({} as Record<string, string>)),
     getPostsCount().catch(() => 0),
     getYearArchive().catch(() => []),
+    getCommentCounts(posts.map((p) => p.id)).catch(() => ({} as Record<string, number>)),
   ])
 
   return (
@@ -115,7 +118,7 @@ export default async function HomePage({
                   {posts.length > 0 ? `${posts.length} 篇文章` : '文章'}
                 </span>
               )}
-              <ReindexButton />
+              {isAdmin && <ReindexButton />}
             </div>
 
             {/* Empty / error state */}
@@ -142,7 +145,7 @@ export default async function HomePage({
             {posts.length > 0 && (
               <div className="space-y-6">
                 {posts.map((post, index) => (
-                  <PostCard key={post.id} post={post} index={index} />
+                  <PostCard key={post.id} post={post} index={index} commentCount={commentCounts[post.id]} />
                 ))}
               </div>
             )}

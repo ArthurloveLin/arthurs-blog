@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from './AuthProvider'
+import { logout } from '@/app/auth/logout/actions'
 
 interface SessionHeaderProps {
   session: {
@@ -11,9 +13,12 @@ interface SessionHeaderProps {
     note: string | null
     budget: number | null
   }
+  isAdmin?: boolean
 }
 
-export default function SessionHeader({ session }: SessionHeaderProps) {
+export default function SessionHeader({ session, isAdmin = false }: SessionHeaderProps) {
+  const { role, displayName, email } = useAuth()
+  const isLoggedIn = role !== 'guest'
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(session.title || '')
   const [note, setNote] = useState(session.note || '')
@@ -104,15 +109,15 @@ export default function SessionHeader({ session }: SessionHeaderProps) {
       <Link href="/wardrobe" className="text-gray-400 hover:text-gray-600 mt-1 shrink-0">
         <span className="text-xl leading-none">←</span>
       </Link>
-      <div 
-        className="flex-1 min-w-0 cursor-pointer hover:bg-white/50 p-2 -m-2 rounded-xl transition-colors"
-        onClick={() => setIsEditing(true)}
+      <div
+        className={`flex-1 min-w-0 p-2 -m-2 rounded-xl transition-colors ${isAdmin ? 'cursor-pointer hover:bg-white/50' : ''}`}
+        onClick={() => isAdmin && setIsEditing(true)}
       >
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold text-gray-800 truncate">
             {session.title || '未命名会话'}
           </h1>
-          <span className="text-xs text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">编辑</span>
+          {isAdmin && <span className="text-xs text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">编辑</span>}
         </div>
         {session.note ? (
           <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{session.note}</p>
@@ -120,6 +125,17 @@ export default function SessionHeader({ session }: SessionHeaderProps) {
           <p className="text-xs text-gray-300 mt-0.5 italic">点击添加备注和预算...</p>
         )}
       </div>
+      {isLoggedIn && (
+        <form action={logout} className="shrink-0 mt-1">
+          <button
+            type="submit"
+            title={`${displayName || email} — 退出登录`}
+            className="text-xs text-gray-400 hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-50"
+          >
+            退出
+          </button>
+        </form>
+      )}
     </div>
   )
 }

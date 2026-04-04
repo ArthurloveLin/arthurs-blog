@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { isAdminRequest } from '@/lib/auth'
 
 export async function GET() {
   const { data, error } = await supabaseAdmin
@@ -12,6 +13,10 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { title, note, budget } = await request.json()
   const token = crypto.randomUUID().replace(/-/g, '').slice(0, 12)
 
