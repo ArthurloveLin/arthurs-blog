@@ -101,6 +101,19 @@ export async function deletePostsNotIn(r2Keys: string[]): Promise<number> {
   return data?.length ?? 0
 }
 
+export async function getPostsByCategory(category: string, limit = 20, offset = 0): Promise<Post[]> {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('published', true)
+    .eq('category', category)
+    .order('published_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
 export async function getCategories(): Promise<{ name: string; count: number; slug: string }[]> {
   const { data, error } = await supabase
     .from('posts')

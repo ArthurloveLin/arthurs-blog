@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 interface Category {
   name: string
   count: number
@@ -23,14 +25,17 @@ export default function CategoriesCard({ categories }: CategoriesCardProps) {
       <ul className="space-y-1">
         {categories.map((cat) => (
           <li key={cat.slug}>
-            <div className="flex items-center justify-between py-1.5 px-1 rounded-lg hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 transition-colors duration-150 group cursor-pointer">
+            <Link
+              href={`/blog/category/${cat.slug}`}
+              className="flex items-center justify-between py-1.5 px-1 rounded-lg hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 transition-colors duration-150 group"
+            >
               <span className="text-sm text-[#1D1D1F] dark:text-zinc-300 group-hover:text-[#1D1D1F] dark:group-hover:text-white transition-colors">
                 {cat.name}
               </span>
               <span className="bg-[#F5F5F7] dark:bg-zinc-800 group-hover:bg-white dark:group-hover:bg-zinc-700 rounded-full px-2 py-0.5 text-xs font-medium text-[#86868B] dark:text-zinc-400 tabular-nums transition-colors">
                 {cat.count}
               </span>
-            </div>
+            </Link>
           </li>
         ))}
       </ul>
