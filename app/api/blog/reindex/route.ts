@@ -42,6 +42,7 @@ export async function POST() {
         title: fm.title,
         summary,
         tags: Array.isArray(fm.tags) ? fm.tags : [],
+        category: typeof fm.category === 'string' ? fm.category : null,
         r2_key: key,
         published: true,
         published_at: fm.date ? new Date(fm.date).toISOString() : new Date().toISOString(),

@@ -11,6 +11,7 @@ export interface Post {
   title: string
   summary: string | null
   tags: string[]
+  category: string | null
   r2_key: string
   published: boolean
   published_at: string | null
@@ -100,12 +101,33 @@ export async function deletePostsNotIn(r2Keys: string[]): Promise<number> {
   return data?.length ?? 0
 }
 
+export async function getCategories(): Promise<{ name: string; count: number; slug: string }[]> {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('category')
+    .eq('published', true)
+    .not('category', 'is', null)
+
+  if (error) throw new Error(error.message)
+
+  const countMap = new Map<string, number>()
+  for (const row of data ?? []) {
+    const cat = row.category as string
+    countMap.set(cat, (countMap.get(cat) ?? 0) + 1)
+  }
+
+  return Array.from(countMap.entries())
+    .map(([name, count]) => ({ name, count, slug: encodeURIComponent(name) }))
+    .sort((a, b) => b.count - a.count)
+}
+
 // 仅服务端（reindex 接口使用）
 export async function upsertPost(post: {
   slug: string
   title: string
   summary?: string
   tags?: string[]
+  category?: string | null
   r2_key: string
   published: boolean
   published_at?: string
