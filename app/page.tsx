@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getPosts, getPostsByCategory, getPostsByTags, getPostsByYear, getYearArchive, getPostsCount, getCategories, getSiteConfig, getAllTags } from '@/lib/blog'
+import { getPostsByCategory, getPostsByTags, getPostsByYear, getYearArchive, getPostsCount, getCategories, getSiteConfig, getAllTags } from '@/lib/blog'
 import type { Post } from '@/lib/blog'
 import ReindexButton from '@/components/ReindexButton'
 import PostCard from '@/components/PostCard'
@@ -45,7 +45,7 @@ export default async function HomePage({
   const [categories, tags, siteConfig, totalPostsCount, yearArchive] = await Promise.all([
     getCategories().catch(() => []),
     getAllTags().catch(() => []),
-    getSiteConfig().catch(() => ({})),
+    getSiteConfig().catch(() => ({} as Record<string, string>)),
     getPostsCount().catch(() => 0),
     getYearArchive().catch(() => []),
   ])
