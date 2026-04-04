@@ -1,3 +1,5 @@
+import Image from 'next/image'
+
 interface AuthorProfileCardProps {
   postsCount: number
   categoriesCount: number
@@ -21,11 +23,9 @@ export default function AuthorProfileCard({
       {/* Avatar */}
       <div className="flex justify-center">
         {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={name}
-            className="w-20 h-20 rounded-full object-cover shadow-[0_4px_16px_rgb(0,0,0,0.12)]"
-          />
+          <div className="relative w-20 h-20 rounded-full overflow-hidden shadow-[0_4px_16px_rgb(0,0,0,0.12)]">
+            <Image src={avatarUrl} alt={name} fill className="object-cover" />
+          </div>
         ) : (
           <div className="w-20 h-20 rounded-full bg-[#1D1D1F] dark:bg-white flex items-center justify-center shadow-[0_4px_16px_rgb(0,0,0,0.12)]">
             <span className="text-white dark:text-[#1D1D1F] text-sm font-bold tracking-tight">A&G</span>
