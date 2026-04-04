@@ -33,13 +33,56 @@ interface MultiDimRatingProps {
   onRate?: () => void
 }
 
-// SVG 雷达图组件
-function RadarChart({ ratings }: { ratings: RatingData[] }) {
+// 权重配置：Arthur / Grace 权重高，其余为游客权重
+const NAMED_AUTHORS = ['Arthur', 'Grace']
+const NAMED_WEIGHT = 2
+const GUEST_WEIGHT = 1
+
+const AUTHOR_COLORS: Record<string, string> = {
+  Arthur: '#f472b6',
+  Grace: '#60a5fa',
+}
+const AVG_COLOR = '#f59e0b'
+
+function getWeight(author: string) {
+  return NAMED_AUTHORS.includes(author) ? NAMED_WEIGHT : GUEST_WEIGHT
+}
+
+function computeWeightedAvg(ratings: RatingData[]): RatingData | null {
+  const valid = ratings.filter(
+    (r) =>
+      r.appearance_score != null &&
+      r.practicality_score != null &&
+      r.value_score != null
+  )
+  if (valid.length === 0) return null
+
+  const totalWeight = valid.reduce((sum, r) => sum + getWeight(r.author), 0)
+  const wavg = (key: DimKey) =>
+    valid.reduce((sum, r) => sum + r[key]! * getWeight(r.author), 0) / totalWeight
+
+  return {
+    author: '加权均值',
+    score: null,
+    appearance_score: wavg('appearance_score'),
+    practicality_score: wavg('practicality_score'),
+    value_score: wavg('value_score'),
+  }
+}
+
+// ── RadarChart ────────────────────────────────────────────────────────────────
+interface RadarEntry {
+  rating: RatingData
+  color: string
+  label: string
+  dashed?: boolean
+}
+
+function RadarChart({ entries }: { entries: RadarEntry[] }) {
   const cx = 100
   const cy = 105
   const r = 65
   const n = 3
-  // 角度：颜值在顶，实用右下，性价比左下
   const angles = Array.from({ length: n }, (_, i) =>
     ((-90 + (360 / n) * i) * Math.PI) / 180
   )
@@ -55,18 +98,10 @@ function RadarChart({ ratings }: { ratings: RatingData[] }) {
   function toPath(values: (number | null)[]): string | null {
     if (values.some((v) => v == null)) return null
     const pts = (values as number[]).map((v, i) => point(v, i))
-    return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') + ' Z'
-  }
-
-  const gridLevels = [1, 2, 3, 4, 5]
-  const authorColors: Record<string, string> = {
-    Arthur: '#f472b6',
-    Grace: '#60a5fa',
-  }
-  const defaultColors = ['#a78bfa', '#fb923c']
-
-  function getColor(author: string, idx: number) {
-    return authorColors[author] ?? defaultColors[idx % defaultColors.length]
+    return (
+      pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') +
+      ' Z'
+    )
   }
 
   const labelOffset = r + 18
@@ -74,12 +109,12 @@ function RadarChart({ ratings }: { ratings: RatingData[] }) {
   return (
     <svg viewBox="0 0 200 210" className="w-full max-w-[220px] mx-auto">
       {/* 背景网格 */}
-      {gridLevels.map((level) => {
+      {[1, 2, 3, 4, 5].map((level) => {
         const pts = angles.map((_, i) => point(level, i))
-        const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') + ' Z'
-        return (
-          <path key={level} d={d} fill="none" stroke="#e5e7eb" strokeWidth="1" />
-        )
+        const d =
+          pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') +
+          ' Z'
+        return <path key={level} d={d} fill="none" stroke="#e5e7eb" strokeWidth="1" />
       })}
 
       {/* 坐标轴线 */}
@@ -98,19 +133,27 @@ function RadarChart({ ratings }: { ratings: RatingData[] }) {
         )
       })}
 
-      {/* 各人数据多边形 */}
-      {ratings.map((r, idx) => {
-        const vals = [r.appearance_score, r.practicality_score, r.value_score]
+      {/* 各数据多边形 */}
+      {entries.map(({ rating, color, dashed }) => {
+        const vals = [rating.appearance_score, rating.practicality_score, rating.value_score]
         const d = toPath(vals)
         if (!d) return null
-        const color = getColor(r.author, idx)
         return (
-          <g key={r.author}>
-            <path d={d} fill={color} fillOpacity="0.15" stroke={color} strokeWidth="2" strokeLinejoin="round" />
-            {(vals as number[]).map((v, i) => {
-              const p = point(v, i)
-              return <circle key={i} cx={p.x} cy={p.y} r="3" fill={color} />
-            })}
+          <g key={rating.author}>
+            <path
+              d={d}
+              fill={color}
+              fillOpacity={dashed ? 0.08 : 0.15}
+              stroke={color}
+              strokeWidth={dashed ? 1.5 : 2}
+              strokeLinejoin="round"
+              strokeDasharray={dashed ? '4 2' : undefined}
+            />
+            {!dashed &&
+              (vals as number[]).map((v, i) => {
+                const p = point(v, i)
+                return <circle key={i} cx={p.x} cy={p.y} r="3" fill={color} />
+              })}
           </g>
         )
       })}
@@ -138,7 +181,7 @@ function RadarChart({ ratings }: { ratings: RatingData[] }) {
   )
 }
 
-// 单维度星级选择器
+// ── DimStars ──────────────────────────────────────────────────────────────────
 function DimStars({
   label,
   color,
@@ -166,20 +209,19 @@ function DimStars({
             onClick={() => onChange(star)}
             onMouseEnter={() => setHover(star)}
             onMouseLeave={() => setHover(null)}
-            className={`text-xl leading-none transition-colors disabled:cursor-not-allowed`}
+            className="text-xl leading-none transition-colors disabled:cursor-not-allowed"
             style={{ color: display >= star ? color : '#e5e7eb' }}
           >
             ★
           </button>
         ))}
       </div>
-      {value !== null && (
-        <span className="text-xs text-gray-400 w-6">{value}.0</span>
-      )}
+      {value !== null && <span className="text-xs text-gray-400 w-6">{value}.0</span>}
     </div>
   )
 }
 
+// ── MultiDimRating ────────────────────────────────────────────────────────────
 export default function MultiDimRating({
   itemId,
   author,
@@ -196,7 +238,6 @@ export default function MultiDimRating({
     const newScores = { ...scores, [key]: val }
     setScores(newScores)
 
-    // 三维都填好才保存
     const { appearance_score, practicality_score, value_score } = newScores
     if (appearance_score == null || practicality_score == null || value_score == null) return
 
@@ -216,7 +257,6 @@ export default function MultiDimRating({
       if (!res.ok) throw new Error('Failed')
       onRate?.()
     } catch {
-      // 回滚单个维度
       setScores((prev) => ({ ...prev, [key]: myScores[key] }))
     } finally {
       setSaving(false)
@@ -228,18 +268,37 @@ export default function MultiDimRating({
     scores.practicality_score != null &&
     scores.value_score != null
 
-  // 合并 allRatings 中当前用户的最新分和本地状态
+  // 合并本地状态到 allRatings
   const displayRatings: RatingData[] = allRatings.map((r) =>
     r.author === author ? { ...r, ...scores } : r
   )
-  // 如果 allRatings 里没有当前用户（新用户还没存过），且已填好，加进去预览
   const hasMyRating = allRatings.some((r) => r.author === author)
   if (!hasMyRating && author && allFilled) {
-    displayRatings.push({
-      author,
-      score: null,
-      ...scores,
-    })
+    displayRatings.push({ author, score: null, ...scores })
+  }
+
+  // ── 构建雷达图数据：Arthur / Grace / 加权均值 ──────────────────────────────
+  const arthurEntry = displayRatings.find((r) => r.author === 'Arthur')
+  const graceEntry = displayRatings.find((r) => r.author === 'Grace')
+  const weightedAvg = computeWeightedAvg(displayRatings)
+
+  const radarEntries: RadarEntry[] = []
+  if (arthurEntry) radarEntries.push({ rating: arthurEntry, color: AUTHOR_COLORS.Arthur, label: 'Arthur' })
+  if (graceEntry) radarEntries.push({ rating: graceEntry, color: AUTHOR_COLORS.Grace, label: 'Grace' })
+  if (weightedAvg) radarEntries.push({ rating: weightedAvg, color: AVG_COLOR, label: '加权均值', dashed: true })
+
+  const hasRadarData = radarEntries.some(
+    (e) =>
+      e.rating.appearance_score != null &&
+      e.rating.practicality_score != null &&
+      e.rating.value_score != null
+  )
+
+  // 加权均值分（用于图例展示）
+  function avgScore(r: RatingData) {
+    if (r.appearance_score == null || r.practicality_score == null || r.value_score == null)
+      return null
+    return ((r.appearance_score + r.practicality_score + r.value_score) / 3).toFixed(1)
   }
 
   return (
@@ -249,9 +308,7 @@ export default function MultiDimRating({
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700">我的评分</span>
           {saving && <span className="text-xs text-gray-400">保存中…</span>}
-          {!author && (
-            <span className="text-xs text-gray-400">请先选择身份再评分</span>
-          )}
+          {!author && <span className="text-xs text-gray-400">请先选择身份再评分</span>}
         </div>
         <div className="space-y-2">
           {DIMS.map((dim) => (
@@ -271,37 +328,25 @@ export default function MultiDimRating({
       </div>
 
       {/* 雷达图 */}
-      {displayRatings.some(
-        (r) => r.appearance_score != null && r.practicality_score != null && r.value_score != null
-      ) && (
+      {hasRadarData && (
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            {displayRatings
-              .filter(
-                (r) =>
-                  r.appearance_score != null &&
-                  r.practicality_score != null &&
-                  r.value_score != null
+          {/* 图例 */}
+          <div className="flex flex-wrap items-center gap-3 mb-2">
+            {radarEntries.map((e) => {
+              const avg = avgScore(e.rating)
+              return (
+                <div key={e.label} className="flex items-center gap-1 text-xs">
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-full"
+                    style={{ background: e.color }}
+                  />
+                  <span className="text-gray-600">{e.label}</span>
+                  {avg && <span className="text-gray-400">{avg}分</span>}
+                </div>
               )
-              .map((r, idx) => {
-                const authorColors: Record<string, string> = {
-                  Arthur: '#f472b6',
-                  Grace: '#60a5fa',
-                }
-                const defaultColors = ['#a78bfa', '#fb923c']
-                const color = authorColors[r.author] ?? defaultColors[idx % defaultColors.length]
-                const avg =
-                  ((r.appearance_score! + r.practicality_score! + r.value_score!) / 3).toFixed(1)
-                return (
-                  <div key={r.author} className="flex items-center gap-1 text-xs">
-                    <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: color }} />
-                    <span className="text-gray-600">{r.author}</span>
-                    <span className="text-gray-400">{avg}分</span>
-                  </div>
-                )
-              })}
+            })}
           </div>
-          <RadarChart ratings={displayRatings} />
+          <RadarChart entries={radarEntries} />
         </div>
       )}
     </div>

@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { useAuth } from '@/components/AuthProvider'
+import { logout } from '@/app/auth/logout/actions'
 
 const navLinks = [
   { href: '/', label: '首页' },
@@ -13,6 +15,7 @@ const navLinks = [
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const { role, displayName, email, guestId, loading } = useAuth()
 
   useEffect(() => {
     const stored = localStorage.getItem('theme') as 'light' | 'dark' | null
@@ -109,6 +112,47 @@ export default function Navbar() {
               )}
             </button>
 
+            {/* Auth Status */}
+            {!loading && (
+              <div className="hidden sm:flex items-center gap-1.5">
+                {role === 'guest' && (
+                  <>
+                    {guestId && (
+                      <span className="text-xs text-[#1D1D1F]/35 dark:text-white/35 font-mono">
+                        游客&nbsp;{guestId.slice(0, 6)}
+                      </span>
+                    )}
+                    <Link
+                      href="/auth/login"
+                      className="px-3 py-1.5 text-sm font-medium text-[#1D1D1F]/70 dark:text-white/70 hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all duration-200"
+                    >
+                      登录
+                    </Link>
+                  </>
+                )}
+                {(role === 'user' || role === 'admin') && (
+                  <>
+                    {role === 'admin' && (
+                      <span className="text-xs font-semibold px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-md">
+                        管理员
+                      </span>
+                    )}
+                    <span className="text-sm text-[#1D1D1F]/60 dark:text-white/60 max-w-[120px] truncate">
+                      {displayName ?? email}
+                    </span>
+                    <form action={logout}>
+                      <button
+                        type="submit"
+                        className="px-3 py-1.5 text-sm font-medium text-[#1D1D1F]/50 dark:text-white/50 hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all duration-200"
+                      >
+                        退出
+                      </button>
+                    </form>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -159,6 +203,33 @@ export default function Navbar() {
               >
                 {theme === 'light' ? '深色模式' : '浅色模式'}
               </button>
+              {/* Mobile Auth */}
+              {!loading && role === 'guest' && (
+                <Link
+                  href="/auth/login"
+                  className="block px-4 py-2.5 text-sm font-medium text-[#1D1D1F]/70 dark:text-white/70 hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all duration-200"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  登录{guestId ? `（游客 ${guestId.slice(0, 6)}）` : ''}
+                </Link>
+              )}
+              {!loading && (role === 'user' || role === 'admin') && (
+                <div className="px-4 py-2.5 flex items-center justify-between">
+                  <span className="text-sm text-[#1D1D1F]/60 dark:text-white/60 flex items-center gap-2">
+                    {role === 'admin' && (
+                      <span className="text-xs font-semibold px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-md">
+                        管理员
+                      </span>
+                    )}
+                    {displayName ?? email}
+                  </span>
+                  <form action={logout}>
+                    <button type="submit" className="text-sm text-[#1D1D1F]/50 dark:text-white/50 hover:text-[#1D1D1F] dark:hover:text-white">
+                      退出
+                    </button>
+                  </form>
+                </div>
+              )}
             </div>
           </nav>
         )}

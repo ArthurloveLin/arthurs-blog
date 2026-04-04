@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import AuthProvider from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
   title: "Arthur & Grace",
@@ -15,8 +16,10 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="bg-[#F5F5F7] antialiased">
-        <Navbar />
-        {children}
+        <AuthProvider>
+          <Navbar />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

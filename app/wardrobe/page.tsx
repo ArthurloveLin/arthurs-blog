@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase'
+import { getUserRole } from '@/lib/auth'
 import SessionList from '@/components/SessionList'
 
 export default async function WardrobePage({
@@ -9,6 +10,7 @@ export default async function WardrobePage({
 }) {
   const { archived } = await searchParams
   const showArchived = archived === '1'
+  const isAdmin = (await getUserRole()) === 'admin'
 
   const { data: sessions, error } = await supabaseAdmin
     .from('sessions')
@@ -25,12 +27,14 @@ export default async function WardrobePage({
             </Link>
             <h1 className="text-2xl font-bold text-gray-800">👗 选衣记录</h1>
           </div>
-          <Link
-            href="/session/new"
-            className="bg-pink-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-pink-600 transition-colors"
-          >
-            + 新建会话
-          </Link>
+          {isAdmin && (
+            <Link
+              href="/session/new"
+              className="bg-pink-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-pink-600 transition-colors"
+            >
+              + 新建会话
+            </Link>
+          )}
         </div>
 
         {error && (
@@ -40,7 +44,7 @@ export default async function WardrobePage({
         )}
 
         {!error && (
-          <SessionList sessions={sessions ?? []} showArchived={showArchived} />
+          <SessionList sessions={sessions ?? []} showArchived={showArchived} isAdmin={isAdmin} />
         )}
       </div>
     </main>
