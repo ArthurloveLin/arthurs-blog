@@ -64,3 +64,26 @@ export async function listR2Objects(bucket: string, prefix?: string): Promise<st
 
   return keys
 }
+
+export async function listR2ObjectsWithMeta(
+  bucket: string,
+  prefix?: string
+): Promise<{ key: string; lastModified: Date | undefined }[]> {
+  const items: { key: string; lastModified: Date | undefined }[] = []
+  let continuationToken: string | undefined
+
+  do {
+    const command = new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: prefix,
+      ContinuationToken: continuationToken,
+    })
+    const response: ListObjectsV2CommandOutput = await r2Client.send(command)
+    for (const obj of response.Contents ?? []) {
+      if (obj.Key) items.push({ key: obj.Key, lastModified: obj.LastModified })
+    }
+    continuationToken = response.NextContinuationToken
+  } while (continuationToken)
+
+  return items
+}
