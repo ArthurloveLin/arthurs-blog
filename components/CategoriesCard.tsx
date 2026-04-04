@@ -8,9 +8,10 @@ interface Category {
 
 interface CategoriesCardProps {
   categories: Category[]
+  activeCategory?: string | null
 }
 
-export default function CategoriesCard({ categories }: CategoriesCardProps) {
+export default function CategoriesCard({ categories, activeCategory }: CategoriesCardProps) {
   if (categories.length === 0) return null
 
   return (
@@ -23,21 +24,36 @@ export default function CategoriesCard({ categories }: CategoriesCardProps) {
 
       {/* Category list */}
       <ul className="space-y-1">
-        {categories.map((cat) => (
-          <li key={cat.slug}>
-            <Link
-              href={`/blog/category/${cat.slug}`}
-              className="flex items-center justify-between py-1.5 px-1 rounded-lg hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 transition-colors duration-150 group"
-            >
-              <span className="text-sm text-[#1D1D1F] dark:text-zinc-300 group-hover:text-[#1D1D1F] dark:group-hover:text-white transition-colors">
-                {cat.name}
-              </span>
-              <span className="bg-[#F5F5F7] dark:bg-zinc-800 group-hover:bg-white dark:group-hover:bg-zinc-700 rounded-full px-2 py-0.5 text-xs font-medium text-[#86868B] dark:text-zinc-400 tabular-nums transition-colors">
-                {cat.count}
-              </span>
-            </Link>
-          </li>
-        ))}
+        {categories.map((cat) => {
+          const isActive = activeCategory === cat.name
+          return (
+            <li key={cat.slug}>
+              <Link
+                href={isActive ? '/' : `/?category=${cat.slug}`}
+                className={`flex items-center justify-between py-1.5 px-1 rounded-lg transition-colors duration-150 group ${
+                  isActive
+                    ? 'bg-[#1D1D1F] dark:bg-zinc-100'
+                    : 'hover:bg-[#F5F5F7] dark:hover:bg-zinc-800'
+                }`}
+              >
+                <span className={`text-sm transition-colors ${
+                  isActive
+                    ? 'text-white dark:text-zinc-900 font-medium'
+                    : 'text-[#1D1D1F] dark:text-zinc-300 group-hover:text-[#1D1D1F] dark:group-hover:text-white'
+                }`}>
+                  {cat.name}
+                </span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium tabular-nums transition-colors ${
+                  isActive
+                    ? 'bg-white/20 dark:bg-zinc-900/20 text-white dark:text-zinc-900'
+                    : 'bg-[#F5F5F7] dark:bg-zinc-800 group-hover:bg-white dark:group-hover:bg-zinc-700 text-[#86868B] dark:text-zinc-400'
+                }`}>
+                  {cat.count}
+                </span>
+              </Link>
+            </li>
+          )
+        })}
       </ul>
 
     </div>

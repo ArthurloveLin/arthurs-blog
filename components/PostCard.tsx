@@ -31,7 +31,15 @@ export default function PostCard({ post, index = 0 }: PostCardProps) {
 
       {/* ── Cover Image ────────────────────────────────────────────── */}
       <Link href={`/blog/${post.slug}`} className="block h-48 w-full overflow-hidden" tabIndex={-1} aria-hidden>
-        <div className={`h-full w-full bg-gradient-to-br ${gradient} transition-transform duration-500 group-hover:scale-105`} />
+        {post.cover_image ? (
+          <img
+            src={post.cover_image}
+            alt={post.title}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className={`h-full w-full bg-gradient-to-br ${gradient} transition-transform duration-500 group-hover:scale-105`} />
+        )}
       </Link>
 
       {/* ── Body ───────────────────────────────────────────────────── */}

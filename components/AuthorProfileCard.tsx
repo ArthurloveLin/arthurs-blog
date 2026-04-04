@@ -2,27 +2,45 @@ interface AuthorProfileCardProps {
   postsCount: number
   categoriesCount: number
   tagsCount: number
+  name?: string
+  bio?: string
+  avatarUrl?: string
 }
 
-export default function AuthorProfileCard({ postsCount, categoriesCount, tagsCount }: AuthorProfileCardProps) {
+export default function AuthorProfileCard({
+  postsCount,
+  categoriesCount,
+  tagsCount,
+  name = 'Arthur & Grace',
+  bio = '技术、生活与创意的记录者',
+  avatarUrl,
+}: AuthorProfileCardProps) {
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-6">
 
       {/* Avatar */}
       <div className="flex justify-center">
-        <div className="w-20 h-20 rounded-full bg-[#1D1D1F] dark:bg-white flex items-center justify-center shadow-[0_4px_16px_rgb(0,0,0,0.12)]">
-          <span className="text-white dark:text-[#1D1D1F] text-sm font-bold tracking-tight">A&G</span>
-        </div>
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={name}
+            className="w-20 h-20 rounded-full object-cover shadow-[0_4px_16px_rgb(0,0,0,0.12)]"
+          />
+        ) : (
+          <div className="w-20 h-20 rounded-full bg-[#1D1D1F] dark:bg-white flex items-center justify-center shadow-[0_4px_16px_rgb(0,0,0,0.12)]">
+            <span className="text-white dark:text-[#1D1D1F] text-sm font-bold tracking-tight">A&G</span>
+          </div>
+        )}
       </div>
 
       {/* Name */}
       <h2 className="text-lg font-semibold mt-4 text-center text-[#1D1D1F] dark:text-white tracking-tight">
-        Arthur & Grace
+        {name}
       </h2>
 
       {/* Bio */}
       <p className="text-sm text-[#86868B] text-center mb-4 leading-relaxed mt-1">
-        技术、生活与创意的记录者
+        {bio}
       </p>
 
       {/* Divider */}
