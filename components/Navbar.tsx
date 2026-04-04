@@ -3,61 +3,47 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 
+const navLinks = [
+  { href: '/', label: '首页' },
+  { href: '/blog/tags', label: '标签' },
+  { href: '/wardrobe', label: '选衣' },
+  { href: 'https://trendradar.arthurlovegrace.top', label: '新闻', external: true },
+]
+
 export default function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    const stored = localStorage.getItem('theme') as 'light' | 'dark' | null
+    const initial = stored ?? (document.documentElement.classList.contains('dark') ? 'dark' : 'light')
+    setTheme(initial)
   }, [])
 
-  // Toggle theme (client-side only for now - backend persistence in PRD)
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
     setTheme(newTheme)
     document.documentElement.classList.toggle('dark')
+    localStorage.setItem('theme', newTheme)
   }
 
-  const navLinks = [
-    { href: '/', label: '首页' },
-    { href: '/wardrobe', label: '选衣记录' },
-    {
-      href: 'https://trendradar.arthurlovegrace.top',
-      label: '新闻汇总',
-      external: true,
-    },
-  ]
-
   return (
-    <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? 'border-b border-gray-200/50 dark:border-gray-800/50 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md shadow-sm'
-          : 'border-transparent bg-transparent'
-      }`}
-    >
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="h-16 flex items-center justify-between">
-          {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 group"
-          >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm group-hover:scale-105 transition-transform">
-              A&G
+    <header className="sticky top-0 z-50 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl border-b border-gray-200/50 dark:border-zinc-800/50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="h-16 flex items-center justify-between gap-4">
+
+          {/* ── Left: Logo / Title ─────────────────────────────────── */}
+          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 group">
+            <div className="w-8 h-8 rounded-xl bg-[#1D1D1F] dark:bg-white flex items-center justify-center shadow-[0_2px_8px_rgb(0,0,0,0.15)] group-hover:scale-105 transition-transform duration-200">
+              <span className="text-white dark:text-[#1D1D1F] text-[10px] font-bold tracking-tight leading-none">A&G</span>
             </div>
-            <span className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors hidden sm:block">
+            <span className="text-[#1D1D1F] dark:text-white font-bold text-xl tracking-tight hidden sm:block">
               Arthur & Grace
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          {/* ── Center: Navigation Links ───────────────────────────── */}
+          <nav className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
             {navLinks.map((link) =>
               link.external ? (
                 <a
@@ -65,73 +51,85 @@ export default function Navbar() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200 flex items-center gap-1.5"
+                  className="px-4 py-2 text-sm font-medium text-[#1D1D1F]/70 dark:text-white/70 hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all duration-200"
                 >
                   {link.label}
-                  <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M2 10L10 2M10 2H5M10 2V7" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
                 </a>
               ) : (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200"
+                  className="px-4 py-2 text-sm font-medium text-[#1D1D1F]/70 dark:text-white/70 hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all duration-200"
                 >
                   {link.label}
                 </Link>
               )
             )}
+          </nav>
+
+          {/* ── Right: Icons ───────────────────────────────────────── */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+
+            {/* RSS Placeholder */}
+            <button
+              className="p-2 text-[#1D1D1F]/50 dark:text-white/50 hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all duration-200 hidden md:flex"
+              aria-label="RSS 订阅"
+              title="RSS 订阅"
+            >
+              <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7M6 17a1 1 0 110-2 1 1 0 010 2z" />
+              </svg>
+            </button>
+
+            {/* Search Placeholder */}
+            <button
+              className="p-2 text-[#1D1D1F]/50 dark:text-white/50 hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all duration-200 hidden md:flex"
+              aria-label="搜索"
+              title="搜索功能开发中"
+            >
+              <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+            </button>
 
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200"
-              aria-label="Toggle theme"
+              className="p-2 text-[#1D1D1F]/50 dark:text-white/50 hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all duration-200"
+              aria-label="切换主题"
             >
               {theme === 'light' ? (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
                 </svg>
               ) : (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
                 </svg>
               )}
             </button>
 
-            {/* Search Button (placeholder - see PRD) */}
+            {/* Mobile Menu Toggle */}
             <button
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200"
-              aria-label="Search"
-              title="搜索功能开发中"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-[#1D1D1F]/60 dark:text-white/60 hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all duration-200"
+              aria-label="菜单"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                {isMobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
+                )}
               </svg>
             </button>
-          </nav>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200"
-            aria-label="Toggle menu"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {isMobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
+          </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* ── Mobile Menu ─────────────────────────────────────────── */}
         {isMobileMenuOpen && (
-          <nav className="md:hidden pb-4 border-t border-gray-200 dark:border-gray-800 mt-2 pt-4">
-            <div className="space-y-1">
+          <nav className="md:hidden pb-4 pt-2 border-t border-gray-200/60 dark:border-zinc-700/60">
+            <div className="space-y-0.5">
               {navLinks.map((link) =>
                 link.external ? (
                   <a
@@ -139,7 +137,8 @@ export default function Navbar() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200"
+                    className="block px-4 py-2.5 text-sm font-medium text-[#1D1D1F]/70 dark:text-white/70 hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all duration-200"
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
                     {link.label}
                   </a>
@@ -147,34 +146,18 @@ export default function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="block px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200"
+                    className="block px-4 py-2.5 text-sm font-medium text-[#1D1D1F]/70 dark:text-white/70 hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all duration-200"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     {link.label}
                   </Link>
                 )
               )}
-
-              {/* Theme Toggle for Mobile */}
               <button
-                onClick={() => {
-                  toggleTheme()
-                  setIsMobileMenuOpen(false)
-                }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200"
+                onClick={() => { toggleTheme(); setIsMobileMenuOpen(false) }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#1D1D1F]/60 dark:text-white/60 hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all duration-200"
               >
-                {theme === 'light' ? '🌙 深色模式' : '☀️ 浅色模式'}
-              </button>
-
-              {/* Search for Mobile (placeholder) */}
-              <button
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200"
-                disabled
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                搜索功能开发中
+                {theme === 'light' ? '深色模式' : '浅色模式'}
               </button>
             </div>
           </nav>
