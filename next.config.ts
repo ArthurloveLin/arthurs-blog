@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'images.arthurlovegrace.top',
       },
+      {
+        protocol: 'https',
+        hostname: 'obsidian.arthurlovegrace.top',
+      },
     ],
   },
 };
