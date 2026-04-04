@@ -2,13 +2,14 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import MultiDimRating from './MultiDimRating'
 import CommentBox from './CommentBox'
 import Lightbox from './Lightbox'
+import AdminOnly from './AdminOnly'
+import { useAuth } from './AuthProvider'
 import { updatePresenceActivity } from './ActivityBanner'
 
-const AUTHORS = ['Arthur', 'Grace']
 const CATEGORIES = ['上衣', '裤子', '鞋子', '配饰', '其他']
 
 type Decision = 'buy' | 'skip' | 'pending'
@@ -52,7 +53,10 @@ const DECISION_CONFIG: { value: Decision; label: string; active: string; inactiv
 ]
 
 export default function ItemDetail({ item, token }: ItemDetailProps) {
-  const [author, setAuthorState] = useState('')
+  const { displayName, email, guestId, isAdmin } = useAuth()
+  // 评论/评分身份：登录用户取 display_name，游客取 guestId
+  const identity = displayName || email || guestId
+
   const [decision, setDecision] = useState<Decision>(item.decision)
   const [savingDecision, setSavingDecision] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -62,22 +66,11 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
   const priceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => {
-    const stored = localStorage.getItem('wardrobe_author')
-    if (stored) setAuthorState(stored)
-    
-    // Trigger activity update
+  // Trigger activity update on mount
+  useState(() => {
     updatePresenceActivity('正在看图')
-    return () => {
-      updatePresenceActivity('正在浏览')
-    }
-  }, [])
-
-  function setAuthor(name: string) {
-    localStorage.setItem('wardrobe_author', name)
-    setAuthorState(name)
-    window.dispatchEvent(new Event('wardrobe_author_changed'))
-  }
+    return () => { updatePresenceActivity('正在浏览') }
+  })
 
   async function handleDecision(value: Decision) {
     if (savingDecision) return
@@ -136,7 +129,7 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
     }
   }
 
-  const myRatingData = item.ratings.find((r) => r.author === author)
+  const myRatingData = item.ratings.find((r) => r.author === identity)
   const myDimScores = {
     appearance_score: myRatingData?.appearance_score ?? null,
     practicality_score: myRatingData?.practicality_score ?? null,
@@ -165,7 +158,7 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
           <h1 className="text-lg font-semibold text-gray-800">图片详情</h1>
         </div>
 
-        {/* Image — tap to enlarge */}
+        {/* Image */}
         <button
           className="relative w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 shadow-sm mb-5 block"
           onClick={() => setLightboxOpen(true)}
@@ -190,89 +183,81 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
           />
         )}
 
-        {/* Category */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">分类</h2>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => handleCategoryChange('')}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                category === ''
-                  ? 'bg-pink-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              未分类
-            </button>
-            {CATEGORIES.map((cat) => (
+        {/* Category — admin only */}
+        <AdminOnly>
+          <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">分类</h2>
+            <div className="flex flex-wrap gap-2">
               <button
-                key={cat}
-                onClick={() => handleCategoryChange(cat)}
+                onClick={() => handleCategoryChange('')}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  category === cat
+                  category === ''
                     ? 'bg-pink-500 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {cat}
+                未分类
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Decision + Price */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">决策</h2>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-gray-400">¥</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={price}
-                onChange={(e) => handlePriceChange(e.target.value)}
-                placeholder="填写价格"
-                className="w-24 text-sm text-right border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-pink-300"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {DECISION_CONFIG.map(({ value, label, active, inactive }) => (
-              <button
-                key={value}
-                disabled={savingDecision}
-                onClick={() => handleDecision(value)}
-                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-60 ${
-                  decision === value ? active : inactive
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Author Picker */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">你是：</span>
-            <div className="flex gap-2">
-              {AUTHORS.map((a) => (
+              {CATEGORIES.map((cat) => (
                 <button
-                  key={a}
-                  onClick={() => setAuthor(a)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    author === a
+                  key={cat}
+                  onClick={() => handleCategoryChange(cat)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    category === cat
                       ? 'bg-pink-500 text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  {a}
+                  {cat}
                 </button>
               ))}
             </div>
           </div>
-        </div>
+        </AdminOnly>
+
+        {/* Category display — guest/user read-only */}
+        {!isAdmin && category && (
+          <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">分类</h2>
+            <span className="inline-block px-3 py-1.5 rounded-full text-xs font-medium bg-pink-100 text-pink-600">
+              {category}
+            </span>
+          </div>
+        )}
+
+        {/* Decision + Price — admin only */}
+        <AdminOnly>
+          <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-700">决策</h2>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-400">¥</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={price}
+                  onChange={(e) => handlePriceChange(e.target.value)}
+                  placeholder="填写价格"
+                  className="w-24 text-sm text-right border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-pink-300"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {DECISION_CONFIG.map(({ value, label, active, inactive }) => (
+                <button
+                  key={value}
+                  disabled={savingDecision}
+                  onClick={() => handleDecision(value)}
+                  className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-60 ${
+                    decision === value ? active : inactive
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </AdminOnly>
 
         {/* Rating */}
         <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
@@ -286,7 +271,7 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
           </div>
           <MultiDimRating
             itemId={item.id}
-            author={author}
+            author={identity}
             myScores={myDimScores}
             allRatings={item.ratings}
           />
@@ -300,21 +285,23 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
           )}
         </div>
 
-        {/* Notes */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-2">备注</h2>
-          <textarea
-            value={notes}
-            onChange={(e) => handleNotesChange(e.target.value)}
-            placeholder="品牌、店铺链接、尺码、颜色等信息…"
-            rows={3}
-            className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-pink-300 placeholder-gray-300"
-          />
-        </div>
+        {/* Notes — admin only */}
+        <AdminOnly>
+          <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+            <h2 className="text-sm font-semibold text-gray-700 mb-2">备注</h2>
+            <textarea
+              value={notes}
+              onChange={(e) => handleNotesChange(e.target.value)}
+              placeholder="品牌、店铺链接、尺码、颜色等信息…"
+              rows={3}
+              className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-pink-300 placeholder-gray-300"
+            />
+          </div>
+        </AdminOnly>
 
         {/* Comments */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <CommentBox itemId={item.id} author={author} initialComments={item.comments} />
+          <CommentBox targetType="wardrobe_item" targetId={item.id} initialComments={item.comments} />
         </div>
       </div>
     </main>

@@ -18,9 +18,10 @@ interface Session {
 interface SessionListProps {
   sessions: Session[]
   showArchived: boolean
+  isAdmin?: boolean
 }
 
-export default function SessionList({ sessions, showArchived }: SessionListProps) {
+export default function SessionList({ sessions, showArchived, isAdmin = false }: SessionListProps) {
   const router = useRouter()
   const [loading, setLoading] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
@@ -146,23 +147,25 @@ export default function SessionList({ sessions, showArchived }: SessionListProps
                 </div>
               </Link>
 
-              {/* 操作按钮 */}
-              <div className="flex border-t border-gray-50 divide-x divide-gray-50">
-                <button
-                  disabled={!!loading}
-                  onClick={() => handleArchive(session)}
-                  className="flex-1 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-bl-2xl transition-colors disabled:opacity-40"
-                >
-                  {loading === session.id ? '…' : session.archived ? '取消归档' : '归档'}
-                </button>
-                <button
-                  disabled={!!loading}
-                  onClick={() => setConfirmDelete(session.id)}
-                  className="flex-1 py-2 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 rounded-br-2xl transition-colors disabled:opacity-40"
-                >
-                  删除
-                </button>
-              </div>
+              {/* 操作按钮 — 仅管理员可见 */}
+              {isAdmin && (
+                <div className="flex border-t border-gray-50 divide-x divide-gray-50">
+                  <button
+                    disabled={!!loading}
+                    onClick={() => handleArchive(session)}
+                    className="flex-1 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-bl-2xl transition-colors disabled:opacity-40"
+                  >
+                    {loading === session.id ? '…' : session.archived ? '取消归档' : '归档'}
+                  </button>
+                  <button
+                    disabled={!!loading}
+                    onClick={() => setConfirmDelete(session.id)}
+                    className="flex-1 py-2 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 rounded-br-2xl transition-colors disabled:opacity-40"
+                  >
+                    删除
+                  </button>
+                </div>
+              )}
             </div>
           )
         })}

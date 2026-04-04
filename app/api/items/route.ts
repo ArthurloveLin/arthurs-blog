@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { putR2Object } from '@/lib/r2'
+import { isAdminRequest } from '@/lib/auth'
 
 const WARDROBE_BUCKET = process.env.R2_WARDROBE_BUCKET!
 const WARDROBE_PUBLIC_URL = process.env.R2_WARDROBE_PUBLIC_URL!
 
 export async function POST(request: NextRequest) {
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const formData = await request.formData()
   const file = formData.get('file') as File | null
   const sessionToken = formData.get('sessionToken') as string | null

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import data from '@emoji-mart/data'
 import { updatePresenceActivity } from './ActivityBanner'
+import { useAuth } from './AuthProvider'
 
 // emoji-mart uses browser APIs, must be client-only
 const Picker = dynamic(() => import('@emoji-mart/react'), { ssr: false })
@@ -17,12 +18,15 @@ interface Comment {
 }
 
 interface CommentBoxProps {
-  itemId: string
-  author: string
+  targetType: 'wardrobe_item' | 'blog_post'
+  targetId: string
   initialComments: Comment[]
 }
 
-export default function CommentBox({ itemId, author, initialComments }: CommentBoxProps) {
+export default function CommentBox({ targetType, targetId, initialComments }: CommentBoxProps) {
+  const { displayName, email, guestId } = useAuth()
+  const identity = displayName || email || guestId
+
   const [comments, setComments] = useState<Comment[]>(initialComments)
   const [text, setText] = useState('')
   const [replyTo, setReplyTo] = useState<{ id: string; author: string } | null>(null)
@@ -64,15 +68,16 @@ export default function CommentBox({ itemId, author, initialComments }: CommentB
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!text.trim() || !author || submitting) return
+    if (!text.trim() || !identity || submitting) return
     setSubmitting(true)
     try {
       const res = await fetch('/api/comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          item_id: itemId,
-          author,
+          target_type: targetType,
+          target_id: targetId,
+          author: identity,
           content: text.trim(),
           parent_id: replyTo?.id ?? null,
         }),
@@ -88,7 +93,11 @@ export default function CommentBox({ itemId, author, initialComments }: CommentB
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/comments/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/comments/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identity }),
+    })
     if (res.ok) {
       setComments((prev) => prev.filter((c) => c.id !== id && c.parent_id !== id))
     }
@@ -117,7 +126,7 @@ export default function CommentBox({ itemId, author, initialComments }: CommentB
               回复
             </button>
           </div>
-          {comment.author === author && (
+          {comment.author === identity && (
             <button
               onClick={() => handleDelete(comment.id)}
               className="text-gray-300 hover:text-red-400 text-lg leading-none mt-2 shrink-0"
@@ -151,7 +160,7 @@ export default function CommentBox({ itemId, author, initialComments }: CommentB
         </div>
       )}
 
-      {author ? (
+      {identity ? (
         <div className="space-y-2">
           {replyTo && (
             <div className="flex items-center gap-2 text-xs text-gray-500 bg-pink-50 px-3 py-1.5 rounded-lg">
@@ -161,9 +170,7 @@ export default function CommentBox({ itemId, author, initialComments }: CommentB
           )}
 
           <form onSubmit={handleSubmit} className="flex gap-2">
-            {/* Input row — no overflow-hidden so picker can escape */}
             <div className="flex-1 flex items-center border border-gray-200 rounded-xl focus-within:border-pink-300 bg-white">
-              {/* Emoji trigger — sits outside form's overflow context */}
               <div ref={emojiRef} className="relative shrink-0">
                 <button
                   type="button"
@@ -204,7 +211,7 @@ export default function CommentBox({ itemId, author, initialComments }: CommentB
           </form>
         </div>
       ) : (
-        <p className="text-sm text-gray-400 text-center py-2">请先选择身份再评论</p>
+        <p className="text-sm text-gray-400 text-center py-2">加载身份中…</p>
       )}
     </div>
   )
