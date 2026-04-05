@@ -171,6 +171,28 @@ export default async function HomePage({
                 ))}
               </div>
             )}
+
+            {/* Mobile Author Card */}
+            <div className="mt-12 md:hidden">
+              <AuthorProfileCard
+                postsCount={totalPostsCount}
+                categoriesCount={categories.length}
+                tagsCount={tags.length}
+                name={siteConfig.author_name}
+                bio={siteConfig.author_bio}
+                avatarUrl={siteConfig.author_avatar_url}
+                isAdmin={isAdmin}
+                role={siteConfig.author_role}
+                company={siteConfig.author_company}
+                location={siteConfig.author_location}
+                skills={siteConfig.author_skills}
+                status={siteConfig.author_status}
+                github={siteConfig.author_github}
+                weibo={siteConfig.author_weibo}
+                wechat={siteConfig.author_wechat}
+                email={siteConfig.author_email}
+              />
+            </div>
           </section>
 
           {/* ── Right Sidebar ─────────────────────────────────────────── */}
