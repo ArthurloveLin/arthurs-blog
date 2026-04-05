@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { getUserRole } from '@/lib/auth'
 import SessionList from '@/components/SessionList'
 
+export const revalidate = 60
+
 export default async function WardrobePage({
   searchParams,
 }: {

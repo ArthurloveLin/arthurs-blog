@@ -1,4 +1,6 @@
 import matter from 'gray-matter'
+import { cache } from 'react'
+import { unstable_cache } from 'next/cache'
 import { supabase, supabaseAdmin } from './supabase'
 import { getR2Object } from './r2'
 
@@ -31,14 +33,18 @@ export async function getPosts(limit = 20, offset = 0): Promise<Post[]> {
   return data ?? []
 }
 
-export async function getPostsCount(): Promise<number> {
-  const { count, error } = await supabase
-    .from('posts')
-    .select('*', { count: 'exact', head: true })
-    .eq('published', true)
-  if (error) return 0
-  return count ?? 0
-}
+export const getPostsCount = unstable_cache(
+  async function (): Promise<number> {
+    const { count, error } = await supabase
+      .from('posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('published', true)
+    if (error) return 0
+    return count ?? 0
+  },
+  ['posts-count'],
+  { revalidate: 300, tags: ['posts-count'] }
+)
 
 export async function getPostsByTag(tag: string, limit = 20, offset = 0): Promise<Post[]> {
   const { data, error } = await supabase
@@ -53,20 +59,24 @@ export async function getPostsByTag(tag: string, limit = 20, offset = 0): Promis
   return data ?? []
 }
 
-export async function getPostsByTags(tags: string[], limit = 20, offset = 0): Promise<Post[]> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('published', true)
-    .contains('tags', tags)
-    .order('published_at', { ascending: false })
-    .range(offset, offset + limit - 1)
+export const getPostsByTags = unstable_cache(
+  async function (tags: string[], limit = 20, offset = 0): Promise<Post[]> {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('published', true)
+      .contains('tags', tags)
+      .order('published_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
-  if (error) throw new Error(error.message)
-  return data ?? []
-}
+    if (error) throw new Error(error.message)
+    return data ?? []
+  },
+  ['posts-by-tags'],
+  { revalidate: 60, tags: ['posts'] }
+)
 
-export async function getPostBySlug(slug: string): Promise<{ post: Post; content: string } | null> {
+export const getPostMeta = cache(async function getPostMeta(slug: string): Promise<Post | null> {
   const { data: post, error } = await supabase
     .from('posts')
     .select('*')
@@ -75,24 +85,38 @@ export async function getPostBySlug(slug: string): Promise<{ post: Post; content
     .single()
 
   if (error || !post) return null
+  return post
+})
 
-  const raw = await getR2Object(BLOG_BUCKET, post.r2_key)
-  const { content } = matter(raw)
+export async function getPostContent(post: Post): Promise<string> {
+  return unstable_cache(
+    async () => {
+      const raw = await getR2Object(BLOG_BUCKET, post.r2_key)
+      const { content } = matter(raw)
 
-  // 将 Obsidian 附件引用替换为 R2 公开域名 URL
-  // ![[Pasted image xxx.png|750]] → ![](https://domain/path/to/images/Pasted image xxx.png)
-  const noteDir = post.r2_key.includes('/')
-    ? post.r2_key.split('/').slice(0, -1).join('/') + '/'
-    : ''
-  const processedContent = BLOG_PUBLIC_DOMAIN
-    ? content.replace(
-        /!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g,
-        (_, filename: string) =>
-          `![](https://${BLOG_PUBLIC_DOMAIN}/${noteDir}images/${encodeURIComponent(filename.trim())})`
-      )
-    : content
+      // 将 Obsidian 附件引用替换为 R2 公开域名 URL
+      // ![[Pasted image xxx.png|750]] → ![](https://domain/path/to/images/Pasted image xxx.png)
+      const noteDir = post.r2_key.includes('/')
+        ? post.r2_key.split('/').slice(0, -1).join('/') + '/'
+        : ''
+      return BLOG_PUBLIC_DOMAIN
+        ? content.replace(
+            /!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g,
+            (_, filename: string) =>
+              `![](https://${BLOG_PUBLIC_DOMAIN}/${noteDir}images/${encodeURIComponent(filename.trim())})`
+          )
+        : content
+    },
+    [`post-content-${post.r2_key}`],
+    { revalidate: 300, tags: [`post-content-${post.slug}`] }
+  )()
+}
 
-  return { post, content: processedContent }
+export async function getPostBySlug(slug: string): Promise<{ post: Post; content: string } | null> {
+  const post = await getPostMeta(slug)
+  if (!post) return null
+  const content = await getPostContent(post)
+  return { post, content }
 }
 
 export async function getAdjacentPosts(publishedAt: string): Promise<{ prev: Post | null; next: Post | null }> {
@@ -144,106 +168,130 @@ export async function deletePostsNotIn(r2Keys: string[]): Promise<number> {
   return data?.length ?? 0
 }
 
-export async function getPostsByCategory(category: string, limit = 20, offset = 0): Promise<Post[]> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('published', true)
-    .eq('category', category)
-    .order('published_at', { ascending: false })
-    .range(offset, offset + limit - 1)
+export const getPostsByCategory = unstable_cache(
+  async function (category: string, limit = 20, offset = 0): Promise<Post[]> {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('published', true)
+      .eq('category', category)
+      .order('published_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
-  if (error) throw new Error(error.message)
-  return data ?? []
-}
+    if (error) throw new Error(error.message)
+    return data ?? []
+  },
+  ['posts-by-category'],
+  { revalidate: 60, tags: ['posts'] }
+)
 
-export async function getCategories(): Promise<{ name: string; count: number; slug: string }[]> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select('category')
-    .eq('published', true)
-    .not('category', 'is', null)
+export const getCategories = unstable_cache(
+  async function (): Promise<{ name: string; count: number; slug: string }[]> {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('category')
+      .eq('published', true)
+      .not('category', 'is', null)
 
-  if (error) throw new Error(error.message)
+    if (error) throw new Error(error.message)
 
-  const countMap = new Map<string, number>()
-  for (const row of data ?? []) {
-    const cat = row.category as string
-    countMap.set(cat, (countMap.get(cat) ?? 0) + 1)
-  }
-
-  return Array.from(countMap.entries())
-    .map(([name, count]) => ({ name, count, slug: encodeURIComponent(name) }))
-    .sort((a, b) => b.count - a.count)
-}
-
-export async function getPostsByYear(year: number, limit = 50, offset = 0): Promise<Post[]> {
-  const start = `${year}-01-01T00:00:00.000Z`
-  const end = `${year + 1}-01-01T00:00:00.000Z`
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('published', true)
-    .gte('published_at', start)
-    .lt('published_at', end)
-    .order('published_at', { ascending: false })
-    .range(offset, offset + limit - 1)
-
-  if (error) throw new Error(error.message)
-  return data ?? []
-}
-
-export async function getYearArchive(): Promise<{ year: number; count: number }[]> {
-  const currentYear = new Date().getFullYear()
-
-  const { data, error } = await supabase
-    .from('posts')
-    .select('published_at')
-    .eq('published', true)
-    .not('published_at', 'is', null)
-    .lt('published_at', `${currentYear}-01-01T00:00:00.000Z`)
-
-  if (error) throw new Error(error.message)
-
-  const yearMap = new Map<number, number>()
-  for (const row of data ?? []) {
-    const year = new Date(row.published_at as string).getFullYear()
-    yearMap.set(year, (yearMap.get(year) ?? 0) + 1)
-  }
-
-  return Array.from(yearMap.entries())
-    .map(([year, count]) => ({ year, count }))
-    .sort((a, b) => b.year - a.year)
-}
-
-export async function getAllTags(): Promise<{ tag: string; count: number }[]> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select('tags')
-    .eq('published', true)
-
-  if (error) throw new Error(error.message)
-
-  const tagMap = new Map<string, number>()
-  for (const row of data ?? []) {
-    for (const tag of (row.tags as string[]) ?? []) {
-      tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1)
+    const countMap = new Map<string, number>()
+    for (const row of data ?? []) {
+      const cat = row.category as string
+      countMap.set(cat, (countMap.get(cat) ?? 0) + 1)
     }
-  }
 
-  return Array.from(tagMap.entries())
-    .map(([tag, count]) => ({ tag, count }))
-    .sort((a, b) => b.count - a.count)
-}
+    return Array.from(countMap.entries())
+      .map(([name, count]) => ({ name, count, slug: encodeURIComponent(name) }))
+      .sort((a, b) => b.count - a.count)
+  },
+  ['categories'],
+  { revalidate: 300, tags: ['categories'] }
+)
 
-export async function getSiteConfig(): Promise<Record<string, string>> {
-  const { data, error } = await supabase
-    .from('site_config')
-    .select('key, value')
+export const getPostsByYear = unstable_cache(
+  async function (year: number, limit = 50, offset = 0): Promise<Post[]> {
+    const start = `${year}-01-01T00:00:00.000Z`
+    const end = `${year + 1}-01-01T00:00:00.000Z`
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('published', true)
+      .gte('published_at', start)
+      .lt('published_at', end)
+      .order('published_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
-  if (error) return {}
-  return Object.fromEntries((data ?? []).map((r) => [r.key, r.value]))
-}
+    if (error) throw new Error(error.message)
+    return data ?? []
+  },
+  ['posts-by-year'],
+  { revalidate: 60, tags: ['posts'] }
+)
+
+export const getYearArchive = unstable_cache(
+  async function (): Promise<{ year: number; count: number }[]> {
+    const currentYear = new Date().getFullYear()
+
+    const { data, error } = await supabase
+      .from('posts')
+      .select('published_at')
+      .eq('published', true)
+      .not('published_at', 'is', null)
+      .lt('published_at', `${currentYear}-01-01T00:00:00.000Z`)
+
+    if (error) throw new Error(error.message)
+
+    const yearMap = new Map<number, number>()
+    for (const row of data ?? []) {
+      const year = new Date(row.published_at as string).getFullYear()
+      yearMap.set(year, (yearMap.get(year) ?? 0) + 1)
+    }
+
+    return Array.from(yearMap.entries())
+      .map(([year, count]) => ({ year, count }))
+      .sort((a, b) => b.year - a.year)
+  },
+  ['year-archive'],
+  { revalidate: 300, tags: ['year-archive'] }
+)
+
+export const getAllTags = unstable_cache(
+  async function (): Promise<{ tag: string; count: number }[]> {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('tags')
+      .eq('published', true)
+
+    if (error) throw new Error(error.message)
+
+    const tagMap = new Map<string, number>()
+    for (const row of data ?? []) {
+      for (const tag of (row.tags as string[]) ?? []) {
+        tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1)
+      }
+    }
+
+    return Array.from(tagMap.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count)
+  },
+  ['all-tags'],
+  { revalidate: 300, tags: ['all-tags'] }
+)
+
+export const getSiteConfig = unstable_cache(
+  async function (): Promise<Record<string, string>> {
+    const { data, error } = await supabase
+      .from('site_config')
+      .select('key, value')
+
+    if (error) return {}
+    return Object.fromEntries((data ?? []).map((r) => [r.key, r.value]))
+  },
+  ['site-config'],
+  { revalidate: 300, tags: ['site-config'] }
+)
 
 export async function getCommentCount(postId: string): Promise<number> {
   const { count, error } = await supabase
@@ -255,21 +303,25 @@ export async function getCommentCount(postId: string): Promise<number> {
   return count ?? 0
 }
 
-export async function getCommentCounts(postIds: string[]): Promise<Record<string, number>> {
-  if (postIds.length === 0) return {}
-  const { data, error } = await supabase
-    .from('comments')
-    .select('target_id')
-    .eq('target_type', 'blog_post')
-    .in('target_id', postIds)
-  if (error) return {}
-  const counts: Record<string, number> = {}
-  for (const row of data ?? []) {
-    const id = row.target_id as string
-    counts[id] = (counts[id] ?? 0) + 1
-  }
-  return counts
-}
+export const getCommentCounts = unstable_cache(
+  async function (postIds: string[]): Promise<Record<string, number>> {
+    if (postIds.length === 0) return {}
+    const { data, error } = await supabase
+      .from('comments')
+      .select('target_id')
+      .eq('target_type', 'blog_post')
+      .in('target_id', postIds)
+    if (error) return {}
+    const counts: Record<string, number> = {}
+    for (const row of data ?? []) {
+      const id = row.target_id as string
+      counts[id] = (counts[id] ?? 0) + 1
+    }
+    return counts
+  },
+  ['comment-counts'],
+  { revalidate: 30, tags: ['comments'] }
+)
 
 // 仅服务端（reindex 接口使用）
 export async function getPostsMetadata(): Promise<{ r2_key: string; updated_at: string }[]> {
