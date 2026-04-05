@@ -9,6 +9,7 @@ import Lightbox from './Lightbox'
 import AdminOnly from './AdminOnly'
 import { useAuth } from './AuthProvider'
 import { updatePresenceActivity } from './ActivityBanner'
+import { TemplateConfig, TEMPLATES, DEFAULT_TEMPLATE } from '@/lib/templates'
 
 const CATEGORIES = ['上衣', '裤子', '鞋子', '配饰', '其他']
 
@@ -17,9 +18,11 @@ type Decision = 'buy' | 'skip' | 'pending'
 interface Rating {
   score: number | null
   author: string
-  appearance_score: number | null
-  practicality_score: number | null
-  value_score: number | null
+  scores: Record<string, number | null>
+  // 旧字段保留用于兼容
+  appearance_score?: number | null
+  practicality_score?: number | null
+  value_score?: number | null
 }
 
 interface Comment {
@@ -48,25 +51,34 @@ interface ItemDetailProps {
   isAdmin: boolean
   userRole: string
   serverIdentity: string | null
+  templateConfig?: TemplateConfig
 }
-
-const DECISION_CONFIG: { value: Decision; label: string; active: string; inactive: string }[] = [
-  { value: 'buy', label: '买', active: 'bg-green-500 text-white', inactive: 'bg-muted text-muted-foreground hover:bg-green-500/10 hover:text-green-500' },
-  { value: 'pending', label: '待定', active: 'bg-yellow-400 text-white', inactive: 'bg-muted text-muted-foreground hover:bg-yellow-500/10 hover:text-yellow-500' },
-  { value: 'skip', label: '不买', active: 'bg-zinc-500 text-white', inactive: 'bg-muted text-muted-foreground hover:bg-muted/80' },
-]
 
 export default function ItemDetail({ 
   item, 
   token, 
   isAdmin: serverIsAdmin, 
-  serverIdentity 
+  serverIdentity,
+  templateConfig: initialTemplateConfig
 }: ItemDetailProps) {
   const { displayName, email, guestId, isAdmin: clientIsAdmin } = useAuth()
   
   // Use server props as primary source if available, fallback to client auth
   const isAdmin = serverIsAdmin || clientIsAdmin
   const identity = serverIdentity || displayName || email || guestId
+
+  const templateConfig = initialTemplateConfig || TEMPLATES[DEFAULT_TEMPLATE]
+  const dimensions = templateConfig.dimensions
+
+  const buyLabel = templateConfig?.descLabels?.buy || '买'
+  const pendingLabel = templateConfig?.descLabels?.pending || '待定'
+  const skipLabel = templateConfig?.descLabels?.skip || '不买'
+
+  const DECISION_CONFIG: { value: Decision; label: string; active: string; inactive: string }[] = [
+    { value: 'buy', label: buyLabel, active: 'bg-green-500 text-white shadow-lg shadow-green-500/20', inactive: 'bg-muted text-muted-foreground hover:bg-green-500/10 hover:text-green-500 transition-all font-bold' },
+    { value: 'pending', label: pendingLabel, active: 'bg-yellow-400 text-white shadow-lg shadow-yellow-400/20', inactive: 'bg-muted text-muted-foreground hover:bg-yellow-500/10 hover:text-yellow-500 transition-all font-bold' },
+    { value: 'skip', label: skipLabel, active: 'bg-zinc-500 text-white shadow-lg shadow-zinc-500/20', inactive: 'bg-muted text-muted-foreground hover:bg-muted/80 transition-all font-bold' },
+  ]
 
   const [decision, setDecision] = useState<Decision>(item.decision)
   const [savingDecision, setSavingDecision] = useState(false)
@@ -79,7 +91,7 @@ export default function ItemDetail({
 
   // Trigger activity update on mount
   useState(() => {
-    updatePresenceActivity('正在看图')
+    updatePresenceActivity(`正在看${templateConfig.itemLabel}`)
     return () => { updatePresenceActivity('正在浏览') }
   })
 
@@ -141,11 +153,26 @@ export default function ItemDetail({
   }
 
   const myRatingData = item.ratings.find((r) => r.author === identity)
-  const myDimScores = {
-    appearance_score: myRatingData?.appearance_score ?? null,
-    practicality_score: myRatingData?.practicality_score ?? null,
-    value_score: myRatingData?.value_score ?? null,
-  }
+  
+  // 提取我的评分：优先从 scores 对象中取，否则尝试从旧字段映射
+  const myDimScores: Record<string, number | null> = {}
+  dimensions.forEach((d) => {
+    const ratingRecord = myRatingData as Record<string, number | null | undefined> | undefined
+    myDimScores[d.key] = myRatingData?.scores?.[d.key] ?? ratingRecord?.[d.key] ?? null
+  })
+
+  // 格式化所有评分以适配 MultiDimRating
+  const formattedAllRatings = item.ratings.map(r => ({
+    ...r,
+    scores: dimensions.reduce((acc, d) => {
+      const rRecord = r as unknown as Record<string, number | null | undefined>
+      return {
+        ...acc,
+        [d.key]: r.scores?.[d.key] ?? rRecord?.[d.key] ?? null
+      }
+    }, {})
+  }))
+
   const allScores = item.ratings.map((r) => r.score).filter((s): s is number => s != null)
   const avgScore =
     allScores.length > 0
@@ -166,7 +193,7 @@ export default function ItemDetail({
           <Link href={`/session/${token}`} className="text-muted-foreground hover:text-foreground">
             ← 返回
           </Link>
-          <h1 className="text-lg font-semibold text-foreground">图片详情</h1>
+          <h1 className="text-lg font-semibold text-foreground">{templateConfig.itemLabel}详情</h1>
         </div>
 
         {/* Image */}
@@ -176,7 +203,7 @@ export default function ItemDetail({
         >
           <Image
             src={item.image_url}
-            alt="衣服图片"
+            alt={`${templateConfig.itemLabel}图片`}
             fill
             className="object-contain"
             sizes="(max-width: 640px) 100vw, 512px"
@@ -208,39 +235,41 @@ export default function ItemDetail({
         )}
 
         {/* Category — admin only */}
-        <AdminOnly>
-          <div className="bg-card border border-border rounded-2xl p-4 shadow-sm mb-4">
-            <h2 className="text-sm font-semibold text-foreground mb-3">分类</h2>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => handleCategoryChange('')}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  category === ''
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800'
-                }`}
-              >
-                未分类
-              </button>
-              {CATEGORIES.map((cat) => (
+        {templateConfig.name === '衣评' && (
+          <AdminOnly>
+            <div className="bg-card border border-border rounded-2xl p-4 shadow-sm mb-4">
+              <h2 className="text-sm font-semibold text-foreground mb-3">分类</h2>
+              <div className="flex flex-wrap gap-2">
                 <button
-                  key={cat}
-                  onClick={() => handleCategoryChange(cat)}
+                  onClick={() => handleCategoryChange('')}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    category === cat
+                    category === ''
                       ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      : 'bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800'
                   }`}
                 >
-                  {cat}
+                  未分类
                 </button>
-              ))}
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => handleCategoryChange(cat)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                      category === cat
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        </AdminOnly>
+          </AdminOnly>
+        )}
 
         {/* Category display — guest/user read-only */}
-        {!isAdmin && category && (
+        {templateConfig.name === '衣评' && !isAdmin && category && (
           <div className="bg-card border border-border rounded-2xl p-4 shadow-sm mb-4">
             <h2 className="text-sm font-semibold text-foreground mb-1">分类</h2>
             <span className="inline-block px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
@@ -255,13 +284,16 @@ export default function ItemDetail({
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-foreground">决策</h2>
               <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground mr-1">
+                  {templateConfig.priceLabel || '价格'}
+                </span>
                 <span className="text-xs text-muted-foreground">¥</span>
                 <input
                   type="text"
                   inputMode="numeric"
                   value={price}
                   onChange={(e) => handlePriceChange(e.target.value)}
-                  placeholder="填写价格"
+                  placeholder="填写"
                   className="w-24 text-sm text-right bg-muted/50 border border-border rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-primary/50"
                 />
               </div>
@@ -297,7 +329,8 @@ export default function ItemDetail({
             itemId={item.id}
             author={identity}
             myScores={myDimScores}
-            allRatings={item.ratings}
+            allRatings={formattedAllRatings}
+            dimensions={dimensions}
           />
           {scoreDiff !== null && scoreDiff >= 2 && (
             <div className="flex items-center gap-1.5 bg-orange-50 dark:bg-orange-950/20 rounded-lg px-3 py-2 mt-3 text-orange-600 dark:text-orange-400">
@@ -316,7 +349,7 @@ export default function ItemDetail({
             <textarea
               value={notes}
               onChange={(e) => handleNotesChange(e.target.value)}
-              placeholder="品牌、店铺链接、尺码、颜色等信息…"
+              placeholder={templateConfig.itemNotePlaceholder || "填写详细描述..."}
               rows={3}
               className="w-full text-sm text-foreground bg-muted/50 border border-border rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/50"
             />

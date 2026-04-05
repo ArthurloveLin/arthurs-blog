@@ -17,9 +17,9 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import type { Post } from '@/lib/blog'
 
 const navLinks = [
-  { href: '/', label: '首页' },
-    { href: '/wardrobe', label: '选衣' },
-  { href: 'https://trendradar.arthurlovegrace.top', label: '新闻', external: true },
+  { href: '/', label: 'Home', tooltip: '首页 - 返回网站主页' },
+  { href: '/wardrobe', label: 'LifeLens', tooltip: 'LifeLens - 智能评价与决策系统' },
+  { href: 'https://trendradar.arthurlovegrace.top', label: 'News', tooltip: '新闻 - 获取最新的趋势资讯', external: true },
 ]
 
 export default function Navbar({ 
@@ -93,6 +93,7 @@ export default function Navbar({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+                  title={link.tooltip}
                 >
                   {link.label}
                 </a>
@@ -101,6 +102,7 @@ export default function Navbar({
                   key={link.href}
                   href={link.href}
                   className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+                  title={link.tooltip}
                 >
                   {link.label}
                 </Link>

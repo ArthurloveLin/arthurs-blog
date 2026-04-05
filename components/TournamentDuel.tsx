@@ -13,9 +13,10 @@ interface Item {
 interface TournamentDuelProps {
   items: Item[]
   onClose: () => void
+  templateConfig?: import('@/lib/templates').TemplateConfig
 }
 
-export default function TournamentDuel({ items: initialItems, onClose }: TournamentDuelProps) {
+export default function TournamentDuel({ items: initialItems, onClose, templateConfig }: TournamentDuelProps) {
   const [pool, setPool] = useState<Item[]>([])
   const [leftItem, setLeftItem] = useState<Item | null>(null)
   const [rightItem, setRightItem] = useState<Item | null>(null)
@@ -145,6 +146,7 @@ export default function TournamentDuel({ items: initialItems, onClose }: Tournam
             results={results} 
             onClose={onClose} 
             saving={saving}
+            templateConfig={templateConfig}
           />
         ) : (
           <div className="w-full max-w-5xl">
@@ -261,7 +263,7 @@ interface AwardsResults {
   thirdPlace?: Item
 }
 
-function AwardsScreen({ results, onClose, saving }: { results: AwardsResults, onClose: () => void, saving: boolean }) {
+function AwardsScreen({ results, onClose, saving, templateConfig }: { results: AwardsResults, onClose: () => void, saving: boolean, templateConfig?: import('@/lib/templates').TemplateConfig }) {
   return (
     <div className="text-center w-full max-w-4xl animate-in fade-in zoom-in duration-1000">
       <div className="mb-12 relative">
@@ -271,8 +273,8 @@ function AwardsScreen({ results, onClose, saving }: { results: AwardsResults, on
         <span className="inline-block px-5 py-2 rounded-full bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-500 text-[10px] md:text-xs font-black tracking-[0.2em] uppercase mb-6 border border-yellow-500/20 shadow-[0_0_30px_rgba(234,179,8,0.1)]">
           🏆 Tournament Finished
         </span>
-        <h2 className="text-3xl md:text-6xl font-black text-white mb-4 tracking-tighter">Your Wardrobe <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500">Elite</span></h2>
-        <p className="text-white/40 text-[10px] md:text-sm font-medium px-6">The results are in. These pieces represent your ultimate style.</p>
+        <h2 className="text-3xl md:text-6xl font-black text-white mb-4 tracking-tighter">Your {templateConfig?.name || 'LifeLens'} <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500">Elite</span></h2>
+        <p className="text-white/40 text-[10px] md:text-sm font-medium px-6">The results are in. These {templateConfig?.itemLabel || 'items'} represent your ultimate choice.</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-end px-4 max-h-[50vh] md:max-h-none overflow-y-auto md:overflow-visible pb-4">

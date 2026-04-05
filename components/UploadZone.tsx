@@ -3,9 +3,11 @@
 import { useRef, useState, DragEvent, ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { compressImage } from '@/lib/compress'
+import { TemplateConfig } from '@/lib/templates'
 
 interface UploadZoneProps {
   sessionToken: string
+  templateConfig?: TemplateConfig
 }
 
 type FileProgress = 'pending' | 'compressing' | 'uploading' | 'done' | 'error'
@@ -18,13 +20,16 @@ interface UploadStatus {
 
 const CATEGORIES = ['上衣', '裤子', '鞋子', '配饰', '其他']
 
-export default function UploadZone({ sessionToken }: UploadZoneProps) {
+export default function UploadZone({ sessionToken, templateConfig }: UploadZoneProps) {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [uploads, setUploads] = useState<UploadStatus[]>([])
   const [uploading, setUploading] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('')
+
+  const itemLabel = templateConfig?.itemLabel || '项目'
+  const isWardrobe = templateConfig?.name === '衣评'
 
   function updateStatus(index: number, update: Partial<UploadStatus>) {
     setUploads((prev) =>
@@ -96,37 +101,46 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
   const totalCount = uploads.length
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
 
+  const getEmoji = () => {
+    if (templateConfig?.name === '衣评') return '👗'
+    if (templateConfig?.name === '美食') return '🍕'
+    if (templateConfig?.name === '打卡') return '🏔️'
+    return '📸'
+  }
+
   return (
     <div className="w-full">
-      <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
-        <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/50 shrink-0">上传分类：</span>
-        <button
-          onClick={() => setSelectedCategory('')}
-          className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${
-            selectedCategory === ''
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800'
-          }`}
-        >
-          不限
-        </button>
-        {CATEGORIES.map((cat) => (
+      {isWardrobe && (
+        <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
+          <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/50 shrink-0">上传分类：</span>
           <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
+            onClick={() => setSelectedCategory('')}
             className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${
-              selectedCategory === cat
+              selectedCategory === ''
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800'
             }`}
           >
-            {cat}
+            不限
           </button>
-        ))}
-      </div>
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${
+                selectedCategory === cat
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div
-        className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
+        className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
           dragging
             ? 'border-primary bg-primary/5 scale-[1.01]'
             : 'border-border hover:border-primary/50 hover:bg-muted/30'
@@ -136,11 +150,11 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
       >
-        <div className="text-3xl mb-2 opacity-80">👗</div>
-        <p className="text-sm text-foreground/70 font-medium">
-          {selectedCategory ? `上传到「${selectedCategory}」` : '点击选择图片，或拖拽到这里'}
+        <div className="text-4xl mb-3 opacity-80 animate-bounce-subtle">{getEmoji()}</div>
+        <p className="text-sm text-foreground/80 font-bold tracking-tight">
+          {selectedCategory ? `上传到「${selectedCategory}」` : `点击选择${itemLabel}图片，或拖拽到这里`}
         </p>
-        <p className="text-xs text-muted-foreground mt-1 opacity-60">JPG / PNG / WebP，每张最大 5MB</p>
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-2 font-bold opacity-50">JPG / PNG / WebP · MAX 5MB</p>
         <input
           ref={inputRef}
           type="file"

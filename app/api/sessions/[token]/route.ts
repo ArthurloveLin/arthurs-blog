@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { deleteR2Object } from '@/lib/r2'
 import { isAdminRequest } from '@/lib/auth'
+
+const WARDROBE_BUCKET = process.env.R2_WARDROBE_BUCKET!
 
 export async function GET(
   _request: NextRequest,
@@ -105,8 +108,8 @@ export async function DELETE(
     .eq('session_id', session.id)
 
   if (items && items.length > 0) {
-    const paths = items.map((i) => i.image_path)
-    await supabaseAdmin.storage.from('wardrobe').remove(paths)
+    const paths = items.map((i) => i.image_path).filter(Boolean)
+    await Promise.all(paths.map((path) => deleteR2Object(WARDROBE_BUCKET, path)))
   }
 
   const { error } = await supabaseAdmin.from('sessions').delete().eq('id', session.id)

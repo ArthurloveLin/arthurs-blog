@@ -13,9 +13,10 @@ interface Item {
 
 interface TournamentEntryProps {
   items: Item[]
+  templateConfig?: import('@/lib/templates').TemplateConfig
 }
 
-export default function TournamentEntry({ items }: TournamentEntryProps) {
+export default function TournamentEntry({ items, templateConfig }: TournamentEntryProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   // Only show if there are at least 2 items to compare
@@ -28,13 +29,14 @@ export default function TournamentEntry({ items }: TournamentEntryProps) {
         className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-pink-500/20 hover:shadow-pink-500/40 transition-all hover:scale-[1.02] active:scale-95 group"
       >
         <span className="text-lg group-hover:animate-bounce">⚔️</span>
-        开启 2选1 对决
+        开启 {templateConfig?.itemLabel || ''} 2选1 对决
       </button>
 
       {isOpen && (
         <TournamentDuel 
           items={items} 
           onClose={() => setIsOpen(false)} 
+          templateConfig={templateConfig}
         />
       )}
     </>

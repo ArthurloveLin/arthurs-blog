@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from './AuthProvider'
 import { logout } from '@/app/auth/logout/actions'
+import { TemplateConfig } from '@/lib/templates'
 
 interface SessionHeaderProps {
   session: {
@@ -14,9 +15,10 @@ interface SessionHeaderProps {
     budget: number | null
   }
   isAdmin?: boolean
+  templateConfig?: TemplateConfig
 }
 
-export default function SessionHeader({ session, isAdmin = false }: SessionHeaderProps) {
+export default function SessionHeader({ session, isAdmin = false, templateConfig }: SessionHeaderProps) {
   const { role, displayName, email } = useAuth()
   const isLoggedIn = role !== 'guest'
   const [isEditing, setIsEditing] = useState(false)
@@ -49,52 +51,52 @@ export default function SessionHeader({ session, isAdmin = false }: SessionHeade
 
   if (isEditing) {
     return (
-      <div className="bg-card border border-border rounded-2xl p-4 shadow-sm mb-6 animate-in fade-in slide-in-from-top-2 duration-200">
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-xl mb-6 animate-in fade-in slide-in-from-top-2 duration-200 ring-1 ring-primary/10">
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-muted-foreground/60 mb-1">会话标题</label>
+              <label className="block text-[10px] uppercase tracking-widest font-bold text-muted-foreground/60 mb-1.5 ml-1">会话标题</label>
               <input
                 autoFocus
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="例如：2024 春季购物清单"
-                className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-foreground placeholder:text-muted-foreground/30 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all"
+                placeholder={`例如：2024 ${templateConfig?.name || '新'}评价清单`}
+                className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-xl text-foreground placeholder:text-muted-foreground/30 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-medium"
               />
             </div>
             <div className="col-span-1">
-              <label className="block text-xs font-medium text-muted-foreground/60 mb-1">预算 (¥)</label>
+              <label className="block text-[10px] uppercase tracking-widest font-bold text-muted-foreground/60 mb-1.5 ml-1">预算 (¥)</label>
               <input
                 type="number"
                 value={budget}
                 onChange={(e) => setBudget(e.target.value)}
                 placeholder="无限制"
-                className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-foreground placeholder:text-muted-foreground/30 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all"
+                className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-xl text-foreground placeholder:text-muted-foreground/30 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-medium"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground/60 mb-1">备注说明</label>
+            <label className="block text-[10px] uppercase tracking-widest font-bold text-muted-foreground/60 mb-1.5 ml-1">备注说明</label>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="添加一些备注..."
+              placeholder="添加一些背景信息或评价标准..."
               rows={2}
-              className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-foreground placeholder:text-muted-foreground/30 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all resize-none"
+              className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-xl text-foreground placeholder:text-muted-foreground/30 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all resize-none font-medium"
             />
           </div>
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-3 pt-2">
             <button
               onClick={() => setIsEditing(false)}
-              className="flex-1 py-1.5 text-sm font-medium text-muted-foreground bg-muted hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+              className="flex-1 py-2.5 text-sm font-bold text-muted-foreground bg-muted hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-xl transition-colors uppercase tracking-wider"
             >
               取消
             </button>
             <button
               disabled={loading}
               onClick={handleSave}
-              className="flex-1 py-1.5 text-sm font-medium text-primary-foreground bg-primary hover:opacity-90 rounded-xl transition-opacity shadow-sm disabled:opacity-50"
+              className="flex-1 py-2.5 text-sm font-bold text-primary-foreground bg-primary hover:opacity-90 rounded-xl transition-opacity shadow-lg shadow-primary/20 disabled:opacity-50 uppercase tracking-wider"
             >
               {loading ? '保存中...' : '确认保存'}
             </button>
@@ -105,24 +107,24 @@ export default function SessionHeader({ session, isAdmin = false }: SessionHeade
   }
 
   return (
-    <div className="flex items-start gap-3 mb-6 group">
-      <Link href="/wardrobe" className="text-muted-foreground hover:text-foreground mt-1.5 shrink-0 transition-colors">
-        <span className="text-xl leading-none">←</span>
+    <div className="flex items-start gap-4 mb-8 group">
+      <Link href="/wardrobe" className="text-muted-foreground hover:text-foreground mt-1.5 shrink-0 transition-all hover:-translate-x-1">
+        <span className="text-2xl leading-none">←</span>
       </Link>
       <div
-        className={`flex-1 min-w-0 p-2 -m-2 rounded-xl transition-colors ${isAdmin ? 'cursor-pointer hover:bg-card/80 border border-transparent hover:border-border/50' : ''}`}
+        className={`flex-1 min-w-0 p-3 -m-3 rounded-2xl transition-all ${isAdmin ? 'cursor-pointer hover:bg-card/80 border border-transparent hover:border-border/50 hover:shadow-sm' : ''}`}
         onClick={() => isAdmin && setIsEditing(true)}
       >
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-foreground truncate">
-            {session.title || '未命名会话'}
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-black text-foreground truncate tracking-tight">
+            {session.title || '未命名评价'}
           </h1>
-          {isAdmin && <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity font-bold">编辑</span>}
+          {isAdmin && <span className="text-[10px] uppercase tracking-widest text-primary/40 opacity-0 group-hover:opacity-100 transition-opacity font-black bg-primary/5 px-1.5 py-0.5 rounded">EDIT</span>}
         </div>
         {session.note ? (
-          <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{session.note}</p>
+          <p className="text-sm text-muted-foreground mt-1 line-clamp-2 font-medium leading-relaxed">{session.note}</p>
         ) : (
-          <p className="text-xs text-muted-foreground/30 mt-0.5 italic">点击添加备注和预算...</p>
+          <p className="text-xs text-muted-foreground/30 mt-1.5 italic font-medium">点击添加备注和预算，更好地管理您的{templateConfig?.name || ''}评价。</p>
         )}
       </div>
       {isLoggedIn && (
@@ -130,9 +132,9 @@ export default function SessionHeader({ session, isAdmin = false }: SessionHeade
           <button
             type="submit"
             title={`${displayName || email} — 退出登录`}
-            className="text-xs text-muted-foreground hover:text-destructive transition-colors px-2 py-1 rounded-lg hover:bg-destructive/10"
+            className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 hover:text-destructive transition-colors px-2 py-1.5 rounded-lg hover:bg-destructive/10"
           >
-            退出
+            LOGOUT
           </button>
         </form>
       )}
