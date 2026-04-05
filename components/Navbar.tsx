@@ -39,7 +39,7 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
 
           {/* ── Left: Logo / Title ─────────────────────────────────── */}
           <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 group">
-            <div className="w-8 h-8 rounded-xl bg-gradient-primary flex items-center justify-center shadow-[0_2px_8px_rgb(0,0,0,0.15)] group-hover:scale-105 transition-transform duration-200 overflow-hidden">
+            <div className="w-8 h-8 relative rounded-xl bg-gradient-primary flex items-center justify-center shadow-[0_2px_8px_rgb(0,0,0,0.15)] group-hover:scale-105 transition-transform duration-200 overflow-hidden">
               {logoUrl ? (
                 <Image src={logoUrl} alt="Logo" fill className="object-cover" unoptimized />
               ) : (
