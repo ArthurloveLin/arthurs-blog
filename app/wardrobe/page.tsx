@@ -12,27 +12,31 @@ export default async function WardrobePage({
 }) {
   const { archived } = await searchParams
   const showArchived = archived === '1'
-  const isAdmin = (await getUserRole()) === 'admin'
 
-  const { data: sessions, error } = await supabaseAdmin
-    .from('sessions')
-    .select('*, items(count)')
-    .order('created_at', { ascending: false })
+  const [role, { data: sessions, error }] = await Promise.all([
+    getUserRole(),
+    supabaseAdmin
+      .from('sessions')
+      .select('*, items(count)')
+      .order('created_at', { ascending: false })
+  ])
+
+  const isAdmin = role === 'admin'
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-background">
       <div className="max-w-lg mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <Link href="/" className="text-gray-400 hover:text-gray-600 text-sm">
+            <Link href="/" className="text-muted-foreground hover:text-foreground text-sm">
               ← 首页
             </Link>
-            <h1 className="text-2xl font-bold text-gray-800">👗 选衣记录</h1>
+            <h1 className="text-2xl font-bold text-foreground">👗 选衣记录</h1>
           </div>
           {isAdmin && (
             <Link
               href="/session/new"
-              className="bg-pink-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-pink-600 transition-colors"
+              className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity shadow-sm"
             >
               + 新建会话
             </Link>
@@ -40,7 +44,7 @@ export default async function WardrobePage({
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 text-sm p-4 rounded-xl mb-4">
+          <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-xl mb-4">
             加载失败：{error.message}
           </div>
         )}

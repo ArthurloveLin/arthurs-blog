@@ -30,11 +30,21 @@ export function useAuth() {
 
 const fetcher = (url: string) => fetch(url).then((r) => r.ok ? r.json() : null)
 
-export default function AuthProvider({ children }: { children: ReactNode }) {
+interface AuthProviderProps {
+  children: ReactNode
+  initialData?: {
+    role: UserRole
+    email: string | null
+    display_name: string | null
+  }
+}
+
+export default function AuthProvider({ children, initialData }: AuthProviderProps) {
   const [guestId, setGuestId] = useState('')
   useEffect(() => { setGuestId(getOrCreateGuestId()) }, [])
 
   const { data, isLoading } = useSWR('/api/me', fetcher, {
+    fallbackData: initialData,
     revalidateOnFocus: false,
     dedupingInterval: 60_000,
   })
@@ -48,7 +58,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       role,
       guestId,
       isAdmin: role === 'admin',
-      loading: isLoading,
+      loading: isLoading && !data, // Only loading if no data and fetching
     }}>
       {children}
     </AuthContext.Provider>

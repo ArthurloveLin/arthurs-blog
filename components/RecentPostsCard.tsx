@@ -16,10 +16,10 @@ export default function RecentPostsCard({ posts }: RecentPostsCardProps) {
   if (recent.length === 0) return null
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-5">
+    <div className="bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:border-white/20 p-5">
 
       {/* Title */}
-      <h3 className="font-mono text-[10px] tracking-[0.18em] text-[#86868B] dark:text-zinc-500 uppercase mb-3">
+      <h3 className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase mb-3">
         最新文章
       </h3>
 
@@ -29,12 +29,12 @@ export default function RecentPostsCard({ posts }: RecentPostsCardProps) {
           <li key={post.id}>
             <Link
               href={`/blog/${post.slug}`}
-              className="block py-2 px-1 rounded-lg hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 transition-colors duration-150 group"
+              className="block py-2 px-1 rounded-lg hover:bg-muted transition-colors duration-150 group"
             >
-              <p className="text-sm text-[#1D1D1F] dark:text-zinc-300 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors duration-150 leading-snug line-clamp-2">
+              <p className="text-sm text-foreground group-hover:text-primary transition-colors duration-150 leading-snug line-clamp-2">
                 {post.title}
               </p>
-              <time className="block text-[11px] text-[#86868B] dark:text-zinc-600 mt-0.5 tabular-nums">
+              <time className="block text-[11px] text-muted-foreground mt-0.5 tabular-nums">
                 {formatDate(post.published_at)}
               </time>
             </Link>

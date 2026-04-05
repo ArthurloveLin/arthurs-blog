@@ -43,6 +43,10 @@ export default async function HomePage({
     return getPostsByYear(activeYear ?? currentYear, 50, 0)
   })()
 
+  // getUserRole 依赖 cookies()，必须单独调用，不能放入 Promise.all
+  // 否则会触发 Next.js 动态渲染 bailout，导致 unstable_cache 命中 0
+  const isAdmin = await getUserRole().then((role) => role === 'admin').catch(() => false)
+
   const [posts, categories, tags, siteConfig, totalPostsCount, yearArchive] = await Promise.all([
     postsPromise.catch(() => { fetchError = true; return [] as Post[] }),
     getCategories().catch(() => []),
@@ -56,19 +60,23 @@ export default async function HomePage({
   const commentCounts = await getCommentCounts(posts.map((p) => p.id)).catch(() => ({} as Record<string, number>))
 
   return (
-    <main className="min-h-screen bg-[#F5F5F7] dark:bg-zinc-950">
+    <main className="min-h-screen bg-background">
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <div className="border-b border-zinc-100 dark:border-zinc-800/70 bg-[#F5F5F7] dark:bg-zinc-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-12 lg:pt-20 lg:pb-16">
-          <p className="font-mono text-[11px] tracking-[0.18em] text-[#86868B] dark:text-zinc-500 uppercase mb-5">
-            Arthur &amp; Grace · Journal
+      <div className="relative border-b border-border bg-background overflow-hidden">
+        {/* Blob Ornaments */}
+        <div className="absolute top-0 left-1/4 w-72 h-72 bg-blob-1 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob dark:mix-blend-screen pointer-events-none"></div>
+        <div className="absolute -top-10 right-1/4 w-72 h-72 bg-blob-2 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000 dark:mix-blend-screen pointer-events-none"></div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-12 lg:pt-20 lg:pb-16 z-10">
+          <p className="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase mb-5">
+            {siteConfig.site_subtitle || "Arthur & Grace · Journal"}
           </p>
-          <h1 className="text-[2rem] lg:text-[2.5rem] font-semibold tracking-tight leading-[1.2] text-[#1D1D1F] dark:text-zinc-100 max-w-lg">
-            技术、生活与创意<br className="hidden sm:block" />的记录与分享
+          <h1 className="text-[2rem] lg:text-[2.5rem] font-semibold tracking-tight leading-[1.2] text-foreground max-w-lg">
+            <span className="text-gradient-primary">{siteConfig.site_title_highlight || "技术、生活与创意"}</span><br className="hidden sm:block" />{siteConfig.site_title_rest || "的记录与分享"}
           </h1>
-          <p className="mt-4 text-sm text-[#86868B] dark:text-zinc-400 leading-relaxed max-w-sm">
-            探索编程、设计、选衣搭配等领域的见解与思考。记录成长，分享知识，连接彼此。
+          <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-sm">
+            {siteConfig.site_description || "探索编程、设计、选衣搭配等领域的见解与思考。记录成长，分享知识，连接彼此。"}
           </p>
         </div>
       </div>
@@ -88,6 +96,16 @@ export default async function HomePage({
                 name={siteConfig.author_name}
                 bio={siteConfig.author_bio}
                 avatarUrl={siteConfig.author_avatar_url}
+                isAdmin={isAdmin}
+                role={siteConfig.author_role}
+                company={siteConfig.author_company}
+                location={siteConfig.author_location}
+                skills={siteConfig.author_skills}
+                status={siteConfig.author_status}
+                github={siteConfig.author_github}
+                weibo={siteConfig.author_weibo}
+                wechat={siteConfig.author_wechat}
+                email={siteConfig.author_email}
               />
               <CategoriesCard categories={categories} activeCategory={activeCategory} />
               <TagsCloudCard tags={tags.slice(0, 14)} activeTags={activeTags} />
@@ -98,25 +116,25 @@ export default async function HomePage({
           {/* Desktop: col-span-6 | Tablet: col-span-8 | Mobile: full */}
           <section className="md:col-span-8 lg:col-span-6">
             {/* Feed header / Category filter banner */}
-            <div className="flex items-center justify-between mb-5 px-4 py-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center justify-between mb-5 px-4 py-3 rounded-xl bg-card border border-border shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
               {activeCategory || activeTags.length > 0 || activeYear ? (
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-[10px] tracking-[0.15em] text-[#86868B] dark:text-zinc-500 uppercase">
+                  <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase">
                     {activeCategory ? '分类' : activeTags.length > 0 ? '标签' : '归档'}
                   </span>
-                  <span className="text-sm font-medium text-[#1D1D1F] dark:text-zinc-100">
+                  <span className="text-sm font-medium text-foreground">
                     {activeCategory ?? (activeTags.length > 0 ? activeTags.join(' + ') : `${activeYear} 年`)}
                   </span>
-                  <span className="text-xs text-[#86868B] dark:text-zinc-500">· 共 {posts.length} 篇</span>
+                  <span className="text-xs text-muted-foreground">· 共 {posts.length} 篇</span>
                   <Link
                     href="/"
-                    className="ml-1 text-xs text-[#86868B] dark:text-zinc-500 hover:text-[#1D1D1F] dark:hover:text-zinc-300 transition-colors"
+                    className="ml-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
                     ✕
                   </Link>
                 </div>
               ) : (
-                <span className="font-mono text-[11px] tracking-[0.15em] text-[#86868B] dark:text-zinc-500 uppercase">
+                <span className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground uppercase">
                   {posts.length > 0 ? `${posts.length} 篇文章` : '文章'}
                 </span>
               )}
@@ -131,7 +149,7 @@ export default async function HomePage({
                 <span className="font-mono text-xs text-zinc-300 dark:text-zinc-700">
                   {fetchError ? '— 加载失败 —' : '— 暂无文章 —'}
                 </span>
-                <span className="text-xs text-[#86868B] dark:text-zinc-600">
+                <span className="text-xs text-muted-foreground">
                   {fetchError
                     ? '数据库连接异常，请刷新重试'
                     : activeCategory
@@ -169,20 +187,20 @@ export default async function HomePage({
       </div>
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
-      <footer className="border-t border-zinc-100 dark:border-zinc-800/70 mt-6">
+      <footer className="border-t border-border mt-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="font-mono text-[11px] text-[#86868B] dark:text-zinc-600">
+          <p className="font-mono text-[11px] text-muted-foreground">
             © {new Date().getFullYear()} Arthur &amp; Grace
           </p>
-          <nav className="lg:hidden flex items-center gap-5 font-mono text-[11px] text-[#86868B] dark:text-zinc-500">
-            <Link href="/wardrobe" className="hover:text-[#1D1D1F] dark:hover:text-zinc-300 transition-colors">
+          <nav className="lg:hidden flex items-center gap-5 font-mono text-[11px] text-muted-foreground">
+            <Link href="/wardrobe" className="hover:text-foreground transition-colors">
               选衣记录
             </Link>
             <a
               href="https://trendradar.arthurlovegrace.top"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-[#1D1D1F] dark:hover:text-zinc-300 transition-colors"
+              className="hover:text-foreground transition-colors"
             >
               新闻汇总
             </a>

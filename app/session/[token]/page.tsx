@@ -9,6 +9,7 @@ import FinalListToggle from '@/components/FinalListToggle'
 import SessionHeader from '@/components/SessionHeader'
 import RealtimeSync from '@/components/RealtimeSync'
 import ActivityBanner from '@/components/ActivityBanner'
+import TournamentEntry from '@/components/TournamentEntry'
 
 interface Item {
   id: string
@@ -24,6 +25,7 @@ interface Item {
   commentCount: number
   ratings: { score: number; author: string }[]
   comments: { id: string }[]
+  rank: number | null
 }
 
 export default async function SessionPage({
@@ -101,12 +103,13 @@ export default async function SessionPage({
   })
 
   const buyCount = items.filter((i) => i.decision === 'buy').length
+  const pendingCount = items.filter((i) => i.decision === 'pending').length
   const totalBuyPrice = items
     .filter((i) => i.decision === 'buy' && i.price !== null)
     .reduce((sum, i) => sum + (i.price ?? 0), 0)
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-background">
       <RealtimeSync sessionId={session.id} />
       <ActivityBanner sessionId={session.id} />
       <div className="max-w-2xl mx-auto px-4 py-6">
@@ -115,18 +118,18 @@ export default async function SessionPage({
 
         {/* Stats bar */}
         {items.length > 0 && (
-          <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm mb-4 text-sm">
+          <div className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3 shadow-sm mb-4 text-sm">
             <div className="flex-1 flex items-center gap-4 flex-wrap">
-              <span className="text-gray-500">共 <span className="font-semibold text-gray-800">{items.length}</span> 件</span>
-              <span className="text-green-600">已选 <span className="font-semibold">{buyCount}</span> 件</span>
-              <span className="text-gray-400">待定 <span className="font-medium">{items.filter((i) => i.decision === 'pending').length}</span> 件</span>
+              <span className="text-muted-foreground">共 <span className="font-semibold text-foreground">{items.length}</span> 件</span>
+              <span className="text-green-600 dark:text-green-400">已选 <span className="font-semibold">{buyCount}</span> 件</span>
+              <span className="text-muted-foreground">待定 <span className="font-medium">{pendingCount}</span> 件</span>
               {totalBuyPrice > 0 && (
-                <span className="text-pink-500 font-semibold">已选 ¥{totalBuyPrice}</span>
+                <span className="text-primary font-semibold">已选 ¥{totalBuyPrice}</span>
               )}
             </div>
             {session.budget && (
               <span className={`text-xs shrink-0 font-medium ${
-                totalBuyPrice > session.budget ? 'text-red-500' : 'text-gray-400'
+                totalBuyPrice > session.budget ? 'text-destructive' : 'text-muted-foreground'
               }`}>
                 预算 ¥{session.budget}
                 {totalBuyPrice > session.budget && ' ⚠️超'}
@@ -138,7 +141,7 @@ export default async function SessionPage({
         {/* View Toggle */}
         {items.length > 0 && (
           <div className="mb-4">
-            <Suspense>
+            <Suspense fallback={<div className="h-10 animate-pulse bg-muted rounded-xl" />}>
               <FinalListToggle current={view} />
             </Suspense>
           </div>
@@ -154,7 +157,7 @@ export default async function SessionPage({
         {/* Sort Control */}
         {sortedItems.length > 1 && (
           <div className="mb-4">
-            <Suspense>
+            <Suspense fallback={<div className="h-10 animate-pulse bg-muted rounded-xl" />}>
               <SortControl current={sort} />
             </Suspense>
           </div>
@@ -163,11 +166,14 @@ export default async function SessionPage({
         {/* Final list heading */}
         {isFinalView && (
           <div className="mb-4 flex items-center gap-2">
-            <h2 className="text-base font-semibold text-gray-700">最终清单</h2>
-            <span className="text-xs text-gray-400">共 {sortedItems.length} 件</span>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">最终清单</h2>
+              <span className="text-xs text-muted-foreground">共 {sortedItems.length} 件</span>
+            </div>
             {totalBuyPrice > 0 && (
-              <span className="ml-auto text-sm font-bold text-pink-500">合计 ¥{totalBuyPrice}</span>
+              <span className="ml-auto text-sm font-bold text-primary mr-2">合计 ¥{totalBuyPrice}</span>
             )}
+            <TournamentEntry items={sortedItems} />
           </div>
         )}
 
