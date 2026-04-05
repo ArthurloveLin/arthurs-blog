@@ -28,12 +28,14 @@ export default function DraggableImageGrid({ items: initialItems, sessionToken }
   const router = useRouter()
   const [orderedItems, setOrderedItems] = useState<Item[]>(initialItems)
   const isDraggingRef = useRef(false)
+  const orderedItemsRef = useRef(orderedItems)
+  orderedItemsRef.current = orderedItems
 
   // Keep ordered items in sync when parent re-renders (unless drag is in progress)
   useEffect(() => {
     if (isDraggingRef.current) return
     const newIds = initialItems.map((i) => i.id).join(',')
-    const curIds = orderedItems.map((i) => i.id).join(',')
+    const curIds = orderedItemsRef.current.map((i) => i.id).join(',')
     if (newIds !== curIds) setOrderedItems(initialItems)
   }, [initialItems])
 

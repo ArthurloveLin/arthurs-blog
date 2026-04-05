@@ -21,7 +21,7 @@ interface ActivityBannerProps {
 
 export default function ActivityBanner({ sessionId }: ActivityBannerProps) {
   const [presenceList, setPresenceList] = useState<PresenceState[]>([])
-  const { displayName, role, loading } = useAuth()
+  const { displayName, role } = useAuth()
   // 管理员显示 displayName，其余一律"游客"
   const author = role === 'admin' ? (displayName ?? '管理员') : '游客'
 

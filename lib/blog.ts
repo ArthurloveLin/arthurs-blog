@@ -59,18 +59,22 @@ export async function getPostsByTag(tag: string, limit = 20, offset = 0): Promis
   return data ?? []
 }
 
-export async function getPostsByTags(tags: string[], limit = 20, offset = 0): Promise<Post[]> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('published', true)
-    .contains('tags', tags)
-    .order('published_at', { ascending: false })
-    .range(offset, offset + limit - 1)
+export const getPostsByTags = unstable_cache(
+  async function (tags: string[], limit = 20, offset = 0): Promise<Post[]> {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('published', true)
+      .contains('tags', tags)
+      .order('published_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
-  if (error) throw new Error(error.message)
-  return data ?? []
-}
+    if (error) throw new Error(error.message)
+    return data ?? []
+  },
+  ['posts-by-tags'],
+  { revalidate: 60, tags: ['posts'] }
+)
 
 export const getPostMeta = cache(async function getPostMeta(slug: string): Promise<Post | null> {
   const { data: post, error } = await supabase
@@ -164,18 +168,22 @@ export async function deletePostsNotIn(r2Keys: string[]): Promise<number> {
   return data?.length ?? 0
 }
 
-export async function getPostsByCategory(category: string, limit = 20, offset = 0): Promise<Post[]> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('published', true)
-    .eq('category', category)
-    .order('published_at', { ascending: false })
-    .range(offset, offset + limit - 1)
+export const getPostsByCategory = unstable_cache(
+  async function (category: string, limit = 20, offset = 0): Promise<Post[]> {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('published', true)
+      .eq('category', category)
+      .order('published_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
-  if (error) throw new Error(error.message)
-  return data ?? []
-}
+    if (error) throw new Error(error.message)
+    return data ?? []
+  },
+  ['posts-by-category'],
+  { revalidate: 60, tags: ['posts'] }
+)
 
 export const getCategories = unstable_cache(
   async function (): Promise<{ name: string; count: number; slug: string }[]> {
@@ -201,21 +209,25 @@ export const getCategories = unstable_cache(
   { revalidate: 300, tags: ['categories'] }
 )
 
-export async function getPostsByYear(year: number, limit = 50, offset = 0): Promise<Post[]> {
-  const start = `${year}-01-01T00:00:00.000Z`
-  const end = `${year + 1}-01-01T00:00:00.000Z`
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('published', true)
-    .gte('published_at', start)
-    .lt('published_at', end)
-    .order('published_at', { ascending: false })
-    .range(offset, offset + limit - 1)
+export const getPostsByYear = unstable_cache(
+  async function (year: number, limit = 50, offset = 0): Promise<Post[]> {
+    const start = `${year}-01-01T00:00:00.000Z`
+    const end = `${year + 1}-01-01T00:00:00.000Z`
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('published', true)
+      .gte('published_at', start)
+      .lt('published_at', end)
+      .order('published_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
-  if (error) throw new Error(error.message)
-  return data ?? []
-}
+    if (error) throw new Error(error.message)
+    return data ?? []
+  },
+  ['posts-by-year'],
+  { revalidate: 60, tags: ['posts'] }
+)
 
 export const getYearArchive = unstable_cache(
   async function (): Promise<{ year: number; count: number }[]> {
@@ -291,21 +303,25 @@ export async function getCommentCount(postId: string): Promise<number> {
   return count ?? 0
 }
 
-export async function getCommentCounts(postIds: string[]): Promise<Record<string, number>> {
-  if (postIds.length === 0) return {}
-  const { data, error } = await supabase
-    .from('comments')
-    .select('target_id')
-    .eq('target_type', 'blog_post')
-    .in('target_id', postIds)
-  if (error) return {}
-  const counts: Record<string, number> = {}
-  for (const row of data ?? []) {
-    const id = row.target_id as string
-    counts[id] = (counts[id] ?? 0) + 1
-  }
-  return counts
-}
+export const getCommentCounts = unstable_cache(
+  async function (postIds: string[]): Promise<Record<string, number>> {
+    if (postIds.length === 0) return {}
+    const { data, error } = await supabase
+      .from('comments')
+      .select('target_id')
+      .eq('target_type', 'blog_post')
+      .in('target_id', postIds)
+    if (error) return {}
+    const counts: Record<string, number> = {}
+    for (const row of data ?? []) {
+      const id = row.target_id as string
+      counts[id] = (counts[id] ?? 0) + 1
+    }
+    return counts
+  },
+  ['comment-counts'],
+  { revalidate: 30, tags: ['comments'] }
+)
 
 // 仅服务端（reindex 接口使用）
 export async function getPostsMetadata(): Promise<{ r2_key: string; updated_at: string }[]> {
