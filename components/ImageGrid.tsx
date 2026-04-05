@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useState, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import { TemplateConfig } from '@/lib/templates'
 
 const DraggableImageGrid = dynamic(() => import('./DraggableImageGrid'), { ssr: false })
 
@@ -26,9 +27,10 @@ interface ImageGridProps {
   items: Item[]
   sessionToken: string
   draggable?: boolean
+  templateConfig?: TemplateConfig
 }
 
-export default function ImageGrid({ items: initialItems, sessionToken, draggable = false }: ImageGridProps) {
+export default function ImageGrid({ items: initialItems, sessionToken, draggable = false, templateConfig }: ImageGridProps) {
   const router = useRouter()
   const [deleting, setDeleting] = useState<string | null>(null)
   const [selectMode, setSelectMode] = useState(false)
@@ -97,11 +99,21 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
   }
 
   if (initialItems.length === 0) {
+    const getEmptyEmoji = () => {
+      if (templateConfig?.name === '美食') return '🍽️'
+      if (templateConfig?.name === '打卡') return '🗺️'
+      return '📷'
+    }
+    const getEmptyHint = () => {
+      if (templateConfig?.name === '美食') return '上传第一张美食照片，开始探店点评吧～'
+      if (templateConfig?.name === '打卡') return '上传第一张打卡照片，开始记录吧～'
+      return '上传第一张，开始选衣吧～'
+    }
     return (
-      <div className="text-center py-20 text-muted-foreground/50">
-        <div className="text-5xl mb-4 opacity-50">📷</div>
-        <p className="text-base text-muted-foreground">还没有图片</p>
-        <p className="text-sm mt-1 opacity-70">上传第一张，开始选衣吧～</p>
+      <div className="text-center py-24 text-muted-foreground/50">
+        <div className="text-6xl mb-5 opacity-40">{getEmptyEmoji()}</div>
+        <p className="text-base font-semibold text-muted-foreground/60">还没有内容</p>
+        <p className="text-sm mt-2 opacity-60">{getEmptyHint()}</p>
       </div>
     )
   }
@@ -120,31 +132,32 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
             </h3>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
               {groupedItems[cat].map((item) => (
-                <div
-                  key={item.id}
-                  className="relative group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
-                >
-                  <ItemCard
-                    item={item}
-                    sessionToken={sessionToken}
-                    deleting={deleting}
-                    onDelete={handleDelete}
-                    hasConflict={
-                      item.arthurScore !== null &&
-                      item.graceScore !== null &&
-                      Math.abs(item.arthurScore - item.graceScore) >= 2
-                    }
-                    scoreDiff={
-                      item.arthurScore !== null && item.graceScore !== null
-                        ? Math.abs(item.arthurScore - item.graceScore)
-                        : null
-                    }
-                    selectMode={selectMode}
-                    selected={selected.has(item.id)}
-                    onToggleSelect={toggleSelect}
-                  />
-                </div>
-              ))}
+                  <div
+                    key={item.id}
+                    className="relative group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+                  >
+                    <ItemCard
+                      item={item}
+                      sessionToken={sessionToken}
+                      deleting={deleting}
+                      onDelete={handleDelete}
+                      hasConflict={
+                        item.arthurScore !== null &&
+                        item.graceScore !== null &&
+                        Math.abs(item.arthurScore - item.graceScore) >= 2
+                      }
+                      scoreDiff={
+                        item.arthurScore !== null && item.graceScore !== null
+                          ? Math.abs(item.arthurScore - item.graceScore)
+                          : null
+                      }
+                      selectMode={selectMode}
+                      selected={selected.has(item.id)}
+                      onToggleSelect={toggleSelect}
+                      templateConfig={templateConfig}
+                    />
+                  </div>
+                ))}
             </div>
           </div>
         ))
@@ -172,6 +185,7 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
                   selectMode={selectMode}
                   selected={selected.has(item.id)}
                   onToggleSelect={toggleSelect}
+                  templateConfig={templateConfig}
                 />
               </div>
             )
@@ -233,6 +247,7 @@ const ItemCard = memo(({
   selectMode,
   selected,
   onToggleSelect,
+  templateConfig,
 }: {
   item: Item
   sessionToken: string
@@ -243,7 +258,10 @@ const ItemCard = memo(({
   selectMode: boolean
   selected: boolean
   onToggleSelect: (id: string) => void
+  templateConfig?: TemplateConfig
 }) => {
+  const buyLabel = templateConfig?.descLabels?.buy || '买'
+  const skipLabel = templateConfig?.descLabels?.skip || '不买'
   return (
     <>
       {selectMode ? (
@@ -337,12 +355,12 @@ const ItemCard = memo(({
 
       {/* Decision badge */}
       {item.decision !== 'pending' && !selectMode && (
-        <div className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-medium shadow-sm ${
+        <div className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-bold shadow-sm ${
           item.decision === 'buy'
             ? 'bg-green-500 text-white'
-            : 'bg-muted-foreground text-white'
+            : 'bg-zinc-500 text-white'
         }`}>
-          {item.decision === 'buy' ? '买' : '不买'}
+          {item.decision === 'buy' ? buyLabel : skipLabel}
         </div>
       )}
     </>

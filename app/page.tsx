@@ -76,7 +76,7 @@ export default async function HomePage({
             <span className="text-gradient-primary">{siteConfig.site_title_highlight || "技术、生活与创意"}</span><br className="hidden sm:block" />{siteConfig.site_title_rest || "的记录与分享"}
           </h1>
           <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-sm">
-            {siteConfig.site_description || "探索编程、设计、选衣搭配等领域的见解与思考。记录成长，分享知识，连接彼此。"}
+            {siteConfig.site_description || "探索编程、设计、LifeLens 智能评价等领域的见解与思考。记录成长，分享知识，连接彼此。"}
           </p>
         </div>
       </div>
@@ -194,7 +194,7 @@ export default async function HomePage({
           </p>
           <nav className="lg:hidden flex items-center gap-5 font-mono text-[11px] text-muted-foreground">
             <Link href="/wardrobe" className="hover:text-foreground transition-colors">
-              选衣记录
+              LifeLens
             </Link>
             <a
               href="https://trendradar.arthurlovegrace.top"
@@ -202,7 +202,7 @@ export default async function HomePage({
               rel="noopener noreferrer"
               className="hover:text-foreground transition-colors"
             >
-              新闻汇总
+              News
             </a>
           </nav>
         </div>
