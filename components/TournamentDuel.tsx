@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 
 interface Item {
@@ -255,7 +255,13 @@ function DuelCard({ item, side, animating, onSelect }: { item: Item, side: 'left
   )
 }
 
-function AwardsScreen({ results, onClose, saving }: { results: any, onClose: () => void, saving: boolean }) {
+interface AwardsResults {
+  champion: Item
+  runnerUp: Item
+  thirdPlace?: Item
+}
+
+function AwardsScreen({ results, onClose, saving }: { results: AwardsResults, onClose: () => void, saving: boolean }) {
   return (
     <div className="text-center w-full max-w-4xl animate-in fade-in zoom-in duration-1000">
       <div className="mb-12 relative">

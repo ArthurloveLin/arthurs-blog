@@ -60,10 +60,9 @@ export default function ItemDetail({
   item, 
   token, 
   isAdmin: serverIsAdmin, 
-  userRole: serverUserRole, 
   serverIdentity 
 }: ItemDetailProps) {
-  const { displayName, email, guestId, isAdmin: clientIsAdmin, loading } = useAuth()
+  const { displayName, email, guestId, isAdmin: clientIsAdmin } = useAuth()
   
   // Use server props as primary source if available, fallback to client auth
   const isAdmin = serverIsAdmin || clientIsAdmin

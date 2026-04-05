@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import matter from 'gray-matter'
 import { listR2ObjectsWithMeta, getR2Object } from '@/lib/r2'
-import { upsertPost, upsertSiteConfig, deletePostsNotIn, getPostsMetadata } from '@/lib/blog'
+import { upsertPost, deletePostsNotIn, getPostsMetadata } from '@/lib/blog'
 
 const BLOG_BUCKET = process.env.R2_BLOG_BUCKET!
 const CONCURRENCY = 10
