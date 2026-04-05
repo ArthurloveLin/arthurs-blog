@@ -7,6 +7,8 @@ import { useAuth } from '@/components/AuthProvider'
 import { logout } from '@/app/auth/logout/actions'
 import ThemeToggle from './ThemeToggle'
 import { useTheme } from 'next-themes'
+import AuthorProfileCard from './AuthorProfileCard'
+import { usePathname } from 'next/navigation'
 
 const navLinks = [
   { href: '/', label: '首页' },
@@ -14,11 +16,22 @@ const navLinks = [
   { href: 'https://trendradar.arthurlovegrace.top', label: '新闻', external: true },
 ]
 
-export default function Navbar({ logoUrl }: { logoUrl?: string }) {
+export default function Navbar({ 
+  logoUrl, 
+  siteConfig, 
+  stats 
+}: { 
+  logoUrl?: string;
+  siteConfig?: Record<string, string>;
+  stats?: { postsCount: number; categoriesCount: number; tagsCount: number };
+}) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isAuthorDrawerOpen, setIsAuthorDrawerOpen] = useState(false)
   const { role, displayName, email, guestId, loading } = useAuth()
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
+  const pathname = usePathname()
+  const isAdmin = role === 'admin'
 
   useEffect(() => {
     setMounted(true)
@@ -46,7 +59,7 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
                 <span className="text-primary-foreground text-[10px] font-bold tracking-tight leading-none">A&G</span>
               )}
             </div>
-            <span className="text-gradient-primary font-bold text-xl tracking-tight hidden sm:block">
+            <span className="text-gradient-primary font-bold text-lg sm:text-xl tracking-tight">
               Arthur & Grace
             </span>
           </Link>
@@ -144,6 +157,18 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
                 )}
               </div>
             )}
+
+            {/* Author Entry (Mobile) */}
+            <button
+              onClick={() => setIsAuthorDrawerOpen(true)}
+              className="md:hidden p-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+              aria-label="作者资料"
+              title="作者资料"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+            </button>
 
             {/* Mobile Menu Toggle */}
             <button
@@ -256,6 +281,59 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
               )}
             </div>
           </nav>
+        )}
+        {/* ── Author Profile Drawer (Mobile) ────────────────────────── */}
+        {isAuthorDrawerOpen && (
+          <div className="fixed inset-0 z-[100] md:hidden">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300" 
+              onClick={() => setIsAuthorDrawerOpen(false)}
+            />
+            {/* Drawer Content */}
+            <div className="absolute bottom-0 inset-x-0 bg-background rounded-t-[2.5rem] shadow-[0_-8px_30px_rgb(0,0,0,0.12)] border-t border-border/50 p-6 pt-2 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-500">
+              {/* Handle */}
+              <div className="flex justify-center mb-6">
+                <div className="w-12 h-1.5 bg-muted rounded-full" />
+              </div>
+              
+              {/* Header with close button */}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">关于作者</h3>
+                <button 
+                  onClick={() => setIsAuthorDrawerOpen(false)}
+                  className="p-2 text-muted-foreground hover:text-foreground"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {siteConfig && stats && (
+                <div className="pb-8">
+                  <AuthorProfileCard
+                    postsCount={stats.postsCount}
+                    categoriesCount={stats.categoriesCount}
+                    tagsCount={stats.tagsCount}
+                    name={siteConfig.author_name}
+                    bio={siteConfig.author_bio}
+                    avatarUrl={siteConfig.author_avatar_url}
+                    isAdmin={isAdmin}
+                    role={siteConfig.author_role}
+                    company={siteConfig.author_company}
+                    location={siteConfig.author_location}
+                    skills={siteConfig.author_skills}
+                    status={siteConfig.author_status}
+                    github={siteConfig.author_github}
+                    weibo={siteConfig.author_weibo}
+                    wechat={siteConfig.author_wechat}
+                    email={siteConfig.author_email}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </header>
