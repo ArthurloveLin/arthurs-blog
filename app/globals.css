@@ -366,3 +366,21 @@ html {
 .animate-confetti-pop {
   animation: confetti-pop 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67) forwards;
 }
+
+@keyframes drawer-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.animate-drawer-up {
+  animation: drawer-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

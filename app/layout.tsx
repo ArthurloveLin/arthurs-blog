@@ -3,7 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import AuthProvider from "@/components/AuthProvider";
 import { ThemeProvider } from "next-themes";
-import { getSiteConfig, getPostsCount, getCategories, getAllTags } from "@/lib/blog";
+import { getSiteConfig, getPostsCount, getCategories, getAllTags, getYearArchive, getPosts } from "@/lib/blog";
 import { getCurrentUser, getUserRole } from "@/lib/auth";
 
 export const metadata: Metadata = {
@@ -16,13 +16,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [config, user, role, totalPostsCount, categories, tags] = await Promise.all([
+  const [config, user, role, totalPostsCount, categories, tags, yearArchive, recentPosts] = await Promise.all([
     getSiteConfig().catch(() => ({} as Record<string, string>)),
     getCurrentUser(),
     getUserRole(),
     getPostsCount().catch(() => 0),
     getCategories().catch(() => []),
     getAllTags().catch(() => []),
+    getYearArchive().catch(() => []),
+    getPosts(10).catch(() => []),
   ]);
 
   const initialAuthData = user ? {
@@ -48,6 +50,12 @@ export default async function RootLayout({
                 postsCount: totalPostsCount,
                 categoriesCount: categories.length,
                 tagsCount: tags.length
+              }}
+              sidebarData={{
+                categories,
+                tags,
+                yearArchive,
+                recentPosts
               }}
             />
             {children}
