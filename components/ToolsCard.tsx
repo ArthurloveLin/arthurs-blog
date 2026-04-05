@@ -27,10 +27,10 @@ const tools = [
 
 export default function ToolsCard() {
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-5">
+    <div className="bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:border-white/20 p-5">
 
       {/* Title */}
-      <h3 className="font-mono text-[10px] tracking-[0.18em] text-[#86868B] dark:text-zinc-500 uppercase mb-3">
+      <h3 className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase mb-3">
         我的工具
       </h3>
 
@@ -38,20 +38,20 @@ export default function ToolsCard() {
       <ul className="space-y-1">
         {tools.map((tool) => {
           const inner = (
-            <div className="flex items-center gap-3 py-2 px-1 rounded-lg hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 transition-colors duration-150 group cursor-pointer">
-              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#F5F5F7] dark:bg-zinc-800 flex items-center justify-center text-[#86868B] dark:text-zinc-400 group-hover:bg-[#1D1D1F] group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-[#1D1D1F] transition-all duration-200">
+            <div className="flex items-center gap-3 py-2 px-1 rounded-lg hover:bg-muted transition-colors duration-150 group cursor-pointer">
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-[image:var(--gradient-primary)] group-hover:text-primary-foreground transition duration-200">
                 {tool.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#1D1D1F] dark:text-zinc-300 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors leading-none mb-0.5">
+                <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors leading-none mb-0.5">
                   {tool.label}
                 </p>
-                <p className="text-[11px] text-[#86868B] dark:text-zinc-500 leading-none">
+                <p className="text-[11px] text-muted-foreground leading-none">
                   {tool.description}
                 </p>
               </div>
               {tool.external && (
-                <svg className="w-3 h-3 text-[#86868B] dark:text-zinc-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-3 h-3 text-muted-foreground flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               )}

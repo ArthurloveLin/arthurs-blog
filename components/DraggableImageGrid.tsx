@@ -17,6 +17,7 @@ interface Item {
   arthurScore: number | null
   graceScore: number | null
   commentCount: number
+  rank?: number | null
 }
 
 interface DraggableImageGridProps {
@@ -135,7 +136,17 @@ export default function DraggableImageGrid({ items: initialItems, sessionToken }
                           <div className={`mr-3 text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
                             item.decision === 'buy' ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'
                           }`}>
-                            {item.decision === 'buy' ? '买' : '不买'}
+                             {item.decision === 'buy' ? '买' : '不买'}
+                          </div>
+                        )}
+                        {item.rank && item.rank <= 3 && (
+                          <div className={`mr-4 text-[10px] px-2 py-1 rounded-full font-black shadow-lg flex items-center gap-1 border border-white/20 shrink-0 ${
+                            item.rank === 1 ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white' : 
+                            item.rank === 2 ? 'bg-gradient-to-r from-slate-300 to-slate-500 text-white' : 
+                            'bg-gradient-to-r from-amber-600 to-amber-800 text-white'
+                          }`}>
+                            <span>{item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : '🥉'}</span>
+                            {item.rank === 1 ? '冠军' : item.rank === 2 ? '亚军' : '季军'}
                           </div>
                         )}
                       </div>

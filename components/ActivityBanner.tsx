@@ -84,7 +84,7 @@ export default function ActivityBanner({ sessionId }: ActivityBannerProps) {
 
   if (!activeAlerts) {
     return (
-      <div className="bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-1.5 sticky top-0 z-50 overflow-hidden shadow-sm transition-all duration-500">
+      <div className="bg-white/90 dark:bg-black backdrop-blur-md dark:backdrop-blur-none border-b border-gray-100 dark:border-white/10 px-4 py-1.5 sticky top-16 z-40 overflow-hidden shadow-sm transition duration-500">
         <div className="max-w-2xl mx-auto flex items-center justify-center gap-3">
           <div className="flex -space-x-1.5">
             {onlineUsers.map((u, i) => (
@@ -108,7 +108,7 @@ export default function ActivityBanner({ sessionId }: ActivityBannerProps) {
   }
 
   return (
-    <div className="bg-pink-500 px-4 py-2 sticky top-0 z-50 overflow-hidden shadow-lg shadow-pink-500/30 transition-all duration-300">
+    <div className="bg-pink-500 px-4 py-2 sticky top-16 z-40 overflow-hidden shadow-lg shadow-pink-500/30 transition duration-300">
       <div className="max-w-2xl mx-auto flex items-center justify-center gap-4">
         <span className="text-white text-xs animate-pulse">⚡️</span>
         <div className="relative h-5 flex-1 flex flex-col items-center justify-center">

@@ -114,7 +114,7 @@ function RadarChart({ entries }: { entries: RadarEntry[] }) {
         const d =
           pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') +
           ' Z'
-        return <path key={level} d={d} fill="none" stroke="#e5e7eb" strokeWidth="1" />
+        return <path key={level} d={d} fill="none" stroke="currentColor" className="text-border" strokeWidth="1" />
       })}
 
       {/* 坐标轴线 */}
@@ -127,7 +127,8 @@ function RadarChart({ entries }: { entries: RadarEntry[] }) {
             y1={cy}
             x2={outer.x.toFixed(1)}
             y2={outer.y.toFixed(1)}
-            stroke="#e5e7eb"
+            stroke="currentColor"
+            className="text-border"
             strokeWidth="1"
           />
         )
@@ -170,7 +171,7 @@ function RadarChart({ entries }: { entries: RadarEntry[] }) {
             textAnchor="middle"
             dominantBaseline="middle"
             fontSize="11"
-            fill="#6b7280"
+            className="fill-muted-foreground"
             fontWeight="500"
           >
             {dim.label}
@@ -200,7 +201,7 @@ function DimStars({
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs w-14 text-gray-500 shrink-0">{label}</span>
+      <span className="text-xs w-14 text-muted-foreground shrink-0">{label}</span>
       <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
@@ -209,14 +210,14 @@ function DimStars({
             onClick={() => onChange(star)}
             onMouseEnter={() => setHover(star)}
             onMouseLeave={() => setHover(null)}
-            className="text-xl leading-none transition-colors disabled:cursor-not-allowed"
-            style={{ color: display >= star ? color : '#e5e7eb' }}
+            className="text-xl leading-none transition-all active:scale-125 disabled:cursor-not-allowed hover:scale-110"
+            style={{ color: display >= star ? color : 'var(--muted)' }}
           >
             ★
           </button>
         ))}
       </div>
-      {value !== null && <span className="text-xs text-gray-400 w-6">{value}.0</span>}
+      {value !== null && <span className="text-[10px] font-bold text-muted-foreground/40 w-6">{value}.0</span>}
     </div>
   )
 }
@@ -304,13 +305,13 @@ export default function MultiDimRating({
   return (
     <div className="space-y-4">
       {/* 我的多维打分 */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">我的评分</span>
-          {saving && <span className="text-xs text-gray-400">保存中…</span>}
-          {!author && <span className="text-xs text-gray-400">请先选择身份再评分</span>}
+      <div className="bg-muted/30 rounded-xl p-3 border border-border/50">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">我的评分</span>
+          {saving && <span className="text-[10px] uppercase font-bold text-primary animate-pulse">保存中…</span>}
+          {!author && <span className="text-[10px] font-bold text-destructive/60">请先选择身份再评分</span>}
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {DIMS.map((dim) => (
             <DimStars
               key={dim.key}
@@ -323,25 +324,25 @@ export default function MultiDimRating({
           ))}
         </div>
         {author && !allFilled && (
-          <p className="text-xs text-gray-400 mt-1">完成三项评分后自动保存</p>
+          <p className="text-[10px] text-muted-foreground/40 mt-3 italic text-right">完成三项评分后自动保存</p>
         )}
       </div>
 
       {/* 雷达图 */}
       {hasRadarData && (
-        <div>
+        <div className="pt-2">
           {/* 图例 */}
-          <div className="flex flex-wrap items-center gap-3 mb-2">
+          <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
             {radarEntries.map((e) => {
               const avg = avgScore(e.rating)
               return (
-                <div key={e.label} className="flex items-center gap-1 text-xs">
+                <div key={e.label} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight">
                   <span
-                    className="inline-block w-2.5 h-2.5 rounded-full"
+                    className="inline-block w-2 h-2 rounded-full shadow-sm"
                     style={{ background: e.color }}
                   />
-                  <span className="text-gray-600">{e.label}</span>
-                  {avg && <span className="text-gray-400">{avg}分</span>}
+                  <span className="text-muted-foreground/80">{e.label}</span>
+                  {avg && <span className="text-foreground/40">{avg}分</span>}
                 </div>
               )
             })}
