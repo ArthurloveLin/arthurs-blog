@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { getPostsByCategory, getPostsByTags, getPostsByYear, getYearArchive, getPostsCount, getCategories, getSiteConfig, getAllTags, getCommentCounts } from '@/lib/blog'
 import type { Post } from '@/lib/blog'
 import ReindexButton from '@/components/ReindexButton'
@@ -13,13 +14,18 @@ import ToolsCard from '@/components/ToolsCard'
 
 export const revalidate = 60
 
+async function AdminToolbar() {
+  const isAdmin = (await getUserRole()) === 'admin'
+  if (!isAdmin) return null
+  return <ReindexButton />
+}
+
 export default async function HomePage({
   searchParams,
 }: {
   searchParams: Promise<{ category?: string; tags?: string; year?: string }>
 }) {
   const { category, tags: tagsParam, year: yearParam } = await searchParams
-  const isAdmin = (await getUserRole()) === 'admin'
   const activeCategory = category ? decodeURIComponent(category) : null
   const activeTags = tagsParam
     ? tagsParam.split(',').map((t) => decodeURIComponent(t)).filter(Boolean)
@@ -114,7 +120,9 @@ export default async function HomePage({
                   {posts.length > 0 ? `${posts.length} 篇文章` : '文章'}
                 </span>
               )}
-              {isAdmin && <ReindexButton />}
+              <Suspense fallback={null}>
+                <AdminToolbar />
+              </Suspense>
             </div>
 
             {/* Empty / error state */}
