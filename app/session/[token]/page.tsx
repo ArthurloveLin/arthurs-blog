@@ -35,13 +35,13 @@ export default async function SessionPage({
 }) {
   const { token } = await params
   const { sort = 'time', view = 'all' } = await searchParams
-  const isAdmin = (await getUserRole()) === 'admin'
 
-  const { data: session, error: sessionError } = await supabaseAdmin
-    .from('sessions')
-    .select('*')
-    .eq('token', token)
-    .single()
+  // getUserRole 与 session 查询互相独立，并行发起
+  const [role, { data: session, error: sessionError }] = await Promise.all([
+    getUserRole(),
+    supabaseAdmin.from('sessions').select('*').eq('token', token).single(),
+  ])
+  const isAdmin = role === 'admin'
 
   if (sessionError || !session) notFound()
 

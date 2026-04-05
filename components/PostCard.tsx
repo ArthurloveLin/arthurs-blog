@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Post } from '@/lib/blog'
+import PrefetchOnHover from './PrefetchOnHover'
 
 // Soft editorial gradients — cycled by index for visual variety
 const COVER_GRADIENTS = [
@@ -34,7 +35,10 @@ export default function PostCard({ post, index = 0, commentCount }: PostCardProp
   const unoptimized = coverSrc?.includes('obsidian.arthurlovegrace.top') ?? false
 
   return (
-    <article className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden group relative">
+    <PrefetchOnHover
+      href={`/blog/${post.slug}`}
+      className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden group relative"
+    >
 
       {/* ── Cover Image ────────────────────────────────────────────── */}
       <Link href={`/blog/${post.slug}`} className="relative block h-48 w-full overflow-hidden" tabIndex={-1} aria-hidden>
@@ -112,6 +116,6 @@ export default function PostCard({ post, index = 0, commentCount }: PostCardProp
         </div>
 
       </div>
-    </article>
+    </PrefetchOnHover>
   )
 }

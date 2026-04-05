@@ -1,11 +1,16 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getPostBySlug, getAdjacentPosts } from '@/lib/blog'
+import { getPosts, getPostMeta, getPostContent, getAdjacentPosts } from '@/lib/blog'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import CommentBox from '@/components/CommentBox'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export const revalidate = 60
+
+export async function generateStaticParams() {
+  const posts = await getPosts(1000, 0)
+  return posts.map((p) => ({ slug: p.slug }))
+}
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return ''
@@ -21,11 +26,14 @@ export default async function BlogPostPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const result = await getPostBySlug(slug)
-  if (!result) notFound()
 
-  const { post, content } = result
-  const [{ prev, next }, { data: initialComments }] = await Promise.all([
+  // 第一步：只查 Supabase 元数据（快，~100ms）
+  const post = await getPostMeta(slug)
+  if (!post) notFound()
+
+  // 第二步：拿到 post.id / published_at 后，立即并发启动 R2 拉取 + 相邻文章 + 评论
+  const [content, { prev, next }, { data: initialComments }] = await Promise.all([
+    getPostContent(post),
     getAdjacentPosts(post.published_at!),
     supabaseAdmin
       .from('comments')
