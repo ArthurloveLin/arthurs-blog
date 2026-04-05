@@ -178,77 +178,6 @@ export default function Navbar({
               </div>
             )}
 
-            {/* Mobile Navigation Icons */}
-            <div className="flex md:hidden items-center gap-0.5">
-              {/* Author */}
-              <button
-                onClick={() => setActiveDrawer('author')}
-                className={`p-2 rounded-lg transition-colors ${activeDrawer === 'author' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
-                aria-label="作者"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                </svg>
-              </button>
-
-              {/* Categories */}
-              <button
-                onClick={() => setActiveDrawer('categories')}
-                className={`p-2 rounded-lg transition-colors ${activeDrawer === 'categories' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
-                aria-label="分类"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15a2.25 2.25 0 012.25 2.25v.75m-19.5 0A2.25 2.25 0 004.5 15h15a2.25 2.25 0 002.25-2.25m-19.5 0v.25A2.25 2.25 0 004.5 18h15a2.25 2.25 0 002.25-2.25v-.25m-19.5 0V12a2.25 2.25 0 012.25-2.25h15a2.25 2.25 0 012.25 2.25v.75m-19.5 0A2.25 2.25 0 004.5 15h15a2.25 2.25 0 002.25-2.25" />
-                </svg>
-              </button>
-
-              {/* Tags */}
-              <button
-                onClick={() => setActiveDrawer('tags')}
-                className={`p-2 rounded-lg transition-colors ${activeDrawer === 'tags' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
-                aria-label="标签"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581a2.25 2.25 0 003.182 0l4.318-4.318a2.25 2.25 0 000-3.182L11.159 3.659A2.25 2.25 0 009.568 3z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
-                </svg>
-              </button>
-
-              {/* Recent */}
-              <button
-                onClick={() => setActiveDrawer('recent')}
-                className={`p-2 rounded-lg transition-colors ${activeDrawer === 'recent' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
-                aria-label="最新"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </button>
-
-              {/* Archive */}
-              <button
-                onClick={() => setActiveDrawer('archive')}
-                className={`p-2 rounded-lg transition-colors ${activeDrawer === 'archive' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
-                aria-label="归档"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                </svg>
-              </button>
-
-              {/* Tools */}
-              <button
-                onClick={() => setActiveDrawer('tools')}
-                className={`p-2 rounded-lg transition-colors ${activeDrawer === 'tools' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
-                aria-label="工具"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.423 20.25a2.25 2.25 0 003.154 0l6.591-6.59a2.25 2.25 0 000-3.155l-6.59-6.59a2.25 2.25 0 00-3.155 0l-6.59 6.59a2.25 2.25 0 000 3.154l6.59 6.59z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5" />
-                </svg>
-              </button>
-            </div>
-
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -363,6 +292,91 @@ export default function Navbar({
         )}
       </div>
     </header>
+
+    {/* ── Mobile Bottom Dock ───────────────────────────── */}
+    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 md:hidden">
+      <div className={
+        "flex items-center gap-0.5 px-2 py-1.5 " +
+        "bg-white/85 backdrop-blur-md border border-black/5 " +
+        "dark:bg-black/90 dark:backdrop-blur-none dark:border-white/10 " +
+        "rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
+      }>
+        {/* Author */}
+        <button
+          onClick={() => setActiveDrawer(activeDrawer === 'author' ? null : 'author')}
+          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${activeDrawer === 'author' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
+          aria-label="作者"
+        >
+          <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+          <span className="text-[9px] font-medium leading-none">作者</span>
+        </button>
+
+        <div className="w-px h-5 bg-border/60 mx-0.5" />
+
+        {/* Categories */}
+        <button
+          onClick={() => setActiveDrawer(activeDrawer === 'categories' ? null : 'categories')}
+          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${activeDrawer === 'categories' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
+          aria-label="分类"
+        >
+          <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+          </svg>
+          <span className="text-[9px] font-medium leading-none">分类</span>
+        </button>
+
+        {/* Tags */}
+        <button
+          onClick={() => setActiveDrawer(activeDrawer === 'tags' ? null : 'tags')}
+          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${activeDrawer === 'tags' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
+          aria-label="标签"
+        >
+          <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581a2.25 2.25 0 003.182 0l4.318-4.318a2.25 2.25 0 000-3.182L11.159 3.659A2.25 2.25 0 009.568 3z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
+          </svg>
+          <span className="text-[9px] font-medium leading-none">标签</span>
+        </button>
+
+        {/* Recent */}
+        <button
+          onClick={() => setActiveDrawer(activeDrawer === 'recent' ? null : 'recent')}
+          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${activeDrawer === 'recent' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
+          aria-label="最新推文"
+        >
+          <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-[9px] font-medium leading-none">最新</span>
+        </button>
+
+        {/* Archive */}
+        <button
+          onClick={() => setActiveDrawer(activeDrawer === 'archive' ? null : 'archive')}
+          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${activeDrawer === 'archive' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
+          aria-label="归档"
+        >
+          <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+          </svg>
+          <span className="text-[9px] font-medium leading-none">归档</span>
+        </button>
+
+        {/* Tools */}
+        <button
+          onClick={() => setActiveDrawer(activeDrawer === 'tools' ? null : 'tools')}
+          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${activeDrawer === 'tools' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
+          aria-label="工具"
+        >
+          <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
+          </svg>
+          <span className="text-[9px] font-medium leading-none">工具</span>
+        </button>
+      </div>
+    </div>
 
     {/* ── Mobile Sidebar Drawers ────────────────────────── */}
     {activeDrawer && (
