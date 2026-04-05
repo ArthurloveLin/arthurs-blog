@@ -2,34 +2,20 @@
 
 import { useState } from 'react'
 import { updatePresenceActivity } from './ActivityBanner'
-
-const DIMS = [
-  { key: 'appearance_score' as const, label: '颜值', color: '#f472b6' },
-  { key: 'practicality_score' as const, label: '实用', color: '#60a5fa' },
-  { key: 'value_score' as const, label: '性价比', color: '#34d399' },
-]
-
-type DimKey = 'appearance_score' | 'practicality_score' | 'value_score'
-
-interface DimScores {
-  appearance_score: number | null
-  practicality_score: number | null
-  value_score: number | null
-}
+import { Dimension } from '@/lib/templates'
 
 interface RatingData {
   author: string
   score: number | null
-  appearance_score: number | null
-  practicality_score: number | null
-  value_score: number | null
+  scores: Record<string, number | null>
 }
 
 interface MultiDimRatingProps {
   itemId: string
   author: string
-  myScores: DimScores
+  myScores: Record<string, number | null> // 从数据库 ratings.scores 传入
   allRatings: RatingData[]
+  dimensions: Dimension[]
   onRate?: () => void
 }
 
@@ -48,25 +34,22 @@ function getWeight(author: string) {
   return NAMED_AUTHORS.includes(author) ? NAMED_WEIGHT : GUEST_WEIGHT
 }
 
-function computeWeightedAvg(ratings: RatingData[]): RatingData | null {
-  const valid = ratings.filter(
-    (r) =>
-      r.appearance_score != null &&
-      r.practicality_score != null &&
-      r.value_score != null
-  )
+function computeWeightedAvg(ratings: RatingData[], dimensions: Dimension[]): RatingData | null {
+  const valid = ratings.filter((r) => dimensions.every((d) => r.scores?.[d.key] != null))
   if (valid.length === 0) return null
 
   const totalWeight = valid.reduce((sum, r) => sum + getWeight(r.author), 0)
-  const wavg = (key: DimKey) =>
-    valid.reduce((sum, r) => sum + r[key]! * getWeight(r.author), 0) / totalWeight
+  const weightedScores: Record<string, number | null> = {}
+
+  dimensions.forEach((d) => {
+    weightedScores[d.key] =
+      valid.reduce((sum, r) => sum + (r.scores![d.key] || 0) * getWeight(r.author), 0) / totalWeight
+  })
 
   return {
     author: '加权均值',
     score: null,
-    appearance_score: wavg('appearance_score'),
-    practicality_score: wavg('practicality_score'),
-    value_score: wavg('value_score'),
+    scores: weightedScores,
   }
 }
 
@@ -78,26 +61,28 @@ interface RadarEntry {
   dashed?: boolean
 }
 
-function RadarChart({ entries }: { entries: RadarEntry[] }) {
+function RadarChart({ entries, dimensions }: { entries: RadarEntry[]; dimensions: Dimension[] }) {
   const cx = 100
   const cy = 105
   const r = 65
-  const n = 3
+  const n = dimensions.length
+  
+  // 基础角度计算，n 个方向均匀分布
   const angles = Array.from({ length: n }, (_, i) =>
     ((-90 + (360 / n) * i) * Math.PI) / 180
   )
 
   function point(val: number, idx: number) {
-    const ratio = val / 5
+    const ratio = Math.min(Math.max(val / 5, 0), 1) // 限制在 0-1 之间
     return {
       x: cx + ratio * r * Math.cos(angles[idx]),
       y: cy + ratio * r * Math.sin(angles[idx]),
     }
   }
 
-  function toPath(values: (number | null)[]): string | null {
-    if (values.some((v) => v == null)) return null
-    const pts = (values as number[]).map((v, i) => point(v, i))
+  function toPath(entryScores: Record<string, number | null>): string | null {
+    if (dimensions.some((d) => entryScores[d.key] == null)) return null
+    const pts = dimensions.map((d, i) => point(entryScores[d.key] as number, i))
     return (
       pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') +
       ' Z'
@@ -136,8 +121,7 @@ function RadarChart({ entries }: { entries: RadarEntry[] }) {
 
       {/* 各数据多边形 */}
       {entries.map(({ rating, color, dashed }) => {
-        const vals = [rating.appearance_score, rating.practicality_score, rating.value_score]
-        const d = toPath(vals)
+        const d = toPath(rating.scores)
         if (!d) return null
         return (
           <g key={rating.author}>
@@ -151,8 +135,9 @@ function RadarChart({ entries }: { entries: RadarEntry[] }) {
               strokeDasharray={dashed ? '4 2' : undefined}
             />
             {!dashed &&
-              (vals as number[]).map((v, i) => {
-                const p = point(v, i)
+              dimensions.map((d, i) => {
+                const val = rating.scores[d.key] || 0
+                const p = point(val, i)
                 return <circle key={i} cx={p.x} cy={p.y} r="3" fill={color} />
               })}
           </g>
@@ -160,7 +145,7 @@ function RadarChart({ entries }: { entries: RadarEntry[] }) {
       })}
 
       {/* 维度标签 */}
-      {DIMS.map((dim, i) => {
+      {dimensions.map((dim, i) => {
         const lx = cx + labelOffset * Math.cos(angles[i])
         const ly = cy + labelOffset * Math.sin(angles[i])
         return (
@@ -170,9 +155,9 @@ function RadarChart({ entries }: { entries: RadarEntry[] }) {
             y={ly.toFixed(1)}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize="11"
+            fontSize="10"
             className="fill-muted-foreground"
-            fontWeight="500"
+            fontWeight="600"
           >
             {dim.label}
           </text>
@@ -228,19 +213,21 @@ export default function MultiDimRating({
   author,
   myScores,
   allRatings,
+  dimensions,
   onRate,
 }: MultiDimRatingProps) {
-  const [scores, setScores] = useState<DimScores>({ ...myScores })
+  const [scores, setScores] = useState<Record<string, number | null>>({ ...myScores })
   const [saving, setSaving] = useState(false)
 
-  async function handleDimChange(key: DimKey, val: number) {
+  async function handleDimChange(key: string, val: number) {
     if (!author || saving) return
     updatePresenceActivity('正在打分')
     const newScores = { ...scores, [key]: val }
     setScores(newScores)
 
-    const { appearance_score, practicality_score, value_score } = newScores
-    if (appearance_score == null || practicality_score == null || value_score == null) return
+    // 检查是否所有维度都已填满
+    const allFilled = dimensions.every((d) => newScores[d.key] != null)
+    if (!allFilled) return
 
     setSaving(true)
     try {
@@ -250,9 +237,7 @@ export default function MultiDimRating({
         body: JSON.stringify({
           item_id: itemId,
           author,
-          appearance_score,
-          practicality_score,
-          value_score,
+          ...newScores,
         }),
       })
       if (!res.ok) throw new Error('Failed')
@@ -264,42 +249,34 @@ export default function MultiDimRating({
     }
   }
 
-  const allFilled =
-    scores.appearance_score != null &&
-    scores.practicality_score != null &&
-    scores.value_score != null
+  const allFilled = dimensions.every((d) => scores[d.key] != null)
 
   // 合并本地状态到 allRatings
   const displayRatings: RatingData[] = allRatings.map((r) =>
-    r.author === author ? { ...r, ...scores } : r
+    r.author === author ? { ...r, scores: { ...r.scores, ...scores } } : r
   )
   const hasMyRating = allRatings.some((r) => r.author === author)
   if (!hasMyRating && author && allFilled) {
-    displayRatings.push({ author, score: null, ...scores })
+    displayRatings.push({ author, score: null, scores })
   }
 
   // ── 构建雷达图数据：Arthur / Grace / 加权均值 ──────────────────────────────
   const arthurEntry = displayRatings.find((r) => r.author === 'Arthur')
   const graceEntry = displayRatings.find((r) => r.author === 'Grace')
-  const weightedAvg = computeWeightedAvg(displayRatings)
+  const weightedAvg = computeWeightedAvg(displayRatings, dimensions)
 
   const radarEntries: RadarEntry[] = []
   if (arthurEntry) radarEntries.push({ rating: arthurEntry, color: AUTHOR_COLORS.Arthur, label: 'Arthur' })
   if (graceEntry) radarEntries.push({ rating: graceEntry, color: AUTHOR_COLORS.Grace, label: 'Grace' })
   if (weightedAvg) radarEntries.push({ rating: weightedAvg, color: AVG_COLOR, label: '加权均值', dashed: true })
 
-  const hasRadarData = radarEntries.some(
-    (e) =>
-      e.rating.appearance_score != null &&
-      e.rating.practicality_score != null &&
-      e.rating.value_score != null
-  )
+  const hasRadarData = radarEntries.some((e) => dimensions.every((d) => e.rating.scores?.[d.key] != null))
 
-  // 加权均值分（用于图例展示）
-  function avgScore(r: RatingData) {
-    if (r.appearance_score == null || r.practicality_score == null || r.value_score == null)
-      return null
-    return ((r.appearance_score + r.practicality_score + r.value_score) / 3).toFixed(1)
+  // 综合分计算（用于图例展示）
+  function avgScore(ratingScores: Record<string, number | null>) {
+    const vals = Object.values(ratingScores).filter((v) => v != null) as number[]
+    if (vals.length === 0) return null
+    return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)
   }
 
   return (
@@ -312,7 +289,7 @@ export default function MultiDimRating({
           {!author && <span className="text-[10px] font-bold text-destructive/60">请先选择身份再评分</span>}
         </div>
         <div className="space-y-3">
-          {DIMS.map((dim) => (
+          {dimensions.map((dim) => (
             <DimStars
               key={dim.key}
               label={dim.label}
@@ -324,7 +301,9 @@ export default function MultiDimRating({
           ))}
         </div>
         {author && !allFilled && (
-          <p className="text-[10px] text-muted-foreground/40 mt-3 italic text-right">完成三项评分后自动保存</p>
+          <p className="text-[10px] text-muted-foreground/40 mt-3 italic text-right">
+            完成 {dimensions.length} 项评分后自动保存
+          </p>
         )}
       </div>
 
@@ -334,7 +313,7 @@ export default function MultiDimRating({
           {/* 图例 */}
           <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
             {radarEntries.map((e) => {
-              const avg = avgScore(e.rating)
+              const avg = avgScore(e.rating.scores)
               return (
                 <div key={e.label} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight">
                   <span
@@ -347,7 +326,7 @@ export default function MultiDimRating({
               )
             })}
           </div>
-          <RadarChart entries={radarEntries} />
+          <RadarChart entries={radarEntries} dimensions={dimensions} />
         </div>
       )}
     </div>

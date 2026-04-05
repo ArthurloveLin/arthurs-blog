@@ -47,9 +47,11 @@ export default async function SessionPage({
 
   if (sessionError || !session) notFound()
 
+  const templateConfig = (session as { template_config?: import('@/lib/templates').TemplateConfig }).template_config
+
   const { data: rawItems } = await supabaseAdmin
     .from('items')
-    .select(`*, ratings(score, author), comments(id)`)
+    .select(`*, ratings(score, author, scores), comments(id)`)
     .eq('session_id', session.id)
     .order('created_at', { ascending: true })
 
@@ -108,31 +110,33 @@ export default async function SessionPage({
     .filter((i) => i.decision === 'buy' && i.price !== null)
     .reduce((sum, i) => sum + (i.price ?? 0), 0)
 
+  const itemLabel = templateConfig?.itemLabel || '位'
+
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background text-foreground">
       <RealtimeSync sessionId={session.id} />
       <ActivityBanner sessionId={session.id} />
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-10">
         {/* Header */}
-        <SessionHeader session={session} isAdmin={isAdmin} />
+        <SessionHeader session={session} isAdmin={isAdmin} templateConfig={templateConfig} />
 
         {/* Stats bar */}
         {items.length > 0 && (
-          <div className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3 shadow-sm mb-4 text-sm">
+          <div className="flex items-center gap-3 bg-card border border-border rounded-2xl px-5 py-4 shadow-sm mb-6 text-sm">
             <div className="flex-1 flex items-center gap-4 flex-wrap">
-              <span className="text-muted-foreground">共 <span className="font-semibold text-foreground">{items.length}</span> 件</span>
-              <span className="text-green-600 dark:text-green-400">已选 <span className="font-semibold">{buyCount}</span> 件</span>
-              <span className="text-muted-foreground">待定 <span className="font-medium">{pendingCount}</span> 件</span>
+              <span className="text-muted-foreground">共 <span className="font-semibold text-foreground">{items.length}</span> {itemLabel}</span>
+              <span className="text-green-600 dark:text-green-400 font-medium">已选 <span className="font-bold">{buyCount}</span> {itemLabel}</span>
+              <span className="text-muted-foreground font-medium">待处理 <span className="font-semibold">{pendingCount}</span> {itemLabel}</span>
               {totalBuyPrice > 0 && (
-                <span className="text-primary font-semibold">已选 ¥{totalBuyPrice}</span>
+                <span className="text-primary font-bold">合计 ¥{totalBuyPrice}</span>
               )}
             </div>
             {session.budget && (
-              <span className={`text-xs shrink-0 font-medium ${
-                totalBuyPrice > session.budget ? 'text-destructive' : 'text-muted-foreground'
+              <span className={`text-xs shrink-0 font-bold px-2 py-1 rounded-lg bg-muted/50 ${
+                totalBuyPrice > session.budget ? 'text-destructive bg-destructive/10' : 'text-muted-foreground'
               }`}>
                 预算 ¥{session.budget}
-                {totalBuyPrice > session.budget && ' ⚠️超'}
+                {totalBuyPrice > session.budget && ' ⚠️ 超额'}
               </span>
             )}
           </div>
@@ -140,7 +144,7 @@ export default async function SessionPage({
 
         {/* View Toggle */}
         {items.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-6">
             <Suspense fallback={<div className="h-10 animate-pulse bg-muted rounded-xl" />}>
               <FinalListToggle current={view} />
             </Suspense>
@@ -149,14 +153,14 @@ export default async function SessionPage({
 
         {/* Upload Zone — admin only, only in all view */}
         {isAdmin && !isFinalView && (
-          <div className="mb-6">
-            <UploadZone sessionToken={token} />
+          <div className="mb-8 p-1 bg-card/50 border border-dashed border-border rounded-2xl">
+            <UploadZone sessionToken={token} templateConfig={templateConfig} />
           </div>
         )}
 
         {/* Sort Control */}
         {sortedItems.length > 1 && (
-          <div className="mb-4">
+          <div className="mb-6">
             <Suspense fallback={<div className="h-10 animate-pulse bg-muted rounded-xl" />}>
               <SortControl current={sort} />
             </Suspense>
@@ -165,15 +169,18 @@ export default async function SessionPage({
 
         {/* Final list heading */}
         {isFinalView && (
-          <div className="mb-4 flex items-center gap-2">
-            <div>
-              <h2 className="text-base font-semibold text-foreground">最终清单</h2>
-              <span className="text-xs text-muted-foreground">共 {sortedItems.length} 件</span>
+          <div className="mb-6 flex items-center gap-3 bg-primary/5 p-4 rounded-xl border border-primary/10">
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-foreground leading-tight">✨ 最终清单</h2>
+              <span className="text-xs text-muted-foreground font-medium">挑选出的 {sortedItems.length} {itemLabel} {templateConfig?.name === '衣评' ? '穿搭' : '优选'}</span>
             </div>
             {totalBuyPrice > 0 && (
-              <span className="ml-auto text-sm font-bold text-primary mr-2">合计 ¥{totalBuyPrice}</span>
+              <div className="text-right">
+                <span className="block text-[10px] text-muted-foreground uppercase font-bold">预估支出</span>
+                <span className="text-xl font-black text-primary">¥{totalBuyPrice}</span>
+              </div>
             )}
-            <TournamentEntry items={sortedItems} />
+            <TournamentEntry items={sortedItems} templateConfig={templateConfig} />
           </div>
         )}
 
@@ -182,6 +189,7 @@ export default async function SessionPage({
           items={sortedItems}
           sessionToken={token}
           draggable={sort === 'position'}
+          templateConfig={templateConfig}
         />
       </div>
     </main>

@@ -73,10 +73,18 @@ export default async function HomePage({
             {siteConfig.site_subtitle || "Arthur & Grace · Journal"}
           </p>
           <h1 className="text-[2rem] lg:text-[2.5rem] font-semibold tracking-tight leading-[1.2] text-foreground max-w-lg">
-            <span className="text-gradient-primary">{siteConfig.site_title_highlight || "技术、生活与创意"}</span><br className="hidden sm:block" />{siteConfig.site_title_rest || "的记录与分享"}
+            <span className="block sm:inline text-gradient-primary">{siteConfig.site_title_highlight || "技术、生活与创意"}</span>
+            {siteConfig.site_title_highlight_2 && (
+              <>
+                <br className="hidden sm:block" />
+                <span className="block sm:inline text-gradient-primary">{siteConfig.site_title_highlight_2}</span>
+              </>
+            )}
+            <br className="hidden sm:block" />
+            <span className="block sm:inline">{siteConfig.site_title_rest || "的记录与分享"}</span>
           </h1>
           <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-sm">
-            {siteConfig.site_description || "探索编程、设计、选衣搭配等领域的见解与思考。记录成长，分享知识，连接彼此。"}
+            {siteConfig.site_description || "探索编程、设计、LifeLens 智能评价等领域的见解与思考。记录成长，分享知识，连接彼此。"}
           </p>
         </div>
       </div>
@@ -194,7 +202,7 @@ export default async function HomePage({
           </p>
           <nav className="lg:hidden flex items-center gap-5 font-mono text-[11px] text-muted-foreground">
             <Link href="/wardrobe" className="hover:text-foreground transition-colors">
-              选衣记录
+              LifeLens
             </Link>
             <a
               href="https://trendradar.arthurlovegrace.top"
@@ -202,7 +210,7 @@ export default async function HomePage({
               rel="noopener noreferrer"
               className="hover:text-foreground transition-colors"
             >
-              新闻汇总
+              News
             </a>
           </nav>
         </div>
