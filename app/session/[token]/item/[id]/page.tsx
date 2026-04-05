@@ -17,7 +17,12 @@ export default async function ItemPage({
     getCurrentUser(),
     supabaseAdmin
       .from('items')
-      .select(`id, session_id, image_url, decision, price, notes, category, rank, ratings(score, author, appearance_score, practicality_score, value_score), comments(id, author, content, created_at, parent_id)`)
+      .select(`
+        *,
+        sessions(template_config),
+        ratings(score, author, scores, appearance_score, practicality_score, value_score),
+        comments(id, author, content, created_at, parent_id)
+      `)
       .eq('id', id)
       .single()
   ])
@@ -25,17 +30,20 @@ export default async function ItemPage({
   if (error || !item) notFound()
 
   const identity = user?.user_metadata?.display_name || user?.email || null
+  const sessionData = item.sessions as { template_config?: unknown } | null
+  const templateConfig = sessionData?.template_config as import('@/lib/templates').TemplateConfig | undefined
 
   return (
     <main className="min-h-screen bg-background">
       <RealtimeSync sessionId={item.session_id} />
       <ActivityBanner sessionId={item.session_id} />
       <ItemDetail 
-        item={item} 
+        item={item as Parameters<typeof ItemDetail>[0]['item']} 
         token={token} 
         isAdmin={role === 'admin'} 
         userRole={role}
         serverIdentity={identity}
+        templateConfig={templateConfig}
       />
     </main>
   )

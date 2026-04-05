@@ -7,25 +7,56 @@ import { useAuth } from '@/components/AuthProvider'
 import { logout } from '@/app/auth/logout/actions'
 import ThemeToggle from './ThemeToggle'
 import { useTheme } from 'next-themes'
+import AuthorProfileCard from './AuthorProfileCard'
+import CategoriesCard from './CategoriesCard'
+import TagsCloudCard from './TagsCloudCard'
+import RecentPostsCard from './RecentPostsCard'
+import ArchiveCard from './ArchiveCard'
+import ToolsCard from './ToolsCard'
+import { useSearchParams } from 'next/navigation'
+import type { Post } from '@/lib/blog'
 
 const navLinks = [
-  { href: '/', label: '首页' },
-    { href: '/wardrobe', label: '选衣' },
-  { href: 'https://trendradar.arthurlovegrace.top', label: '新闻', external: true },
+  { href: '/', label: 'Home', tooltip: '首页 - 返回网站主页' },
+  { href: '/wardrobe', label: 'LifeLens', tooltip: 'LifeLens - 智能评价与决策系统' },
+  { href: 'https://trendradar.arthurlovegrace.top', label: 'News', tooltip: '新闻 - 获取最新的趋势资讯', external: true },
 ]
 
-export default function Navbar({ logoUrl }: { logoUrl?: string }) {
+export default function Navbar({ 
+  logoUrl, 
+  siteConfig, 
+  stats,
+  sidebarData
+}: { 
+  logoUrl?: string;
+  siteConfig?: Record<string, string>;
+  stats?: { postsCount: number; categoriesCount: number; tagsCount: number };
+  sidebarData?: {
+    categories: { name: string; count: number; slug: string }[];
+    tags: { tag: string; count: number }[];
+    yearArchive: { year: number; count: number }[];
+    recentPosts: Post[];
+  };
+}) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [activeDrawer, setActiveDrawer] = useState<'author' | 'categories' | 'tags' | 'recent' | 'archive' | 'tools' | null>(null)
   const { role, displayName, email, guestId, loading } = useAuth()
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
+  const searchParams = useSearchParams()
+  const isAdmin = role === 'admin'
+
+  const activeCategory = searchParams.get('category')
+  const activeYear = searchParams.get('year') ? parseInt(searchParams.get('year')!, 10) : null
+  const activeTags = searchParams.get('tags')?.split(',').filter(Boolean) ?? []
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
   return (
-    <header 
+    <>
+      <header 
       className={
         "sticky top-0 z-50 border-b transition-colors duration-300 " +
         // 浅色模式: 灰色透明磨砂效果
@@ -46,7 +77,7 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
                 <span className="text-primary-foreground text-[10px] font-bold tracking-tight leading-none">A&G</span>
               )}
             </div>
-            <span className="text-gradient-primary font-bold text-xl tracking-tight hidden sm:block">
+            <span className="text-gradient-primary font-bold text-lg sm:text-xl tracking-tight">
               Arthur & Grace
             </span>
           </Link>
@@ -61,6 +92,7 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+                  title={link.tooltip}
                 >
                   {link.label}
                 </a>
@@ -69,6 +101,7 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
                   key={link.href}
                   href={link.href}
                   className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+                  title={link.tooltip}
                 >
                   {link.label}
                 </Link>
@@ -144,6 +177,77 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
                 )}
               </div>
             )}
+
+            {/* Mobile Navigation Icons */}
+            <div className="flex md:hidden items-center gap-0.5">
+              {/* Author */}
+              <button
+                onClick={() => setActiveDrawer('author')}
+                className={`p-2 rounded-lg transition-colors ${activeDrawer === 'author' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                aria-label="作者"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+              </button>
+
+              {/* Categories */}
+              <button
+                onClick={() => setActiveDrawer('categories')}
+                className={`p-2 rounded-lg transition-colors ${activeDrawer === 'categories' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                aria-label="分类"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15a2.25 2.25 0 012.25 2.25v.75m-19.5 0A2.25 2.25 0 004.5 15h15a2.25 2.25 0 002.25-2.25m-19.5 0v.25A2.25 2.25 0 004.5 18h15a2.25 2.25 0 002.25-2.25v-.25m-19.5 0V12a2.25 2.25 0 012.25-2.25h15a2.25 2.25 0 012.25 2.25v.75m-19.5 0A2.25 2.25 0 004.5 15h15a2.25 2.25 0 002.25-2.25" />
+                </svg>
+              </button>
+
+              {/* Tags */}
+              <button
+                onClick={() => setActiveDrawer('tags')}
+                className={`p-2 rounded-lg transition-colors ${activeDrawer === 'tags' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                aria-label="标签"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581a2.25 2.25 0 003.182 0l4.318-4.318a2.25 2.25 0 000-3.182L11.159 3.659A2.25 2.25 0 009.568 3z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
+                </svg>
+              </button>
+
+              {/* Recent */}
+              <button
+                onClick={() => setActiveDrawer('recent')}
+                className={`p-2 rounded-lg transition-colors ${activeDrawer === 'recent' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                aria-label="最新"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+
+              {/* Archive */}
+              <button
+                onClick={() => setActiveDrawer('archive')}
+                className={`p-2 rounded-lg transition-colors ${activeDrawer === 'archive' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                aria-label="归档"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+              </button>
+
+              {/* Tools */}
+              <button
+                onClick={() => setActiveDrawer('tools')}
+                className={`p-2 rounded-lg transition-colors ${activeDrawer === 'tools' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                aria-label="工具"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.423 20.25a2.25 2.25 0 003.154 0l6.591-6.59a2.25 2.25 0 000-3.155l-6.59-6.59a2.25 2.25 0 00-3.155 0l-6.59 6.59a2.25 2.25 0 000 3.154l6.59 6.59z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5" />
+                </svg>
+              </button>
+            </div>
 
             {/* Mobile Menu Toggle */}
             <button
@@ -259,5 +363,82 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
         )}
       </div>
     </header>
+
+    {/* ── Mobile Sidebar Drawers ────────────────────────── */}
+    {activeDrawer && (
+      <div className="fixed inset-0 z-[999] md:hidden flex flex-col justify-end">
+        {/* Backdrop */}
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-md animate-fade-in transition-opacity" 
+          onClick={() => setActiveDrawer(null)}
+        />
+        {/* Drawer Content */}
+        <div className="relative w-full bg-background rounded-t-[2.5rem] shadow-[0_-8px_40px_rgba(0,0,0,0.5)] border-t border-border/50 p-6 pt-2 max-h-[88vh] overflow-y-auto animate-drawer-up">
+          {/* Handle */}
+          <div className="flex justify-center mb-6">
+            <div className="w-12 h-1.5 bg-muted/50 rounded-full" />
+          </div>
+          
+          {/* Header with Title and close button */}
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+              {activeDrawer === 'author' && '关于作者'}
+              {activeDrawer === 'categories' && '文章分类'}
+              {activeDrawer === 'tags' && '标签云'}
+              {activeDrawer === 'recent' && '最新推文'}
+              {activeDrawer === 'archive' && '归档文章'}
+              {activeDrawer === 'tools' && '实用工具'}
+            </h3>
+            <button 
+              onClick={() => setActiveDrawer(null)}
+              className="p-2 text-muted-foreground hover:text-foreground"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="pb-8 text-foreground" onClick={() => setActiveDrawer(null)}>
+            {activeDrawer === 'author' && siteConfig && stats && (
+              <AuthorProfileCard
+                postsCount={stats.postsCount}
+                categoriesCount={stats.categoriesCount}
+                tagsCount={stats.tagsCount}
+                name={siteConfig.author_name}
+                bio={siteConfig.author_bio}
+                avatarUrl={siteConfig.author_avatar_url}
+                isAdmin={isAdmin}
+                role={siteConfig.author_role}
+                company={siteConfig.author_company}
+                location={siteConfig.author_location}
+                skills={siteConfig.author_skills}
+                status={siteConfig.author_status}
+                github={siteConfig.author_github}
+                weibo={siteConfig.author_weibo}
+                wechat={siteConfig.author_wechat}
+                email={siteConfig.author_email}
+              />
+            )}
+            {activeDrawer === 'categories' && sidebarData && (
+              <CategoriesCard categories={sidebarData.categories} activeCategory={activeCategory} />
+            )}
+            {activeDrawer === 'tags' && sidebarData && (
+              <TagsCloudCard tags={sidebarData.tags} activeTags={activeTags} />
+            )}
+            {activeDrawer === 'recent' && sidebarData && (
+              <RecentPostsCard posts={sidebarData.recentPosts} />
+            )}
+            {activeDrawer === 'archive' && sidebarData && (
+              <ArchiveCard archive={sidebarData.yearArchive} activeYear={activeYear} />
+            )}
+            {activeDrawer === 'tools' && (
+              <ToolsCard />
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
