@@ -13,7 +13,7 @@ import TagsCloudCard from './TagsCloudCard'
 import RecentPostsCard from './RecentPostsCard'
 import ArchiveCard from './ArchiveCard'
 import ToolsCard from './ToolsCard'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import type { Post } from '@/lib/blog'
 
 const navLinks = [
@@ -43,7 +43,6 @@ export default function Navbar({
   const { role, displayName, email, guestId, loading } = useAuth()
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
-  const pathname = usePathname()
   const searchParams = useSearchParams()
   const isAdmin = role === 'admin'
 
