@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import matter from 'gray-matter'
 import { listR2ObjectsWithMeta, getR2Object } from '@/lib/r2'
-import { upsertPost, upsertSiteConfig, deletePostsNotIn, getPostsMetadata } from '@/lib/blog'
+import { upsertPost, deletePostsNotIn, getPostsMetadata } from '@/lib/blog'
 
 const BLOG_BUCKET = process.env.R2_BLOG_BUCKET!
 const CONCURRENCY = 10
@@ -21,12 +21,7 @@ async function processFile(
   const { data: fm, content: mdContent, excerpt } = matter(raw, { excerpt: true, excerpt_separator: '<!-- more -->' })
 
   if (fm.type === 'site_config') {
-    const entries: Record<string, string> = {}
-    if (typeof fm.author_name === 'string') entries.author_name = fm.author_name
-    if (typeof fm.author_bio === 'string') entries.author_bio = fm.author_bio
-    if (typeof fm.author_avatar_url === 'string') entries.author_avatar_url = fm.author_avatar_url
-    if (Object.keys(entries).length > 0) await upsertSiteConfig(entries)
-    return { slug: '', status: 'ok', reason: 'site_config' }
+    return { slug: '', status: 'skip', reason: 'site_config (deprecated)' }
   }
 
   if (!fm.title) return { slug: '', status: 'skip', reason: 'missing title' }

@@ -48,23 +48,23 @@ export default async function BlogPostPage({
       {/* Back */}
       <Link
         href="/"
-        className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 transition-colors mb-8"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
       >
         ← 返回
       </Link>
 
       {/* Header */}
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 leading-tight">{post.title}</h1>
+        <h1 className="text-3xl font-bold text-foreground leading-tight">{post.title}</h1>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <time className="text-sm text-gray-400">{formatDate(post.published_at)}</time>
+          <time className="text-sm text-muted-foreground">{formatDate(post.published_at)}</time>
           {post.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {post.tags.map((tag) => (
                 <Link
                   key={tag}
                   href={`/blog/tags/${encodeURIComponent(tag)}`}
-                  className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                  className="text-xs px-2 py-0.5 rounded-full bg-muted border border-border text-muted-foreground hover:bg-foreground hover:text-background transition-colors"
                 >
                   {tag}
                 </Link>
@@ -78,7 +78,7 @@ export default async function BlogPostPage({
       <MarkdownRenderer content={content} />
 
       {/* Comments */}
-      <section className="mt-12 pt-8 border-t border-gray-100">
+      <section className="mt-12 pt-8 border-t border-border">
         <CommentBox
           targetType="blog_post"
           targetId={post.id}
@@ -88,12 +88,12 @@ export default async function BlogPostPage({
 
       {/* Prev / Next navigation */}
       {(prev || next) && (
-        <nav className="mt-12 pt-8 border-t border-gray-100 grid grid-cols-2 gap-4">
+        <nav className="mt-12 pt-8 border-t border-border grid grid-cols-2 gap-4">
           <div>
             {prev && (
               <Link href={`/blog/${prev.slug}`} className="group block text-left">
-                <span className="text-xs text-gray-400">上一篇</span>
-                <p className="mt-1 text-sm font-medium text-gray-700 group-hover:text-gray-500 transition-colors line-clamp-2">
+                <span className="text-xs text-muted-foreground">上一篇</span>
+                <p className="mt-1 text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
                   {prev.title}
                 </p>
               </Link>
@@ -102,8 +102,8 @@ export default async function BlogPostPage({
           <div>
             {next && (
               <Link href={`/blog/${next.slug}`} className="group block text-right">
-                <span className="text-xs text-gray-400">下一篇</span>
-                <p className="mt-1 text-sm font-medium text-gray-700 group-hover:text-gray-500 transition-colors line-clamp-2">
+                <span className="text-xs text-muted-foreground">下一篇</span>
+                <p className="mt-1 text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
                   {next.title}
                 </p>
               </Link>
