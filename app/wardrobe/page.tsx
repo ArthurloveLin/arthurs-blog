@@ -40,7 +40,7 @@ export default async function WardrobePage({
             Life <span className="text-gradient-primary">Lens</span>
           </h1>
           <p className="max-w-md text-sm text-muted-foreground leading-relaxed italic mb-8">
-            "记录我们对事物的真实评价。告别碎片化的纠结，用灵活的模版和直观的对比，把每一次买衣服、吃大餐和去旅行，都沉淀为专属于我们的生活指南。"
+            &quot;记录我们对事物的真实评价。告别碎片化的纠结，用灵活的模版和直观的对比，把每一次买衣服、吃大餐和去旅行，都沉淀为专属于我们的生活指南。&quot;
           </p>
 
           {isAdmin && (
