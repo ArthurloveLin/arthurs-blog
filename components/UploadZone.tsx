@@ -99,13 +99,13 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
   return (
     <div className="w-full">
       <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
-        <span className="text-xs text-gray-400 shrink-0">上传分类：</span>
+        <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/50 shrink-0">上传分类：</span>
         <button
           onClick={() => setSelectedCategory('')}
-          className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+          className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${
             selectedCategory === ''
-              ? 'bg-pink-500 text-white'
-              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800'
           }`}
         >
           不限
@@ -114,10 +114,10 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+            className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${
               selectedCategory === cat
-                ? 'bg-pink-500 text-white'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800'
             }`}
           >
             {cat}
@@ -126,21 +126,21 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
       </div>
 
       <div
-        className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors ${
+        className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
           dragging
-            ? 'border-pink-400 bg-pink-50'
-            : 'border-gray-300 hover:border-pink-300 hover:bg-gray-50'
+            ? 'border-primary bg-primary/5 scale-[1.01]'
+            : 'border-border hover:border-primary/50 hover:bg-muted/30'
         }`}
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
       >
-        <div className="text-3xl mb-2">👗</div>
-        <p className="text-sm text-gray-500">
+        <div className="text-3xl mb-2 opacity-80">👗</div>
+        <p className="text-sm text-foreground/70 font-medium">
           {selectedCategory ? `上传到「${selectedCategory}」` : '点击选择图片，或拖拽到这里'}
         </p>
-        <p className="text-xs text-gray-400 mt-1">JPG / PNG / WebP，每张最大 5MB</p>
+        <p className="text-xs text-muted-foreground mt-1 opacity-60">JPG / PNG / WebP，每张最大 5MB</p>
         <input
           ref={inputRef}
           type="file"
@@ -152,17 +152,17 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
       </div>
 
       {uploads.length > 0 && (
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
           {/* Overall progress bar */}
           {uploading && (
             <div>
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <div className="flex justify-between text-[10px] uppercase font-bold text-muted-foreground/60 mb-1">
                 <span>上传进度</span>
                 <span>{doneCount} / {totalCount}</span>
               </div>
-              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-pink-500 rounded-full transition-all duration-300"
+                  className="h-full bg-primary rounded-full transition-all duration-300"
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
@@ -171,18 +171,18 @@ export default function UploadZone({ sessionToken }: UploadZoneProps) {
 
           {/* Per-file status */}
           {uploads.map((u, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm">
-              <span className="flex-1 truncate text-gray-600 text-xs">{u.name}</span>
-              {u.progress === 'pending' && <span className="text-gray-400 text-xs">等待中</span>}
+            <div key={i} className="flex items-center gap-2 text-sm bg-card/30 rounded-lg px-2 py-1 border border-border/50">
+              <span className="flex-1 truncate text-muted-foreground text-[10px]">{u.name}</span>
+              {u.progress === 'pending' && <span className="text-muted-foreground/40 text-[10px] font-medium uppercase">等待中</span>}
               {u.progress === 'compressing' && (
-                <span className="text-blue-400 text-xs animate-pulse">压缩中…</span>
+                <span className="text-blue-500 text-[10px] font-bold uppercase animate-pulse">压缩中…</span>
               )}
               {u.progress === 'uploading' && (
-                <span className="text-pink-500 text-xs animate-pulse">上传中…</span>
+                <span className="text-primary text-[10px] font-bold uppercase animate-pulse">上传中…</span>
               )}
-              {u.progress === 'done' && <span className="text-green-500 text-xs">✓ 完成</span>}
+              {u.progress === 'done' && <span className="text-green-500 text-[10px] font-bold uppercase">✓ 完成</span>}
               {u.progress === 'error' && (
-                <span className="text-red-500 text-xs">{u.error ?? '失败'}</span>
+                <span className="text-destructive text-[10px] font-bold uppercase">{u.error ?? '失败'}</span>
               )}
             </div>
           ))}

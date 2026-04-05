@@ -29,7 +29,7 @@ export default function ReindexButton() {
       <button
         onClick={handleSync}
         disabled={state === 'loading'}
-        className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/30 rounded-lg transition-all duration-200 disabled:opacity-50"
+        className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/30 rounded-lg transition duration-200 disabled:opacity-50"
         title="从 R2 同步博客文章到数据库"
       >
         {state === 'loading' ? (
@@ -50,7 +50,7 @@ export default function ReindexButton() {
         )}
       </button>
       {message && (
-        <span className={`text-xs ${state === 'error' ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'} transition-colors`}>
+        <span className={`text-xs animate-in fade-in relative top-0 slide-in-from-left-2 duration-300 ${state === 'error' ? 'text-red-500 dark:text-red-400' : 'text-muted-foreground'} transition-colors`}>
           {message}
         </span>
       )}

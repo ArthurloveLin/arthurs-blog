@@ -17,20 +17,20 @@ export default function FinalListToggle({ current }: { current: string }) {
     <div className="flex items-center gap-2">
       <button
         onClick={() => setView('all')}
-        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+        className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 ${
           current !== 'final'
-            ? 'bg-gray-800 text-white'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            ? 'bg-foreground text-background shadow-md'
+            : 'bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800'
         }`}
       >
         全部
       </button>
       <button
         onClick={() => setView('final')}
-        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+        className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 ${
           current === 'final'
-            ? 'bg-green-500 text-white'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            ? 'bg-green-600 text-white shadow-md'
+            : 'bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800'
         }`}
       >
         ✓ 最终清单

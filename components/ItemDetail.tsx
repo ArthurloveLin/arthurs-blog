@@ -37,6 +37,7 @@ interface Item {
   price: number | null
   notes: string | null
   category: string | null
+  rank: number | null
   ratings: Rating[]
   comments: Comment[]
 }
@@ -44,18 +45,29 @@ interface Item {
 interface ItemDetailProps {
   item: Item
   token: string
+  isAdmin: boolean
+  userRole: string
+  serverIdentity: string | null
 }
 
 const DECISION_CONFIG: { value: Decision; label: string; active: string; inactive: string }[] = [
-  { value: 'buy', label: '买', active: 'bg-green-500 text-white', inactive: 'bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-600' },
-  { value: 'pending', label: '待定', active: 'bg-yellow-400 text-white', inactive: 'bg-gray-100 text-gray-600 hover:bg-yellow-50 hover:text-yellow-600' },
-  { value: 'skip', label: '不买', active: 'bg-gray-500 text-white', inactive: 'bg-gray-100 text-gray-600 hover:bg-gray-200' },
+  { value: 'buy', label: '买', active: 'bg-green-500 text-white', inactive: 'bg-muted text-muted-foreground hover:bg-green-500/10 hover:text-green-500' },
+  { value: 'pending', label: '待定', active: 'bg-yellow-400 text-white', inactive: 'bg-muted text-muted-foreground hover:bg-yellow-500/10 hover:text-yellow-500' },
+  { value: 'skip', label: '不买', active: 'bg-zinc-500 text-white', inactive: 'bg-muted text-muted-foreground hover:bg-muted/80' },
 ]
 
-export default function ItemDetail({ item, token }: ItemDetailProps) {
-  const { displayName, email, guestId, isAdmin } = useAuth()
-  // 评论/评分身份：登录用户取 display_name，游客取 guestId
-  const identity = displayName || email || guestId
+export default function ItemDetail({ 
+  item, 
+  token, 
+  isAdmin: serverIsAdmin, 
+  userRole: serverUserRole, 
+  serverIdentity 
+}: ItemDetailProps) {
+  const { displayName, email, guestId, isAdmin: clientIsAdmin, loading } = useAuth()
+  
+  // Use server props as primary source if available, fallback to client auth
+  const isAdmin = serverIsAdmin || clientIsAdmin
+  const identity = serverIdentity || displayName || email || guestId
 
   const [decision, setDecision] = useState<Decision>(item.decision)
   const [savingDecision, setSavingDecision] = useState(false)
@@ -148,19 +160,19 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
       : null
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-lg mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
-          <Link href={`/session/${token}`} className="text-gray-400 hover:text-gray-600">
+          <Link href={`/session/${token}`} className="text-muted-foreground hover:text-foreground">
             ← 返回
           </Link>
-          <h1 className="text-lg font-semibold text-gray-800">图片详情</h1>
+          <h1 className="text-lg font-semibold text-foreground">图片详情</h1>
         </div>
 
         {/* Image */}
         <button
-          className="relative w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 shadow-sm mb-5 block"
+          className="relative w-full aspect-square rounded-2xl overflow-hidden bg-card border border-border shadow-sm mb-5 block"
           onClick={() => setLightboxOpen(true)}
         >
           <Image
@@ -173,6 +185,19 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
           <div className="absolute bottom-2 right-2 bg-black/30 text-white text-xs px-2 py-0.5 rounded-full">
             点击放大
           </div>
+
+          {/* Rank Medal Ribbon */}
+          {item.rank && item.rank <= 3 && (
+            <div className="absolute top-0 right-0 w-24 h-24 overflow-hidden z-20 pointer-events-none">
+              <div className={`absolute top-[28px] right-[-34px] w-[140px] rotate-45 text-white text-xs font-black py-1.5 shadow-2xl border-y border-white/20 text-center uppercase tracking-widest ${
+                item.rank === 1 ? 'bg-gradient-to-r from-yellow-400 to-orange-500 animate-champion-shine bg-[length:200%_100%]' : 
+                item.rank === 2 ? 'bg-gradient-to-r from-slate-300 to-slate-500' : 
+                'bg-gradient-to-r from-amber-600 to-amber-800'
+              }`}>
+                {item.rank === 1 ? '🥇 Champion' : item.rank === 2 ? '🥈 Runner Up' : '🥉 Third Place'}
+              </div>
+            </div>
+          )}
         </button>
 
         {lightboxOpen && (
@@ -185,15 +210,15 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
 
         {/* Category — admin only */}
         <AdminOnly>
-          <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">分类</h2>
+          <div className="bg-card border border-border rounded-2xl p-4 shadow-sm mb-4">
+            <h2 className="text-sm font-semibold text-foreground mb-3">分类</h2>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => handleCategoryChange('')}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                   category === ''
-                    ? 'bg-pink-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800'
                 }`}
               >
                 未分类
@@ -204,8 +229,8 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
                   onClick={() => handleCategoryChange(cat)}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                     category === cat
-                      ? 'bg-pink-500 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
                 >
                   {cat}
@@ -217,9 +242,9 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
 
         {/* Category display — guest/user read-only */}
         {!isAdmin && category && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-1">分类</h2>
-            <span className="inline-block px-3 py-1.5 rounded-full text-xs font-medium bg-pink-100 text-pink-600">
+          <div className="bg-card border border-border rounded-2xl p-4 shadow-sm mb-4">
+            <h2 className="text-sm font-semibold text-foreground mb-1">分类</h2>
+            <span className="inline-block px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
               {category}
             </span>
           </div>
@@ -227,18 +252,18 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
 
         {/* Decision + Price — admin only */}
         <AdminOnly>
-          <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+          <div className="bg-card border border-border rounded-2xl p-4 shadow-sm mb-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-700">决策</h2>
+              <h2 className="text-sm font-semibold text-foreground">决策</h2>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-gray-400">¥</span>
+                <span className="text-xs text-muted-foreground">¥</span>
                 <input
                   type="text"
                   inputMode="numeric"
                   value={price}
                   onChange={(e) => handlePriceChange(e.target.value)}
                   placeholder="填写价格"
-                  className="w-24 text-sm text-right border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-pink-300"
+                  className="w-24 text-sm text-right bg-muted/50 border border-border rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-primary/50"
                 />
               </div>
             </div>
@@ -248,7 +273,7 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
                   key={value}
                   disabled={savingDecision}
                   onClick={() => handleDecision(value)}
-                  className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-60 ${
+                  className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all active:scale-95 disabled:opacity-60 ${
                     decision === value ? active : inactive
                   }`}
                 >
@@ -260,11 +285,11 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
         </AdminOnly>
 
         {/* Rating */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm mb-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">多维评分</h2>
+            <h2 className="text-sm font-semibold text-foreground">多维评分</h2>
             {avgScore !== null && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted-foreground">
                 综合 {avgScore.toFixed(1)} 分（{allScores.length} 人）
               </span>
             )}
@@ -276,9 +301,9 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
             allRatings={item.ratings}
           />
           {scoreDiff !== null && scoreDiff >= 2 && (
-            <div className="flex items-center gap-1.5 bg-orange-50 rounded-lg px-3 py-2 mt-3">
-              <span className="text-orange-500 text-sm">⚡</span>
-              <span className="text-xs text-orange-600 font-medium">
+            <div className="flex items-center gap-1.5 bg-orange-50 dark:bg-orange-950/20 rounded-lg px-3 py-2 mt-3 text-orange-600 dark:text-orange-400">
+              <span className="text-sm">⚡</span>
+              <span className="text-xs font-medium">
                 两人综合分歧较大（相差 {scoreDiff.toFixed(1)} 分），需要讨论～
               </span>
             </div>
@@ -287,23 +312,23 @@ export default function ItemDetail({ item, token }: ItemDetailProps) {
 
         {/* Notes — admin only */}
         <AdminOnly>
-          <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-2">备注</h2>
+          <div className="bg-card border border-border rounded-2xl p-4 shadow-sm mb-4">
+            <h2 className="text-sm font-semibold text-foreground mb-2">备注</h2>
             <textarea
               value={notes}
               onChange={(e) => handleNotesChange(e.target.value)}
               placeholder="品牌、店铺链接、尺码、颜色等信息…"
               rows={3}
-              className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-pink-300 placeholder-gray-300"
+              className="w-full text-sm text-foreground bg-muted/50 border border-border rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/50"
             />
           </div>
         </AdminOnly>
 
         {/* Comments */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
           <CommentBox targetType="wardrobe_item" targetId={item.id} initialComments={item.comments} />
         </div>
       </div>
-    </main>
+    </div>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
@@ -19,6 +19,7 @@ interface Item {
   arthurScore: number | null
   graceScore: number | null
   commentCount: number
+  rank?: number | null
 }
 
 interface ImageGridProps {
@@ -97,10 +98,10 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
 
   if (initialItems.length === 0) {
     return (
-      <div className="text-center py-20 text-gray-400">
-        <div className="text-6xl mb-4">📷</div>
-        <p className="text-base">还没有图片</p>
-        <p className="text-sm mt-1">上传第一张，开始选衣吧～</p>
+      <div className="text-center py-20 text-muted-foreground/50">
+        <div className="text-5xl mb-4 opacity-50">📷</div>
+        <p className="text-base text-muted-foreground">还没有图片</p>
+        <p className="text-sm mt-1 opacity-70">上传第一张，开始选衣吧～</p>
       </div>
     )
   }
@@ -110,10 +111,10 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
       {groupedItems ? (
         sortedCategoryKeys.map((cat) => (
           <div key={cat} className="space-y-3">
-            <h3 className="text-sm font-bold text-gray-500 flex items-center gap-2">
-              <span className="w-1 h-4 bg-pink-400 rounded-full" />
+            <h3 className="text-sm font-bold text-muted-foreground flex items-center gap-2">
+              <span className="w-1 h-4 bg-primary rounded-full opacity-60" />
               {cat}
-              <span className="text-xs font-normal text-gray-300">
+              <span className="text-xs font-normal opacity-50">
                 ({groupedItems[cat].length})
               </span>
             </h3>
@@ -121,7 +122,7 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
               {groupedItems[cat].map((item) => (
                 <div
                   key={item.id}
-                  className="relative group rounded-xl overflow-hidden bg-gray-100 shadow-sm"
+                  className="relative group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
                 >
                   <ItemCard
                     item={item}
@@ -159,7 +160,7 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
             return (
               <div
                 key={item.id}
-                className="relative group rounded-xl overflow-hidden bg-gray-100 shadow-sm"
+                className="relative group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
               >
                 <ItemCard
                   item={item}
@@ -189,7 +190,7 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
             <button
               onClick={handleBulkDelete}
               disabled={bulkDeleting}
-              className="px-3 py-1 rounded-full text-xs bg-red-500 text-white disabled:opacity-50"
+              className="px-3 py-1 rounded-full text-xs bg-destructive text-destructive-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               {bulkDeleting ? '删除中…' : `删除 ${selected.size} 张`}
             </button>
@@ -197,7 +198,7 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
           {selectMode && (
             <button
               onClick={() => { setSelectMode(false); setSelected(new Set()) }}
-              className="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-600"
+              className="px-3 py-1 rounded-full text-xs bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
             >
               取消
             </button>
@@ -206,7 +207,7 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
         {!selectMode && (
           <button
             onClick={() => setSelectMode(true)}
-            className="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-600 hover:bg-gray-200 ml-auto"
+            className="px-3 py-1 rounded-full text-xs bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800 ml-auto transition-colors"
           >
             批量选择
           </button>
@@ -222,7 +223,7 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
   )
 }
 
-function ItemCard({
+const ItemCard = memo(({
   item,
   sessionToken,
   deleting,
@@ -242,13 +243,13 @@ function ItemCard({
   selectMode: boolean
   selected: boolean
   onToggleSelect: (id: string) => void
-}) {
+}) => {
   return (
     <>
       {selectMode ? (
         <div
           onClick={() => onToggleSelect(item.id)}
-          className="cursor-pointer"
+          className="cursor-pointer h-full"
         >
           <div className="relative aspect-square">
             <Image
@@ -260,7 +261,7 @@ function ItemCard({
             />
             {selected && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center text-lg">
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg shadow-lg">
                   ✓
                 </div>
               </div>
@@ -268,12 +269,12 @@ function ItemCard({
           </div>
           <div className="p-2 space-y-0.5">
             {item.price !== null && (
-              <p className="text-xs font-semibold text-gray-700">¥{item.price}</p>
+              <p className="text-xs font-semibold text-foreground">¥{item.price}</p>
             )}
           </div>
         </div>
       ) : (
-        <a href={`/session/${sessionToken}/item/${item.id}`}>
+        <a href={`/session/${sessionToken}/item/${item.id}`} className="block h-full">
           <div className="relative aspect-square">
             <Image
               src={item.image_url}
@@ -284,27 +285,40 @@ function ItemCard({
             />
             {/* Score conflict indicator */}
             {hasConflict && (
-              <div className="absolute bottom-1 right-1 bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
+              <div className="absolute bottom-1 right-1 bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full font-medium shadow-sm">
                 ⚡{scoreDiff?.toFixed(0)}
+              </div>
+            )}
+
+            {/* Rank Medal - Ribbon Style */}
+            {item.rank && item.rank <= 3 && (
+              <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden z-20 pointer-events-none">
+                <div className={`absolute top-[18px] right-[-24px] w-[90px] rotate-45 text-white text-[9px] font-black py-0.5 shadow-xl border-y border-white/20 text-center uppercase tracking-tighter ${
+                  item.rank === 1 ? 'bg-gradient-to-r from-yellow-400 to-orange-500 animate-champion-shine bg-[length:200%_100%]' : 
+                  item.rank === 2 ? 'bg-gradient-to-r from-slate-300 to-slate-500' : 
+                  'bg-gradient-to-r from-amber-600 to-amber-800'
+                }`}>
+                  {item.rank === 1 ? '🥇 冠军' : item.rank === 2 ? '🥈 亚军' : '🥉 季军'}
+                </div>
               </div>
             )}
           </div>
 
           <div className="p-2 space-y-0.5">
             {item.price !== null && (
-              <p className="text-xs font-semibold text-gray-700">¥{item.price}</p>
+              <p className="text-xs font-semibold text-foreground">¥{item.price}</p>
             )}
             {item.avgScore !== null ? (
               <p className="text-xs text-yellow-500 font-medium">
                 {'★'.repeat(Math.round(item.avgScore))}
                 {'☆'.repeat(5 - Math.round(item.avgScore))}
-                <span className="text-gray-400 ml-1">{item.avgScore.toFixed(1)}</span>
+                <span className="text-muted-foreground ml-1">{item.avgScore.toFixed(1)}</span>
               </p>
             ) : (
-              <p className="text-xs text-gray-300">暂无评分</p>
+              <p className="text-xs text-muted-foreground/40">暂无评分</p>
             )}
             {item.commentCount > 0 && (
-              <p className="text-xs text-gray-400">{item.commentCount} 条评论</p>
+              <p className="text-xs text-muted-foreground">{item.commentCount} 条评论</p>
             )}
           </div>
         </a>
@@ -315,7 +329,7 @@ function ItemCard({
         <button
           onClick={(e) => { e.preventDefault(); onDelete(item.id) }}
           disabled={deleting === item.id}
-          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-500 disabled:bg-gray-400"
+          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-destructive shadow-sm disabled:bg-muted-foreground"
         >
           {deleting === item.id ? '…' : '×'}
         </button>
@@ -323,14 +337,16 @@ function ItemCard({
 
       {/* Decision badge */}
       {item.decision !== 'pending' && !selectMode && (
-        <div className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-medium ${
+        <div className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-medium shadow-sm ${
           item.decision === 'buy'
             ? 'bg-green-500 text-white'
-            : 'bg-gray-500 text-white'
+            : 'bg-muted-foreground text-white'
         }`}>
           {item.decision === 'buy' ? '买' : '不买'}
         </div>
       )}
     </>
   )
-}
+})
+
+ItemCard.displayName = 'ItemCard'
