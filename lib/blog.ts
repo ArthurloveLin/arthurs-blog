@@ -39,7 +39,7 @@ export const getPostsCount = unstable_cache(
       .from('posts')
       .select('*', { count: 'exact', head: true })
       .eq('published', true)
-    if (error) return 0
+    if (error) throw new Error(error.message)
     return count ?? 0
   },
   ['posts-count'],
@@ -286,7 +286,7 @@ export const getSiteConfig = unstable_cache(
       .from('site_config')
       .select('key, value')
 
-    if (error) return {}
+    if (error) throw new Error(error.message)
     return Object.fromEntries((data ?? []).map((r) => [r.key, r.value]))
   },
   ['site-config'],
@@ -311,7 +311,7 @@ export const getCommentCounts = unstable_cache(
       .select('target_id')
       .eq('target_type', 'blog_post')
       .in('target_id', postIds)
-    if (error) return {}
+    if (error) throw new Error(error.message)
     const counts: Record<string, number> = {}
     for (const row of data ?? []) {
       const id = row.target_id as string

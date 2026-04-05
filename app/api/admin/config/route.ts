@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
       'author_email',
       'site_subtitle',
       'site_title_highlight',
+      'site_title_highlight_2',
       'site_title_rest',
       'site_description'
     ]

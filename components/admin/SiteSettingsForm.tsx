@@ -21,6 +21,7 @@ interface ConfigData {
   author_email?: string
   site_subtitle?: string
   site_title_highlight?: string
+  site_title_highlight_2?: string
   site_title_rest?: string
   site_description?: string
 }
@@ -360,9 +361,9 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
               />
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div>
-                <label className="block text-xs font-bold text-primary mb-1.5 ml-1">主标题_渐变高亮段落</label>
+                <label className="block text-xs font-bold text-primary mb-1.5 ml-1">主标题_段落1(渐变)</label>
                 <input
                   type="text"
                   name="site_title_highlight"
@@ -373,7 +374,18 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">主标题_普通文本段落</label>
+                <label className="block text-xs font-bold text-primary mb-1.5 ml-1">主标题_段落2(渐变)</label>
+                <input
+                  type="text"
+                  name="site_title_highlight_2"
+                  value={data.site_title_highlight_2 || ''}
+                  onChange={handleChange}
+                  placeholder="（选填）"
+                  className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">主标题_段落3(普通)</label>
                 <input
                   type="text"
                   name="site_title_rest"
