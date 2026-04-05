@@ -1,9 +1,11 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
+import dynamic from 'next/dynamic'
+
+const DraggableImageGrid = dynamic(() => import('./DraggableImageGrid'), { ssr: false })
 
 interface Item {
   id: string
@@ -31,16 +33,6 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
-  const [orderedItems, setOrderedItems] = useState<Item[]>(initialItems)
-
-  // Keep ordered items in sync when parent re-renders (unless drag is in progress)
-  const [isDragging, setIsDragging] = useState(false)
-  if (!isDragging && JSON.stringify(initialItems.map((i) => i.id)) !== JSON.stringify(orderedItems.map((i) => i.id))) {
-    setOrderedItems(initialItems)
-  }
-
-  const displayItems = draggable ? orderedItems : initialItems
-
   // Group items if categories exist
   const hasCategories = initialItems.some((i) => i.category)
   const groupedItems = !draggable && hasCategories
@@ -103,34 +95,7 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
     }
   }
 
-  const onDragStart = useCallback(() => setIsDragging(true), [])
-
-  const onDragEnd = useCallback(
-    async (result: DropResult) => {
-      setIsDragging(false)
-      if (!result.destination || result.destination.index === result.source.index) return
-
-      const reordered = Array.from(orderedItems)
-      const [moved] = reordered.splice(result.source.index, 1)
-      reordered.splice(result.destination.index, 0, moved)
-      setOrderedItems(reordered)
-
-      // Persist new positions
-      await Promise.all(
-        reordered.map((item, idx) =>
-          fetch(`/api/items/${item.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ position: idx }),
-          })
-        )
-      )
-      router.refresh()
-    },
-    [orderedItems, router]
-  )
-
-  if (displayItems.length === 0) {
+  if (initialItems.length === 0) {
     return (
       <div className="text-center py-20 text-gray-400">
         <div className="text-6xl mb-4">📷</div>
@@ -184,7 +149,7 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
         ))
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {displayItems.map((item) => {
+          {initialItems.map((item) => {
             const scoreDiff =
               item.arthurScore !== null && item.graceScore !== null
                 ? Math.abs(item.arthurScore - item.graceScore)
@@ -249,98 +214,7 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
       </div>
 
       {draggable ? (
-        <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
-          <Droppable droppableId="grid" direction="vertical">
-            {(provided) => (
-              <div ref={provided.innerRef} {...provided.droppableProps}>
-                {/* Draggable items in a vertical list for simplicity */}
-                <div className="space-y-3">
-                  {displayItems.map((item, index) => {
-                    const scoreDiff =
-                      item.arthurScore !== null && item.graceScore !== null
-                        ? Math.abs(item.arthurScore - item.graceScore)
-                        : null
-                    const hasConflict = scoreDiff !== null && scoreDiff >= 2
-
-                    return (
-                      <Draggable key={item.id} draggableId={item.id} index={index}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            className={`relative flex items-center gap-3 bg-white rounded-xl shadow-sm overflow-hidden transition-shadow ${
-                              snapshot.isDragging ? 'shadow-xl ring-2 ring-pink-400' : ''
-                            }`}
-                          >
-                            {/* Drag handle */}
-                            <div
-                              {...provided.dragHandleProps}
-                              className="pl-3 py-4 text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing shrink-0 select-none"
-                            >
-                              ⠿
-                            </div>
-                            {/* Thumbnail */}
-                            <a
-                              href={`/session/${sessionToken}/item/${item.id}`}
-                              className="relative w-16 h-16 shrink-0 overflow-hidden rounded-lg bg-gray-100"
-                            >
-                              <Image
-                                src={item.image_url}
-                                alt="衣服图片"
-                                fill
-                                className="object-cover"
-                                sizes="64px"
-                              />
-                            </a>
-                            {/* Info */}
-                            <a
-                              href={`/session/${sessionToken}/item/${item.id}`}
-                              className="flex-1 min-w-0 py-2"
-                            >
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {item.price !== null && (
-                                  <span className="text-sm font-semibold text-gray-700">¥{item.price}</span>
-                                )}
-                                {item.avgScore !== null ? (
-                                  <span className="text-xs text-yellow-500 font-medium">
-                                    {'★'.repeat(Math.round(item.avgScore))}
-                                    {'☆'.repeat(5 - Math.round(item.avgScore))}
-                                    <span className="text-gray-400 ml-1">{item.avgScore.toFixed(1)}</span>
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-gray-300">暂无评分</span>
-                                )}
-                                {hasConflict && (
-                                  <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full font-medium">
-                                    ⚡ 分歧 {scoreDiff?.toFixed(1)}
-                                  </span>
-                                )}
-                              </div>
-                              {item.arthurScore !== null && item.graceScore !== null && (
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                  Arthur {item.arthurScore} · Grace {item.graceScore}
-                                </p>
-                              )}
-                            </a>
-                            {/* Decision badge */}
-                            {item.decision !== 'pending' && (
-                              <div className={`mr-3 text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
-                                item.decision === 'buy' ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'
-                              }`}>
-                                {item.decision === 'buy' ? '买' : '不买'}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </Draggable>
-                    )
-                  })}
-                </div>
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
+        <DraggableImageGrid items={initialItems} sessionToken={sessionToken} />
       ) : (
         grid
       )}

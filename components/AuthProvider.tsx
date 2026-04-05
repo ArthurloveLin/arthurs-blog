@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import useSWR from 'swr'
 import { getOrCreateGuestId } from '@/lib/guest'
 
 type UserRole = 'guest' | 'user' | 'admin'
@@ -27,38 +28,28 @@ export function useAuth() {
   return useContext(AuthContext)
 }
 
+const fetcher = (url: string) => fetch(url).then((r) => r.ok ? r.json() : null)
+
 export default function AuthProvider({ children }: { children: ReactNode }) {
-  const [email, setEmail] = useState<string | null>(null)
-  const [displayName, setDisplayName] = useState<string | null>(null)
-  const [role, setRole] = useState<UserRole>('guest')
   const [guestId, setGuestId] = useState('')
-  const [loading, setLoading] = useState(true)
+  useEffect(() => { setGuestId(getOrCreateGuestId()) }, [])
 
-  useEffect(() => {
-    setGuestId(getOrCreateGuestId())
-  }, [])
+  const { data, isLoading } = useSWR('/api/me', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60_000,
+  })
 
-  useEffect(() => {
-    async function fetchMe() {
-      try {
-        const res = await fetch('/api/me')
-        if (!res.ok) return
-        const data = await res.json()
-        setRole((data.role as UserRole) ?? 'guest')
-        setEmail(data.email ?? null)
-        setDisplayName(data.display_name ?? null)
-      } catch {
-        // 网络失败时保持 guest
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchMe()
-  }, [])
+  const role = (data?.role as UserRole) ?? 'guest'
 
   return (
-    <AuthContext.Provider value={{ email, displayName, role, guestId, isAdmin: role === 'admin', loading }}>
+    <AuthContext.Provider value={{
+      email: data?.email ?? null,
+      displayName: data?.display_name ?? null,
+      role,
+      guestId,
+      isAdmin: role === 'admin',
+      loading: isLoading,
+    }}>
       {children}
     </AuthContext.Provider>
   )

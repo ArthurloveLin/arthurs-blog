@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { getPostsByCategory, getPostsByTags, getPostsByYear, getYearArchive, getPostsCount, getCategories, getSiteConfig, getAllTags, getCommentCounts } from '@/lib/blog'
 import type { Post } from '@/lib/blog'
 import ReindexButton from '@/components/ReindexButton'
@@ -13,13 +14,18 @@ import ToolsCard from '@/components/ToolsCard'
 
 export const revalidate = 60
 
+async function AdminToolbar() {
+  const isAdmin = (await getUserRole()) === 'admin'
+  if (!isAdmin) return null
+  return <ReindexButton />
+}
+
 export default async function HomePage({
   searchParams,
 }: {
   searchParams: Promise<{ category?: string; tags?: string; year?: string }>
 }) {
   const { category, tags: tagsParam, year: yearParam } = await searchParams
-  const isAdmin = (await getUserRole()) === 'admin'
   const activeCategory = category ? decodeURIComponent(category) : null
   const activeTags = tagsParam
     ? tagsParam.split(',').map((t) => decodeURIComponent(t)).filter(Boolean)
@@ -28,30 +34,26 @@ export default async function HomePage({
 
   const currentYear = new Date().getFullYear()
 
-  let posts: Post[] = []
   let fetchError = false
-  try {
-    if (activeCategory) {
-      posts = await getPostsByCategory(activeCategory, 20, 0)
-    } else if (activeTags.length > 0) {
-      posts = await getPostsByTags(activeTags, 20, 0)
-    } else if (activeYear) {
-      posts = await getPostsByYear(activeYear, 50, 0)
-    } else {
-      posts = await getPostsByYear(currentYear, 50, 0)
-    }
-  } catch {
-    fetchError = true
-  }
 
-  const [categories, tags, siteConfig, totalPostsCount, yearArchive, commentCounts] = await Promise.all([
+  // 同时发起 posts 查询和所有侧边栏查询，消除串行瀑布流
+  const postsPromise = (async () => {
+    if (activeCategory) return getPostsByCategory(activeCategory, 20, 0)
+    if (activeTags.length > 0) return getPostsByTags(activeTags, 20, 0)
+    return getPostsByYear(activeYear ?? currentYear, 50, 0)
+  })()
+
+  const [posts, categories, tags, siteConfig, totalPostsCount, yearArchive] = await Promise.all([
+    postsPromise.catch(() => { fetchError = true; return [] as Post[] }),
     getCategories().catch(() => []),
     getAllTags().catch(() => []),
     getSiteConfig().catch(() => ({} as Record<string, string>)),
     getPostsCount().catch(() => 0),
     getYearArchive().catch(() => []),
-    getCommentCounts(posts.map((p) => p.id)).catch(() => ({} as Record<string, number>)),
   ])
+
+  // commentCounts 依赖 posts.id，单独等待
+  const commentCounts = await getCommentCounts(posts.map((p) => p.id)).catch(() => ({} as Record<string, number>))
 
   return (
     <main className="min-h-screen bg-[#F5F5F7] dark:bg-zinc-950">
@@ -118,7 +120,9 @@ export default async function HomePage({
                   {posts.length > 0 ? `${posts.length} 篇文章` : '文章'}
                 </span>
               )}
-              {isAdmin && <ReindexButton />}
+              <Suspense fallback={null}>
+                <AdminToolbar />
+              </Suspense>
             </div>
 
             {/* Empty / error state */}
