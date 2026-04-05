@@ -35,7 +35,7 @@ export default async function RootLayout({
 
   return (
     <html lang="zh-CN" suppressHydrationWarning>
-      <body className="bg-background antialiased">
+      <body className="bg-background antialiased pb-24 md:pb-0">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
