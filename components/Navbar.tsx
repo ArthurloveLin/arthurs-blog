@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useAuth } from '@/components/AuthProvider'
 import { logout } from '@/app/auth/logout/actions'
 import ThemeToggle from './ThemeToggle'
@@ -40,7 +41,7 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
           <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 group">
             <div className="w-8 h-8 rounded-xl bg-gradient-primary flex items-center justify-center shadow-[0_2px_8px_rgb(0,0,0,0.15)] group-hover:scale-105 transition-transform duration-200 overflow-hidden">
               {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                <Image src={logoUrl} alt="Logo" fill className="object-cover" unoptimized />
               ) : (
                 <span className="text-primary-foreground text-[10px] font-bold tracking-tight leading-none">A&G</span>
               )}

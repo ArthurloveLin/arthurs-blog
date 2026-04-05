@@ -132,8 +132,9 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
       
       setData((prev) => ({ ...prev, author_avatar_url: result.url }))
       setMessage('✅ 头像裁剪并上传成功（请点击下方按钮保存配置生效）')
-    } catch (err: any) {
-      setMessage(`❌ ${err.message}`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setMessage(`❌ ${msg}`)
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -154,8 +155,9 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || 'Save failed')
       setMessage('✅ 配置已成功保存！前端即时生效。')
-    } catch (err: any) {
-      setMessage(`❌ 保存失败: ${err.message}`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setMessage(`❌ 保存失败: ${msg}`)
     } finally {
       setLoading(false)
     }
@@ -445,11 +447,18 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
                   aspect={1}
                   circularCrop
                 >
-                  <img
-                    ref={imgRef}
+                  <Image
                     alt="Crop me"
                     src={imgSrc}
-                    onLoad={onImageLoad}
+                    onLoadingComplete={(img) => {
+                       // Trigger onImageLoad using the underlying img element
+                       if (img) {
+                         onImageLoad({ currentTarget: img } as unknown as React.SyntheticEvent<HTMLImageElement>)
+                       }
+                    }}
+                    width={800}
+                    height={600}
+                    unoptimized
                     className="max-h-[50vh] w-auto object-contain"
                   />
                 </ReactCrop>

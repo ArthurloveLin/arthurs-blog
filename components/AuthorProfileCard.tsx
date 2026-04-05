@@ -126,7 +126,7 @@ export default function AuthorProfileCard({
 
       {/* Bio */}
       <p className="text-sm text-foreground/70 text-center mb-5 leading-relaxed mt-4 italic font-serif px-2">
-        "{bio}"
+        {`"${bio}"`}
       </p>
 
       {/* Tech Stack Chips */}
