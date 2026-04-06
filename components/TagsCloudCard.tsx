@@ -1,20 +1,21 @@
-import Link from 'next/link'
+'use client'
+
+import { memo } from 'react'
+import { Link } from 'next-view-transitions'
+import { useSiteData } from './SiteDataProvider'
 
 interface TagsCloudCardProps {
-  tags: { tag: string; count: number }[]
   activeTags?: string[]
 }
 
 function buildTagsUrl(activeTags: string[], toggleTag: string): string {
   const isActive = activeTags.includes(toggleTag)
-  const next = isActive
-    ? activeTags.filter((t) => t !== toggleTag)
-    : [...activeTags, toggleTag]
-  if (next.length === 0) return '/'
-  return `/?tags=${next.map((t) => encodeURIComponent(t)).join(',')}`
+  if (isActive) return '/'
+  return `/tag/${toggleTag}`
 }
 
-export default function TagsCloudCard({ tags, activeTags = [] }: TagsCloudCardProps) {
+const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloudCardProps) {
+  const { sidebarData: { tags } } = useSiteData()
   if (tags.length === 0) return null
 
   return (
@@ -48,4 +49,6 @@ export default function TagsCloudCard({ tags, activeTags = [] }: TagsCloudCardPr
 
     </div>
   )
-}
+})
+
+export default TagsCloudCard

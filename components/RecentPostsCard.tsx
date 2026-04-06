@@ -1,5 +1,8 @@
-import Link from 'next/link'
-import type { Post } from '@/lib/blog'
+'use client'
+
+import { memo } from 'react'
+import { Link } from 'next-view-transitions'
+import { useSiteData } from './SiteDataProvider'
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return ''
@@ -7,11 +10,8 @@ function formatDate(dateStr: string | null): string {
   return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-interface RecentPostsCardProps {
-  posts: Post[]
-}
-
-export default function RecentPostsCard({ posts }: RecentPostsCardProps) {
+const RecentPostsCard = memo(function RecentPostsCard() {
+  const { sidebarData: { recentPosts: posts } } = useSiteData()
   const recent = posts.slice(0, 5)
   if (recent.length === 0) return null
 
@@ -44,4 +44,6 @@ export default function RecentPostsCard({ posts }: RecentPostsCardProps) {
 
     </div>
   )
-}
+})
+
+export default RecentPostsCard

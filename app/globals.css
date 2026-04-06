@@ -175,6 +175,32 @@
   animation: animate-gradient 5s ease infinite;
 }
 
+/* Blog Hero Sync Classes */
+.blog-hero-title {
+  font-size: 1.5rem; /* text-2xl - 更紧凑且容易对位 */
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--foreground);
+}
+
+
+
+.blog-hero-meta {
+  font-size: 0.875rem; /* text-sm */
+  line-height: 1.25rem; /* 20px */
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.default-cover-bg {
+  background: var(--gradient-primary);
+  opacity: 0.8;
+}
+
+
 * {
   border-color: var(--border);
 }
@@ -188,9 +214,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Smooth scroll behavior */
+/* Smooth scroll behavior - DISABLED globally to prevent interference with View Transitions. 
+   We use JS-based smooth scroll in specific components (like TOC) to maintain UX. */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 /* Custom scrollbar for webkit browsers */
@@ -384,3 +411,32 @@ html {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Custom View Transitions */
+::view-transition-group(*) {
+  animation-duration: 0.35s;
+  animation-timing-function: cubic-bezier(0.85, 0, 0.15, 1); /* Precise smooth ease */
+}
+
+/* Ensure the old and new images blend smoothly */
+::view-transition-old(*),
+::view-transition-new(*) {
+  mix-blend-mode: normal;
+  animation-duration: 0.35s;
+}
+
+/* Simplified entrance for root to avoid 'rolling' feel during back navigation */
+::view-transition-new(root) {
+  animation: 0.35s ease-out fade-in;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Custom styles for Hero images to prevent 'ghosting' */
+::view-transition-image-pair(*) {
+  isolation: isolate;
+}
+
