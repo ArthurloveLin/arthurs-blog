@@ -80,14 +80,14 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
         <div className="relative">
           {avatarUrl ? (
             <div 
-              className={`relative rounded-full overflow-hidden shadow-[0_4px_16px_rgb(0,0,0,0.12)] border-2 border-background bg-muted ${compact ? 'w-16 h-16' : 'w-22 h-22'}`}
+              className="relative rounded-full overflow-hidden shadow-[0_4px_16px_rgb(0,0,0,0.12)] border-2 border-background bg-muted w-22 h-22"
               style={{ viewTransitionName: 'author-avatar' }}
             >
               <Image src={avatarUrl} alt={name} fill className="object-cover" unoptimized />
             </div>
           ) : (
             <div 
-              className={`rounded-full bg-gradient-primary flex items-center justify-center shadow-[0_4px_16px_rgb(0,0,0,0.12)] border-2 border-background dark:border-white/10 ${compact ? 'w-16 h-16 text-xs' : 'w-22 h-22 text-sm'}`}
+              className="rounded-full bg-gradient-primary flex items-center justify-center shadow-[0_4px_16px_rgb(0,0,0,0.12)] border-2 border-background dark:border-white/10 w-22 h-22 text-sm"
               style={{ viewTransitionName: 'author-avatar' }}
             >
               <span className="text-primary-foreground font-bold tracking-tight">A&G</span>
@@ -96,7 +96,10 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
           
           {/* Status Badge */}
           {statusEmoji && (
-            <div className={`absolute -bottom-1 -right-1 bg-card border border-border rounded-full flex items-center justify-center shadow-md animate-bounce-subtle z-10 select-none ${compact ? 'w-6 h-6 text-[10px]' : 'w-8 h-8 text-sm'}`}>
+            <div 
+              className="absolute -bottom-1 -right-1 bg-card border border-border rounded-full flex items-center justify-center shadow-md animate-bounce-subtle z-10 select-none w-8 h-8 text-sm"
+              style={{ viewTransitionName: 'author-status' }}
+            >
               {statusEmoji}
             </div>
           )}
