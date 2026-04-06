@@ -4,8 +4,9 @@ import Navbar from "@/components/Navbar";
 import AuthProvider from "@/components/AuthProvider";
 import { ThemeProvider } from "next-themes";
 import { getSiteConfig, getPostsCount, getCategories, getAllTags, getYearArchive, getRecentPostsMetadata } from "@/lib/blog";
-import { SiteDataProvider } from "@/components/SiteDataProvider";
-import { ViewTransitions } from 'next-view-transitions';
+import { SiteDataProvider } from "@/components/SiteDataProvider"
+import { ViewTransitions } from 'next-view-transitions'
+import { SpotifyProvider } from "@/components/SpotifyProvider"
 
 export const metadata: Metadata = {
   title: "Arthur & Grace",
@@ -42,25 +43,27 @@ export default async function RootLayout({
             disableTransitionOnChange={false}
           >
             <AuthProvider>
-              <SiteDataProvider
-                initialState={{
-                  config: config || {},
-                  stats: {
-                    postsCount: totalPostsCount,
-                    categoriesCount: categories.length,
-                    tagsCount: tags.length
-                  },
-                  sidebarData: {
-                    categories,
-                    tags,
-                    yearArchive,
-                    recentPosts
-                  }
-                }}
-              >
-                <Navbar />
-                {children}
-              </SiteDataProvider>
+              <SpotifyProvider>
+                <SiteDataProvider
+                  initialState={{
+                    config: config || {},
+                    stats: {
+                      postsCount: totalPostsCount,
+                      categoriesCount: categories.length,
+                      tagsCount: tags.length
+                    },
+                    sidebarData: {
+                      categories,
+                      tags,
+                      yearArchive,
+                      recentPosts
+                    }
+                  }}
+                >
+                  <Navbar />
+                  {children}
+                </SiteDataProvider>
+              </SpotifyProvider>
             </AuthProvider>
           </ThemeProvider>
         </body>
