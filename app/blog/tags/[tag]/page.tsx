@@ -1,8 +1,6 @@
-import Link from 'next/link'
 import { getPostsByTag } from '@/lib/blog'
 import PostCard from '@/components/PostCard'
-
-export const revalidate = 60
+import BackButton from '@/components/BackButton'
 
 export default async function TagPage({
   params,
@@ -15,12 +13,7 @@ export default async function TagPage({
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 transition-colors mb-8"
-      >
-        ← 返回
-      </Link>
+      <BackButton />
 
       <h1 className="text-2xl font-bold text-gray-800 mb-8">
         标签：<span className="text-gray-500 font-normal">{decodedTag}</span>

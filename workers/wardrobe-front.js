@@ -3,7 +3,7 @@
 // ⚠️ 将下面的 VERCEL_HOST 替换为你的实际 Vercel 部署域名（不含 https://）
 const VERCEL_HOST = 'wardrobe-picks.vercel.app'
 
-export default {
+const worker = {
   async fetch(request) {
     const url = new URL(request.url)
     url.hostname = VERCEL_HOST
@@ -20,3 +20,5 @@ export default {
     return fetch(newRequest)
   },
 }
+
+export default worker

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { Link } from 'next-view-transitions'
 import { useAuth } from './AuthProvider'
 import { logout } from '@/app/auth/logout/actions'
 import { TemplateConfig } from '@/lib/templates'
@@ -14,12 +14,12 @@ interface SessionHeaderProps {
     note: string | null
     budget: number | null
   }
-  isAdmin?: boolean
   templateConfig?: TemplateConfig
 }
 
-export default function SessionHeader({ session, isAdmin = false, templateConfig }: SessionHeaderProps) {
+export default function SessionHeader({ session, templateConfig }: SessionHeaderProps) {
   const { role, displayName, email } = useAuth()
+  const isAdmin = role === 'admin'
   const isLoggedIn = role !== 'guest'
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(session.title || '')

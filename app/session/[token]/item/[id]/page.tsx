@@ -12,7 +12,7 @@ export default async function ItemPage({
 }) {
   const { token, id } = await params
 
-  const [role, user, { data: item, error }] = await Promise.all([
+  const [, , { data: item, error }] = await Promise.all([
     getUserRole(),
     getCurrentUser(),
     supabaseAdmin
@@ -29,7 +29,6 @@ export default async function ItemPage({
 
   if (error || !item) notFound()
 
-  const identity = user?.user_metadata?.display_name || user?.email || null
   const sessionData = item.sessions as { template_config?: unknown } | null
   const templateConfig = sessionData?.template_config as import('@/lib/templates').TemplateConfig | undefined
 
@@ -40,9 +39,6 @@ export default async function ItemPage({
       <ItemDetail 
         item={item as Parameters<typeof ItemDetail>[0]['item']} 
         token={token} 
-        isAdmin={role === 'admin'} 
-        userRole={role}
-        serverIdentity={identity}
         templateConfig={templateConfig}
       />
     </main>

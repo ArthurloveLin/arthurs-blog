@@ -33,6 +33,19 @@ export async function getPosts(limit = 20, offset = 0): Promise<Post[]> {
   return data ?? []
 }
 
+// 轻量级获取文章元数据，用于侧边栏渲染，减少序列化开销
+export async function getRecentPostsMetadata(limit = 10): Promise<Post[]> {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('id, slug, title, published_at')
+    .eq('published', true)
+    .order('published_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw new Error(error.message)
+  return (data ?? []) as Post[]
+}
+
 export const getPostsCount = unstable_cache(
   async function (): Promise<number> {
     const { count, error } = await supabase
