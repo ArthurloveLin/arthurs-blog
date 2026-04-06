@@ -116,5 +116,28 @@ export async function POST() {
   revalidatePath('/blog/[slug]', 'page')
   revalidatePath('/blog/tags/[tag]', 'page')
 
+  const updatedSlugs = results
+    .filter((r) => r.status === 'ok')
+    .map((r) => r.slug)
+
+  if (updatedSlugs.length > 0 && process.env.CF_ZONE_ID && process.env.CF_API_TOKEN) {
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://arthurlovegrace.top'
+    const urls = [
+      `${baseUrl}/`,
+      ...updatedSlugs.map((slug) => `${baseUrl}/blog/${slug}`),
+    ]
+    await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${process.env.CF_ZONE_ID}/purge_cache`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${process.env.CF_API_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ files: urls }),
+      }
+    )
+  }
+
   return NextResponse.json({ summary, details: results })
 }
