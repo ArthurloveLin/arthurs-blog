@@ -29,6 +29,11 @@ export default async function RootLayout({
   return (
     <ViewTransitions>
       <html lang="zh-CN" suppressHydrationWarning>
+        <head>
+          <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+          <link rel="preconnect" href="https://images.arthurlovegrace.top" />
+          <link rel="dns-prefetch" href="https://obsidian.arthurlovegrace.top" />
+        </head>
         <body className="bg-background antialiased pb-24 md:pb-0">
           <ThemeProvider
             attribute="class"
