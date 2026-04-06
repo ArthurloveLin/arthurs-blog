@@ -1,8 +1,10 @@
 'use client'
 
-import Link from 'next/link'
+import { Link } from 'next-view-transitions'
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+
+import { useAuth } from './AuthProvider'
 
 interface Session {
   id: string
@@ -17,12 +19,14 @@ interface Session {
 
 interface SessionListProps {
   sessions: Session[]
-  showArchived: boolean
-  isAdmin?: boolean
 }
 
-export default function SessionList({ sessions, showArchived, isAdmin = false }: SessionListProps) {
+export default function SessionList({ sessions }: SessionListProps) {
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const showArchived = searchParams.get('archived') === '1'
   const [isPending, startTransition] = useTransition()
   const [loading, setLoading] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)

@@ -1,6 +1,7 @@
 'use client'
 
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
+import { useTransitionRouter } from 'next-view-transitions'
 
 const SORTS = [
   { value: 'time', label: '时间' },
@@ -12,7 +13,7 @@ const SORTS = [
 ]
 
 export default function SortControl({ current }: { current: string }) {
-  const router = useRouter()
+  const router = useTransitionRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 

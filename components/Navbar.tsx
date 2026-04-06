@@ -1,20 +1,18 @@
 'use client'
 
-import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { Link, useTransitionRouter } from 'next-view-transitions'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
+import { usePathname } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { useAuth } from '@/components/AuthProvider'
 import { logout } from '@/app/auth/logout/actions'
-import ThemeToggle from './ThemeToggle'
 import { useTheme } from 'next-themes'
-import AuthorProfileCard from './AuthorProfileCard'
-import CategoriesCard from './CategoriesCard'
-import TagsCloudCard from './TagsCloudCard'
-import RecentPostsCard from './RecentPostsCard'
-import ArchiveCard from './ArchiveCard'
-import ToolsCard from './ToolsCard'
-import { useSearchParams } from 'next/navigation'
-import type { Post } from '@/lib/blog'
+import { useSiteData } from './SiteDataProvider'
+
+const ThemeToggle = dynamic(() => import('./ThemeToggle'), { ssr: false })
+const MobileDrawers = dynamic(() => import('./MobileDrawers'), { ssr: false })
+import type { DrawerType } from './MobileDrawers'
 
 const navLinks = [
   { href: '/', label: 'Home', tooltip: '首页 - 返回网站主页' },
@@ -22,33 +20,45 @@ const navLinks = [
   { href: 'https://trendradar.arthurlovegrace.top', label: 'News', tooltip: '新闻 - 获取最新的趋势资讯', external: true },
 ]
 
-export default function Navbar({ 
-  logoUrl, 
-  siteConfig, 
-  stats,
-  sidebarData
-}: { 
-  logoUrl?: string;
-  siteConfig?: Record<string, string>;
-  stats?: { postsCount: number; categoriesCount: number; tagsCount: number };
-  sidebarData?: {
-    categories: { name: string; count: number; slug: string }[];
-    tags: { tag: string; count: number }[];
-    yearArchive: { year: number; count: number }[];
-    recentPosts: Post[];
-  };
-}) {
+export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [activeDrawer, setActiveDrawer] = useState<'author' | 'categories' | 'tags' | 'recent' | 'archive' | 'tools' | null>(null)
+  const [activeDrawer, setActiveDrawer] = useState<DrawerType>(null)
   const { role, displayName, email, guestId, loading } = useAuth()
+  const { config } = useSiteData()
+  const logoUrl = config?.author_avatar_url
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
-  const searchParams = useSearchParams()
-  const isAdmin = role === 'admin'
+  const router = useTransitionRouter()
+  const pathname = usePathname()
 
-  const activeCategory = searchParams.get('category')
-  const activeYear = searchParams.get('year') ? parseInt(searchParams.get('year')!, 10) : null
-  const activeTags = searchParams.get('tags')?.split(',').filter(Boolean) ?? []
+  // 追踪上一个 pathname，用于判断是否能安全地 back()
+  const prevPathnameRef = useRef<string | null>(null)
+  const currentPathnameRef = useRef(pathname)
+  useEffect(() => {
+    prevPathnameRef.current = currentPathnameRef.current
+    currentPathnameRef.current = pathname
+  }, [pathname])
+
+  // 智能返回处理：
+  // - 在文章页 AND 上一页是列表/首页 → router.back()（恢复滚动位置）
+  // - 在文章页 AND 上一页也是文章（如从侧边栏跳转）→ router.push('/') 正常导航
+  const handleHomeClick = useCallback((e: React.MouseEvent) => {
+    const isOnArticle = pathname.startsWith('/blog/') && pathname !== '/blog'
+    if (!isOnArticle) return
+
+    e.preventDefault()
+
+    const prev = prevPathnameRef.current
+    const prevIsArticle = prev !== null && prev.startsWith('/blog/') && prev !== '/blog'
+
+    if (!prevIsArticle && prev !== null) {
+      // 上一页是列表/首页，back() 可以精准恢复滚动位置
+      router.back()
+    } else {
+      // 上一页是另一篇文章（侧边栏跳转），或首次直接访问 → 正常导航到首页
+      router.push('/')
+    }
+  }, [pathname, router])
 
   useEffect(() => {
     setMounted(true)
@@ -69,10 +79,14 @@ export default function Navbar({
         <div className="h-16 flex items-center justify-between gap-4">
 
           {/* ── Left: Logo / Title ─────────────────────────────────── */}
-          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 group">
+          <Link 
+            href="/" 
+            onClick={handleHomeClick}
+            className="flex items-center gap-2.5 flex-shrink-0 group"
+          >
             <div className="w-8 h-8 relative rounded-xl bg-gradient-primary flex items-center justify-center shadow-[0_2px_8px_rgb(0,0,0,0.15)] group-hover:scale-105 transition-transform duration-200 overflow-hidden">
               {logoUrl ? (
-                <Image src={logoUrl} alt="Logo" fill className="object-cover" unoptimized />
+                <Image src={logoUrl} alt="Logo" fill className="object-cover" unoptimized priority />
               ) : (
                 <span className="text-primary-foreground text-[10px] font-bold tracking-tight leading-none">A&G</span>
               )}
@@ -100,6 +114,7 @@ export default function Navbar({
                 <Link
                   key={link.href}
                   href={link.href}
+                  onClick={link.href === '/' ? handleHomeClick : undefined}
                   className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
                   title={link.tooltip}
                 >
@@ -215,8 +230,11 @@ export default function Navbar({
                   <Link
                     key={link.href}
                     href={link.href}
+                    onClick={(e) => {
+                      if (link.href === '/') handleHomeClick(e)
+                      setIsMobileMenuOpen(false)
+                    }}
                     className="block px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
-                    onClick={() => setIsMobileMenuOpen(false)}
                   >
                     {link.label}
                   </Link>
@@ -379,80 +397,7 @@ export default function Navbar({
     </div>
 
     {/* ── Mobile Sidebar Drawers ────────────────────────── */}
-    {activeDrawer && (
-      <div className="fixed inset-0 z-[999] md:hidden flex flex-col justify-end">
-        {/* Backdrop */}
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-md animate-fade-in transition-opacity" 
-          onClick={() => setActiveDrawer(null)}
-        />
-        {/* Drawer Content */}
-        <div className="relative w-full bg-background rounded-t-[2.5rem] shadow-[0_-8px_40px_rgba(0,0,0,0.5)] border-t border-border/50 p-6 pt-2 max-h-[88vh] overflow-y-auto animate-drawer-up">
-          {/* Handle */}
-          <div className="flex justify-center mb-6">
-            <div className="w-12 h-1.5 bg-muted/50 rounded-full" />
-          </div>
-          
-          {/* Header with Title and close button */}
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-              {activeDrawer === 'author' && '关于作者'}
-              {activeDrawer === 'categories' && '文章分类'}
-              {activeDrawer === 'tags' && '标签云'}
-              {activeDrawer === 'recent' && '最新推文'}
-              {activeDrawer === 'archive' && '归档文章'}
-              {activeDrawer === 'tools' && '实用工具'}
-            </h3>
-            <button 
-              onClick={() => setActiveDrawer(null)}
-              className="p-2 text-muted-foreground hover:text-foreground"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="pb-8 text-foreground" onClick={() => setActiveDrawer(null)}>
-            {activeDrawer === 'author' && siteConfig && stats && (
-              <AuthorProfileCard
-                postsCount={stats.postsCount}
-                categoriesCount={stats.categoriesCount}
-                tagsCount={stats.tagsCount}
-                name={siteConfig.author_name}
-                bio={siteConfig.author_bio}
-                avatarUrl={siteConfig.author_avatar_url}
-                isAdmin={isAdmin}
-                role={siteConfig.author_role}
-                company={siteConfig.author_company}
-                location={siteConfig.author_location}
-                skills={siteConfig.author_skills}
-                status={siteConfig.author_status}
-                github={siteConfig.author_github}
-                weibo={siteConfig.author_weibo}
-                wechat={siteConfig.author_wechat}
-                email={siteConfig.author_email}
-              />
-            )}
-            {activeDrawer === 'categories' && sidebarData && (
-              <CategoriesCard categories={sidebarData.categories} activeCategory={activeCategory} />
-            )}
-            {activeDrawer === 'tags' && sidebarData && (
-              <TagsCloudCard tags={sidebarData.tags} activeTags={activeTags} />
-            )}
-            {activeDrawer === 'recent' && sidebarData && (
-              <RecentPostsCard posts={sidebarData.recentPosts} />
-            )}
-            {activeDrawer === 'archive' && sidebarData && (
-              <ArchiveCard archive={sidebarData.yearArchive} activeYear={activeYear} />
-            )}
-            {activeDrawer === 'tools' && (
-              <ToolsCard />
-            )}
-          </div>
-        </div>
-      </div>
-    )}
+    <MobileDrawers activeDrawer={activeDrawer} setActiveDrawer={setActiveDrawer} />
     </>
   )
 }

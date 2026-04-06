@@ -1,16 +1,15 @@
-import Link from 'next/link'
+'use client'
 
-interface YearGroup {
-  year: number
-  count: number
-}
+import { memo } from 'react'
+import { Link } from 'next-view-transitions'
+import { useSiteData } from './SiteDataProvider'
 
 interface ArchiveCardProps {
-  archive: YearGroup[]
   activeYear?: number | null
 }
 
-export default function ArchiveCard({ archive, activeYear }: ArchiveCardProps) {
+const ArchiveCard = memo(function ArchiveCard({ activeYear }: ArchiveCardProps) {
+  const { sidebarData: { yearArchive: archive } } = useSiteData()
   if (archive.length === 0) return null
 
   return (
@@ -28,7 +27,7 @@ export default function ArchiveCard({ archive, activeYear }: ArchiveCardProps) {
           return (
             <li key={year}>
               <Link
-                href={isActive ? '/' : `/?year=${year}`}
+                href={isActive ? '/' : `/archive/${year}`}
                 className={`flex items-center justify-between py-1.5 px-1 rounded-lg transition-colors duration-150 group ${
                   isActive
                     ? 'bg-gradient-primary text-primary-foreground'
@@ -57,4 +56,6 @@ export default function ArchiveCard({ archive, activeYear }: ArchiveCardProps) {
 
     </div>
   )
-}
+})
+
+export default ArchiveCard

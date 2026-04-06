@@ -3,10 +3,8 @@
 import Image from 'next/image'
 import { useState, memo } from 'react'
 import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
+import { Link } from 'next-view-transitions'
 import { TemplateConfig } from '@/lib/templates'
-
-const DraggableImageGrid = dynamic(() => import('./DraggableImageGrid'), { ssr: false })
 
 interface Item {
   id: string
@@ -26,11 +24,10 @@ interface Item {
 interface ImageGridProps {
   items: Item[]
   sessionToken: string
-  draggable?: boolean
   templateConfig?: TemplateConfig
 }
 
-export default function ImageGrid({ items: initialItems, sessionToken, draggable = false, templateConfig }: ImageGridProps) {
+export default function ImageGrid({ items: initialItems, sessionToken, templateConfig }: ImageGridProps) {
   const router = useRouter()
   const [deleting, setDeleting] = useState<string | null>(null)
   const [selectMode, setSelectMode] = useState(false)
@@ -38,7 +35,7 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
   const [bulkDeleting, setBulkDeleting] = useState(false)
   // Group items if categories exist
   const hasCategories = initialItems.some((i) => i.category)
-  const groupedItems = !draggable && hasCategories
+  const groupedItems = hasCategories
     ? initialItems.reduce((acc, item) => {
         const cat = item.category || '未分类'
         if (!acc[cat]) acc[cat] = []
@@ -136,26 +133,31 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
                     key={item.id}
                     className="relative group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
                   >
-                    <ItemCard
-                      item={item}
-                      sessionToken={sessionToken}
-                      deleting={deleting}
-                      onDelete={handleDelete}
-                      hasConflict={
-                        item.arthurScore !== null &&
-                        item.graceScore !== null &&
-                        Math.abs(item.arthurScore - item.graceScore) >= 2
-                      }
-                      scoreDiff={
-                        item.arthurScore !== null && item.graceScore !== null
-                          ? Math.abs(item.arthurScore - item.graceScore)
-                          : null
-                      }
-                      selectMode={selectMode}
-                      selected={selected.has(item.id)}
-                      onToggleSelect={toggleSelect}
-                      templateConfig={templateConfig}
-                    />
+                    {selectMode ? (
+                      <SelectableItemCard
+                        item={item}
+                        selected={selected.has(item.id)}
+                        onToggleSelect={toggleSelect}
+                      />
+                    ) : (
+                      <ViewableItemCard
+                        item={item}
+                        sessionToken={sessionToken}
+                        deleting={deleting}
+                        onDelete={handleDelete}
+                        hasConflict={
+                          item.arthurScore !== null &&
+                          item.graceScore !== null &&
+                          Math.abs(item.arthurScore - item.graceScore) >= 2
+                        }
+                        scoreDiff={
+                          item.arthurScore !== null && item.graceScore !== null
+                            ? Math.abs(item.arthurScore - item.graceScore)
+                            : null
+                        }
+                        templateConfig={templateConfig}
+                      />
+                    )}
                   </div>
                 ))}
             </div>
@@ -175,18 +177,23 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
                 key={item.id}
                 className="relative group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
               >
-                <ItemCard
-                  item={item}
-                  sessionToken={sessionToken}
-                  deleting={deleting}
-                  onDelete={handleDelete}
-                  hasConflict={hasConflict}
-                  scoreDiff={scoreDiff}
-                  selectMode={selectMode}
-                  selected={selected.has(item.id)}
-                  onToggleSelect={toggleSelect}
-                  templateConfig={templateConfig}
-                />
+                {selectMode ? (
+                  <SelectableItemCard
+                    item={item}
+                    selected={selected.has(item.id)}
+                    onToggleSelect={toggleSelect}
+                  />
+                ) : (
+                  <ViewableItemCard
+                    item={item}
+                    sessionToken={sessionToken}
+                    deleting={deleting}
+                    onDelete={handleDelete}
+                    hasConflict={hasConflict}
+                    scoreDiff={scoreDiff}
+                    templateConfig={templateConfig}
+                  />
+                )}
               </div>
             )
           })}
@@ -228,25 +235,58 @@ export default function ImageGrid({ items: initialItems, sessionToken, draggable
         )}
       </div>
 
-      {draggable ? (
-        <DraggableImageGrid items={initialItems} sessionToken={sessionToken} />
-      ) : (
-        grid
-      )}
+      {grid}
     </div>
   )
 }
 
-const ItemCard = memo(({
+const SelectableItemCard = memo(({
+  item,
+  selected,
+  onToggleSelect,
+}: {
+  item: Item
+  selected: boolean
+  onToggleSelect: (id: string) => void
+}) => {
+  return (
+    <div
+      onClick={() => onToggleSelect(item.id)}
+      className="cursor-pointer h-full"
+    >
+      <div className="relative aspect-square">
+        <Image
+          src={item.image_url}
+          alt="衣服图片"
+          fill
+          className={`object-cover transition-opacity ${selected ? 'opacity-60' : ''}`}
+          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+        />
+        {selected && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg shadow-lg">
+              ✓
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="p-2 space-y-0.5">
+        {item.price !== null && (
+          <p className="text-xs font-semibold text-foreground">¥{item.price}</p>
+        )}
+      </div>
+    </div>
+  )
+})
+SelectableItemCard.displayName = 'SelectableItemCard'
+
+const ViewableItemCard = memo(({
   item,
   sessionToken,
   deleting,
   onDelete,
   hasConflict,
   scoreDiff,
-  selectMode,
-  selected,
-  onToggleSelect,
   templateConfig,
 }: {
   item: Item
@@ -255,106 +295,78 @@ const ItemCard = memo(({
   onDelete: (id: string) => void
   hasConflict: boolean
   scoreDiff: number | null
-  selectMode: boolean
-  selected: boolean
-  onToggleSelect: (id: string) => void
   templateConfig?: TemplateConfig
 }) => {
   const buyLabel = templateConfig?.descLabels?.buy || '买'
   const skipLabel = templateConfig?.descLabels?.skip || '不买'
   return (
     <>
-      {selectMode ? (
-        <div
-          onClick={() => onToggleSelect(item.id)}
-          className="cursor-pointer h-full"
+      <Link 
+        href={`/session/${sessionToken}/item/${item.id}`} 
+        className="block h-full bg-card"
+      >
+        <div 
+          className="relative aspect-square"
+          style={{ viewTransitionName: `wardrobe-item-${item.id}` }}
         >
-          <div className="relative aspect-square">
-            <Image
-              src={item.image_url}
-              alt="衣服图片"
-              fill
-              className={`object-cover transition-opacity ${selected ? 'opacity-60' : ''}`}
-              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-            />
-            {selected && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg shadow-lg">
-                  ✓
-                </div>
+          <Image
+            src={item.image_url}
+            alt="衣服图片"
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+          />
+          {/* Score conflict indicator */}
+          {hasConflict && (
+            <div className="absolute bottom-1 right-1 bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full font-medium shadow-sm">
+              ⚡{scoreDiff?.toFixed(0)}
+            </div>
+          )}
+
+          {/* Rank Medal - Ribbon Style */}
+          {item.rank && item.rank <= 3 && (
+            <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden z-20 pointer-events-none">
+              <div className={`absolute top-[18px] right-[-24px] w-[90px] rotate-45 text-white text-[9px] font-black py-0.5 shadow-xl border-y border-white/20 text-center uppercase tracking-tighter ${
+                item.rank === 1 ? 'bg-gradient-to-r from-yellow-400 to-orange-500 animate-champion-shine bg-[length:200%_100%]' : 
+                item.rank === 2 ? 'bg-gradient-to-r from-slate-300 to-slate-500' : 
+                'bg-gradient-to-r from-amber-600 to-amber-800'
+              }`}>
+                {item.rank === 1 ? '🥇 冠军' : item.rank === 2 ? '🥈 亚军' : '🥉 季军'}
               </div>
-            )}
-          </div>
-          <div className="p-2 space-y-0.5">
-            {item.price !== null && (
-              <p className="text-xs font-semibold text-foreground">¥{item.price}</p>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-      ) : (
-        <a href={`/session/${sessionToken}/item/${item.id}`} className="block h-full">
-          <div className="relative aspect-square">
-            <Image
-              src={item.image_url}
-              alt="衣服图片"
-              fill
-              className="object-cover"
-              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-            />
-            {/* Score conflict indicator */}
-            {hasConflict && (
-              <div className="absolute bottom-1 right-1 bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full font-medium shadow-sm">
-                ⚡{scoreDiff?.toFixed(0)}
-              </div>
-            )}
 
-            {/* Rank Medal - Ribbon Style */}
-            {item.rank && item.rank <= 3 && (
-              <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden z-20 pointer-events-none">
-                <div className={`absolute top-[18px] right-[-24px] w-[90px] rotate-45 text-white text-[9px] font-black py-0.5 shadow-xl border-y border-white/20 text-center uppercase tracking-tighter ${
-                  item.rank === 1 ? 'bg-gradient-to-r from-yellow-400 to-orange-500 animate-champion-shine bg-[length:200%_100%]' : 
-                  item.rank === 2 ? 'bg-gradient-to-r from-slate-300 to-slate-500' : 
-                  'bg-gradient-to-r from-amber-600 to-amber-800'
-                }`}>
-                  {item.rank === 1 ? '🥇 冠军' : item.rank === 2 ? '🥈 亚军' : '🥉 季军'}
-                </div>
-              </div>
-            )}
-          </div>
+        <div className="p-2 space-y-0.5">
+          {item.price !== null && (
+            <p className="text-xs font-semibold text-foreground">¥{item.price}</p>
+          )}
+          {item.avgScore !== null ? (
+            <p className="text-xs text-yellow-500 font-medium">
+              {'★'.repeat(Math.round(item.avgScore))}
+              {'☆'.repeat(5 - Math.round(item.avgScore))}
+              <span className="text-muted-foreground ml-1">{item.avgScore.toFixed(1)}</span>
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground/40">暂无评分</p>
+          )}
+          {item.commentCount > 0 && (
+            <p className="text-xs text-muted-foreground">{item.commentCount} 条评论</p>
+          )}
+        </div>
+      </Link>
 
-          <div className="p-2 space-y-0.5">
-            {item.price !== null && (
-              <p className="text-xs font-semibold text-foreground">¥{item.price}</p>
-            )}
-            {item.avgScore !== null ? (
-              <p className="text-xs text-yellow-500 font-medium">
-                {'★'.repeat(Math.round(item.avgScore))}
-                {'☆'.repeat(5 - Math.round(item.avgScore))}
-                <span className="text-muted-foreground ml-1">{item.avgScore.toFixed(1)}</span>
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground/40">暂无评分</p>
-            )}
-            {item.commentCount > 0 && (
-              <p className="text-xs text-muted-foreground">{item.commentCount} 条评论</p>
-            )}
-          </div>
-        </a>
-      )}
-
-      {/* Delete button (hidden in select mode) */}
-      {!selectMode && (
-        <button
-          onClick={(e) => { e.preventDefault(); onDelete(item.id) }}
-          disabled={deleting === item.id}
-          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-destructive shadow-sm disabled:bg-muted-foreground"
-        >
-          {deleting === item.id ? '…' : '×'}
-        </button>
-      )}
+      {/* Delete button */}
+      <button
+        onClick={(e) => { e.preventDefault(); onDelete(item.id) }}
+        disabled={deleting === item.id}
+        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-destructive shadow-sm disabled:bg-muted-foreground"
+      >
+        {deleting === item.id ? '…' : '×'}
+      </button>
 
       {/* Decision badge */}
-      {item.decision !== 'pending' && !selectMode && (
+      {item.decision !== 'pending' && (
         <div className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-bold shadow-sm ${
           item.decision === 'buy'
             ? 'bg-green-500 text-white'
@@ -367,4 +379,4 @@ const ItemCard = memo(({
   )
 })
 
-ItemCard.displayName = 'ItemCard'
+ViewableItemCard.displayName = 'ViewableItemCard'

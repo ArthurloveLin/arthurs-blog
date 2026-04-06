@@ -1,8 +1,8 @@
 'use client'
 
 import Image from 'next/image'
-import Link from 'next/link'
 import { useState, useRef } from 'react'
+import BackButton from './BackButton'
 import MultiDimRating from './MultiDimRating'
 import CommentBox from './CommentBox'
 import Lightbox from './Lightbox'
@@ -48,24 +48,18 @@ interface Item {
 interface ItemDetailProps {
   item: Item
   token: string
-  isAdmin: boolean
-  userRole: string
-  serverIdentity: string | null
   templateConfig?: TemplateConfig
 }
 
 export default function ItemDetail({ 
   item, 
   token, 
-  isAdmin: serverIsAdmin, 
-  serverIdentity,
   templateConfig: initialTemplateConfig
 }: ItemDetailProps) {
-  const { displayName, email, guestId, isAdmin: clientIsAdmin } = useAuth()
+  const { role, displayName, email, guestId } = useAuth()
   
-  // Use server props as primary source if available, fallback to client auth
-  const isAdmin = serverIsAdmin || clientIsAdmin
-  const identity = serverIdentity || displayName || email || guestId
+  const isAdmin = role === 'admin'
+  const identity = displayName || email || guestId
 
   const templateConfig = initialTemplateConfig || TEMPLATES[DEFAULT_TEMPLATE]
   const dimensions = templateConfig.dimensions
@@ -190,9 +184,7 @@ export default function ItemDetail({
       <div className="max-w-lg mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
-          <Link href={`/session/${token}`} className="text-muted-foreground hover:text-foreground">
-            ← 返回
-          </Link>
+          <BackButton fallback={`/session/${token}`} className="text-muted-foreground hover:text-foreground" />
           <h1 className="text-lg font-semibold text-foreground">{templateConfig.itemLabel}详情</h1>
         </div>
 
@@ -200,6 +192,7 @@ export default function ItemDetail({
         <button
           className="relative w-full aspect-square rounded-2xl overflow-hidden bg-card border border-border shadow-sm mb-5 block"
           onClick={() => setLightboxOpen(true)}
+          style={{ viewTransitionName: `wardrobe-item-${item.id}` }}
         >
           <Image
             src={item.image_url}

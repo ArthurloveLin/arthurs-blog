@@ -1,17 +1,15 @@
-import Link from 'next/link'
+'use client'
 
-interface Category {
-  name: string
-  count: number
-  slug: string
-}
+import { memo } from 'react'
+import { Link } from 'next-view-transitions'
+import { useSiteData } from './SiteDataProvider'
 
 interface CategoriesCardProps {
-  categories: Category[]
   activeCategory?: string | null
 }
 
-export default function CategoriesCard({ categories, activeCategory }: CategoriesCardProps) {
+const CategoriesCard = memo(function CategoriesCard({ activeCategory }: CategoriesCardProps) {
+  const { sidebarData: { categories } } = useSiteData()
   if (categories.length === 0) return null
 
   return (
@@ -29,7 +27,7 @@ export default function CategoriesCard({ categories, activeCategory }: Categorie
           return (
             <li key={cat.slug}>
               <Link
-                href={isActive ? '/' : `/?category=${cat.slug}`}
+                href={isActive ? '/' : `/category/${cat.slug}`}
                 className={`flex items-center justify-between py-1.5 px-1 rounded-lg transition-colors duration-150 group ${
                   isActive
                     ? 'bg-gradient-primary text-primary-foreground'
@@ -58,4 +56,6 @@ export default function CategoriesCard({ categories, activeCategory }: Categorie
 
     </div>
   )
-}
+})
+
+export default CategoriesCard
