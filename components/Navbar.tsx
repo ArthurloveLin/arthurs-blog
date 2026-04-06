@@ -313,7 +313,10 @@ export default function Navbar() {
     </header>
 
     {/* ── Mobile Bottom Dock ───────────────────────────── */}
-    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 md:hidden">
+    <div 
+      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 md:hidden"
+      style={{ viewTransitionName: 'mobile-dock' }}
+    >
       <div className={
         "flex items-center gap-0.5 px-2 py-1.5 " +
         "bg-white/85 backdrop-blur-md border border-black/5 " +

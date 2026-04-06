@@ -218,6 +218,7 @@ body {
    We use JS-based smooth scroll in specific components (like TOC) to maintain UX. */
 html {
   scroll-behavior: auto;
+  scrollbar-gutter: stable;
 }
 
 /* Custom scrollbar for webkit browsers */
@@ -425,10 +426,20 @@ html {
   animation-duration: 0.35s;
 }
 
-/* Simplified transition for the navbar to keep it static and on top */
-::view-transition-group(navbar) {
+/* Simplified transition for the navbar and mobile-dock to keep them static and on top */
+::view-transition-group(navbar),
+::view-transition-group(mobile-dock) {
   z-index: 100;
-  animation-duration: 0s; /* Make it static/instant to avoid any layout 'wobble' */
+  animation-duration: 0s !important; /* Force static to avoid any layout 'wobble' */
+}
+
+/* Ensure no fade animations for these static elements */
+::view-transition-old(navbar),
+::view-transition-new(navbar),
+::view-transition-old(mobile-dock),
+::view-transition-new(mobile-dock) {
+  animation: none !important;
+  mix-blend-mode: normal;
 }
 
 /* Simplified entrance for root to avoid 'rolling' feel during back navigation */
