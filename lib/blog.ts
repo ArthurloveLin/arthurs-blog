@@ -90,15 +90,21 @@ export const getPostsByTags = unstable_cache(
 )
 
 export const getPostMeta = cache(async function getPostMeta(slug: string): Promise<Post | null> {
-  const { data: post, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('slug', slug)
-    .eq('published', true)
-    .single()
+  return unstable_cache(
+    async () => {
+      const { data: post, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('slug', slug)
+        .eq('published', true)
+        .single()
 
-  if (error || !post) return null
-  return post
+      if (error || !post) return null
+      return post
+    },
+    [`post-meta-${slug}`],
+    { revalidate: 60, tags: ['posts', `post-meta-${slug}`] }
+  )()
 })
 
 export async function getPostContent(post: Post): Promise<string> {

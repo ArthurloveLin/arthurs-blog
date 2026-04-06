@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import matter from 'gray-matter'
 import { listR2ObjectsWithMeta, getR2Object } from '@/lib/r2'
 import { upsertPost, deletePostsNotIn, getPostsMetadata } from '@/lib/blog'
@@ -115,10 +115,23 @@ export async function POST() {
   revalidatePath('/')
   revalidatePath('/blog/[slug]', 'page')
   revalidatePath('/blog/tags/[tag]', 'page')
+  revalidatePath('/blog/category/[category]', 'page')
+
+  // P1: Data Cache Invalidation (More precise than path revalidation)
+  revalidateTag('posts')
+  revalidateTag('categories')
+  revalidateTag('all-tags')
+  revalidateTag('year-archive')
 
   const updatedSlugs = results
     .filter((r) => r.status === 'ok')
     .map((r) => r.slug)
+
+  // Invalidating specific post data
+  for (const slug of updatedSlugs) {
+    revalidateTag(`post-meta-${slug}`)
+    revalidateTag(`post-content-${slug}`)
+  }
 
   if (updatedSlugs.length > 0 && process.env.CF_ZONE_ID && process.env.CF_API_TOKEN) {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://arthurlovegrace.top'
