@@ -2,6 +2,7 @@
 
 import { memo } from 'react'
 import { Link } from 'next-view-transitions'
+import SpotifyNowPlaying from './SpotifyNowPlaying'
 
 const tools = [
   {
@@ -39,6 +40,9 @@ const ToolsCard = memo(function ToolsCard() {
 
       {/* Tool links */}
       <ul className="space-y-1">
+        <li>
+          <SpotifyNowPlaying />
+        </li>
         {tools.map((tool) => {
           const inner = (
             <div className="flex items-center gap-3 py-2 px-1 rounded-lg hover:bg-muted transition-colors duration-150 group cursor-pointer">
