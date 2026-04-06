@@ -115,15 +115,16 @@ export const getPostMeta = cache(async function getPostMeta(slug: string): Promi
   )()
 })
 
-const getCachedPostContent = unstable_cache(
-  async (r2Key: string) => {
-    const raw = await getR2Object(BLOG_BUCKET, r2Key)
-    const { content } = matter(raw)
-    return content
-  },
-  ['post-content'],
-  { revalidate: 300 }
-)
+const getCachedPostContent = (r2Key: string) =>
+  unstable_cache(
+    async () => {
+      const raw = await getR2Object(BLOG_BUCKET, r2Key)
+      const { content } = matter(raw)
+      return content
+    },
+    [`post-content-${r2Key}`],
+    { revalidate: 300, tags: [`post-raw-${r2Key}`] }
+  )()
 
 export async function getPostContent(post: Post): Promise<string> {
   const normalizedSlug = decodeURIComponent(post.slug)

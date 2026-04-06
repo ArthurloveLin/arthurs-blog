@@ -66,7 +66,8 @@ export default function Navbar() {
 
   return (
     <>
-      <header 
+    <header 
+      style={{ viewTransitionName: 'navbar' }}
       className={
         "sticky top-0 z-50 border-b transition-colors duration-300 " +
         // 浅色模式: 灰色透明磨砂效果

@@ -425,9 +425,15 @@ html {
   animation-duration: 0.35s;
 }
 
+/* Simplified transition for the navbar to keep it static and on top */
+::view-transition-group(navbar) {
+  z-index: 100;
+  animation-duration: 0s; /* Make it static/instant to avoid any layout 'wobble' */
+}
+
 /* Simplified entrance for root to avoid 'rolling' feel during back navigation */
 ::view-transition-new(root) {
-  animation: 0.35s ease-out fade-in;
+  animation: 0.3s ease-out fade-in;
 }
 
 @keyframes slide-up {
