@@ -8,7 +8,7 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info',
 }
 
-export default {
+const worker = {
   async fetch(request) {
     // 处理预检请求
     if (request.method === 'OPTIONS') {
@@ -35,3 +35,5 @@ export default {
     return newResponse
   },
 }
+
+export default worker

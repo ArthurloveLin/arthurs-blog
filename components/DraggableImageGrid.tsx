@@ -1,4 +1,4 @@
-'use client'
+import { Link } from 'next-view-transitions'
 
 import Image from 'next/image'
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -91,10 +91,14 @@ export default function DraggableImageGrid({ items: initialItems, sessionToken }
                         >
                           ⠿
                         </div>
-                        <a
+                        <Link
                           href={`/session/${sessionToken}/item/${item.id}`}
                           className="relative w-16 h-16 shrink-0 overflow-hidden rounded-lg bg-gray-100"
                         >
+                          <div 
+                            className="relative w-full h-full"
+                            style={{ viewTransitionName: `wardrobe-item-${item.id}` }}
+                          >
                           <Image
                             src={item.image_url}
                             alt="衣服图片"
@@ -102,8 +106,9 @@ export default function DraggableImageGrid({ items: initialItems, sessionToken }
                             className="object-cover"
                             sizes="64px"
                           />
-                        </a>
-                        <a
+                          </div>
+                        </Link>
+                        <Link
                           href={`/session/${sessionToken}/item/${item.id}`}
                           className="flex-1 min-w-0 py-2"
                         >
@@ -131,7 +136,7 @@ export default function DraggableImageGrid({ items: initialItems, sessionToken }
                               Arthur {item.arthurScore} · Grace {item.graceScore}
                             </p>
                           )}
-                        </a>
+                        </Link>
                         {item.decision !== 'pending' && (
                           <div className={`mr-3 text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
                             item.decision === 'buy' ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'

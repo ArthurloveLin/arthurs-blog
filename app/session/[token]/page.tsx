@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getUserRole } from '@/lib/auth'
 import ImageGrid from '@/components/ImageGrid'
+import DraggableImageGrid from '@/components/DraggableImageGridWrapper'
 import UploadZone from '@/components/UploadZone'
 import SortControl from '@/components/SortControl'
 import FinalListToggle from '@/components/FinalListToggle'
@@ -118,7 +119,7 @@ export default async function SessionPage({
       <ActivityBanner sessionId={session.id} />
       <div className="max-w-2xl mx-auto px-4 py-10">
         {/* Header */}
-        <SessionHeader session={session} isAdmin={isAdmin} templateConfig={templateConfig} />
+        <SessionHeader session={session} templateConfig={templateConfig} />
 
         {/* Stats bar */}
         {items.length > 0 && (
@@ -185,12 +186,15 @@ export default async function SessionPage({
         )}
 
         {/* Image Grid */}
-        <ImageGrid
-          items={sortedItems}
-          sessionToken={token}
-          draggable={sort === 'position'}
-          templateConfig={templateConfig}
-        />
+        {sort === 'position' ? (
+          <DraggableImageGrid items={sortedItems} sessionToken={token} />
+        ) : (
+          <ImageGrid
+            items={sortedItems}
+            sessionToken={token}
+            templateConfig={templateConfig}
+          />
+        )}
       </div>
     </main>
   )

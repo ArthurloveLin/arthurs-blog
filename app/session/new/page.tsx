@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useTransitionRouter } from 'next-view-transitions'
+import { Link } from 'next-view-transitions'
 import { TEMPLATES, DEFAULT_TEMPLATE } from '@/lib/templates'
 
 export default function NewSession() {
-  const router = useRouter()
+  const router = useTransitionRouter()
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
   const [budget, setBudget] = useState('')

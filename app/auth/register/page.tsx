@@ -2,7 +2,7 @@
 
 import { useActionState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
+import { Link } from 'next-view-transitions'
 import { register } from './actions'
 
 function RegisterForm() {

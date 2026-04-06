@@ -1,4 +1,7 @@
-import Link from 'next/link'
+'use client'
+
+import { memo } from 'react'
+import { Link } from 'next-view-transitions'
 
 const tools = [
   {
@@ -25,7 +28,7 @@ const tools = [
   },
 ]
 
-export default function ToolsCard() {
+const ToolsCard = memo(function ToolsCard() {
   return (
     <div className="bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:border-white/20 p-5">
 
@@ -74,4 +77,6 @@ export default function ToolsCard() {
 
     </div>
   )
-}
+})
+
+export default ToolsCard
