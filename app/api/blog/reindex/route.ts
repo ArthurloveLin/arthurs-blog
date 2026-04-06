@@ -25,8 +25,8 @@ async function processFile(
   }
 
   if (!fm.title) return { slug: '', status: 'skip', reason: 'missing title' }
-  if (fm.published !== true) return { slug: '', status: 'skip', reason: 'published != true' }
-
+  
+  const published = fm.published === true
   const slug = generateSlug(key, fm.slug)
   const summary = fm.summary ?? fm.excerpt ?? (excerpt?.trim().slice(0, 200)) ?? null
 
@@ -51,7 +51,7 @@ async function processFile(
       return `https://${domain}/${noteDir}${imagePath}`
     })(),
     r2_key: key,
-    published: true,
+    published,
     published_at: fm.date ? new Date(fm.date).toISOString() : new Date().toISOString(),
   })
 
@@ -123,15 +123,15 @@ export async function POST() {
   revalidateTag('all-tags')
   revalidateTag('year-archive')
 
-  const updatedSlugs = results
-    .filter((r) => r.status === 'ok')
-    .map((r) => r.slug)
+  const updatedResults = results.filter((r) => r.status === 'ok')
+  const updatedSlugs = updatedResults.map((r) => r.slug)
 
   // Invalidating specific post data
-  for (const slug of updatedSlugs) {
+  for (const { slug, key } of updatedResults) {
     const normalizedSlug = decodeURIComponent(slug)
     revalidateTag(`post-meta-${normalizedSlug}`)
     revalidateTag(`post-content-${normalizedSlug}`)
+    revalidateTag(`post-raw-${key}`)
   }
 
   if (updatedSlugs.length > 0 && process.env.CF_ZONE_ID && process.env.CF_API_TOKEN) {
