@@ -89,35 +89,54 @@ export const getPostsByTags = unstable_cache(
   { revalidate: 60, tags: ['posts'] }
 )
 
-export const getPostMeta = cache(async function getPostMeta(slug: string): Promise<Post | null> {
-  return unstable_cache(
-    async () => {
-      const { data: post, error } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('slug', slug)
-        .eq('published', true)
-        .single()
+// 通用的数据缓存包装器，确保 slug 在作为 tag 使用时经过统一的解码处理
+const getCachedPostMeta = unstable_cache(
+  async (slug: string) => {
+    const { data: post, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('slug', slug)
+      .eq('published', true)
+      .single()
 
-      if (error || !post) return null
-      return post
-    },
-    [`post-meta-${slug}`],
-    { revalidate: 60, tags: ['posts', `post-meta-${slug}`] }
+    if (error || !post) return null
+    return post
+  },
+  ['post-meta'],
+  { revalidate: 60, tags: ['posts'] }
+)
+
+export const getPostMeta = cache(async function getPostMeta(slug: string): Promise<Post | null> {
+  const normalizedSlug = decodeURIComponent(slug)
+  return unstable_cache(
+    () => getCachedPostMeta(normalizedSlug),
+    [`post-meta-${normalizedSlug}`],
+    { revalidate: 60, tags: ['posts', `post-meta-${normalizedSlug}`] }
   )()
 })
 
+const getCachedPostContent = unstable_cache(
+  async (r2Key: string) => {
+    const raw = await getR2Object(BLOG_BUCKET, r2Key)
+    const { content } = matter(raw)
+    return content
+  },
+  ['post-content'],
+  { revalidate: 300 }
+)
+
 export async function getPostContent(post: Post): Promise<string> {
+  const normalizedSlug = decodeURIComponent(post.slug)
+  
   return unstable_cache(
     async () => {
-      const raw = await getR2Object(BLOG_BUCKET, post.r2_key)
-      const { content } = matter(raw)
+      const content = await getCachedPostContent(post.r2_key)
 
       // 将 Obsidian 附件引用替换为 R2 公开域名 URL
-      // ![[Pasted image xxx.png|750]] → ![](https://domain/path/to/images/Pasted image xxx.png)
       const noteDir = post.r2_key.includes('/')
         ? post.r2_key.split('/').slice(0, -1).join('/') + '/'
         : ''
+        
       return BLOG_PUBLIC_DOMAIN
         ? content.replace(
             /!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g,
@@ -126,8 +145,8 @@ export async function getPostContent(post: Post): Promise<string> {
           )
         : content
     },
-    [`post-content-${post.r2_key}`],
-    { revalidate: 300, tags: [`post-content-${post.slug}`] }
+    [`post-rendered-content-${post.r2_key}`],
+    { revalidate: 300, tags: [`post-content-${normalizedSlug}`] }
   )()
 }
 

@@ -129,8 +129,9 @@ export async function POST() {
 
   // Invalidating specific post data
   for (const slug of updatedSlugs) {
-    revalidateTag(`post-meta-${slug}`)
-    revalidateTag(`post-content-${slug}`)
+    const normalizedSlug = decodeURIComponent(slug)
+    revalidateTag(`post-meta-${normalizedSlug}`)
+    revalidateTag(`post-content-${normalizedSlug}`)
   }
 
   if (updatedSlugs.length > 0 && process.env.CF_ZONE_ID && process.env.CF_API_TOKEN) {
