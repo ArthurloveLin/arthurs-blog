@@ -26,6 +26,19 @@ const getAccessToken = async () => {
 
 export const dynamic = 'force-dynamic'
 
+interface SpotifyTrack {
+  item: {
+    name: string;
+    album: {
+      name: string;
+      images: Array<{ url: string }>;
+    };
+    artists: Array<{ name: string }>;
+    external_urls: { spotify: string };
+  } | null;
+  is_playing: boolean;
+}
+
 export async function GET() {
   const { access_token } = await getAccessToken()
 
@@ -39,17 +52,17 @@ export async function GET() {
     return NextResponse.json({ isPlaying: false })
   }
 
-  const song = await response.json()
+  const song: SpotifyTrack = await response.json()
 
-  if (song.item === null) {
-      return NextResponse.json({ isPlaying: false })
+  if (!song.item) {
+    return NextResponse.json({ isPlaying: false })
   }
 
   const isPlaying = song.is_playing
   const title = song.item.name
-  const artist = song.item.artists.map((_artist: any) => _artist.name).join(', ')
+  const artist = song.item.artists.map((_artist) => _artist.name).join(', ')
   const album = song.item.album.name
-  const albumImageUrl = song.item.album.images[0].url
+  const albumImageUrl = song.item.album.images[0]?.url
   const songUrl = song.item.external_urls.spotify
 
   return NextResponse.json({
