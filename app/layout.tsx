@@ -5,7 +5,6 @@ import AuthProvider from "@/components/AuthProvider";
 import { ThemeProvider } from "next-themes";
 import { getSiteConfig, getPostsCount, getCategories, getAllTags, getYearArchive, getRecentPostsMetadata } from "@/lib/blog";
 import { SiteDataProvider } from "@/components/SiteDataProvider"
-import { ViewTransitions } from 'next-view-transitions'
 import { SpotifyProvider } from "@/components/SpotifyProvider"
 
 export const metadata: Metadata = {
@@ -28,8 +27,7 @@ export default async function RootLayout({
   ]);
 
   return (
-    <ViewTransitions>
-      <html lang="zh-CN" suppressHydrationWarning>
+    <html lang="zh-CN" suppressHydrationWarning>
         <head>
           <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
           <link rel="preconnect" href="https://images.arthurlovegrace.top" />
@@ -67,7 +65,6 @@ export default async function RootLayout({
             </AuthProvider>
           </ThemeProvider>
         </body>
-      </html>
-    </ViewTransitions>
+    </html>
   );
 }

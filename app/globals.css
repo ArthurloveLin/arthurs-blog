@@ -452,8 +452,65 @@ html {
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* Article card: fade in with cover morph, hide on exit */
+::view-transition-new(article-card) {
+  animation: 0.35s ease-out both fade-in;
+}
+::view-transition-old(article-card) {
+  display: none;
+}
+
+/* Article body: slide up on enter after morph, hide on exit */
+::view-transition-new(article-body) {
+  animation: 0.4s 0.32s ease-out both slide-up;
+}
+::view-transition-old(article-body) {
+  display: none;
+}
+
 /* Custom styles for Hero images to prevent 'ghosting' */
 ::view-transition-image-pair(*) {
   isolation: isolate;
+}
+
+/* ── Directional nav transitions (nav-forward / nav-back) ── */
+@keyframes vt-slide-out-left {
+  to { transform: translateX(-6%); opacity: 0; }
+}
+@keyframes vt-slide-in-right {
+  from { transform: translateX(6%); opacity: 0; }
+}
+@keyframes vt-slide-out-right {
+  to { transform: translateX(6%); opacity: 0; }
+}
+@keyframes vt-slide-in-left {
+  from { transform: translateX(-6%); opacity: 0; }
+}
+
+html:active-view-transition-type(nav-forward) {
+  &::view-transition-old(root) {
+    animation: 0.3s ease-out both vt-slide-out-left;
+  }
+  &::view-transition-new(root) {
+    animation: 0.3s ease-out both vt-slide-in-right;
+  }
+}
+
+html:active-view-transition-type(nav-back) {
+  &::view-transition-old(root) {
+    animation: 0.3s ease-out both vt-slide-out-right;
+  }
+  &::view-transition-new(root) {
+    animation: 0.3s ease-out both vt-slide-in-left;
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0.01ms !important;
+  }
 }
 

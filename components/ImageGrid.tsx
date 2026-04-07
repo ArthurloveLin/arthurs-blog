@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { useState, memo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Link } from 'next-view-transitions'
+import Link from 'next/link'
 import { TemplateConfig } from '@/lib/templates'
 
 interface Item {
@@ -299,16 +299,14 @@ const ViewableItemCard = memo(({
 }) => {
   const buyLabel = templateConfig?.descLabels?.buy || '买'
   const skipLabel = templateConfig?.descLabels?.skip || '不买'
+
   return (
     <>
-      <Link 
-        href={`/session/${sessionToken}/item/${item.id}`} 
+      <Link
+        href={`/session/${sessionToken}/item/${item.id}`}
         className="block h-full bg-card"
       >
-        <div 
-          className="relative aspect-square"
-          style={{ viewTransitionName: `wardrobe-item-${item.id}` }}
-        >
+        <div className="relative aspect-square">
           <Image
             src={item.image_url}
             alt="衣服图片"
@@ -336,7 +334,6 @@ const ViewableItemCard = memo(({
             </div>
           )}
         </div>
-
         <div className="p-2 space-y-0.5">
           {item.price !== null && (
             <p className="text-xs font-semibold text-foreground">¥{item.price}</p>

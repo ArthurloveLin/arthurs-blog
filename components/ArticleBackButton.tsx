@@ -1,13 +1,19 @@
 'use client'
 
-import { useTransitionRouter } from 'next-view-transitions'
+import { startTransition, unstable_addTransitionType as addTransitionType } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function ArticleBackButton() {
-  const router = useTransitionRouter()
+  const router = useRouter()
 
   return (
     <button
-      onClick={() => router.back()}
+      onClick={() => {
+        startTransition(() => {
+          addTransitionType('nav-back')
+          router.push('/', { scroll: false })
+        })
+      }}
       aria-label="返回上一页"
       className={[
         // Position: top-left of cover image

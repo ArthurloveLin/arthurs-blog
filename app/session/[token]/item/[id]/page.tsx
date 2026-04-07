@@ -5,6 +5,7 @@ import ActivityBanner from '@/components/ActivityBanner'
 import RealtimeSync from '@/components/RealtimeSync'
 import { getUserRole, getCurrentUser } from '@/lib/auth'
 
+
 export default async function ItemPage({
   params,
 }: {
@@ -36,9 +37,9 @@ export default async function ItemPage({
     <main className="min-h-screen bg-background">
       <RealtimeSync sessionId={item.session_id} />
       <ActivityBanner sessionId={item.session_id} />
-      <ItemDetail 
-        item={item as Parameters<typeof ItemDetail>[0]['item']} 
-        token={token} 
+      <ItemDetail
+        item={item as Parameters<typeof ItemDetail>[0]['item']}
+        token={token}
         templateConfig={templateConfig}
       />
     </main>

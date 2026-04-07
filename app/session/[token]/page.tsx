@@ -12,6 +12,7 @@ import RealtimeSync from '@/components/RealtimeSync'
 import ActivityBanner from '@/components/ActivityBanner'
 import TournamentEntry from '@/components/TournamentEntry'
 
+
 interface Item {
   id: string
   image_url: string
