@@ -162,6 +162,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Custom classes for gradients */
 .bg-gradient-primary {
   background-image: var(--gradient-primary);
