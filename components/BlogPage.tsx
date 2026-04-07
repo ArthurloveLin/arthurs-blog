@@ -1,4 +1,5 @@
-import { Link } from 'next-view-transitions'
+import Link from 'next/link'
+import { unstable_ViewTransition as ViewTransition } from 'react'
 import type { Post } from '@/lib/blog'
 
 import PostCard from '@/components/PostCard'
@@ -10,6 +11,8 @@ import ArchiveCard from '@/components/ArchiveCard'
 import ToolsCard from '@/components/ToolsCard'
 import AdminOnly from '@/components/AdminOnly'
 import ReindexButton from '@/components/ReindexButton'
+import DirectionalTransition from '@/components/DirectionalTransition'
+import ScrollRestorer from '@/components/ScrollRestorer'
 
 interface BlogPageProps {
   posts: Post[]
@@ -29,6 +32,8 @@ export default function BlogPage({
   activeYear = null,
 }: BlogPageProps) {
   return (
+    <DirectionalTransition>
+    <ScrollRestorer />
     <main className="min-h-screen bg-background">
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <div className="relative border-b border-border bg-background overflow-hidden">
@@ -126,7 +131,9 @@ export default function BlogPage({
             {posts.length > 0 && (
               <div className="space-y-6">
                 {posts.map((post, index) => (
-                  <PostCard key={post.id} post={post} index={index} />
+                  <ViewTransition key={post.id}>
+                    <PostCard post={post} index={index} />
+                  </ViewTransition>
                 ))}
               </div>
             )}
@@ -168,5 +175,6 @@ export default function BlogPage({
       </footer>
 
     </main>
+    </DirectionalTransition>
   )
 }

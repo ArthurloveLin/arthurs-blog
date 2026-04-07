@@ -2,7 +2,7 @@
 
 import { useState, useMemo, memo } from 'react'
 import Image from 'next/image'
-import { Link } from 'next-view-transitions'
+import Link from 'next/link'
 
 import { useSiteData } from './SiteDataProvider'
 import { useAuth } from './AuthProvider'
@@ -56,9 +56,8 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
   }
 
   return (
-    <div 
+    <div
       className={`bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative group border border-border/50 dark:border-white/10 z-10 hover:z-30 ${compact ? 'p-5' : 'p-6'}`}
-      style={{ viewTransitionName: 'author-card-container' }}
     >
       
       {/* Admin Settings Button (Top-Right) */}
@@ -79,16 +78,14 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
       <div className="flex justify-center">
         <div className="relative">
           {avatarUrl ? (
-            <div 
+            <div
               className="relative rounded-full overflow-hidden shadow-[0_4px_16px_rgb(0,0,0,0.12)] border-2 border-background bg-muted w-22 h-22"
-              style={{ viewTransitionName: 'author-avatar' }}
             >
               <Image src={avatarUrl} alt={name} fill className="object-cover" unoptimized />
             </div>
           ) : (
-            <div 
+            <div
               className="rounded-full bg-gradient-primary flex items-center justify-center shadow-[0_4px_16px_rgb(0,0,0,0.12)] border-2 border-background dark:border-white/10 w-22 h-22 text-sm"
-              style={{ viewTransitionName: 'author-avatar' }}
             >
               <span className="text-primary-foreground font-bold tracking-tight">A&G</span>
             </div>
@@ -96,9 +93,8 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
           
           {/* Status Badge */}
           {statusEmoji && (
-            <div 
+            <div
               className="absolute -bottom-1 -right-1 bg-card border border-border rounded-full flex items-center justify-center shadow-md animate-bounce-subtle z-10 select-none w-8 h-8 text-sm"
-              style={{ viewTransitionName: 'author-status' }}
             >
               {statusEmoji}
             </div>
@@ -108,9 +104,8 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
 
       {/* Basic Info */}
       <div className="text-center mt-5">
-        <h2 
+        <h2
           className="text-xl font-bold text-gradient-primary tracking-tight"
-          style={{ viewTransitionName: 'author-name' }}
         >
           {name}
         </h2>

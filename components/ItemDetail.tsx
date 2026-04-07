@@ -192,7 +192,6 @@ export default function ItemDetail({
         <button
           className="relative w-full aspect-square rounded-2xl overflow-hidden bg-card border border-border shadow-sm mb-5 block"
           onClick={() => setLightboxOpen(true)}
-          style={{ viewTransitionName: `wardrobe-item-${item.id}` }}
         >
           <Image
             src={item.image_url}

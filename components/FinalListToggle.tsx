@@ -1,10 +1,10 @@
 'use client'
 
 import { usePathname, useSearchParams } from 'next/navigation'
-import { useTransitionRouter } from 'next-view-transitions'
+import { useRouter } from 'next/navigation'
 
 export default function FinalListToggle({ current }: { current: string }) {
-  const router = useTransitionRouter()
+  const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
