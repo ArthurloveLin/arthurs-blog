@@ -1,0 +1,11 @@
+# 敏感配置
+.env
+.env.local
+.env*.local
+
+# 构建产物
+.next/
+node_modules/
+
+# 归档文件
+MD/archive/
