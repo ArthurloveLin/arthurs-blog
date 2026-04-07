@@ -1,52 +1,54 @@
 'use client'
 
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect, ReactNode, startTransition } from 'react'
 
 interface ScrollHideWrapperProps {
-  children: ReactNode
+  children: ReactNode | ((isTriggered: boolean) => ReactNode)
   threshold?: number
   className?: string
+  vanish?: boolean
 }
 
 /**
  * ScrollHideWrapper
  * Hides its content by collapsing height and fading out when scrolled beyond a threshold.
- * Used for the author profile card to "reveal" content below it.
+ * Or provides the scroll state to its children if vanish is false.
  */
 export default function ScrollHideWrapper({
   children,
-  threshold = 200,
+  threshold = 300,
   className = "",
+  vanish = true,
 }: ScrollHideWrapperProps) {
-  const [isVisible, setIsVisible] = useState(true)
+  const [isTriggered, setIsTriggered] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
-      // Determine if it should be visible based on scroll position
       const currentScrollY = window.scrollY
-      if (currentScrollY > threshold) {
-        setIsVisible(false)
-      } else {
-        setIsVisible(true)
-      }
+      startTransition(() => {
+        setIsTriggered(currentScrollY > threshold)
+      })
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
-    // Initial check
     handleScroll()
 
     return () => window.removeEventListener('scroll', handleScroll)
   }, [threshold])
 
+  const content = typeof children === 'function' ? children(isTriggered) : children
+
   return (
     <div
       className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
-        isVisible 
-          ? "opacity-100 max-h-[1000px] transform-none pointer-events-auto" 
-          : "opacity-0 max-h-0 -translate-y-4 scale-95 pointer-events-none"
+        vanish
+          ? isTriggered
+            ? "opacity-0 max-h-0 -translate-y-4 scale-95 pointer-events-none"
+            : "opacity-100 max-h-[1000px] transform-none pointer-events-auto"
+          : "opacity-100 max-h-none transform-none pointer-events-auto"
       } ${className}`}
     >
-      {children}
+      {content}
     </div>
   )
 }
