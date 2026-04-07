@@ -4,11 +4,16 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 
 interface SpotifyData {
   isPlaying: boolean
+  isRecentlyPlayed?: boolean
   title?: string
   artist?: string
   album?: string
   albumImageUrl?: string
   songUrl?: string
+  deviceName?: string
+  deviceType?: string
+  playedAt?: string
+  bpm?: number
 }
 
 interface SpotifyContextType {
