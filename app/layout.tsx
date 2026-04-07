@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes";
 import { getSiteConfig, getPostsCount, getCategories, getAllTags, getYearArchive, getRecentPostsMetadata } from "@/lib/blog";
 import { SiteDataProvider } from "@/components/SiteDataProvider"
 import { SpotifyProvider } from "@/components/SpotifyProvider"
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: "Arthur & Grace",
@@ -64,6 +65,11 @@ export default async function RootLayout({
               </SpotifyProvider>
             </AuthProvider>
           </ThemeProvider>
+          <Script
+             src="https://analytics.arthurlovegrace.top/script.js"
+             data-website-id="ec4e0366-0b25-4529-a142-2fea5492cf32"
+             strategy="afterInteractive"
+          />
         </body>
     </html>
   );
