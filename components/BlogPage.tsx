@@ -13,6 +13,7 @@ import AdminOnly from '@/components/AdminOnly'
 import ReindexButton from '@/components/ReindexButton'
 import DirectionalTransition from '@/components/DirectionalTransition'
 import ScrollRestorer from '@/components/ScrollRestorer'
+import ScrollHideWrapper from '@/components/ScrollHideWrapper'
 
 interface BlogPageProps {
   posts: Post[]
@@ -69,8 +70,10 @@ export default function BlogPage({
           {/* ── Left Sidebar ─────────────────────────────────────────── */}
           {/* Desktop: col-span-3 | Tablet: col-span-4 | Mobile: hidden */}
           <aside className="hidden md:block md:col-span-4 lg:col-span-3">
-            <div className="sticky top-24 space-y-4">
-              <AuthorProfileCard />
+            <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none overscroll-contain pb-12 space-y-4">
+              <ScrollHideWrapper threshold={250}>
+                <AuthorProfileCard />
+              </ScrollHideWrapper>
               <CategoriesCard activeCategory={activeCategory} />
               <TagsCloudCard activeTags={activeTags} />
             </div>
@@ -142,7 +145,7 @@ export default function BlogPage({
           {/* ── Right Sidebar ─────────────────────────────────────────── */}
           {/* Desktop only: col-span-3 | Tablet + Mobile: hidden */}
           <aside className="hidden lg:block lg:col-span-3">
-            <div className="sticky top-24 space-y-4">
+            <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none overscroll-contain pb-12 space-y-4">
               <RecentPostsCard />
               <ToolsCard />
               <ArchiveCard activeYear={activeYear} />
