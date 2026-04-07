@@ -5,7 +5,9 @@ const client_secret = process.env.SPOTIFY_CLIENT_SECRET
 const refresh_token = process.env.SPOTIFY_REFRESH_TOKEN
 
 const basic = Buffer.from(`${client_id}:${client_secret}`).toString('base64')
-const NOW_PLAYING_ENDPOINT = `https://api.spotify.com/v1/me/player/currently-playing`
+const PLAYER_ENDPOINT = `https://api.spotify.com/v1/me/player`
+const RECENTLY_PLAYED_ENDPOINT = `https://api.spotify.com/v1/me/player/recently-played?limit=10`
+const AUDIO_FEATURES_ENDPOINT = `https://api.spotify.com/v1/audio-features`
 const TOKEN_ENDPOINT = `https://accounts.spotify.com/api/token`
 
 const getAccessToken = async () => {
@@ -27,50 +29,134 @@ const getAccessToken = async () => {
 export const dynamic = 'force-dynamic'
 
 interface SpotifyTrack {
-  item: {
+  id: string;
+  name: string;
+  album: {
     name: string;
-    album: {
-      name: string;
-      images: Array<{ url: string }>;
-    };
-    artists: Array<{ name: string }>;
-    external_urls: { spotify: string };
-  } | null;
+    images: Array<{ url: string }>;
+  };
+  artists: Array<{ name: string }>;
+  external_urls: { spotify: string };
+}
+
+interface SpotifyPlayback {
+  item: SpotifyTrack | null;
   is_playing: boolean;
+  device?: {
+    name: string;
+    type: string;
+  };
+}
+
+interface RecentlyPlayed {
+  items: Array<{
+    track: SpotifyTrack;
+    played_at: string;
+  }>;
+}
+
+interface TrackInfo {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumImageUrl: string;
+  songUrl: string;
+  deviceName?: string;
+  deviceType?: string;
+  playedAt?: string;
 }
 
 export async function GET() {
   const { access_token } = await getAccessToken()
 
-  const response = await fetch(NOW_PLAYING_ENDPOINT, {
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-    },
+  // 1. Try to get current playback
+  const playerRes = await fetch(PLAYER_ENDPOINT, {
+    headers: { Authorization: `Bearer ${access_token}` },
   })
 
-  if (response.status === 204 || response.status > 400) {
+  let isPlaying = false
+  let currentTrack: TrackInfo | null | undefined = null
+
+  if (playerRes.status === 200) {
+    const playback: SpotifyPlayback = await playerRes.json()
+    if (playback.item) {
+      isPlaying = playback.is_playing
+      currentTrack = {
+        title: playback.item.name,
+        artist: playback.item.artists.map((a) => a.name).join(', '),
+        album: playback.item.album.name,
+        albumImageUrl: playback.item.album.images[0]?.url,
+        songUrl: playback.item.external_urls.spotify,
+        deviceName: playback.device?.name,
+        deviceType: playback.device?.type,
+        playedAt: playback.is_playing ? undefined : new Date().toISOString(),
+        id: playback.item.id,
+      }
+    }
+  }
+
+  // 2. Always fetch recently played to populate history
+  const recentRes = await fetch(RECENTLY_PLAYED_ENDPOINT, {
+    headers: { Authorization: `Bearer ${access_token}` },
+  })
+  
+  const recentTracks: TrackInfo[] = []
+  if (recentRes.ok) {
+    const recent: RecentlyPlayed = await recentRes.json()
+    
+    // Map to simplified structure and remove duplicates by track ID
+    const seenIds = new Set()
+    if (currentTrack?.id) seenIds.add(currentTrack.id)
+    
+    recent.items.forEach(item => {
+      if (!seenIds.has(item.track.id) && recentTracks.length < 5) {
+        seenIds.add(item.track.id)
+        recentTracks.push({
+          id: item.track.id,
+          title: item.track.name,
+          artist: item.track.artists.map((a) => a.name).join(', '),
+          album: item.track.album.name,
+          albumImageUrl: item.track.album.images[0]?.url,
+          songUrl: item.track.external_urls.spotify,
+          playedAt: item.played_at,
+        })
+      }
+    })
+  }
+
+  // 3. Fallback: If nothing is playing, currentTrack uses the latest from recentTracks
+  let isRecentlyPlayedFiltered = false
+  if (!currentTrack && recentTracks.length > 0) {
+    isRecentlyPlayedFiltered = true
+    currentTrack = recentTracks.shift()
+  }
+
+  if (!currentTrack) {
     return NextResponse.json({ isPlaying: false })
   }
 
-  const song: SpotifyTrack = await response.json()
-
-  if (!song.item) {
-    return NextResponse.json({ isPlaying: false })
+  // 4. Optional: Get BPM for current track
+  let bpm = null
+  if (currentTrack.id) {
+    try {
+      const audioFeaturesRes = await fetch(`${AUDIO_FEATURES_ENDPOINT}/${currentTrack.id}`, {
+        headers: { Authorization: `Bearer ${access_token}` },
+      })
+      if (audioFeaturesRes.ok) {
+        const features = await audioFeaturesRes.json()
+        bpm = features.tempo
+      }
+    } catch (e) {
+      console.error('Failed to fetch audio features', e)
+    }
   }
-
-  const isPlaying = song.is_playing
-  const title = song.item.name
-  const artist = song.item.artists.map((_artist) => _artist.name).join(', ')
-  const album = song.item.album.name
-  const albumImageUrl = song.item.album.images[0]?.url
-  const songUrl = song.item.external_urls.spotify
 
   return NextResponse.json({
-    album,
-    albumImageUrl,
-    artist,
+    ...currentTrack,
     isPlaying,
-    songUrl,
-    title,
+    isRecentlyPlayed: isRecentlyPlayedFiltered,
+    bpm,
+    recentTracks, 
   })
 }

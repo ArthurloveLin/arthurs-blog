@@ -68,13 +68,13 @@ export default function MobileDrawers({
           </button>
         </div>
 
-        <div className="pb-8 text-foreground" onClick={() => setActiveDrawer(null)}>
+        <div className="pb-8 text-foreground">
           {activeDrawer === 'author' && <AuthorProfileCard />}
           {activeDrawer === 'categories' && <CategoriesCard activeCategory={activeCategory} />}
           {activeDrawer === 'tags' && <TagsCloudCard activeTags={activeTags} />}
           {activeDrawer === 'recent' && <RecentPostsCard />}
           {activeDrawer === 'archive' && <ArchiveCard activeYear={activeYear} />}
-          {activeDrawer === 'tools' && <ToolsCard />}
+          {activeDrawer === 'tools' && <ToolsCard id="mobile" />}
         </div>
       </div>
     </div>
