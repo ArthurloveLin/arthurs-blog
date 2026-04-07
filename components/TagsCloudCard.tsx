@@ -1,6 +1,6 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useSiteData } from './SiteDataProvider'
 
@@ -16,35 +16,134 @@ function buildTagsUrl(activeTags: string[], toggleTag: string): string {
 
 const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloudCardProps) {
   const { sidebarData: { tags } } = useSiteData()
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  const containerRef = useRef<HTMLDivElement>(null)
+  
+  // Initialize expanded state on mobile
+  useEffect(() => {
+    if (window.innerWidth < 768) {
+      setIsExpanded(true)
+    }
+  }, [])
+
+  // Auto-scroll when expanded
+  useEffect(() => {
+    if (isExpanded && containerRef.current) {
+      // Use a brief delay to allow the expansion animation to begin
+      const timer = setTimeout(() => {
+        containerRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'nearest' 
+        })
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [isExpanded])
+
+  const processedTags = useMemo(() => {
+    if (tags.length === 0) return []
+    
+    // 1. Sort by count (descending)
+    const sorted = [...tags].sort((a, b) => b.count - a.count)
+    
+    if (!isExpanded) return sorted
+
+    // 2. For expanded "Cloud" view: Reorder for center-weighted distribution
+    // This puts largest in the middle of the array
+    const reordered: typeof tags = []
+    sorted.forEach((tag, i) => {
+      if (i % 2 === 0) reordered.push(tag)
+      else reordered.unshift(tag)
+    })
+    
+    return reordered
+  }, [tags, isExpanded])
+
   if (tags.length === 0) return null
 
+  const maxCount = Math.max(...tags.map(t => t.count))
+  const minCount = Math.min(...tags.map(t => t.count))
+
   return (
-    <div className="bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:border-white/20 p-5">
+    <div 
+      ref={containerRef}
+      className="bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:border-white/20 p-5 overflow-hidden"
+    >
 
       {/* Title */}
-      <h3 className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase mb-3">
-        标签
-      </h3>
-
-      {/* Tags cloud */}
-      <div className="flex flex-wrap gap-2">
-        {tags.map(({ tag, count }) => {
-          const isActive = activeTags.includes(tag)
-          return (
-            <Link
-              key={tag}
-              href={buildTagsUrl(activeTags, tag)}
-              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm transition duration-200 ${
-                isActive
-                  ? 'bg-gradient-primary text-primary-foreground'
-                  : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase">
+          标签
+        </h3>
+        {tags.length > 10 && (
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-widest flex items-center gap-1 group md:flex hidden"
+          >
+            {isExpanded ? '收起' : '展开'}
+            <svg 
+              className={`w-3 h-3 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} 
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
             >
-              {tag}
-              <span className={`text-[10px] tabular-nums ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{count}</span>
-            </Link>
-          )
-        })}
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Tags Cloud Container */}
+      <div className="relative group/tags">
+        <div 
+          className={`flex flex-wrap gap-x-2 gap-y-2 transition-all duration-500 ease-in-out origin-top ${
+            isExpanded 
+              ? 'justify-center items-center py-6 min-h-[300px]' 
+              : 'max-h-[155px] overflow-hidden'
+          }`}
+        >
+          {processedTags.map(({ tag, count }) => {
+            const isActive = activeTags.includes(tag)
+            
+            // Calculate weight-based aesthetics
+            const weight = maxCount === minCount ? 0 : (count - minCount) / (maxCount - minCount)
+            
+            // Expanded view size: 0.8rem to 1.6rem
+            // Collapsed view size: 0.875rem (sm)
+            const fontSize = isExpanded 
+              ? `${0.8 + weight * 0.8}rem` 
+              : '0.875rem'
+
+            // Opacity: high frequency = more solid
+            const opacity = isExpanded ? 0.6 + weight * 0.4 : 1
+
+            return (
+              <Link
+                key={tag}
+                href={buildTagsUrl(activeTags, tag)}
+                style={{ 
+                  fontSize,
+                  opacity,
+                  transitionDelay: isExpanded ? `${Math.random() * 200}ms` : '0ms'
+                }}
+                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 transition-all duration-300 hover:scale-110 active:scale-95 ${
+                  isActive
+                    ? 'bg-gradient-primary text-primary-foreground shadow-lg shadow-primary/25 ring-2 ring-primary/20 scale-105 z-10'
+                    : 'bg-muted/30 text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-border/40 backdrop-blur-[2px]'
+                } ${isExpanded && weight > 0.8 ? 'font-bold shadow-sm' : ''} ${isExpanded ? 'hover:shadow-xl hover:shadow-primary/10 hover:z-20' : ''}`}
+              >
+                <span className="whitespace-nowrap tracking-tight">{tag}</span>
+                <span className={`text-[10px] tabular-nums font-bold transition-opacity duration-300 ${isActive ? 'text-primary-foreground/90' : 'text-muted-foreground/60 group-hover/tags:opacity-100'}`}>
+                  {count}
+                </span>
+              </Link>
+            )
+          })}
+        </div>
+
+        {/* Fade-out mask for collapsed state */}
+        {!isExpanded && tags.length > 8 && (
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent pointer-events-none transition-opacity duration-300 group-hover/tags:opacity-0" />
+        )}
       </div>
 
     </div>
