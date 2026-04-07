@@ -1,6 +1,6 @@
 'use client'
 
-import { Link } from 'next-view-transitions'
+import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 

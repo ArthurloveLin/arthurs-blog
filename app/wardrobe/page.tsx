@@ -1,9 +1,8 @@
-import { Link } from 'next-view-transitions'
+import Link from 'next/link'
 import { Suspense } from 'react'
 import { supabaseAdmin } from '@/lib/supabase'
 import SessionList from '@/components/SessionList'
 import AdminOnly from '@/components/AdminOnly'
-
 export const revalidate = 60
 
 export default async function WardrobePage() {

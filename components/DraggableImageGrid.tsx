@@ -1,4 +1,4 @@
-import { Link } from 'next-view-transitions'
+import Link from 'next/link'
 
 import Image from 'next/image'
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -95,10 +95,7 @@ export default function DraggableImageGrid({ items: initialItems, sessionToken }
                           href={`/session/${sessionToken}/item/${item.id}`}
                           className="relative w-16 h-16 shrink-0 overflow-hidden rounded-lg bg-gray-100"
                         >
-                          <div 
-                            className="relative w-full h-full"
-                            style={{ viewTransitionName: `wardrobe-item-${item.id}` }}
-                          >
+                          <div className="relative w-full h-full">
                           <Image
                             src={item.image_url}
                             alt="衣服图片"

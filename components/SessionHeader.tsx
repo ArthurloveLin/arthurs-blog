@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Link } from 'next-view-transitions'
+import Link from 'next/link'
 import { useAuth } from './AuthProvider'
-import { logout } from '@/app/auth/logout/actions'
+
 import { TemplateConfig } from '@/lib/templates'
 
 interface SessionHeaderProps {
@@ -18,9 +18,8 @@ interface SessionHeaderProps {
 }
 
 export default function SessionHeader({ session, templateConfig }: SessionHeaderProps) {
-  const { role, displayName, email } = useAuth()
+  const { role } = useAuth()
   const isAdmin = role === 'admin'
-  const isLoggedIn = role !== 'guest'
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(session.title || '')
   const [note, setNote] = useState(session.note || '')
@@ -127,17 +126,7 @@ export default function SessionHeader({ session, templateConfig }: SessionHeader
           <p className="text-xs text-muted-foreground/30 mt-1.5 italic font-medium">点击添加备注和预算，更好地管理您的{templateConfig?.name || ''}评价。</p>
         )}
       </div>
-      {isLoggedIn && (
-        <form action={logout} className="shrink-0 mt-1">
-          <button
-            type="submit"
-            title={`${displayName || email} — 退出登录`}
-            className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 hover:text-destructive transition-colors px-2 py-1.5 rounded-lg hover:bg-destructive/10"
-          >
-            LOGOUT
-          </button>
-        </form>
-      )}
+
     </div>
   )
 }

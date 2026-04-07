@@ -11,8 +11,15 @@ interface Props extends React.HTMLAttributes<HTMLElement> {
 
 export default function PrefetchOnHover({ href, className, children, ...rest }: Props) {
   const router = useRouter()
+
+  function handleClick() {
+    // 记录当前滚动位置，供返回时恢复
+    const referrer = window.location.pathname
+    sessionStorage.setItem(`scroll-restore:${referrer}`, String(window.scrollY))
+  }
+
   return (
-    <article className={className} onMouseEnter={() => router.prefetch(href)} {...rest}>
+    <article className={className} onMouseEnter={() => router.prefetch(href)} onClick={handleClick} {...rest}>
       {children}
     </article>
   )

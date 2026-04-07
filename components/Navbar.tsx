@@ -1,9 +1,9 @@
 'use client'
 
-import { Link, useTransitionRouter } from 'next-view-transitions'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import Link from 'next/link'
+import { useState, useEffect, useRef, useCallback, startTransition, unstable_addTransitionType as addTransitionType, unstable_ViewTransition as ViewTransition } from 'react'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useAuth } from '@/components/AuthProvider'
 import { logout } from '@/app/auth/logout/actions'
@@ -28,7 +28,7 @@ export default function Navbar() {
   const logoUrl = config?.author_avatar_url
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
-  const router = useTransitionRouter()
+  const router = useRouter()
   const pathname = usePathname()
 
   // 追踪上一个 pathname，用于判断是否能安全地 back()
@@ -52,11 +52,17 @@ export default function Navbar() {
     const prevIsArticle = prev !== null && prev.startsWith('/blog/') && prev !== '/blog'
 
     if (!prevIsArticle && prev !== null) {
-      // 上一页是列表/首页，back() 可以精准恢复滚动位置
-      router.back()
+      // 上一页是列表/首页，push('/') 触发 View Transition（router.back() 与 startViewTransition 不兼容）
+      startTransition(() => {
+        addTransitionType('nav-back')
+        router.push('/', { scroll: false })
+      })
     } else {
       // 上一页是另一篇文章（侧边栏跳转），或首次直接访问 → 正常导航到首页
-      router.push('/')
+      startTransition(() => {
+        addTransitionType('nav-forward')
+        router.push('/')
+      })
     }
   }, [pathname, router])
 
@@ -66,8 +72,8 @@ export default function Navbar() {
 
   return (
     <>
-    <header 
-      style={{ viewTransitionName: 'navbar' }}
+    <ViewTransition name="navbar" default="none">
+    <header
       className={
         "sticky top-0 z-50 border-b transition-colors duration-300 " +
         // 浅色模式: 灰色透明磨砂效果
@@ -311,11 +317,12 @@ export default function Navbar() {
         )}
       </div>
     </header>
+    </ViewTransition>
 
     {/* ── Mobile Bottom Dock ───────────────────────────── */}
-    <div 
+    <ViewTransition name="mobile-dock" default="none">
+    <div
       className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 md:hidden"
-      style={{ viewTransitionName: 'mobile-dock' }}
     >
       <div className={
         "flex items-center gap-0.5 px-2 py-1.5 " +
@@ -399,6 +406,7 @@ export default function Navbar() {
         </button>
       </div>
     </div>
+    </ViewTransition>
 
     {/* ── Mobile Sidebar Drawers ────────────────────────── */}
     <MobileDrawers activeDrawer={activeDrawer} setActiveDrawer={setActiveDrawer} />
