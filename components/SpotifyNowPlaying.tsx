@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, startTransition, unstable_ViewTransition as ViewTransition } from 'react'
+import React, { useState, startTransition, unstable_ViewTransition as ViewTransition, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { useSpotify } from './SpotifyProvider'
 
@@ -28,6 +28,21 @@ export default function SpotifyNowPlaying({ id = 'default' }: { id?: string }) {
       setIsExpanded(!isExpanded)
     })
   }
+
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isExpanded && containerRef.current) {
+      // Use a brief delay to allow the expansion animation to begin
+      const timer = setTimeout(() => {
+        containerRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'nearest' 
+        })
+      }, 150)
+      return () => clearTimeout(timer)
+    }
+  }, [isExpanded])
 
   if (loading) {
     return (
@@ -78,6 +93,7 @@ export default function SpotifyNowPlaying({ id = 'default' }: { id?: string }) {
   return (
     <ViewTransition name={`spotify-card-${id}`}>
       <div
+        ref={containerRef}
         onClick={toggleExpand}
         className={`relative overflow-hidden transition-all duration-500 cursor-pointer group ${
           isExpanded 
