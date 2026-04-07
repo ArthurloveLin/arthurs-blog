@@ -14,6 +14,15 @@ interface SpotifyData {
   deviceType?: string
   playedAt?: string
   bpm?: number
+  recentTracks?: Array<{
+    id: string
+    title: string
+    artist: string
+    album: string
+    albumImageUrl: string
+    songUrl: string
+    playedAt: string
+  }>
 }
 
 interface SpotifyContextType {
