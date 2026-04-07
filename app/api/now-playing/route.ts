@@ -55,6 +55,18 @@ interface RecentlyPlayed {
   }>;
 }
 
+interface TrackInfo {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumImageUrl: string;
+  songUrl: string;
+  deviceName?: string;
+  deviceType?: string;
+  playedAt?: string;
+}
+
 export async function GET() {
   const { access_token } = await getAccessToken()
 
@@ -64,7 +76,7 @@ export async function GET() {
   })
 
   let isPlaying = false
-  let currentTrack: any = null
+  let currentTrack: TrackInfo | null | undefined = null
 
   if (playerRes.status === 200) {
     const playback: SpotifyPlayback = await playerRes.json()
@@ -89,7 +101,7 @@ export async function GET() {
     headers: { Authorization: `Bearer ${access_token}` },
   })
   
-  let recentTracks: any[] = []
+  const recentTracks: TrackInfo[] = []
   if (recentRes.ok) {
     const recent: RecentlyPlayed = await recentRes.json()
     
