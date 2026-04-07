@@ -29,7 +29,7 @@ const tools = [
   },
 ]
 
-const ToolsCard = memo(function ToolsCard() {
+const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
   return (
     <div className="bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:border-white/20 p-5">
 
@@ -41,7 +41,7 @@ const ToolsCard = memo(function ToolsCard() {
       {/* Tool links */}
       <ul className="space-y-1">
         <li>
-          <SpotifyNowPlaying />
+          <SpotifyNowPlaying id={id} />
         </li>
         {tools.map((tool) => {
           const inner = (
