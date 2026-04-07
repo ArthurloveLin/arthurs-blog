@@ -1,3 +1,4 @@
+'use client'
 import Link from 'next/link'
 import { unstable_ViewTransition as ViewTransition } from 'react'
 import type { Post } from '@/lib/blog'
@@ -71,8 +72,12 @@ export default function BlogPage({
           {/* Desktop: col-span-3 | Tablet: col-span-4 | Mobile: hidden */}
           <aside className="hidden md:block md:col-span-4 lg:col-span-3">
             <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none overscroll-contain pb-12 space-y-4">
-              <ScrollHideWrapper threshold={250}>
-                <AuthorProfileCard />
+              <ScrollHideWrapper threshold={300} vanish={false}>
+                {(isTriggered) => (
+                  <ViewTransition name="author-card">
+                    <AuthorProfileCard compact={isTriggered} />
+                  </ViewTransition>
+                )}
               </ScrollHideWrapper>
               <CategoriesCard activeCategory={activeCategory} />
               <TagsCloudCard activeTags={activeTags} />
