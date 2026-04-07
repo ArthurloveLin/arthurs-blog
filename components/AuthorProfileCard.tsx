@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, memo } from 'react'
+import { useState, useMemo, memo, unstable_ViewTransition as ViewTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -75,40 +75,43 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
       )}
       
       {/* Avatar & Status */}
-      <div className="flex justify-center">
-        <div className="relative">
-          {avatarUrl ? (
-            <div
-              className="relative rounded-full overflow-hidden shadow-[0_4px_16px_rgb(0,0,0,0.12)] border-2 border-background bg-muted w-22 h-22"
-            >
-              <Image src={avatarUrl} alt={name} fill className="object-cover" unoptimized />
-            </div>
-          ) : (
-            <div
-              className="rounded-full bg-gradient-primary flex items-center justify-center shadow-[0_4px_16px_rgb(0,0,0,0.12)] border-2 border-background dark:border-white/10 w-22 h-22 text-sm"
-            >
-              <span className="text-primary-foreground font-bold tracking-tight">A&G</span>
-            </div>
-          )}
-          
-          {/* Status Badge */}
-          {statusEmoji && (
-            <div
-              className="absolute -bottom-1 -right-1 bg-card border border-border rounded-full flex items-center justify-center shadow-md animate-bounce-subtle z-10 select-none w-8 h-8 text-sm"
-            >
-              {statusEmoji}
-            </div>
-          )}
+      <ViewTransition name="author-avatar" share="morph">
+        <div className="flex justify-center">
+          <div className="relative">
+            {avatarUrl ? (
+              <div
+                className="relative rounded-full overflow-hidden shadow-[0_4px_16px_rgb(0,0,0,0.12)] border-2 border-background bg-muted w-22 h-22"
+              >
+                <Image src={avatarUrl} alt={name} fill className="object-cover" unoptimized />
+              </div>
+            ) : (
+              <div
+                className="rounded-full bg-gradient-primary flex items-center justify-center shadow-[0_4px_16px_rgb(0,0,0,0.12)] border-2 border-background dark:border-white/10 w-22 h-22 text-sm"
+              >
+                <span className="text-primary-foreground font-bold tracking-tight">A&G</span>
+              </div>
+            )}
+            
+            {/* Status Badge */}
+            {statusEmoji && (
+              <div
+                className="absolute -bottom-1 -right-1 bg-card border border-border rounded-full flex items-center justify-center shadow-md animate-bounce-subtle z-10 select-none w-8 h-8 text-sm"
+              >
+                {statusEmoji}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </ViewTransition>
 
       {/* Basic Info */}
-      <div className="text-center mt-5">
-        <h2
-          className="text-xl font-bold text-gradient-primary tracking-tight"
-        >
-          {name}
-        </h2>
+      <ViewTransition name="author-name">
+        <div className="text-center mt-5">
+          <h2
+            className="text-xl font-bold text-gradient-primary tracking-tight"
+          >
+            {name}
+          </h2>
         
         {!compact && (
           <>
@@ -129,6 +132,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
           </>
         )}
       </div>
+    </ViewTransition>
       
       {/* Bio / Motto - Shown in both modes, but slightly different spacing */}
       <p className="text-sm text-foreground/70 text-center leading-relaxed mt-4 mb-5 italic font-serif px-2">

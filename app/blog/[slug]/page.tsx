@@ -12,6 +12,7 @@ import TableOfContents from '@/components/TableOfContents'
 import CategoriesCard from '@/components/CategoriesCard'
 import RecentPostsCard from '@/components/RecentPostsCard'
 import ToolsCard from '@/components/ToolsCard'
+import ScrollHideWrapper from '@/components/ScrollHideWrapper'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export const revalidate = 60
@@ -60,7 +61,11 @@ export default async function BlogPostPage({
           {/* Left Sidebar Space - Matches Blog List Grid */}
           <aside className="hidden md:block md:col-span-4 lg:col-span-3 h-full">
             <div className="sticky top-24 space-y-4">
-              <AuthorProfileCard compact />
+              <ScrollHideWrapper threshold={300}>
+                <ViewTransition name="author-card">
+                  <AuthorProfileCard compact />
+                </ViewTransition>
+              </ScrollHideWrapper>
               <TableOfContents content={content} />
               <CategoriesCard activeCategory={post.category} />
             </div>
