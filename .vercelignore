@@ -1,29 +1,59 @@
 # ==========================================
-# Documentation — 改动不触发重新部署
+# 1. Documentation & Product Docs
 # ==========================================
 README.md
 prd.md
+CLAUDE.md
+MD/
+docs/
 architecture_plan_v2.md
 architecture_plan_v3.md
+*.md
 
 # ==========================================
-# Claude AI workspace — 与构建无关
+# 2. AI Tools & Agents (Claude/Local)
 # ==========================================
+.agents/
 .claude/
+.claudeignore
+skills-lock.json
+.cursorrules
 
 # ==========================================
-# Supabase migrations — 迁移通过 CLI 手动执行，非构建产物
-# 如果你在 build 脚本里跑 supabase db push，请删掉这行
+# 3. Scripts, DB Ops & Workers
 # ==========================================
+scripts/
 supabase/
+workers/
+tmp/
+*.sh
+*.py
 
 # ==========================================
-# 本地环境变量 — 不应上传（Vercel 用 Dashboard 管理）
+# 4. Environment & Secrets (Vercel manages these)
 # ==========================================
-.env.local
+.env*
+.npmrc
+.vercel/
 
 # ==========================================
-# 以下 Vercel 通常已自动忽略，显式声明更保险
+# 5. Build Artifacts & System Caches
 # ==========================================
 node_modules/
 .next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# ==========================================
+# 6. Global System Files
+# ==========================================
+.DS_Store
+Thumbs.db
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
