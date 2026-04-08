@@ -1,8 +1,22 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import Link from 'next/link'
 import SpotifyNowPlaying from './SpotifyNowPlaying'
+import AnalyticsDashboard from './AnalyticsDashboard'
+
+type UmamiApi = {
+  track: (eventName: string, data?: Record<string, string>) => void
+}
+
+function trackEvent(eventName: string, data: Record<string, string> = {}) {
+  if (typeof window === 'undefined') return
+
+  const umami = (window as Window & { umami?: UmamiApi }).umami
+  if (!umami || typeof umami.track !== 'function') return
+
+  umami.track(eventName, data)
+}
 
 const tools = [
   {
@@ -28,7 +42,7 @@ const tools = [
     external: true,
   },
   {
-    href: 'https://analytics.arthurlovegrace.top',
+    href: '#analytics-dashboard',
     label: 'Analytics',
     description: '站点访问流量实时监控',
     icon: (
@@ -36,11 +50,14 @@ const tools = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
       </svg>
     ),
-    external: true,
+    external: false,
+    analytics: true,
   },
 ]
 
 const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
+  const [showAnalytics, setShowAnalytics] = useState(false)
+
   return (
     <div className="bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:border-white/20 p-5">
 
@@ -78,7 +95,24 @@ const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
 
           return (
             <li key={tool.href}>
-              {tool.external ? (
+              {tool.analytics ? (
+                <button
+                  type="button"
+                  className="w-full text-left"
+                  onClick={() => {
+                    const next = !showAnalytics
+                    setShowAnalytics(next)
+
+                    if (next) {
+                      trackEvent('analytics_open', { placement: id === 'mobile' ? 'mobile' : 'desktop' })
+                    }
+                  }}
+                  aria-expanded={showAnalytics}
+                  aria-controls="analytics-dashboard-panel"
+                >
+                  {inner}
+                </button>
+              ) : tool.external ? (
                 <a href={tool.href} target="_blank" rel="noopener noreferrer">
                   {inner}
                 </a>
@@ -89,6 +123,12 @@ const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
           )
         })}
       </ul>
+
+      {showAnalytics && (
+        <div id="analytics-dashboard-panel">
+          <AnalyticsDashboard placement={id === 'mobile' ? 'mobile' : 'desktop'} />
+        </div>
+      )}
 
     </div>
   )
