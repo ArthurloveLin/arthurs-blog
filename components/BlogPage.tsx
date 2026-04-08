@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { unstable_ViewTransition as ViewTransition } from 'react'
+import { unstable_ViewTransition as ViewTransition, useEffect, useRef } from 'react'
 import type { Post } from '@/lib/blog'
 
 import PostCard from '@/components/PostCard'
@@ -33,6 +33,22 @@ export default function BlogPage({
   activeTags = [],
   activeYear = null,
 }: BlogPageProps) {
+  const leftSidebarRef = useRef<HTMLDivElement>(null)
+  const rightSidebarRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // 当 window 滚动回顶部时，同步复位侧边栏内部滚动
+      if (window.scrollY === 0) {
+        leftSidebarRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+        rightSidebarRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   return (
     <DirectionalTransition>
     <ScrollRestorer />
@@ -71,7 +87,10 @@ export default function BlogPage({
           {/* ── Left Sidebar ─────────────────────────────────────────── */}
           {/* Desktop: col-span-3 | Tablet: col-span-4 | Mobile: hidden */}
           <aside className="hidden md:block md:col-span-4 lg:col-span-3">
-            <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none overscroll-contain pb-12 space-y-4">
+            <div 
+              ref={leftSidebarRef}
+              className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none overscroll-contain pb-12 space-y-4"
+            >
               <ScrollHideWrapper threshold={300} vanish={false}>
                 {(isTriggered) => (
                   <ViewTransition name="author-card">
@@ -150,7 +169,10 @@ export default function BlogPage({
           {/* ── Right Sidebar ─────────────────────────────────────────── */}
           {/* Desktop only: col-span-3 | Tablet + Mobile: hidden */}
           <aside className="hidden lg:block lg:col-span-3">
-            <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none overscroll-contain pb-12 space-y-4">
+            <div 
+              ref={rightSidebarRef}
+              className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none overscroll-contain pb-12 space-y-4"
+            >
               <RecentPostsCard />
               <ToolsCard />
               <ArchiveCard activeYear={activeYear} />

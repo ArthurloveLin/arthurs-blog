@@ -40,7 +40,7 @@ export default function ScrollHideWrapper({
 
   return (
     <div
-      className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
+      className={`${vanish ? 'transition-all duration-500 ease-in-out' : ''} origin-top overflow-hidden ${
         vanish
           ? isTriggered
             ? "opacity-0 max-h-0 -translate-y-4 scale-95 pointer-events-none"
