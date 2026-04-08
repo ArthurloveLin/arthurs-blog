@@ -38,7 +38,7 @@ export default function MobileDrawers({
     <div className="fixed inset-0 z-[999] md:hidden flex flex-col justify-end">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-md animate-fade-in transition-opacity" 
+        className="fixed inset-0 bg-black/65 animate-fade-in transition-opacity"
         onClick={() => setActiveDrawer(null)}
       />
       {/* Drawer Content */}
