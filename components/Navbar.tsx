@@ -15,9 +15,9 @@ import MobileDrawers from './MobileDrawers'
 import type { DrawerType } from './MobileDrawers'
 
 const navLinks = [
-  { href: '/', label: 'Home', tooltip: '首页 - 返回网站主页' },
-  { href: '/wardrobe', label: 'LifeLens', tooltip: 'LifeLens - 智能评价与决策系统' },
-  { href: 'https://trendradar.arthurlovegrace.top', label: 'News', tooltip: '新闻 - 获取最新的趋势资讯', external: true },
+  { href: '/', label: 'Home', tooltip: '首页 - 返回网站主页', external: false },
+  { href: '/wardrobe', label: 'LifeLens', tooltip: 'LifeLens - 智能评价与决策系统', external: false },
+  { href: '/trend-radar', label: 'News', tooltip: '趋势雷达 - 获取最新的趋势资讯', external: false },
 ]
 
 export default function Navbar() {
