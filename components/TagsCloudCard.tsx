@@ -45,7 +45,7 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
   const tagDelays = useMemo(() => {
     const map = new Map<string, number>()
     // On server or before mount, use 0 to ensure consistency
-    if (typeof window === 'undefined') return map
+    if (!mounted) return map
     
     tags.forEach(({ tag }) => map.set(tag, Math.random() * 200))
     return map
