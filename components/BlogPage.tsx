@@ -93,8 +93,8 @@ export default function BlogPage({
             >
               <ScrollHideWrapper threshold={300} vanish={false}>
                 {(isTriggered) => (
-                  <ViewTransition name="author-card">
-                    <AuthorProfileCard compact={isTriggered} />
+                  <ViewTransition name="sidebar-author-card">
+                    <AuthorProfileCard id="sidebar" compact={isTriggered} />
                   </ViewTransition>
                 )}
               </ScrollHideWrapper>
