@@ -116,6 +116,8 @@ export async function POST() {
   revalidatePath('/blog/[slug]', 'page')
   revalidatePath('/blog/tags/[tag]', 'page')
   revalidatePath('/blog/category/[category]', 'page')
+  revalidatePath('/archive')
+  revalidatePath('/wardrobe')
 
   // P1: Data Cache Invalidation (More precise than path revalidation)
   revalidateTag('posts')
@@ -134,21 +136,16 @@ export async function POST() {
     revalidateTag(`post-raw-${key}`)
   }
 
-  if (updatedSlugs.length > 0 && process.env.CF_ZONE_ID && process.env.CF_API_TOKEN) {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://arthurlovegrace.top'
-    const urls = [
-      `${baseUrl}/`,
-      ...updatedSlugs.map((slug) => `${baseUrl}/blog/${slug}`),
-    ]
+  if (updatedResults.length > 0 && process.env.CF_ZONE_ID && process.env.CF_API_TOKEN) {
     await fetch(
       `https://api.cloudflare.com/client/v4/zones/${process.env.CF_ZONE_ID}/purge_cache`,
       {
-        method: 'DELETE',
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${process.env.CF_API_TOKEN}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ files: urls }),
+        body: JSON.stringify({ purge_everything: true }),
       }
     )
   }
