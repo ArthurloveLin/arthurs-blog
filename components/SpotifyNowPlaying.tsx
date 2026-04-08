@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { useSpotify } from './SpotifyProvider'
 
-export default function SpotifyNowPlaying({ id = 'default' }: { id?: string }) {
+export default function SpotifyNowPlaying() {
   const { data, loading } = useSpotify()
   const [isExpanded, setIsExpanded] = useState(false)
 
