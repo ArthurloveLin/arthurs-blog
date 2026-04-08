@@ -70,10 +70,16 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
     return reordered
   }, [tags, isExpanded])
 
-  if (tags.length === 0) return null
+  const { maxCount, minCount } = useMemo(() => {
+    if (tags.length === 0) return { maxCount: 0, minCount: 0 }
+    const counts = tags.map(t => t.count)
+    return {
+      maxCount: Math.max(...counts),
+      minCount: Math.min(...counts)
+    }
+  }, [tags])
 
-  const maxCount = Math.max(...tags.map(t => t.count))
-  const minCount = Math.min(...tags.map(t => t.count))
+  if (tags.length === 0) return null
 
   return (
     <div 
