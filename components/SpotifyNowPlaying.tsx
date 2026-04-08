@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, startTransition, unstable_ViewTransition as ViewTransition, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { useSpotify } from './SpotifyProvider'
 
@@ -23,10 +23,7 @@ export default function SpotifyNowPlaying({ id = 'default' }: { id?: string }) {
     e.stopPropagation()
     // If clicking a link inside the expanded view, don't toggle
     if ((e.target as HTMLElement).closest('a')) return
-    
-    startTransition(() => {
-      setIsExpanded(!isExpanded)
-    })
+    setIsExpanded(!isExpanded)
   }
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -91,8 +88,7 @@ export default function SpotifyNowPlaying({ id = 'default' }: { id?: string }) {
   const device = getDeviceLabel()
 
   return (
-    <ViewTransition name={`spotify-card-${id}`}>
-      <div
+    <div
         ref={containerRef}
         onClick={toggleExpand}
         className={`relative overflow-hidden transition-all duration-500 cursor-pointer group ${
@@ -117,8 +113,7 @@ export default function SpotifyNowPlaying({ id = 'default' }: { id?: string }) {
         {/* --- Card Header (Always Visible) --- */}
         <div className={`flex items-center gap-3 relative z-10 transition-all duration-500 ${isExpanded ? 'mb-6' : ''}`}>
           {/* Album Cover */}
-          <ViewTransition name={`spotify-album-${id}`}>
-            <div className={`flex-shrink-0 overflow-hidden relative shadow-md transition-all duration-500 ${isExpanded ? 'w-12 h-12 rounded-xl' : 'w-8 h-8 rounded-lg group-hover:scale-105'}`}>
+          <div className={`flex-shrink-0 overflow-hidden relative shadow-md transition-all duration-500 ${isExpanded ? 'w-12 h-12 rounded-xl' : 'w-8 h-8 rounded-lg group-hover:scale-105'}`}>
               <Image
                 src={data.albumImageUrl || ''}
                 alt={data.album || ''}
@@ -127,7 +122,6 @@ export default function SpotifyNowPlaying({ id = 'default' }: { id?: string }) {
                 unoptimized
               />
             </div>
-          </ViewTransition>
 
           {/* Info Container */}
           <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
@@ -213,7 +207,7 @@ export default function SpotifyNowPlaying({ id = 'default' }: { id?: string }) {
             </div>
 
             <button 
-              onClick={(e) => { e.stopPropagation(); startTransition(() => setIsExpanded(false)) }}
+              onClick={(e) => { e.stopPropagation(); setIsExpanded(false) }}
               className="w-full mt-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-colors"
             >
               收起详情
@@ -249,6 +243,5 @@ export default function SpotifyNowPlaying({ id = 'default' }: { id?: string }) {
           }
         `}</style>
       </div>
-    </ViewTransition>
   )
 }

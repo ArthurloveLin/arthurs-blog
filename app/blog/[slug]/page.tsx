@@ -72,7 +72,7 @@ export default async function BlogPostPage({
           </aside>
 
           {/* Main Article Content - Perfectly aligned with PostCard width */}
-          <ViewTransition name="article-card">
+          <ViewTransition name="article-card" default="none">
           <article className="md:col-span-8 lg:col-span-6 bg-card rounded-2xl md:rounded-3xl border border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none overflow-hidden h-fit">
             {/* ── Outer padding for the whole article card content ── */}
             <div>
@@ -125,7 +125,7 @@ export default async function BlogPostPage({
               </header>
 
               {/* Content Body - Expanded padding for premium feel */}
-              <ViewTransition name="article-body">
+              <ViewTransition name="article-body" default="none">
                 <div className="mt-10 px-6 md:px-10">
                   <MarkdownRenderer content={content} />
                 </div>
