@@ -11,7 +11,7 @@ import { useTheme } from 'next-themes'
 import { useSiteData } from './SiteDataProvider'
 
 const ThemeToggle = dynamic(() => import('./ThemeToggle'), { ssr: false })
-const MobileDrawers = dynamic(() => import('./MobileDrawers'), { ssr: false })
+import MobileDrawers from './MobileDrawers'
 import type { DrawerType } from './MobileDrawers'
 
 const navLinks = [
@@ -72,7 +72,7 @@ export default function Navbar() {
 
   return (
     <>
-    <ViewTransition name="navbar" default="none">
+
     <header
       className={
         "sticky top-0 z-50 border-b transition-colors duration-300 " +
@@ -317,10 +317,10 @@ export default function Navbar() {
         )}
       </div>
     </header>
-    </ViewTransition>
+
 
     {/* ── Mobile Bottom Dock ───────────────────────────── */}
-    <ViewTransition name="mobile-dock" default="none">
+
     <div
       className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 md:hidden"
     >
@@ -332,7 +332,7 @@ export default function Navbar() {
       }>
         {/* Author */}
         <button
-          onClick={() => setActiveDrawer(activeDrawer === 'author' ? null : 'author')}
+          onClick={() => startTransition(() => setActiveDrawer(activeDrawer === 'author' ? null : 'author'))}
           className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${activeDrawer === 'author' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
           aria-label="作者"
         >
@@ -346,7 +346,7 @@ export default function Navbar() {
 
         {/* Categories */}
         <button
-          onClick={() => setActiveDrawer(activeDrawer === 'categories' ? null : 'categories')}
+          onClick={() => startTransition(() => setActiveDrawer(activeDrawer === 'categories' ? null : 'categories'))}
           className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${activeDrawer === 'categories' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
           aria-label="分类"
         >
@@ -358,7 +358,7 @@ export default function Navbar() {
 
         {/* Tags */}
         <button
-          onClick={() => setActiveDrawer(activeDrawer === 'tags' ? null : 'tags')}
+          onClick={() => startTransition(() => setActiveDrawer(activeDrawer === 'tags' ? null : 'tags'))}
           className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${activeDrawer === 'tags' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
           aria-label="标签"
         >
@@ -371,7 +371,7 @@ export default function Navbar() {
 
         {/* Recent */}
         <button
-          onClick={() => setActiveDrawer(activeDrawer === 'recent' ? null : 'recent')}
+          onClick={() => startTransition(() => setActiveDrawer(activeDrawer === 'recent' ? null : 'recent'))}
           className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${activeDrawer === 'recent' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
           aria-label="最新推文"
         >
@@ -383,7 +383,7 @@ export default function Navbar() {
 
         {/* Archive */}
         <button
-          onClick={() => setActiveDrawer(activeDrawer === 'archive' ? null : 'archive')}
+          onClick={() => startTransition(() => setActiveDrawer(activeDrawer === 'archive' ? null : 'archive'))}
           className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${activeDrawer === 'archive' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
           aria-label="归档"
         >
@@ -395,7 +395,7 @@ export default function Navbar() {
 
         {/* Tools */}
         <button
-          onClick={() => setActiveDrawer(activeDrawer === 'tools' ? null : 'tools')}
+          onClick={() => startTransition(() => setActiveDrawer(activeDrawer === 'tools' ? null : 'tools'))}
           className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${activeDrawer === 'tools' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`}
           aria-label="工具"
         >
@@ -406,7 +406,7 @@ export default function Navbar() {
         </button>
       </div>
     </div>
-    </ViewTransition>
+
 
     {/* ── Mobile Sidebar Drawers ────────────────────────── */}
     <MobileDrawers activeDrawer={activeDrawer} setActiveDrawer={setActiveDrawer} />

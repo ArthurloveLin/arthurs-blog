@@ -17,7 +17,7 @@ const STATUS_EMOJI_MAP: Record<string, string> = {
   '挂机中': '💤',
 }
 
-const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: { compact?: boolean }) {
+const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id }: { compact?: boolean; id?: string }) {
   const { config, stats } = useSiteData()
   const { role: userRole } = useAuth()
   const isAdmin = userRole === 'admin'
@@ -76,7 +76,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
       )}
       
       {/* Avatar & Status */}
-      <ViewTransition name="author-avatar" share="morph">
+      <ViewTransition name={id ? `${id}-author-avatar` : "author-avatar"} share="morph">
         <div className="flex justify-center">
           <div className="relative">
             {avatarUrl ? (
@@ -106,7 +106,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
       </ViewTransition>
 
       {/* Basic Info */}
-      <ViewTransition name="author-name">
+      <ViewTransition name={id ? `${id}-author-name` : "author-name"}>
         <div className="text-center mt-5">
           <h2
             className="text-xl font-bold text-gradient-primary tracking-tight"
@@ -136,14 +136,14 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
     </ViewTransition>
       
       {/* Bio / Motto - Shown in both modes, but slightly different spacing */}
-      <ViewTransition enter="fade-in" default="none">
+      <ViewTransition name={id ? `${id}-author-bio` : "author-bio"} enter="fade-in" default="none">
         <p className="text-sm text-foreground/70 text-center leading-relaxed mt-4 mb-5 italic font-serif px-2">
           {`"${bio}"`}
         </p>
       </ViewTransition>
 
       {!compact && skillList.length > 0 && (
-        <ViewTransition enter="slide-up" default="none">
+        <ViewTransition name={id ? `${id}-author-skills` : "author-skills"} enter="slide-up" default="none">
           <div className="flex flex-wrap justify-center gap-1.5 mb-5 px-1">
             {skillList.map((skill) => (
               <span key={skill} className="px-2 py-0.5 rounded-md bg-muted/60 text-[10px] font-bold text-muted-foreground border border-border/50">
@@ -204,7 +204,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
 
       {/* Social Links */}
       {!compact && (
-        <ViewTransition enter="slide-up" default="none">
+        <ViewTransition name={id ? `${id}-author-links` : "author-links"} enter="slide-up" default="none">
           <div className="flex justify-center mb-6">
             {github ? (
               <a href={`https://github.com/${github}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors p-2 bg-muted/40 rounded-xl hover:bg-muted/80 border border-border/40">
@@ -227,7 +227,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
       <div className={`border-t border-border ${compact ? 'mb-4 mt-2' : 'mb-6'}`} />
 
       {/* Stats */}
-      <ViewTransition enter="fade-in" default="none">
+      <ViewTransition name={id ? `${id}-author-stats` : "author-stats"} enter="fade-in" default="none">
         <div className="flex items-center justify-around translate-y-1">
           <div className="flex flex-col items-center gap-0.5">
             <span className="text-lg font-bold text-foreground tabular-nums">{postsCount}</span>
