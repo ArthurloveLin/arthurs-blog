@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { unstable_ViewTransition as ViewTransition } from 'react'
+import { memo, unstable_ViewTransition as ViewTransition } from 'react'
 import type { Post } from '@/lib/blog'
 import PrefetchOnHover from './PrefetchOnHover'
 
@@ -17,7 +17,7 @@ interface PostCardProps {
   index?: number
 }
 
-export default function PostCard({ post, index = 0 }: PostCardProps) {
+const PostCard = memo(function PostCard({ post, index = 0 }: PostCardProps) {
   const date = formatDate(post.published_at)
 
   // 解码一次，避免 DB 中已编码的 URL（如 %7B）被 next/image 二次编码成 %257B
@@ -29,6 +29,10 @@ export default function PostCard({ post, index = 0 }: PostCardProps) {
     <PrefetchOnHover
       href={`/blog/${post.slug}`}
       className="bg-card text-card-foreground border border-border/50 dark:border-white/10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:border-white/20 overflow-hidden group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      style={{
+        contentVisibility: 'auto',
+        containIntrinsicSize: '0 400px', // Estimates the height of the card
+      }}
     >
 
       {/* ── Cover Image (Hero: Cover) ────────────────────────────────── */}
@@ -85,5 +89,7 @@ export default function PostCard({ post, index = 0 }: PostCardProps) {
 
     </PrefetchOnHover>
   )
-}
+})
+
+export default PostCard
 
