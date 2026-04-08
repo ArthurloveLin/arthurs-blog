@@ -440,6 +440,12 @@ html {
   animation-duration: 0s !important; /* Force static to avoid any layout 'wobble' */
 }
 
+/* Elegant expansion for the author card */
+::view-transition-group(author-card) {
+  animation-duration: 0.45s;
+  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
 /* Ensure no fade animations for these static elements */
 ::view-transition-old(navbar),
 ::view-transition-new(navbar),
