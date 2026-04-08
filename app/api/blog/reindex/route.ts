@@ -126,7 +126,6 @@ export async function POST() {
   revalidateTag('year-archive')
 
   const updatedResults = results.filter((r) => r.status === 'ok')
-  const updatedSlugs = updatedResults.map((r) => r.slug)
 
   // Invalidating specific post data
   for (const { slug, key } of updatedResults) {
