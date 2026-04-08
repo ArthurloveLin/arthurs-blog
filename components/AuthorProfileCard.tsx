@@ -17,7 +17,7 @@ const STATUS_EMOJI_MAP: Record<string, string> = {
   '挂机中': '💤',
 }
 
-const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: { compact?: boolean }) {
+const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id }: { compact?: boolean; id?: string }) {
   const { config, stats } = useSiteData()
   const { role: userRole } = useAuth()
   const isAdmin = userRole === 'admin'
@@ -57,7 +57,8 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
 
   return (
     <div
-      className={`bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative group border border-border/50 dark:border-white/10 z-10 hover:z-30 ${compact ? 'p-5' : 'p-6'}`}
+      className={`bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative group border border-border/50 dark:border-white/10 z-10 hover:z-30 ${compact ? 'p-5' : 'p-6'}`}
+      style={{ overflowAnchor: 'none' }}
     >
       
       {/* Admin Settings Button (Top-Right) */}
@@ -75,7 +76,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
       )}
       
       {/* Avatar & Status */}
-      <ViewTransition name="author-avatar" share="morph">
+      <ViewTransition name={id ? `${id}-author-avatar` : "author-avatar"} share="morph">
         <div className="flex justify-center">
           <div className="relative">
             {avatarUrl ? (
@@ -105,7 +106,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
       </ViewTransition>
 
       {/* Basic Info */}
-      <ViewTransition name="author-name">
+      <ViewTransition name={id ? `${id}-author-name` : "author-name"}>
         <div className="text-center mt-5">
           <h2
             className="text-xl font-bold text-gradient-primary tracking-tight"
@@ -135,18 +136,22 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
     </ViewTransition>
       
       {/* Bio / Motto - Shown in both modes, but slightly different spacing */}
-      <p className="text-sm text-foreground/70 text-center leading-relaxed mt-4 mb-5 italic font-serif px-2">
-        {`"${bio}"`}
-      </p>
+      <ViewTransition name={id ? `${id}-author-bio` : "author-bio"} enter="fade-in" default="none">
+        <p className="text-sm text-foreground/70 text-center leading-relaxed mt-4 mb-5 italic font-serif px-2">
+          {`"${bio}"`}
+        </p>
+      </ViewTransition>
 
       {!compact && skillList.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-1.5 mb-5 px-1">
-          {skillList.map((skill) => (
-            <span key={skill} className="px-2 py-0.5 rounded-md bg-muted/60 text-[10px] font-bold text-muted-foreground border border-border/50">
-              {skill}
-            </span>
-          ))}
-        </div>
+        <ViewTransition name={id ? `${id}-author-skills` : "author-skills"} enter="slide-up" default="none">
+          <div className="flex flex-wrap justify-center gap-1.5 mb-5 px-1">
+            {skillList.map((skill) => (
+              <span key={skill} className="px-2 py-0.5 rounded-md bg-muted/60 text-[10px] font-bold text-muted-foreground border border-border/50">
+                {skill}
+              </span>
+            ))}
+          </div>
+        </ViewTransition>
       )}
 
       {/* Contact Info (WeChat & Email) */}
@@ -199,43 +204,47 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false }: {
 
       {/* Social Links */}
       {!compact && (
-        <div className="flex justify-center mb-6">
-          {github ? (
-            <a href={`https://github.com/${github}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors p-2 bg-muted/40 rounded-xl hover:bg-muted/80 border border-border/40">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" /></svg>
-            </a>
-          ) : null}
-          {weibo && (
-            <a href={weibo} target="_blank" rel="noopener noreferrer" className="ml-2 text-muted-foreground hover:text-[#E6162D] transition-colors p-2 bg-muted/40 rounded-xl hover:bg-muted/80 border border-border/40">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 3333 3333">
-                <path d="M1529 2271c-289,29 -539,-102 -558,-292 -19,-189 201,-366 490,-395 289,-29 538,102 557,292 19,189 -200,367 -489,395l0 0zm-77 -225c-28,45 -87,64 -132,44 -45,-21 -58,-72 -30,-116 28,-43 85,-63 130,-44 45,19 60,71 32,116zm93 -118c-11,17 -33,25 -50,18 -18,-7 -23,-26 -13,-43 10,-16 31,-25 49,-17 17,7 22,26 13,44l1 -2 0 0zm12 -198c-137,-36 -293,33 -352,154 -61,124 -2,261 137,306 144,46 313,-25 372,-159 58,-130 -14,-264 -157,-301zm550 -89c-25,-7 -42,-13 -30,-44 28,-71 31,-132 0,-175 -56,-81 -211,-77 -389,-2 0,0 -56,24 -42,-20 28,-88 23,-162 -19,-204 -98,-97 -354,3 -573,224 -164,165 -259,339 -259,490 0,289 370,464 733,464 474,0 791,-276 791,-495 0,-132 -113,-207 -212,-239l0 1 0 0zm138 -370c-55,-62 -138,-86 -215,-70 -31,7 -51,38 -44,68 6,31 37,50 67,44 37,-8 78,3 105,34 27,30 34,71 23,107 -10,29 6,62 37,72 29,8 62,-8 72,-38 24,-74 9,-158 -47,-220l2 3 0 0zm176 -159c-114,-128 -284,-176 -440,-143 -36,7 -59,43 -51,78 8,36 43,59 79,52 111,-24 231,11 312,100 80,91 103,214 68,321 -12,35 8,73 43,84 35,12 72,-7 84,-43 49,-151 18,-325 -97,-452l2 3 0 0z"/>
-              </svg>
-            </a>
-          )}
-          {!github && !weibo && <div className="h-9" />}
-        </div>
+        <ViewTransition name={id ? `${id}-author-links` : "author-links"} enter="slide-up" default="none">
+          <div className="flex justify-center mb-6">
+            {github ? (
+              <a href={`https://github.com/${github}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors p-2 bg-muted/40 rounded-xl hover:bg-muted/80 border border-border/40">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" /></svg>
+              </a>
+            ) : null}
+            {weibo && (
+              <a href={weibo} target="_blank" rel="noopener noreferrer" className="ml-2 text-muted-foreground hover:text-[#E6162D] transition-colors p-2 bg-muted/40 rounded-xl hover:bg-muted/80 border border-border/40">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 3333 3333">
+                  <path d="M1529 2271c-289,29 -539,-102 -558,-292 -19,-189 201,-366 490,-395 289,-29 538,102 557,292 19,189 -200,367 -489,395l0 0zm-77 -225c-28,45 -87,64 -132,44 -45,-21 -58,-72 -30,-116 28,-43 85,-63 130,-44 45,19 60,71 32,116zm93 -118c-11,17 -33,25 -50,18 -18,-7 -23,-26 -13,-43 10,-16 31,-25 49,-17 17,7 22,26 13,44l1 -2 0 0zm12 -198c-137,-36 -293,33 -352,154 -61,124 -2,261 137,306 144,46 313,-25 372,-159 58,-130 -14,-264 -157,-301zm550 -89c-25,-7 -42,-13 -30,-44 28,-71 31,-132 0,-175 -56,-81 -211,-77 -389,-2 0,0 -56,24 -42,-20 28,-88 23,-162 -19,-204 -98,-97 -354,3 -573,224 -164,165 -259,339 -259,490 0,289 370,464 733,464 474,0 791,-276 791,-495 0,-132 -113,-207 -212,-239l0 1 0 0zm138 -370c-55,-62 -138,-86 -215,-70 -31,7 -51,38 -44,68 6,31 37,50 67,44 37,-8 78,3 105,34 27,30 34,71 23,107 -10,29 6,62 37,72 29,8 62,-8 72,-38 24,-74 9,-158 -47,-220l2 3 0 0zm176 -159c-114,-128 -284,-176 -440,-143 -36,7 -59,43 -51,78 8,36 43,59 79,52 111,-24 231,11 312,100 80,91 103,214 68,321 -12,35 8,73 43,84 35,12 72,-7 84,-43 49,-151 18,-325 -97,-452l2 3 0 0z"/>
+                </svg>
+              </a>
+            )}
+            {!github && !weibo && <div className="h-9" />}
+          </div>
+        </ViewTransition>
       )}
 
       {/* Stats Divider */}
       <div className={`border-t border-border ${compact ? 'mb-4 mt-2' : 'mb-6'}`} />
 
       {/* Stats */}
-      <div className="flex items-center justify-around translate-y-1">
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="text-lg font-bold text-foreground tabular-nums">{postsCount}</span>
-          <span className="text-[11px] text-muted-foreground">文章</span>
+      <ViewTransition name={id ? `${id}-author-stats` : "author-stats"} enter="fade-in" default="none">
+        <div className="flex items-center justify-around translate-y-1">
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-lg font-bold text-foreground tabular-nums">{postsCount}</span>
+            <span className="text-[11px] text-muted-foreground">文章</span>
+          </div>
+          <div className="w-px h-8 bg-border" />
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-lg font-bold text-foreground tabular-nums">{categoriesCount}</span>
+            <span className="text-[11px] text-muted-foreground">分类</span>
+          </div>
+          <div className="w-px h-8 bg-border" />
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-lg font-bold text-foreground tabular-nums">{tagsCount}</span>
+            <span className="text-[11px] text-muted-foreground">标签</span>
+          </div>
         </div>
-        <div className="w-px h-8 bg-border" />
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="text-lg font-bold text-foreground tabular-nums">{categoriesCount}</span>
-          <span className="text-[11px] text-muted-foreground">分类</span>
-        </div>
-        <div className="w-px h-8 bg-border" />
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="text-lg font-bold text-foreground tabular-nums">{tagsCount}</span>
-          <span className="text-[11px] text-muted-foreground">标签</span>
-        </div>
-      </div>
+      </ViewTransition>
 
     </div>
   )

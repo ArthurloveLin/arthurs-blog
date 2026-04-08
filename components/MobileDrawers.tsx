@@ -69,7 +69,7 @@ export default function MobileDrawers({
         </div>
 
         <div className="pb-8 text-foreground">
-          {activeDrawer === 'author' && <AuthorProfileCard />}
+          {activeDrawer === 'author' && <AuthorProfileCard id="mobile" />}
           {activeDrawer === 'categories' && <CategoriesCard activeCategory={activeCategory} />}
           {activeDrawer === 'tags' && <TagsCloudCard activeTags={activeTags} />}
           {activeDrawer === 'recent' && <RecentPostsCard />}
