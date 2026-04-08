@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useRef, useCallback, startTransition, unstable_addTransitionType as addTransitionType, unstable_ViewTransition as ViewTransition } from 'react'
+import { useState, useEffect, useRef, useCallback, startTransition, unstable_addTransitionType as addTransitionType } from 'react'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
