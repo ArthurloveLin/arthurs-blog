@@ -62,8 +62,8 @@ export default async function BlogPostPage({
           <aside className="hidden md:block md:col-span-4 lg:col-span-3 h-full">
             <div className="sticky top-24 space-y-4">
               <ScrollHideWrapper threshold={300}>
-                <ViewTransition name="author-card">
-                  <AuthorProfileCard compact />
+                <ViewTransition name="sidebar-author-card">
+                  <AuthorProfileCard id="sidebar" compact />
                 </ViewTransition>
               </ScrollHideWrapper>
               <TableOfContents content={content} />

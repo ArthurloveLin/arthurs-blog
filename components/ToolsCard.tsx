@@ -52,7 +52,7 @@ const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
       {/* Tool links */}
       <ul className="space-y-1">
         <li>
-          <SpotifyNowPlaying id={id} />
+          <SpotifyNowPlaying />
         </li>
         {tools.map((tool) => {
           const inner = (

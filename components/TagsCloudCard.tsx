@@ -16,12 +16,15 @@ function buildTagsUrl(activeTags: string[], toggleTag: string): string {
 
 const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloudCardProps) {
   const { sidebarData: { tags } } = useSiteData()
-  const [isExpanded, setIsExpanded] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth < 768
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    if (window.innerWidth < 768) {
+      setIsExpanded(true)
     }
-    return false
-  })
+  }, [])
 
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -41,9 +44,12 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
 
   const tagDelays = useMemo(() => {
     const map = new Map<string, number>()
+    // On server or before mount, use 0 to ensure consistency
+    if (!mounted) return map
+    
     tags.forEach(({ tag }) => map.set(tag, Math.random() * 200))
     return map
-  }, [tags])
+  }, [tags, mounted])
 
   const processedTags = useMemo(() => {
     if (tags.length === 0) return []
