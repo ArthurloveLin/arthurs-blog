@@ -15,6 +15,12 @@ import ReindexButton from '@/components/ReindexButton'
 import DirectionalTransition from '@/components/DirectionalTransition'
 import ScrollRestorer from '@/components/ScrollRestorer'
 import ScrollHideWrapper from '@/components/ScrollHideWrapper'
+import dynamic from 'next/dynamic'
+
+const Live2D = dynamic(() => import('@/components/Live2D'), { 
+  ssr: false,
+  loading: () => <div className="h-40 w-40" /> // Basic placeholder to avoid layout shift if needed
+})
 
 interface BlogPageProps {
   posts: Post[]
@@ -77,6 +83,8 @@ export default function BlogPage({
           <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-sm">
             {siteConfig.site_description || "探索编程、设计、LifeLens 智能评价等领域的见解与思考。记录成长，分享知识，连接彼此。"}
           </p>
+          
+          <Live2D />
         </div>
       </div>
 
