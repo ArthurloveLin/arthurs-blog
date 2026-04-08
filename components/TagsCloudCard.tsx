@@ -132,7 +132,7 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
                 className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 transition-all duration-300 hover:scale-110 active:scale-95 ${
                   isActive
                     ? 'bg-gradient-primary text-primary-foreground shadow-lg shadow-primary/25 ring-2 ring-primary/20 scale-105 z-10'
-                    : 'bg-muted/30 text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-border/40 backdrop-blur-[2px]'
+                    : 'bg-muted/30 text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-border/40'
                 } ${isExpanded && weight > 0.8 ? 'font-bold shadow-sm' : ''} ${isExpanded ? 'hover:shadow-xl hover:shadow-primary/10 hover:z-20' : ''}`}
               >
                 <span className="whitespace-nowrap tracking-tight">{tag}</span>
