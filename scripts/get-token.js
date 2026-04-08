@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const client_id = '0757b30ff29e4b73a882539984121397';
 const client_secret = 'a37b7327c9bf49078fe0f4315f8e324a';
