@@ -16,16 +16,14 @@ function buildTagsUrl(activeTags: string[], toggleTag: string): string {
 
 const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloudCardProps) {
   const { sidebarData: { tags } } = useSiteData()
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768
+    }
+    return false
+  })
 
   const containerRef = useRef<HTMLDivElement>(null)
-  
-  // Initialize expanded state on mobile
-  useEffect(() => {
-    if (window.innerWidth < 768) {
-      setIsExpanded(true)
-    }
-  }, [])
 
   // Auto-scroll when expanded
   useEffect(() => {
@@ -40,6 +38,12 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
       return () => clearTimeout(timer)
     }
   }, [isExpanded])
+
+  const tagDelays = useMemo(() => {
+    const map = new Map<string, number>()
+    tags.forEach(({ tag }) => map.set(tag, Math.random() * 200))
+    return map
+  }, [tags])
 
   const processedTags = useMemo(() => {
     if (tags.length === 0) return []
@@ -120,10 +124,10 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
               <Link
                 key={tag}
                 href={buildTagsUrl(activeTags, tag)}
-                style={{ 
+                style={{
                   fontSize,
                   opacity,
-                  transitionDelay: isExpanded ? `${Math.random() * 200}ms` : '0ms'
+                  transitionDelay: isExpanded ? `${tagDelays.get(tag) ?? 0}ms` : '0ms'
                 }}
                 className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 transition-all duration-300 hover:scale-110 active:scale-95 ${
                   isActive
