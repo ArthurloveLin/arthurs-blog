@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { useSpotify } from './SpotifyProvider'
+import { Music2, ChevronDown } from 'lucide-react'
 
 export default function SpotifyNowPlaying() {
   const { data, loading } = useSpotify()
@@ -57,9 +58,7 @@ export default function SpotifyNowPlaying() {
     return (
       <div className="flex items-center gap-3 py-2 px-1 rounded-lg opacity-50 grayscale hover:grayscale-0 transition-all duration-300 overflow-hidden">
         <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
-          </svg>
+          <Music2 className="w-4 h-4" strokeWidth={1.75} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-foreground leading-none mb-0.5">Spotify</p>
@@ -163,9 +162,7 @@ export default function SpotifyNowPlaying() {
 
           {/* Action Icon */}
           {!isExpanded ? (
-            <svg className="w-3 h-3 text-muted-foreground/50 flex-shrink-0 group-hover:text-[#1DB954] transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
+            <ChevronDown className="w-3 h-3 text-muted-foreground/50 flex-shrink-0 group-hover:text-[#1DB954] transition-all duration-300" strokeWidth={2} />
           ) : null}
         </div>
 

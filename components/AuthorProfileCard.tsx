@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, memo, unstable_ViewTransition as ViewTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { Settings, MapPin, Globe, MessageCircle, Check, Copy, Mail } from 'lucide-react'
 
 import { useSiteData } from './SiteDataProvider'
 import { useAuth } from './AuthProvider'
@@ -71,10 +72,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
           className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-xl transition duration-200 z-20"
           aria-label="系统设置"
         >
-          <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 0 1 0 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 0 1 0-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281Z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-          </svg>
+          <Settings className="w-[18px] h-[18px]" strokeWidth={1.75} />
         </Link>
       )}
       
@@ -134,7 +132,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
             
             {location && (
               <div className="flex items-center justify-center gap-1 mt-2 text-[10px] text-muted-foreground font-medium">
-                 <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                 <MapPin className="w-3 h-3 opacity-60" strokeWidth={2} />
                  {location}
               </div>
             )}
@@ -172,7 +170,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
               aria-label={`GitHub: ${github}`}
               className="text-muted-foreground hover:text-foreground transition-colors p-2 bg-muted/40 rounded-xl hover:bg-muted/80 border border-border/40"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" /></svg>
+              <Globe className="w-5 h-5" strokeWidth={1.75} />
             </a>
           )}
           {weibo && (
@@ -196,15 +194,13 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
               className="group/wechat relative text-muted-foreground hover:text-emerald-500 transition-colors p-2 bg-muted/40 rounded-xl hover:bg-muted/80 border border-border/40 cursor-pointer"
             >
               {/* WeChat icon — hidden on hover */}
-              <svg className="w-5 h-5 transition-opacity duration-150 group-hover/wechat:opacity-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M8.288 5.76c-.368 0-.72.032-1.072.064C4.24 6.208 2 8.448 2 11.232c0 1.696.848 3.168 2.224 4.16a.6.6 0 0 1 .208.432c0 .12-.032.224-.128.384l-.56 1.12c-.064.128-.096.224-.096.32 0 .224.16.416.416.416.096 0 .192-.032.288-.096l1.792-.896a.8.8 0 0 1 .416-.096c.224 0 .416.032.608.096.368.096.752.16 1.152.16 3.456 0 6.272-2.368 6.272-5.408S11.744 5.76 8.288 5.76Zm-2.4 4c-.432 0-.8-.368-.8-.8s.368-.8.8-.8.8.368.8.8-.368.8-.8.8Zm3.36 0c-.432 0-.8-.368-.8-.8s.368-.8.8-.8.8.368.8.8-.368.8-.8.8ZM18.4 11c-.32 0-.64.032-.96.064.256.416.384.864.384 1.344 0 2.272-2.112 4.096-4.704 4.096-.192 0-.384-.016-.576-.032 1.056 1.632 2.912 2.688 5.056 2.688.352 0 .672-.032 1.024-.08a.56.56 0 0 1 .512.064c.224.128.48.288.768.448l1.344.672c.064.032.16.064.224.064.192 0 .32-.16.32-.352 0-.096-.032-.192-.096-.288l-.416-.8c-.064-.128-.096-.224-.096-.32 0-.256.096-.384.224-.544C21.84 17.024 22.5 15.68 22.5 14.2c0-2.656-1.84-4.832-4.1-5.2Zm-1.76 3.36c-.32 0-.576-.256-.576-.576 0-.32.256-.576.576-.576.32 0 .576.256.576.576 0 .32-.256.576-.576.576Zm2.56 0c-.32 0-.576-.256-.576-.576 0-.32.256-.576.576-.576.32 0 .576.256.576.576 0 .32-.256.576-.576.576Z" />
-              </svg>
+              <MessageCircle className="w-5 h-5 transition-opacity duration-150 group-hover/wechat:opacity-0" strokeWidth={1.75} aria-hidden="true" />
               {/* Copy / check icon — shown on hover */}
               <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/wechat:opacity-100 transition-opacity duration-150" aria-hidden="true">
                 {copiedText === 'wechat' ? (
-                  <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  <Check className="w-5 h-5 text-emerald-500" strokeWidth={2} />
                 ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                  <Copy className="w-5 h-5" strokeWidth={2} />
                 )}
               </span>
             </button>
@@ -217,15 +213,13 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
               className="group/email relative text-muted-foreground hover:text-sky-500 transition-colors p-2 bg-muted/40 rounded-xl hover:bg-muted/80 border border-border/40 cursor-pointer"
             >
               {/* Email icon — hidden on hover */}
-              <svg className="w-5 h-5 transition-opacity duration-150 group-hover/email:opacity-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
+              <Mail className="w-5 h-5 transition-opacity duration-150 group-hover/email:opacity-0" strokeWidth={1.75} aria-hidden="true" />
               {/* Copy / check icon — shown on hover */}
               <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/email:opacity-100 transition-opacity duration-150" aria-hidden="true">
                 {copiedText === 'email' ? (
-                  <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  <Check className="w-5 h-5 text-emerald-500" strokeWidth={2} />
                 ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                  <Copy className="w-5 h-5" strokeWidth={2} />
                 )}
               </span>
             </button>
