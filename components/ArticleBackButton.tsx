@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { startTransition, unstable_addTransitionType as addTransitionType, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
 
 interface ArticleBackButtonProps {
   returnHref?: string
@@ -54,14 +55,10 @@ export default function ArticleBackButton({ returnHref = '/' }: ArticleBackButto
       ].join(' ')}
     >
       {/* Arrow icon — moves left 2px on hover */}
-      <svg
+      <ArrowLeft
         className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-0.5 flex-shrink-0 text-zinc-500 dark:text-zinc-400"
-        fill="none" viewBox="0 0 24 24"
-        stroke="currentColor" strokeWidth={2.5}
-        strokeLinecap="round" strokeLinejoin="round"
-      >
-        <path d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-      </svg>
+        strokeWidth={2.5}
+      />
       返回
     </Link>
   )

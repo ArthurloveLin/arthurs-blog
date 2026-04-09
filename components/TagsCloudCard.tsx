@@ -3,6 +3,7 @@
 import { memo, useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useSiteData } from './SiteDataProvider'
+import { ChevronDown } from 'lucide-react'
 
 interface TagsCloudCardProps {
   activeTags?: string[]
@@ -98,12 +99,10 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
             className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-widest flex items-center gap-1 group md:flex hidden"
           >
             {isExpanded ? '收起' : '展开'}
-            <svg 
-              className={`w-3 h-3 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} 
-              fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-            </svg>
+            <ChevronDown
+              className={`w-3 h-3 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+              strokeWidth={2.5}
+            />
           </button>
         )}
       </div>

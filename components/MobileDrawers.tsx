@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import { X } from 'lucide-react'
 
 const AuthorProfileCard = dynamic(() => import('./AuthorProfileCard'), { ssr: false })
 const CategoriesCard = dynamic(() => import('./CategoriesCard'), { ssr: false })
@@ -58,13 +59,11 @@ export default function MobileDrawers({
             {activeDrawer === 'archive' && '归档文章'}
             {activeDrawer === 'tools' && '实用工具'}
           </h3>
-          <button 
+          <button
             onClick={() => setActiveDrawer(null)}
             className="p-2 text-muted-foreground hover:text-foreground"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="w-5 h-5" strokeWidth={2} />
           </button>
         </div>
 
