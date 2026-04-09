@@ -136,19 +136,24 @@ export default function Navbar() {
             onClick={handleHomeClick}
             className="flex items-center gap-2.5 flex-shrink-0 group"
           >
-            <div className="w-8 h-8 relative rounded-xl bg-gradient-primary flex items-center justify-center shadow-[0_2px_8px_rgb(0,0,0,0.15)] group-hover:scale-105 transition-transform duration-200 overflow-hidden">
-              {logoUrl ? (
-                <Image 
-                  src={logoUrl} 
-                  alt="Logo" 
-                  fill 
-                  className="object-cover" 
-                  sizes="32px"
-                  priority 
-                />
-              ) : (
-                <span className="text-primary-foreground text-[10px] font-bold tracking-tight leading-none">A&G</span>
-              )}
+            <div className="w-8 h-8 relative flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              {/* Elegant Blur Glow */}
+              <div className="absolute inset-0 rounded-xl bg-gradient-primary opacity-0 group-hover:opacity-40 blur-md group-hover:blur-lg transition-all duration-500 scale-50 group-hover:scale-125" />
+              
+              <div className="w-full h-full relative rounded-xl bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 flex items-center justify-center shadow-sm overflow-hidden z-10">
+                {logoUrl ? (
+                  <Image 
+                    src={logoUrl} 
+                    alt="Logo" 
+                    fill 
+                    className="object-cover" 
+                    sizes="32px"
+                    priority 
+                  />
+                ) : (
+                  <span className="text-primary text-[10px] font-bold tracking-tight leading-none">A&G</span>
+                )}
+              </div>
             </div>
             <span className="text-gradient-primary font-bold text-lg sm:text-xl tracking-tight">
               Arthur & Grace
