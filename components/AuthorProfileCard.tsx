@@ -114,8 +114,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
             {name}
           </h2>
         
-        {!compact && (
-          <>
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${compact ? 'max-h-0 opacity-0' : 'max-h-20 opacity-100'}`}>
             {(role || company) && (
               <div className="flex items-center justify-center gap-1.5 mt-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-widest bg-muted/30 dark:bg-white/5 py-1 px-3 rounded-full w-fit mx-auto border border-border/40 dark:border-white/10">
                 {role && <span>{role}</span>}
@@ -130,8 +129,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
                  {location}
               </div>
             )}
-          </>
-        )}
+          </div>
       </div>
     </ViewTransition>
       
@@ -142,8 +140,8 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
         </p>
       </ViewTransition>
 
-      {!compact && skillList.length > 0 && (
-        <ViewTransition name={id ? `${id}-author-skills` : "author-skills"} enter="slide-up" default="none">
+      {skillList.length > 0 && (
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${compact ? 'max-h-0 opacity-0' : 'max-h-40 opacity-100'}`}>
           <div className="flex flex-wrap justify-center gap-1.5 mb-5 px-1">
             {skillList.map((skill) => (
               <span key={skill} className="px-2 py-0.5 rounded-md bg-muted/60 text-[10px] font-bold text-muted-foreground border border-border/50">
@@ -151,11 +149,12 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
               </span>
             ))}
           </div>
-        </ViewTransition>
+        </div>
       )}
 
       {/* Contact Info (WeChat & Email) */}
-      {!compact && (wechat || email) && (
+      {(wechat || email) && (
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${compact ? 'max-h-0 opacity-0' : 'max-h-60 opacity-100'}`}>
         <div className="mb-6 flex flex-col gap-2 bg-muted/20 dark:bg-white/5 p-3 rounded-xl border border-border/50 dark:border-white/5">
           {wechat && (
             <div 
@@ -200,11 +199,11 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
             </div>
           )}
         </div>
+        </div>
       )}
 
       {/* Social Links */}
-      {!compact && (
-        <ViewTransition name={id ? `${id}-author-links` : "author-links"} enter="slide-up" default="none">
+      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${compact ? 'max-h-0 opacity-0' : 'max-h-20 opacity-100'}`}>
           <div className="flex justify-center mb-6">
             {github ? (
               <a href={`https://github.com/${github}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors p-2 bg-muted/40 rounded-xl hover:bg-muted/80 border border-border/40">
@@ -220,11 +219,10 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
             )}
             {!github && !weibo && <div className="h-9" />}
           </div>
-        </ViewTransition>
-      )}
+      </div>
 
       {/* Stats Divider */}
-      <div className={`border-t border-border ${compact ? 'mb-4 mt-2' : 'mb-6'}`} />
+      <div className={`border-t border-border transition-all duration-300 ease-in-out ${compact ? 'mb-4 mt-2' : 'mb-6'}`} />
 
       {/* Stats */}
       <ViewTransition name={id ? `${id}-author-stats` : "author-stats"} enter="fade-in" default="none">

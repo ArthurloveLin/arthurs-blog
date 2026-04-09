@@ -1,6 +1,6 @@
 'use client'
 
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 
 const SORTS = [
@@ -15,10 +15,11 @@ const SORTS = [
 export default function SortControl({ current }: { current: string }) {
   const router = useRouter()
   const pathname = usePathname()
-  const searchParams = useSearchParams()
 
   function setSort(sort: string) {
-    const params = new URLSearchParams(searchParams.toString())
+    // 在回调中按需读取，避免订阅所有 searchParam 变更导致不必要的重渲染
+    // rule: rerender-defer-reads
+    const params = new URLSearchParams(window.location.search)
     params.set('sort', sort)
     router.push(`${pathname}?${params.toString()}`)
   }

@@ -1,9 +1,11 @@
 'use client'
 
 import { memo, useState, startTransition, unstable_addTransitionType as addTransitionType } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import SpotifyNowPlaying from './SpotifyNowPlaying'
-import AnalyticsDashboard from './AnalyticsDashboard'
+
+const AnalyticsDashboard = dynamic(() => import('./AnalyticsDashboard'), { ssr: false })
 
 type UmamiApi = {
   track: (eventName: string, data?: Record<string, string>) => void
