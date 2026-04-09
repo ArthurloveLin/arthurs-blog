@@ -23,8 +23,6 @@ const PostCard = memo(function PostCard({ post, index = 0, forceRender = false }
 
   // 解码一次，避免 DB 中已编码的 URL（如 %7B）被 next/image 二次编码成 %257B
   const coverSrc = post.cover_image ? decodeURIComponent(post.cover_image) : null
-  // obsidian 自建服务响应慢，跳过服务端代理让浏览器直连；同时解决 {} 文件名问题
-  const unoptimized = coverSrc?.includes('obsidian.arthurlovegrace.top') ?? false
 
   return (
     <PrefetchOnHover
@@ -48,7 +46,6 @@ const PostCard = memo(function PostCard({ post, index = 0, forceRender = false }
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               priority={index === 0}
-              unoptimized={unoptimized}
               className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
