@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { TrendRadarData, HotKeyword, TrendTitle, NewSource, StandalonePlatform } from "@/lib/trend-radar";
+import type { TrendRadarData, HotKeyword, StandalonePlatform } from "@/lib/trend-radar";
 
 function cn(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(" ");
@@ -188,7 +188,7 @@ export default function TrendRadarDisplay({ data, formattedTime, history, curren
         {activeCategory === "trend" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 gap-4">
-              {filteredStats.map((item, idx) => (
+              {filteredStats.map((item) => (
                 <KeywordCard key={item.word} item={item} rank={stats.indexOf(item) + 1} />
               ))}
             </div>
