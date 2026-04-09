@@ -20,7 +20,7 @@ import {
 } from '@/lib/blog-return'
 
 const ThemeToggle = dynamic(() => import('./ThemeToggle'), { ssr: false })
-import MobileDrawers from './MobileDrawers'
+import MobileDrawers, { preloadMobileDrawerModules } from './MobileDrawers'
 import type { DrawerType } from './MobileDrawers'
 
 const navLinks = [
@@ -77,6 +77,38 @@ export default function Navbar() {
     setMounted(true)
   }, [])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.matchMedia('(min-width: 768px)').matches) return
+
+    const preloadDrawers = () => preloadMobileDrawerModules()
+    const warmOnFirstInteraction = () => preloadDrawers()
+
+    let timeoutId: number | null = null
+    let idleId: number | null = null
+
+    if ('requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(preloadDrawers, { timeout: 1500 })
+    } else {
+      timeoutId = window.setTimeout(preloadDrawers, 600)
+    }
+
+    window.addEventListener('touchstart', warmOnFirstInteraction, { passive: true, once: true })
+    window.addEventListener('pointerdown', warmOnFirstInteraction, { passive: true, once: true })
+
+    return () => {
+      window.removeEventListener('touchstart', warmOnFirstInteraction)
+      window.removeEventListener('pointerdown', warmOnFirstInteraction)
+
+      if (idleId !== null && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId)
+      }
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId)
+      }
+    }
+  }, [])
+
   // Close mobile menu and drawers on navigation (pathname change)
   useEffect(() => {
     setIsMobileMenuOpen(false)
@@ -89,8 +121,8 @@ export default function Navbar() {
     <header
       className={
         "sticky top-0 z-50 border-b transition-colors duration-300 " +
-        // 浅色模式: 灰色透明磨砂效果
-        "bg-white/80 backdrop-blur-md border-black/5 " +
+        // 浅色模式: 移动端减少 blur 合成，桌面保留磨砂效果
+        "bg-white/92 backdrop-blur-none border-black/5 md:bg-white/80 md:backdrop-blur-md " +
         // 深色模式(独立逻辑): 替换为纯黑色，去除磨砂模糊
         "dark:bg-black dark:backdrop-blur-none dark:border-white/10"
       }
@@ -337,9 +369,9 @@ export default function Navbar() {
     >
       <div className={
         "flex items-center gap-0.5 px-2 py-1.5 " +
-        "bg-white/85 backdrop-blur-md border border-black/5 " +
+        "bg-white/94 border border-black/5 " +
         "dark:bg-black/90 dark:backdrop-blur-none dark:border-white/10 " +
-        "rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
+        "rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.32)]"
       }>
         {/* Author */}
         <button

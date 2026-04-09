@@ -1,17 +1,49 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { X } from 'lucide-react'
 
-const AuthorProfileCard = dynamic(() => import('./AuthorProfileCard'), { ssr: false })
-const CategoriesCard = dynamic(() => import('./CategoriesCard'), { ssr: false })
-const TagsCloudCard = dynamic(() => import('./TagsCloudCard'), { ssr: false })
-const RecentPostsCard = dynamic(() => import('./RecentPostsCard'), { ssr: false })
-const ArchiveCard = dynamic(() => import('./ArchiveCard'), { ssr: false })
-const ToolsCard = dynamic(() => import('./ToolsCard'), { ssr: false })
+const drawerModuleLoaders = {
+  author: () => import('./AuthorProfileCard'),
+  categories: () => import('./CategoriesCard'),
+  tags: () => import('./TagsCloudCard'),
+  recent: () => import('./RecentPostsCard'),
+  archive: () => import('./ArchiveCard'),
+  tools: () => import('./ToolsCard'),
+} as const
+
+let drawerModulesPreloaded = false
+
+export function preloadMobileDrawerModules() {
+  if (drawerModulesPreloaded) return
+  drawerModulesPreloaded = true
+
+  Object.values(drawerModuleLoaders).forEach((loadModule) => {
+    void loadModule()
+  })
+}
+
+const AuthorProfileCard = dynamic(drawerModuleLoaders.author, { ssr: false })
+const CategoriesCard = dynamic(drawerModuleLoaders.categories, { ssr: false })
+const TagsCloudCard = dynamic(drawerModuleLoaders.tags, { ssr: false })
+const RecentPostsCard = dynamic(drawerModuleLoaders.recent, { ssr: false })
+const ArchiveCard = dynamic(drawerModuleLoaders.archive, { ssr: false })
+const ToolsCard = dynamic(drawerModuleLoaders.tools, { ssr: false })
 
 export type DrawerType = 'author' | 'categories' | 'tags' | 'recent' | 'archive' | 'tools' | null
+
+type DrawerKey = Exclude<DrawerType, null>
+
+const DRAWER_TITLES: Record<DrawerKey, string> = {
+  author: '关于作者',
+  categories: '文章分类',
+  tags: '标签云',
+  recent: '最新推文',
+  archive: '归档文章',
+  tools: '实用工具',
+}
 
 export default function MobileDrawers({
   activeDrawer,
@@ -21,9 +53,19 @@ export default function MobileDrawers({
   setActiveDrawer: (drawer: DrawerType) => void
 }) {
   const pathname = usePathname()
+  const [mountedDrawers, setMountedDrawers] = useState<Partial<Record<DrawerKey, boolean>>>({})
   let activeCategory = null
   let activeYear: number | null = null
   let activeTags: string[] = []
+
+  useEffect(() => {
+    if (!activeDrawer) return
+
+    setMountedDrawers((current) => {
+      if (current[activeDrawer]) return current
+      return { ...current, [activeDrawer]: true }
+    })
+  }, [activeDrawer])
 
   if (pathname.startsWith('/category/')) {
     activeCategory = decodeURIComponent(pathname.replace('/category/', ''))
@@ -33,31 +75,26 @@ export default function MobileDrawers({
     activeYear = parseInt(pathname.replace('/archive/', ''), 10)
   }
 
-  if (!activeDrawer) return null
+  const isOpen = activeDrawer !== null
 
   return (
-    <div className="fixed inset-0 z-[999] md:hidden flex flex-col justify-end">
+    <div className={`fixed inset-0 z-[999] md:hidden flex flex-col justify-end transition-[visibility] duration-200 ${isOpen ? 'visible' : 'invisible pointer-events-none'}`}>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/65 animate-fade-in transition-opacity"
+        className={`fixed inset-0 bg-black/50 transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0'}`}
         onClick={() => setActiveDrawer(null)}
       />
       {/* Drawer Content */}
-      <div className="relative w-full bg-background rounded-t-[2.5rem] shadow-[0_-8px_40px_rgba(0,0,0,0.5)] border-t border-border/50 p-6 pt-2 max-h-[88vh] overflow-y-auto animate-drawer-up">
+      <div className={`relative w-full bg-background rounded-t-[2rem] shadow-[0_-8px_24px_rgba(0,0,0,0.22)] border-t border-border/40 p-5 pt-2 max-h-[85vh] overflow-y-auto transform-gpu will-change-transform [contain:layout_paint] transition-transform transition-opacity duration-200 ease-out ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
         {/* Handle */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-5">
           <div className="w-12 h-1.5 bg-muted/50 rounded-full" />
         </div>
         
         {/* Header with Title and close button */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-            {activeDrawer === 'author' && '关于作者'}
-            {activeDrawer === 'categories' && '文章分类'}
-            {activeDrawer === 'tags' && '标签云'}
-            {activeDrawer === 'recent' && '最新推文'}
-            {activeDrawer === 'archive' && '归档文章'}
-            {activeDrawer === 'tools' && '实用工具'}
+            {activeDrawer ? DRAWER_TITLES[activeDrawer] : ''}
           </h3>
           <button
             onClick={() => setActiveDrawer(null)}
@@ -68,12 +105,36 @@ export default function MobileDrawers({
         </div>
 
         <div className="pb-8 text-foreground">
-          {activeDrawer === 'author' && <AuthorProfileCard id="mobile" />}
-          {activeDrawer === 'categories' && <CategoriesCard activeCategory={activeCategory} />}
-          {activeDrawer === 'tags' && <TagsCloudCard activeTags={activeTags} />}
-          {activeDrawer === 'recent' && <RecentPostsCard />}
-          {activeDrawer === 'archive' && <ArchiveCard activeYear={activeYear} />}
-          {activeDrawer === 'tools' && <ToolsCard id="mobile" />}
+          {mountedDrawers.author ? (
+            <div className={activeDrawer === 'author' ? 'block' : 'hidden'} aria-hidden={activeDrawer !== 'author'}>
+              <AuthorProfileCard id="mobile" />
+            </div>
+          ) : null}
+          {mountedDrawers.categories ? (
+            <div className={activeDrawer === 'categories' ? 'block' : 'hidden'} aria-hidden={activeDrawer !== 'categories'}>
+              <CategoriesCard activeCategory={activeCategory} />
+            </div>
+          ) : null}
+          {mountedDrawers.tags ? (
+            <div className={activeDrawer === 'tags' ? 'block' : 'hidden'} aria-hidden={activeDrawer !== 'tags'}>
+              <TagsCloudCard activeTags={activeTags} />
+            </div>
+          ) : null}
+          {mountedDrawers.recent ? (
+            <div className={activeDrawer === 'recent' ? 'block' : 'hidden'} aria-hidden={activeDrawer !== 'recent'}>
+              <RecentPostsCard />
+            </div>
+          ) : null}
+          {mountedDrawers.archive ? (
+            <div className={activeDrawer === 'archive' ? 'block' : 'hidden'} aria-hidden={activeDrawer !== 'archive'}>
+              <ArchiveCard activeYear={activeYear} />
+            </div>
+          ) : null}
+          {mountedDrawers.tools ? (
+            <div className={activeDrawer === 'tools' ? 'block' : 'hidden'} aria-hidden={activeDrawer !== 'tools'}>
+              <ToolsCard id="mobile" />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

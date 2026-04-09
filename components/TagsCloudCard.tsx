@@ -19,19 +19,18 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
   const { sidebarData: { tags } } = useSiteData()
   const [isExpanded, setIsExpanded] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    if (window.innerWidth < 768) {
-      setIsExpanded(true)
-    }
+    setIsMobile(window.innerWidth < 768)
   }, [])
 
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll when expanded
   useEffect(() => {
-    if (isExpanded && containerRef.current) {
+    if (isExpanded && !isMobile && containerRef.current) {
       // Use a brief delay to allow the expansion animation to begin
       const timer = setTimeout(() => {
         containerRef.current?.scrollIntoView({ 
@@ -41,16 +40,15 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
       }, 100)
       return () => clearTimeout(timer)
     }
-  }, [isExpanded])
+  }, [isExpanded, isMobile])
 
   const tagDelays = useMemo(() => {
     const map = new Map<string, number>()
-    // On server or before mount, use 0 to ensure consistency
-    if (!mounted) return map
+    if (!mounted || !isExpanded || isMobile) return map
     
     tags.forEach(({ tag }) => map.set(tag, Math.random() * 200))
     return map
-  }, [tags, mounted])
+  }, [tags, mounted, isExpanded, isMobile])
 
   const processedTags = useMemo(() => {
     if (tags.length === 0) return []
@@ -58,7 +56,7 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
     // 1. Sort by count (descending)
     const sorted = [...tags].sort((a, b) => b.count - a.count)
     
-    if (!isExpanded) return sorted
+    if (!isExpanded || isMobile) return sorted
 
     // 2. For expanded "Cloud" view: Reorder for center-weighted distribution
     // This puts largest in the middle of the array
@@ -69,7 +67,7 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
     })
     
     return reordered
-  }, [tags, isExpanded])
+  }, [tags, isExpanded, isMobile])
 
   const { maxCount, minCount } = useMemo(() => {
     if (tags.length === 0) return { maxCount: 0, minCount: 0 }
@@ -96,7 +94,7 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
         {tags.length > 10 && (
           <button 
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-widest flex items-center gap-1 group md:flex hidden"
+            className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-widest flex items-center gap-1 group"
           >
             {isExpanded ? '收起' : '展开'}
             <ChevronDown
@@ -138,7 +136,7 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
                 style={{
                   fontSize,
                   opacity,
-                  transitionDelay: isExpanded ? `${tagDelays.get(tag) ?? 0}ms` : '0ms'
+                  transitionDelay: isExpanded && !isMobile ? `${tagDelays.get(tag) ?? 0}ms` : '0ms'
                 }}
                 className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 transition-all duration-300 hover:scale-110 active:scale-95 ${
                   isActive
