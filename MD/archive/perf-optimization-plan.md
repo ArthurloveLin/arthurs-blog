@@ -108,3 +108,23 @@
 
 ---
 
+## 已完成修复补充（2026-04-09）
+
+### 博文详情返回首页时共享元素退化为 fade 的根因确认与修复 ✅
+- **涉及文件**：`components/ArticleBackButton.tsx`、`app/blog/[slug]/page.tsx`、`components/PostCard.tsx`、`components/ScrollRestorer.tsx`
+- **最终根因**：不是其他 CSS 动画覆盖了 morph，而是返回时目标卡片在 shared-element 配对瞬间不在 viewport。根据 React ViewTransition 官方限制，若目标元素在配对时不可见，React 不会形成 shared pair，而是退回默认 fade。
+- **此前链路的问题**：详情页返回首页时先导航到 `/`，再由 `components/ScrollRestorer.tsx` 读取 sessionStorage 补滚动。对于 shared element，这个补滚动发生得太晚，配对阶段已经结束，所以即使随后页面滚到了正确位置，动画也只能表现为 fade。
+- **确认排除项**：此前调整 root CSS 和返回按钮视觉位置，并不是这次问题的主因；真正卡住 shared morph 的是“目标卡片未提前进入视口”。
+- **修复方案**：
+  - `components/ArticleBackButton.tsx` 从 imperative `router.push` 改为锚点 `Link` 返回，同时保留 `nav-back` transition type。
+  - `app/blog/[slug]/page.tsx` 将返回地址改为当前文章卡片对应的 `/#post-...`。
+  - `components/PostCard.tsx` 为每张卡片增加稳定锚点 `id`，并设置 `scrollMarginTop`，确保锚点定位后卡片顶部落在可视区域内，而不是被顶部导航遮住。
+  - 顺手修复了 `app/blog/[slug]/page.tsx` 中一个现有的 `PromiseLike` 类型问题，便于继续做生产模式验证。
+- **当前行为变化**：返回首页时不再依赖“先回 `/` 再补滚动”，而是直接落到 `/#post-...`，让浏览器在导航阶段就把目标卡片滚进视口，从而满足 shared pair 的形成条件。
+- **验证结果**：
+  - 生产构建已通过。
+  - 生产模式下已确认首页目标卡片存在 `id="post-..."`。
+  - 详情页返回按钮的 `href` 已确认指向 `/#post-...`。
+  - 点击返回后的最终 URL 已确认落在 `/#post-...`。
+- **结论**：这条链路现在已经从“先回首页、后补滚动”切换为“返回时先将目标卡片滚入视口再配对”。这次修复直接命中了 shared element 退化为 fade 的根因。
+

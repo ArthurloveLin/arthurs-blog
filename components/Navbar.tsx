@@ -1,14 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useRef, useCallback, startTransition, unstable_addTransitionType as addTransitionType } from 'react'
+import { useState, useEffect, useCallback, startTransition, unstable_addTransitionType as addTransitionType } from 'react'
 import Image from 'next/image'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useAuth } from '@/components/AuthProvider'
 import { logout } from '@/app/auth/logout/actions'
 import { useTheme } from 'next-themes'
 import { useSiteData } from './SiteDataProvider'
+import {
+  BLOG_RETURN_CURRENT_POST_ID_KEY,
+  BLOG_RETURN_CURRENT_POST_SLUG_KEY,
+  BLOG_RETURN_PATHNAME_KEY,
+  BLOG_RETURN_POST_SLUG_KEY,
+  BLOG_RETURN_TARGET_EVENT,
+  getPostAnchorHref,
+} from '@/lib/blog-return'
 
 const ThemeToggle = dynamic(() => import('./ThemeToggle'), { ssr: false })
 import MobileDrawers from './MobileDrawers'
@@ -28,43 +36,41 @@ export default function Navbar() {
   const logoUrl = config?.author_avatar_url
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
-  const router = useRouter()
   const pathname = usePathname()
+  const [homeHref, setHomeHref] = useState('/')
 
-  // 追踪上一个 pathname，用于判断是否能安全地 back()
-  const prevPathnameRef = useRef<string | null>(null)
-  const currentPathnameRef = useRef(pathname)
+  const isOnArticle = pathname.startsWith('/blog/') && pathname !== '/blog'
+
   useEffect(() => {
-    prevPathnameRef.current = currentPathnameRef.current
-    currentPathnameRef.current = pathname
-  }, [pathname])
+    if (!isOnArticle) {
+      setHomeHref('/')
+      return
+    }
 
-  // 智能返回处理：
-  // - 在文章页 AND 来源是列表/首页 → push('/') + scroll:false，保留列表滚动上下文
-  // - 在文章页 AND 来源也是文章（如从侧边栏跳转）→ push('/') 正常回首页
+    const syncHomeHref = () => {
+      const currentPostId = sessionStorage.getItem(BLOG_RETURN_CURRENT_POST_ID_KEY)
+      setHomeHref(currentPostId ? getPostAnchorHref(currentPostId) : '/')
+    }
+
+    syncHomeHref()
+    window.addEventListener(BLOG_RETURN_TARGET_EVENT, syncHomeHref)
+
+    return () => window.removeEventListener(BLOG_RETURN_TARGET_EVENT, syncHomeHref)
+  }, [isOnArticle])
+
   const handleHomeClick = useCallback((e: React.MouseEvent) => {
-    const isOnArticle = pathname.startsWith('/blog/') && pathname !== '/blog'
     if (!isOnArticle) return
 
-    e.preventDefault()
-
-    const prev = prevPathnameRef.current
-    const prevIsArticle = prev !== null && prev.startsWith('/blog/') && prev !== '/blog'
-
-    if (!prevIsArticle && prev !== null) {
-      // 上一页是列表/首页，push('/') 触发 View Transition（router.back() 与 startViewTransition 不兼容）
-      startTransition(() => {
-        addTransitionType('nav-back')
-        router.push('/', { scroll: false })
-      })
-    } else {
-      // 上一页是另一篇文章（侧边栏跳转），或首次直接访问 → 正常导航到首页
-      startTransition(() => {
-        addTransitionType('nav-back')
-        router.push('/')
-      })
+    const currentPostSlug = sessionStorage.getItem(BLOG_RETURN_CURRENT_POST_SLUG_KEY)
+    if (currentPostSlug) {
+      sessionStorage.setItem(BLOG_RETURN_PATHNAME_KEY, '/')
+      sessionStorage.setItem(BLOG_RETURN_POST_SLUG_KEY, currentPostSlug)
     }
-  }, [pathname, router])
+
+    startTransition(() => {
+      addTransitionType('nav-back')
+    })
+  }, [isOnArticle])
 
   useEffect(() => {
     setMounted(true)
@@ -87,7 +93,7 @@ export default function Navbar() {
 
           {/* ── Left: Logo / Title ─────────────────────────────────── */}
           <Link 
-            href="/" 
+            href={homeHref}
             onClick={handleHomeClick}
             className="flex items-center gap-2.5 flex-shrink-0 group"
           >
@@ -120,7 +126,7 @@ export default function Navbar() {
               ) : (
                 <Link
                   key={link.href}
-                  href={link.href}
+                  href={link.href === '/' ? homeHref : link.href}
                   onClick={link.href === '/' ? handleHomeClick : undefined}
                   className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
                   title={link.tooltip}
@@ -236,7 +242,7 @@ export default function Navbar() {
                 ) : (
                   <Link
                     key={link.href}
-                    href={link.href}
+                    href={link.href === '/' ? homeHref : link.href}
                     onClick={(e) => {
                       if (link.href === '/') handleHomeClick(e)
                       setIsMobileMenuOpen(false)
