@@ -30,6 +30,16 @@ export default async function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
         <head>
+          {/* Disable CSS transitions during initial theme class injection to prevent flash.
+              next-themes applies the stored theme class before hydration, but with
+              disableTransitionOnChange={false} the browser would animate the light→dark shift.
+              This script suppresses all transitions for 2 RAF cycles (~33ms), then restores them.
+              Rule: rendering-hydration-no-flicker */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){try{var s=document.createElement('style');s.textContent='*,*::before,*::after{transition:none!important}';document.head.appendChild(s);window.requestAnimationFrame(function(){window.requestAnimationFrame(function(){document.head.removeChild(s);});});}catch(e){}})()`,
+            }}
+          />
           <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
           <link rel="preconnect" href="https://images.arthurlovegrace.top" />
           <link rel="dns-prefetch" href="https://obsidian.arthurlovegrace.top" />
