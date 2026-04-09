@@ -76,6 +76,12 @@ export default function Navbar() {
     setMounted(true)
   }, [])
 
+  // Close mobile menu and drawers on navigation (pathname change)
+  useEffect(() => {
+    setIsMobileMenuOpen(false)
+    setActiveDrawer(null)
+  }, [pathname])
+
   return (
     <>
 
