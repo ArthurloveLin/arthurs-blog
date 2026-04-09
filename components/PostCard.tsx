@@ -74,7 +74,7 @@ const PostCard = memo(function PostCard({ post, index = 0, forceRender = false }
             <><span className="text-foreground/20 font-bold">·</span><Link href={`/blog/category/${encodeURIComponent(post.category)}`} className="relative z-10 hover:text-primary transition-colors whitespace-nowrap">{post.category}</Link></>
           )}
           {post.tags.length > 0 && (
-            <><span className="text-foreground/20 font-bold">·</span><div className="flex flex-wrap gap-1 items-center">{post.tags.slice(0, 2).map((tag) => (<Link key={tag} href={`/blog/tags/${encodeURIComponent(tag)}`} className="relative z-10 px-1.5 py-0.5 rounded-md bg-muted text-[10px] text-muted-foreground hover:bg-muted-foreground hover:text-background transition-all">#{tag}</Link>))}</div></>
+            <><span className="text-foreground/20 font-bold">·</span><div className="flex flex-wrap gap-1 items-center">{post.tags.slice(0, 2).map((tag) => (<Link key={tag} href={`/blog/tags/${encodeURIComponent(tag)}`} className="relative z-10 px-1.5 py-0.5 rounded-md bg-muted text-[10px] text-foreground/65 hover:bg-muted-foreground hover:text-background transition-all">#{tag}</Link>))}</div></>
           )}
           </div>
         </ViewTransition>
