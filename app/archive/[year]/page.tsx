@@ -1,4 +1,4 @@
-import { getPostsByYear, getSiteConfig, getYearArchive } from '@/lib/blog'
+import { getPostsByYear, getYearArchive } from '@/lib/blog'
 import type { Post } from '@/lib/blog'
 import BlogPage from '@/components/BlogPage'
 
@@ -20,16 +20,13 @@ export default async function ArchivePage({
   const parsedYear = parseInt(year, 10)
   let fetchError = false
 
-  const [posts, siteConfig] = await Promise.all([
-    getPostsByYear(parsedYear, 50, 0).catch(() => { fetchError = true; return [] as Post[] }),
-    getSiteConfig().catch(() => ({} as Record<string, string>)),
-  ])
+  // async-parallel: single fetch needs no Promise.all wrapper
+  const posts = await getPostsByYear(parsedYear, 50, 0).catch(() => { fetchError = true; return [] as Post[] })
 
 
   return (
     <BlogPage
       posts={posts}
-      siteConfig={siteConfig}
       fetchError={fetchError}
       activeYear={parsedYear}
     />

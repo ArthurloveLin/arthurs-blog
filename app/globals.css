@@ -443,30 +443,21 @@ html {
 
 
 
-/* Simplified entrance for root to avoid 'rolling' feel during back navigation */
-::view-transition-new(root) {
-  animation: 0.3s ease-out fade-in;
-}
-
 @keyframes slide-up {
   from { transform: translateY(10px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* Article card: fade in with cover morph, hide on exit */
-::view-transition-new(article-card) {
-  animation: 0.35s ease-out both fade-in;
-}
-::view-transition-old(article-card) {
-  display: none;
+@keyframes slide-down {
+  to { transform: translateY(10px); opacity: 0; }
 }
 
-/* Article body: slide up on enter after morph, hide on exit */
+/* Article body: slide up on enter after morph, slide down on exit */
 ::view-transition-new(article-body) {
   animation: 0.4s 0.32s ease-out both slide-up;
 }
 ::view-transition-old(article-body) {
-  display: none;
+  animation: 0.3s ease-in both slide-down;
 }
 
 /* Custom styles for Hero images to prevent 'ghosting' */
@@ -490,19 +481,19 @@ html {
 
 html:active-view-transition-type(nav-forward) {
   &::view-transition-old(root) {
-    animation: 0.3s ease-out both vt-slide-out-left;
+    animation: 0.35s cubic-bezier(0.85, 0, 0.15, 1) both vt-slide-out-left;
   }
   &::view-transition-new(root) {
-    animation: 0.3s ease-out both vt-slide-in-right;
+    animation: 0.35s cubic-bezier(0.85, 0, 0.15, 1) both vt-slide-in-right;
   }
 }
 
 html:active-view-transition-type(nav-back) {
   &::view-transition-old(root) {
-    animation: 0.3s ease-out both vt-slide-out-right;
+    animation: 0.35s cubic-bezier(0.85, 0, 0.15, 1) both vt-slide-out-right;
   }
   &::view-transition-new(root) {
-    animation: 0.3s ease-out both vt-slide-in-left;
+    animation: 0.35s cubic-bezier(0.85, 0, 0.15, 1) both vt-slide-in-left;
   }
 }
 

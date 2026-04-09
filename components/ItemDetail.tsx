@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import BackButton from './BackButton'
 import MultiDimRating from './MultiDimRating'
 import CommentBox from './CommentBox'
@@ -83,11 +83,14 @@ export default function ItemDetail({
   const priceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Trigger activity update on mount
-  useState(() => {
+  // 挂载时上报活跃状态，卸载时复位
+  // rule: 不能在 useState 惰性初始器中执行副作用（返回值会被忽略）
+  useEffect(() => {
     updatePresenceActivity(`正在看${templateConfig.itemLabel}`)
     return () => { updatePresenceActivity('正在浏览') }
-  })
+  // templateConfig.itemLabel 在组件生命周期内不会变化
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleDecision(value: Decision) {
     if (savingDecision) return

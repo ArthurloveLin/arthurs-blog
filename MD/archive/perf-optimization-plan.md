@@ -5,8 +5,9 @@
 | Step 11 | 高 ✅ | `isDragging` 改为 `useRef`，消除拖拽时无意义全列表重渲染 | `components/DraggableImageGrid.tsx` | `rerender-use-ref-transient-values` |
 | Step 12 | 高 ✅ | `getUserRole()` 与 session 查询并行，减少约 100ms | `app/session/[token]/page.tsx` | `async-parallel` |
 | Step 13 | 中 ✅ | 删除 Emoji 选择器功能及依赖，直接减少 bundle | `components/CommentBox.tsx` | `bundle-conditional` |
-| Step 14 | 中 | Navbar 主题切换 hydration 闪烁，注入 inline script 提前设置 class | `app/layout.tsx` + `components/Navbar.tsx` | `rendering-hydration-no-flicker` |
+| Step 14 | 中 ✅ | Navbar 主题切换 hydration 闪烁，注入 inline script 提前设置 class | `app/layout.tsx` | `rendering-hydration-no-flicker` |
 | Step 15 | 低 ✅ | `topLevel`/`repliesMap` 用 `useMemo` 包装，避免每次输入重新 O(n) 计算 | `components/CommentBox.tsx` | `rerender-derived-state-no-effect` |
+| Step 16 | 高 ✅ | `AnalyticsDashboard` 改为 `next/dynamic` 条件懒加载，仅在用户点击 Analytics 后下载 | `components/ToolsCard.tsx` | `bundle-conditional` |
 
 ---
 
@@ -93,5 +94,37 @@
 - **问题根因**：`CommentBox` 含 `text` state，用户每次输入都触发重渲染，而 `topLevel` 和 `repliesMap` 是两次 O(n) 遍历。在评论列表较长时，每次击键都白跑一遍，且产生新的对象引用，进而导致所有 `CommentItem` 子树接收到新 props
 - **效果**：输入时跳过 `filter`/`reduce` 计算；只在评论真正增删时重算；`repliesMap` 引用稳定，`CommentItem` 的 props 不变，React bailout 生效
 
+### Step 14 ✅ 初始主题注入时禁用 CSS 过渡，消除 hydration 闪烁
+- **文件**：`app/layout.tsx`
+- **改动**：在 `<head>` 首部插入一段内联 `<script>`，在首屏渲染期间临时创建 `*{transition:none!important}` 样式规则，等 2 个 `requestAnimationFrame` 后自动删除
+- **问题根因**：`ThemeProvider` 设置了 `disableTransitionOnChange={false}` 以支持用户手动切主题的平滑动画；但这同时允许 `next-themes` 在页面加载时将暗色/彩色主题 class 注入 `<html>` 时触发 CSS 过渡，用户会看到从浅色"动画到"深色的闪烁（约 200ms）
+- **效果**：初始主题类应用期间无过渡闪烁；用户手动切换主题仍享受平滑动画
+
+### Step 16 ✅ AnalyticsDashboard 改为 next/dynamic 条件懒加载
+- **文件**：`components/ToolsCard.tsx`
+- **改动**：删除静态顶层 `import AnalyticsDashboard from './AnalyticsDashboard'`，改为 `const AnalyticsDashboard = dynamic(() => import('./AnalyticsDashboard'), { ssr: false })`；补充 `import dynamic from 'next/dynamic'`
+- **问题根因**：`AnalyticsDashboard` 是 `'use client'` 组件，含 SWR 数据获取、自定义 SVG 折线图渲染（`buildPath`）和 `Intl.NumberFormat` 格式化器。组件仅在用户点击 Analytics 工具按钮后才显示（`showAnalytics && <AnalyticsDashboard>`），但静态 import 使其代码在每个页面的主 JS bundle 中都存在，对未点击该按钮的用户造成无谓下载
+- **效果**：Analytics 面板相关代码拆分为独立 chunk，仅在用户首次打开面板时按需下载；初始 bundle 体积降低
+
 ---
+
+## 已完成修复补充（2026-04-09）
+
+### 博文详情返回首页时共享元素退化为 fade 的根因确认与修复 ✅
+- **涉及文件**：`components/ArticleBackButton.tsx`、`app/blog/[slug]/page.tsx`、`components/PostCard.tsx`、`components/ScrollRestorer.tsx`
+- **最终根因**：不是其他 CSS 动画覆盖了 morph，而是返回时目标卡片在 shared-element 配对瞬间不在 viewport。根据 React ViewTransition 官方限制，若目标元素在配对时不可见，React 不会形成 shared pair，而是退回默认 fade。
+- **此前链路的问题**：详情页返回首页时先导航到 `/`，再由 `components/ScrollRestorer.tsx` 读取 sessionStorage 补滚动。对于 shared element，这个补滚动发生得太晚，配对阶段已经结束，所以即使随后页面滚到了正确位置，动画也只能表现为 fade。
+- **确认排除项**：此前调整 root CSS 和返回按钮视觉位置，并不是这次问题的主因；真正卡住 shared morph 的是“目标卡片未提前进入视口”。
+- **修复方案**：
+  - `components/ArticleBackButton.tsx` 从 imperative `router.push` 改为锚点 `Link` 返回，同时保留 `nav-back` transition type。
+  - `app/blog/[slug]/page.tsx` 将返回地址改为当前文章卡片对应的 `/#post-...`。
+  - `components/PostCard.tsx` 为每张卡片增加稳定锚点 `id`，并设置 `scrollMarginTop`，确保锚点定位后卡片顶部落在可视区域内，而不是被顶部导航遮住。
+  - 顺手修复了 `app/blog/[slug]/page.tsx` 中一个现有的 `PromiseLike` 类型问题，便于继续做生产模式验证。
+- **当前行为变化**：返回首页时不再依赖“先回 `/` 再补滚动”，而是直接落到 `/#post-...`，让浏览器在导航阶段就把目标卡片滚进视口，从而满足 shared pair 的形成条件。
+- **验证结果**：
+  - 生产构建已通过。
+  - 生产模式下已确认首页目标卡片存在 `id="post-..."`。
+  - 详情页返回按钮的 `href` 已确认指向 `/#post-...`。
+  - 点击返回后的最终 URL 已确认落在 `/#post-...`。
+- **结论**：这条链路现在已经从“先回首页、后补滚动”切换为“返回时先将目标卡片滚入视口再配对”。这次修复直接命中了 shared element 退化为 fade 的根因。
 
