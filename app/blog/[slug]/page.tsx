@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { unstable_ViewTransition as ViewTransition } from 'react'
-import { getPosts, getPostMeta, getPostContent, getAdjacentPosts } from '@/lib/blog'
+import { Suspense, unstable_ViewTransition as ViewTransition } from 'react'
+import { getPosts, getPostMeta, getPostContent, getAdjacentPosts, type Post } from '@/lib/blog'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import CommentBox from '@/components/CommentBox'
 import ArticleBackButton from '@/components/ArticleBackButton'
@@ -30,6 +30,79 @@ function formatDate(dateStr: string | null) {
   return time === '00:00' ? date : `${date} ${time}`
 }
 
+type Comment = { id: string; author: string; content: string; created_at: string; parent_id: string | null }
+
+// async-suspense-boundaries: inner Server Component for TOC — shares contentPromise
+async function TableOfContentsSection({ contentPromise }: { contentPromise: Promise<string> }) {
+  const content = await contentPromise
+  return <TableOfContents content={content} />
+}
+
+// async-suspense-boundaries: inner Server Component for article body — streams in after meta shell
+async function ArticleBody({
+  contentPromise,
+  adjacentPromise,
+  commentsPromise,
+  postId,
+}: {
+  contentPromise: Promise<string>
+  adjacentPromise: Promise<{ prev: Post | null; next: Post | null }>
+  commentsPromise: Promise<Comment[] | null>
+  postId: string
+}) {
+  const [content, { prev, next }, initialComments] = await Promise.all([
+    contentPromise,
+    adjacentPromise,
+    commentsPromise,
+  ])
+
+  return (
+    <>
+      {/* Content Body - Expanded padding for premium feel */}
+      <ViewTransition name="article-body" default="none">
+        <div className="mt-10 px-6 md:px-10">
+          <MarkdownRenderer content={content} />
+        </div>
+      </ViewTransition>
+
+      {/* Comments */}
+      <section className="mt-16 pt-10 border-t border-border px-6 md:px-10 pb-10">
+        <CommentBox
+          targetType="blog_post"
+          targetId={postId}
+          initialComments={initialComments ?? []}
+        />
+      </section>
+
+      {/* Prev / Next navigation */}
+      {(prev || next) && (
+        <nav className="border-t border-border grid grid-cols-2 text-sm bg-muted/20 dark:bg-white/5">
+          <div className="p-6 border-r border-border hover:bg-muted/30 transition-colors">
+            {prev && (
+              <Link href={`/blog/${prev.slug}`} className="group block text-left">
+                <span className="text-xs text-muted-foreground font-mono uppercase tracking-widest">上一篇</span>
+                <p className="mt-2 font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                  {prev.title}
+                </p>
+              </Link>
+            )}
+          </div>
+          <div className="p-6 hover:bg-muted/30 transition-colors">
+            {next && (
+              <Link href={`/blog/${next.slug}`} className="group block text-right">
+                <span className="text-xs text-muted-foreground font-mono uppercase tracking-widest">下一篇</span>
+                <p className="mt-2 font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                  {next.title}
+                </p>
+              </Link>
+            )}
+          </div>
+        </nav>
+      )}
+    </>
+  )
+}
+
 export default async function BlogPostPage({
   params,
 }: {
@@ -41,17 +114,17 @@ export default async function BlogPostPage({
   const post = await getPostMeta(slug)
   if (!post) notFound()
 
-  // 第二步：拿到 post.id / published_at 后，立即并发启动 R2 拉取 + 相邻文章 + 评论
-  const [content, { prev, next }, { data: initialComments }] = await Promise.all([
-    getPostContent(post),
-    getAdjacentPosts(post.published_at!),
-    supabaseAdmin
-      .from('comments')
-      .select('id, author, content, created_at, parent_id')
-      .eq('target_type', 'blog_post')
-      .eq('target_id', post.id)
-      .order('created_at', { ascending: true }),
-  ])
+  // 第二步：立即并发启动所有后续请求，但不 await——通过 Suspense 流式传输页面外壳与正文
+  // async-suspense-boundaries: fire promises without blocking, share across Suspense children
+  const contentPromise = getPostContent(post)
+  const adjacentPromise = getAdjacentPosts(post.published_at!)
+  const commentsPromise: Promise<Comment[] | null> = supabaseAdmin
+    .from('comments')
+    .select('id, author, content, created_at, parent_id')
+    .eq('target_type', 'blog_post')
+    .eq('target_id', post.id)
+    .order('created_at', { ascending: true })
+    .then((r) => r.data)
 
   return (
     <DirectionalTransition>
@@ -66,7 +139,9 @@ export default async function BlogPostPage({
                   <AuthorProfileCard id="sidebar" compact />
                 </ViewTransition>
               </ScrollHideWrapper>
-              <TableOfContents content={content} />
+              <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-muted" />}>
+                <TableOfContentsSection contentPromise={contentPromise} />
+              </Suspense>
               <CategoriesCard activeCategory={post.category} />
             </div>
           </aside>
@@ -124,47 +199,24 @@ export default async function BlogPostPage({
                 </div>
               </header>
 
-              {/* Content Body - Expanded padding for premium feel */}
-              <ViewTransition name="article-body" default="none">
-                <div className="mt-10 px-6 md:px-10">
-                  <MarkdownRenderer content={content} />
-                </div>
-              </ViewTransition>
-
-              {/* Comments */}
-              <section className="mt-16 pt-10 border-t border-border px-6 md:px-10 pb-10">
-                <CommentBox
-                  targetType="blog_post"
-                  targetId={post.id}
-                  initialComments={initialComments ?? []}
+              {/* Article body streams in while header shows immediately */}
+              {/* async-suspense-boundaries: content + comments + nav are Suspense-deferred */}
+              <Suspense
+                fallback={
+                  <div className="mt-10 px-6 md:px-10 pb-10 space-y-3">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className={`h-4 animate-pulse rounded bg-muted ${i === 7 ? 'w-3/4' : 'w-full'}`} />
+                    ))}
+                  </div>
+                }
+              >
+                <ArticleBody
+                  contentPromise={contentPromise}
+                  adjacentPromise={adjacentPromise}
+                  commentsPromise={commentsPromise}
+                  postId={post.id}
                 />
-              </section>
-
-              {/* Prev / Next navigation */}
-              {(prev || next) && (
-                <nav className="border-t border-border grid grid-cols-2 text-sm bg-muted/20 dark:bg-white/5">
-                  <div className="p-6 border-r border-border hover:bg-muted/30 transition-colors">
-                    {prev && (
-                      <Link href={`/blog/${prev.slug}`} className="group block text-left">
-                        <span className="text-xs text-muted-foreground font-mono uppercase tracking-widest">上一篇</span>
-                        <p className="mt-2 font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                          {prev.title}
-                        </p>
-                      </Link>
-                    )}
-                  </div>
-                  <div className="p-6 hover:bg-muted/30 transition-colors">
-                    {next && (
-                      <Link href={`/blog/${next.slug}`} className="group block text-right">
-                        <span className="text-xs text-muted-foreground font-mono uppercase tracking-widest">下一篇</span>
-                        <p className="mt-2 font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                          {next.title}
-                        </p>
-                      </Link>
-                    )}
-                  </div>
-                </nav>
-              )}
+              </Suspense>
             </div>
           </article>
           </ViewTransition>
