@@ -16,7 +16,6 @@ type AnalyticsResponse = {
     realtime: number
   }
   trend: Array<{ x: string; y: number }>
-  countries: Array<{ x: string; y: number }>
 }
 
 const fetcher = async (url: string): Promise<AnalyticsResponse> => {
@@ -56,12 +55,6 @@ function formatCompactNumber(value: number) {
   return numberFormatter.format(value)
 }
 
-function buildPath(points: Array<{ x: number; y: number }>) {
-  if (!points.length) return ''
-
-  return points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
-}
-
 export default function AnalyticsDashboard({ placement }: { placement: 'desktop' | 'mobile' }) {
   const [range, setRange] = useState<RangeKey>('7d')
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai'
@@ -70,32 +63,23 @@ export default function AnalyticsDashboard({ placement }: { placement: 'desktop'
     `/api/analytics/overview?range=${range}&timezone=${encodeURIComponent(timezone)}`,
     fetcher,
     {
-      dedupingInterval: 60_000,
+      dedupingInterval: 120_000,
       revalidateOnFocus: false,
     },
   )
 
-  const trendPoints = useMemo(() => {
+  const trendBars = useMemo(() => {
     const trend = data?.trend || []
     if (!trend.length) return []
-
     const maxValue = Math.max(...trend.map((item) => item.y), 1)
-    const minValue = Math.min(...trend.map((item) => item.y), 0)
-    const width = 100
-    const height = 40
-
-    return trend.map((item, index) => {
-      const x = trend.length === 1 ? width / 2 : (index / (trend.length - 1)) * width
-      const normalized = maxValue === minValue ? 0.5 : (item.y - minValue) / (maxValue - minValue)
-      const y = height - normalized * height
-
-      return { x, y }
-    })
+    return trend.map((item) => ({
+      label: item.x,
+      value: item.y,
+      pct: maxValue === 0 ? 0 : Math.max((item.y / maxValue) * 100, item.y > 0 ? 4 : 0),
+    }))
   }, [data?.trend])
 
   const stats = data?.summary
-  const countries = data?.countries || []
-  const maxCountryValue = Math.max(...countries.map((country) => country.y), 1)
 
   return (
     <section className="mt-4 rounded-xl border border-border/60 bg-background/80 p-4">
@@ -153,8 +137,7 @@ export default function AnalyticsDashboard({ placement }: { placement: 'desktop'
             <div className="h-14 rounded-lg bg-muted" />
             <div className="h-14 rounded-lg bg-muted" />
           </div>
-          <div className="h-24 rounded-lg bg-muted" />
-          <div className="h-24 rounded-lg bg-muted" />
+          <div className="h-20 rounded-lg bg-muted" />
         </div>
       )}
 
@@ -192,38 +175,24 @@ export default function AnalyticsDashboard({ placement }: { placement: 'desktop'
             </div>
           </div>
 
-          <div className="rounded-lg border border-border/60 p-2.5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[11px] text-muted-foreground">访问趋势</p>
-              <p className="text-[11px] text-muted-foreground">{range === '7d' ? '近7天' : '近30天'}</p>
+          {trendBars.length > 0 && (
+            <div className="rounded-lg border border-border/60 p-2.5">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] text-muted-foreground">访问趋势</p>
+                <p className="text-[11px] text-muted-foreground">{range === '7d' ? '近7天' : '近30天'}</p>
+              </div>
+              <div className="flex items-end gap-px h-14">
+                {trendBars.map((bar) => (
+                  <div
+                    key={bar.label}
+                    className="flex-1 bg-primary/50 hover:bg-primary/80 rounded-sm transition-colors"
+                    style={{ height: `${bar.pct}%` }}
+                    title={`${bar.label}: ${numberFormatter.format(bar.value)}`}
+                  />
+                ))}
+              </div>
             </div>
-            <svg viewBox="0 0 100 40" className="w-full h-20">
-              <path d={buildPath(trendPoints)} fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary" />
-            </svg>
-          </div>
-
-          <div className="rounded-lg border border-border/60 p-2.5">
-            <p className="text-[11px] text-muted-foreground mb-2">国家/地区</p>
-            <div className="space-y-2">
-              {countries.length === 0 && (
-                <p className="text-[11px] text-muted-foreground">暂无可展示数据</p>
-              )}
-              {countries.map((country) => (
-                <div key={country.x} className="space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-foreground">{country.x}</span>
-                    <span className="text-muted-foreground">{numberFormatter.format(country.y)}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full"
-                      style={{ width: `${Math.max((country.y / maxCountryValue) * 100, 6)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
         </div>
       )}
     </section>

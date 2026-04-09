@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export const dynamic = 'force-dynamic'
-
 type RangeKey = '7d' | '30d'
 
 type TokenCache = {
@@ -191,7 +189,7 @@ export async function GET(request: NextRequest) {
       timezone,
     }
 
-    const [statsResult, activeVisitorsResult, pageviewsResult, countriesResult] = await Promise.allSettled([
+    const [statsResult, activeVisitorsResult, pageviewsResult] = await Promise.allSettled([
       fetchUmami<{
         pageviews: number
         visitors: number
@@ -199,21 +197,11 @@ export async function GET(request: NextRequest) {
         bounces: number
         totaltime: number
       }>(cfg.endpoint, token, `/websites/${cfg.websiteId}/stats`, commonQuery),
-      fetchUmami<number>(cfg.endpoint, token, `/websites/${cfg.websiteId}/active`, {}),
+      fetchUmami<{ x: number }>(cfg.endpoint, token, `/websites/${cfg.websiteId}/active`, {}),
       fetchUmami<{
         pageviews: Array<{ x: string; y: number }>
         sessions: Array<{ x: string; y: number }>
       }>(cfg.endpoint, token, `/websites/${cfg.websiteId}/pageviews`, commonQuery),
-      fetchUmami<Array<{ x: string; y: number }>>(
-        cfg.endpoint,
-        token,
-        `/websites/${cfg.websiteId}/metrics`,
-        {
-          ...commonQuery,
-          type: 'country',
-          limit: '6',
-        },
-      ),
     ])
 
     const warnings: string[] = []
@@ -221,7 +209,7 @@ export async function GET(request: NextRequest) {
     const stats = statsResult.status === 'fulfilled' ? statsResult.value : null
     if (!stats) warnings.push(`stats: ${String(statsResult.status === 'rejected' ? statsResult.reason : 'unknown error')}`)
 
-    const activeVisitors = activeVisitorsResult.status === 'fulfilled' ? activeVisitorsResult.value : 0
+    const activeVisitors = activeVisitorsResult.status === 'fulfilled' ? (activeVisitorsResult.value?.x ?? 0) : 0
     if (activeVisitorsResult.status === 'rejected') {
       warnings.push(`active: ${String(activeVisitorsResult.reason)}`)
     }
@@ -231,12 +219,7 @@ export async function GET(request: NextRequest) {
       warnings.push(`pageviews: ${String(pageviewsResult.reason)}`)
     }
 
-    const countryMetrics = countriesResult.status === 'fulfilled' ? countriesResult.value : []
-    if (countriesResult.status === 'rejected') {
-      warnings.push(`countries: ${String(countriesResult.reason)}`)
-    }
-
-    if (!stats && activeVisitorsResult.status === 'rejected' && pageviewsResult.status === 'rejected' && countriesResult.status === 'rejected') {
+    if (!stats && activeVisitorsResult.status === 'rejected' && pageviewsResult.status === 'rejected') {
       return NextResponse.json(
         {
           error: 'All upstream analytics requests failed.',
@@ -246,21 +229,27 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({
-      range,
-      startAt,
-      endAt,
-      partial: warnings.length > 0,
-      warnings,
-      summary: {
-        pageviews: stats?.pageviews ?? 0,
-        visitors: stats?.visitors ?? 0,
-        visits: stats?.visits ?? 0,
-        realtime: activeVisitors,
+    return NextResponse.json(
+      {
+        range,
+        startAt,
+        endAt,
+        partial: warnings.length > 0,
+        warnings,
+        summary: {
+          pageviews: stats?.pageviews ?? 0,
+          visitors: stats?.visitors ?? 0,
+          visits: stats?.visits ?? 0,
+          realtime: activeVisitors,
+        },
+        trend: pageviewsData.pageviews,
       },
-      trend: pageviewsData.pageviews,
-      countries: countryMetrics,
-    })
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+        },
+      },
+    )
   } catch (error) {
     console.error('Failed to load Umami analytics overview:', error)
 
