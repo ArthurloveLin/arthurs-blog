@@ -1,4 +1,4 @@
-import { getLatestTrendRadarData, type TrendTitle, type NewSource, type RssGroup, type StandalonePlatform } from "@/lib/trend-radar";
+import { getTrendRadarData, listTrendRadarReports, type TrendTitle, type NewSource, type RssGroup, type StandalonePlatform } from "@/lib/trend-radar";
 import { Suspense } from "react";
 import DirectionalTransition from "@/components/DirectionalTransition";
 import ScrollRestorer from "@/components/ScrollRestorer";
@@ -10,14 +10,22 @@ import TrendRadarDisplay from "@/components/TrendRadarDisplay";
 
 export const revalidate = 3600; // 1 hour cache, reasonable for 3-times-daily crawls
 
-async function TrendRadarContent() {
-  const data = await getLatestTrendRadarData();
+async function TrendRadarContent({
+  searchParams,
+}: {
+  searchParams: { report?: string };
+}) {
+  const reportKey = searchParams.report || "reports/latest.json";
+  const [data, history] = await Promise.all([
+    getTrendRadarData(reportKey),
+    listTrendRadarReports(),
+  ]);
 
   if (!data) {
     return (
       <div className="py-24 flex flex-col items-center gap-2">
         <span className="font-mono text-xs text-zinc-300 dark:text-zinc-700">— 加载失败 —</span>
-        <span className="text-xs text-muted-foreground">无法从 R2 获取趋势报告数据，请检查配置或稍后再试。</span>
+        <span className="text-xs text-muted-foreground">无法从 R2 获取趋势报告数据 ({reportKey})。</span>
       </div>
     );
   }
@@ -35,7 +43,12 @@ async function TrendRadarContent() {
 
   return (
     <div className="space-y-8">
-      <TrendRadarDisplay data={data} formattedTime={formattedGenerateTime} />
+      <TrendRadarDisplay
+        data={data}
+        formattedTime={formattedGenerateTime}
+        history={history}
+        currentReportKey={reportKey}
+      />
 
       {/* ── Error Debug ── */}
       {failed_ids && failed_ids.length > 0 && (
@@ -48,7 +61,11 @@ async function TrendRadarContent() {
 }
 
 
-export default function TrendRadarPage() {
+export default function TrendRadarPage({
+  searchParams,
+}: {
+  searchParams: { report?: string };
+}) {
   return (
     <DirectionalTransition>
       <ScrollRestorer />
@@ -93,7 +110,7 @@ export default function TrendRadarPage() {
                   </div>
                 }
               >
-                <TrendRadarContent />
+                <TrendRadarContent searchParams={searchParams} />
               </Suspense>
             </section>
 
