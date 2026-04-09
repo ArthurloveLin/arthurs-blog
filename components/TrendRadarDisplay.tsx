@@ -12,11 +12,14 @@ type Category = "trend" | "rss" | "hot";
 interface Props {
   data: TrendRadarData;
   formattedTime: string;
+  history: { key: string; date: string; time: string; rawTime: string }[];
+  currentReportKey: string;
 }
 
-export default function TrendRadarDisplay({ data, formattedTime }: Props) {
+export default function TrendRadarDisplay({ data, formattedTime, history, currentReportKey }: Props) {
   const [activeCategory, setActiveCategory] = useState<Category>("trend");
   const [activeTag, setActiveTag] = useState<string>("全部");
+  const [showHistory, setShowHistory] = useState(false);
 
   const { stats, rss_items, standalone_data, new_titles } = data;
 
@@ -57,9 +60,9 @@ export default function TrendRadarDisplay({ data, formattedTime }: Props) {
   return (
     <div className="space-y-6">
       {/* ── Unified Filter Card ── */}
-      <div className="bg-card border border-border/50 rounded-2xl p-1 shadow-sm overflow-hidden">
-        {/* Main Categories */}
-        <div className="flex p-1">
+      <div className="bg-card border border-border/50 rounded-2xl p-1 shadow-sm overflow-visible relative z-30">
+        {/* Main Categories & History */}
+        <div className="flex p-1 gap-1">
           {(["trend", "rss", "hot"] as const).map((cat) => {
             const label = cat === "trend" ? "趋势看点" : cat === "rss" ? "RSS 订阅" : "平台热点";
             const isActive = activeCategory === cat;
@@ -68,7 +71,7 @@ export default function TrendRadarDisplay({ data, formattedTime }: Props) {
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium transition-all duration-200",
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200",
                   isActive
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -76,7 +79,7 @@ export default function TrendRadarDisplay({ data, formattedTime }: Props) {
               >
                 <span>{label}</span>
                 <span className={cn(
-                  "text-[10px] font-mono px-1.5 py-0.5 rounded-full",
+                  "hidden xs:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded-full",
                   isActive ? "bg-white/20 text-primary-foreground" : "bg-muted text-muted-foreground/60"
                 )}>
                   {counts[cat]}
@@ -84,6 +87,70 @@ export default function TrendRadarDisplay({ data, formattedTime }: Props) {
               </button>
             );
           })}
+
+          {/* History Button */}
+          <div className="relative flex-1">
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className={cn(
+                "w-full h-full flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 border border-transparent",
+                showHistory
+                  ? "bg-muted text-foreground border-border/50"
+                  : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+              )}
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="truncate">{formattedTime}</span>
+              <svg 
+                className={cn("w-3 h-3 transition-transform duration-200", showHistory && "rotate-180")} 
+                fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {/* History Dropdown */}
+            {showHistory && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowHistory(false)}
+                ></div>
+                <div className="absolute right-0 top-full mt-2 w-64 max-h-[400px] overflow-y-auto bg-card border border-border rounded-2xl shadow-2xl z-50 p-2 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="px-3 py-2 border-b border-border/50 mb-1">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">最近三天的快照</span>
+                  </div>
+                  {history.map((item) => (
+                    <a
+                      key={item.key}
+                      href={`/trend-radar?report=${item.key}`}
+                      className={cn(
+                        "flex items-center justify-between py-2.5 px-3 rounded-xl text-[12px] font-medium transition-all duration-200 mb-1",
+                        currentReportKey === item.key 
+                          ? "bg-primary text-primary-foreground shadow-md" 
+                          : "hover:bg-muted text-muted-foreground hover:text-foreground border border-transparent hover:border-border/30"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <svg className="w-3 h-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-mono">{item.date} {item.time}</span>
+                      </div>
+                      {currentReportKey === item.key && (
+                        <span className="text-[10px] font-bold uppercase tracking-tighter bg-white/20 px-1.5 rounded-full">Active</span>
+                      )}
+                    </a>
+                  ))}
+                  {history.length === 0 && (
+                    <div className="px-3 py-4 text-center text-xs text-muted-foreground">
+                      无历史快照记录
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Optional: Keyword Tags (only for trend) */}
@@ -120,16 +187,6 @@ export default function TrendRadarDisplay({ data, formattedTime }: Props) {
         {/* 1. Trend Section */}
         {activeCategory === "trend" && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-3 bg-red-500 rounded-full"></div>
-                <h3 className="text-sm font-bold opacity-80 uppercase tracking-tight">热点聚焦</h3>
-              </div>
-              <span className="text-[10px] font-mono text-muted-foreground/50">
-                Found {filteredStats.length} topics
-              </span>
-            </div>
-            
             <div className="grid grid-cols-1 gap-4">
               {filteredStats.map((item, idx) => (
                 <KeywordCard key={item.word} item={item} rank={stats.indexOf(item) + 1} />
@@ -139,10 +196,6 @@ export default function TrendRadarDisplay({ data, formattedTime }: Props) {
             {/* New Source Section inside Trend */}
             {new_titles && new_titles.length > 0 && activeTag === "全部" && (
               <div className="pt-8 space-y-4">
-                 <div className="flex items-center gap-2 px-1">
-                  <div className="w-1 h-3 bg-blue-500 rounded-full"></div>
-                  <h3 className="text-sm font-bold opacity-80 uppercase tracking-tight">分榜新增</h3>
-                </div>
                 <div className="columns-1 sm:columns-2 gap-4 space-y-4">
                   {new_titles.map((source, sIdx) => (
                     <div
@@ -178,15 +231,6 @@ export default function TrendRadarDisplay({ data, formattedTime }: Props) {
         {/* 2. RSS Section (Masonry Grid) */}
         {activeCategory === "rss" && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-3 bg-emerald-500 rounded-full"></div>
-                <h3 className="text-sm font-bold opacity-80 uppercase tracking-tight">按来源分类</h3>
-              </div>
-              <span className="text-[10px] font-mono text-muted-foreground/50">
-                Last Check: {formattedTime}
-              </span>
-            </div>
 
             <div className="columns-1 sm:columns-2 gap-4 space-y-4">
               {rssBySource.map((source, idx) => (
@@ -237,12 +281,6 @@ export default function TrendRadarDisplay({ data, formattedTime }: Props) {
         {/* 3. Hot Section (Independent Platforms) */}
         {activeCategory === "hot" && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-3 bg-amber-500 rounded-full"></div>
-                <h3 className="text-sm font-bold opacity-80 uppercase tracking-tight">独立平台热榜</h3>
-              </div>
-            </div>
 
             <div className="columns-1 sm:columns-2 gap-4 space-y-4">
               {standalonePlatforms.map((platform, idx) => (
