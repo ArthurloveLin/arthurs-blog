@@ -26,6 +26,7 @@ const Live2D = dynamic(() => import('@/components/Live2D'), {
 
 interface BlogPageProps {
   posts: Post[]
+  currentYear: number
   fetchError?: boolean
   activeCategory?: string | null
   activeTags?: string[]
@@ -47,6 +48,7 @@ function getInitialReturningPostSlug() {
 
 export default function BlogPage({
   posts,
+  currentYear,
   fetchError = false,
   activeCategory = null,
   activeTags = [],
@@ -225,7 +227,7 @@ export default function BlogPage({
       <footer className="border-t border-border mt-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="font-mono text-[11px] text-muted-foreground">
-            © {new Date().getFullYear()} Arthur &amp; Grace
+            © {currentYear} Arthur &amp; Grace
           </p>
           <nav className="lg:hidden flex items-center gap-5 font-mono text-[11px] text-muted-foreground">
             <Link href="/wardrobe" className="hover:text-foreground transition-colors">

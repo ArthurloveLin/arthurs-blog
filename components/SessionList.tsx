@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 import { useAuth } from './AuthProvider'
+import { formatLongDate } from '@/lib/date-format'
 
 interface Session {
   id: string
@@ -91,11 +92,7 @@ export default function SessionList({ sessions }: SessionListProps) {
 
         {visible.map((session) => {
           const count = session.items?.[0]?.count ?? 0
-          const date = new Date(session.created_at).toLocaleDateString('zh-CN', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })
+          const date = formatLongDate(session.created_at)
 
           const isLoading = loading === session.id || isPending
 
