@@ -14,6 +14,7 @@ import RecentPostsCard from '@/components/RecentPostsCard'
 import ToolsCard from '@/components/ToolsCard'
 import ScrollHideWrapper from '@/components/ScrollHideWrapper'
 import { supabaseAdmin } from '@/lib/supabase'
+import ScrollToTop from '@/components/ScrollToTop'
 
 export const revalidate = 60
 
@@ -59,11 +60,9 @@ async function ArticleBody({
   return (
     <>
       {/* Content Body - Expanded padding for premium feel */}
-      <ViewTransition name="article-body" default="none">
-        <div className="mt-10 px-6 md:px-10">
-          <MarkdownRenderer content={content} />
-        </div>
-      </ViewTransition>
+      <div className="mt-10 px-6 md:px-10">
+        <MarkdownRenderer content={content} />
+      </div>
 
       {/* Comments */}
       <section className="mt-16 pt-10 border-t border-border px-6 md:px-10 pb-10">
@@ -118,17 +117,20 @@ export default async function BlogPostPage({
   // async-suspense-boundaries: fire promises without blocking, share across Suspense children
   const contentPromise = getPostContent(post)
   const adjacentPromise = getAdjacentPosts(post.published_at!)
-  const commentsPromise: Promise<Comment[] | null> = supabaseAdmin
-    .from('comments')
-    .select('id, author, content, created_at, parent_id')
-    .eq('target_type', 'blog_post')
-    .eq('target_id', post.id)
-    .order('created_at', { ascending: true })
-    .then((r) => r.data)
+  const commentsPromise = Promise.resolve(
+    supabaseAdmin
+      .from('comments')
+      .select('id, author, content, created_at, parent_id')
+      .eq('target_type', 'blog_post')
+      .eq('target_id', post.id)
+      .order('created_at', { ascending: true })
+      .then((r) => r.data as Comment[] | null)
+  )
 
   return (
     <DirectionalTransition>
     <main className="min-h-screen bg-background">
+      <ScrollToTop />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Left Sidebar Space - Matches Blog List Grid */}
@@ -147,20 +149,21 @@ export default async function BlogPostPage({
           </aside>
 
           {/* Main Article Content - Perfectly aligned with PostCard width */}
-          <ViewTransition name="article-card" default="none">
           <article className="md:col-span-8 lg:col-span-6 bg-card rounded-2xl md:rounded-3xl border border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none overflow-hidden h-fit">
             {/* ── Outer padding for the whole article card content ── */}
             <div>
               {/* Hero Header (Synced with PostCard) */}
               <header className="relative">
+                {/* Floating back button — keep it outside the shared cover snapshot.
+                    Otherwise the detail snapshot becomes "cover + button" while the list snapshot
+                    is only the cover, which degrades the shared-element morph into a cross-fade. */}
+                <ArticleBackButton returnHref={`/#post-${post.id}`} />
+
                 {/* Hero: Cover - No rounded-2xl md:rounded-3xl here because it's at the top of an overflow-hidden card */}
                 <ViewTransition name={`post-cover-${post.id}`} share="morph" default="none">
                 <div
                   className="relative aspect-video w-full overflow-hidden bg-muted border-b border-border/50 rounded-t-2xl md:rounded-t-3xl"
                 >
-                  {/* Floating back button — absolute overlay, does not affect layout */}
-                  <ArticleBackButton />
-
                   {post.cover_image ? (
                     <Image
                       src={decodeURIComponent(post.cover_image)}
@@ -201,25 +204,28 @@ export default async function BlogPostPage({
 
               {/* Article body streams in while header shows immediately */}
               {/* async-suspense-boundaries: content + comments + nav are Suspense-deferred */}
-              <Suspense
-                fallback={
-                  <div className="mt-10 px-6 md:px-10 pb-10 space-y-3">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <div key={i} className={`h-4 animate-pulse rounded bg-muted ${i === 7 ? 'w-3/4' : 'w-full'}`} />
-                    ))}
-                  </div>
-                }
-              >
-                <ArticleBody
-                  contentPromise={contentPromise}
-                  adjacentPromise={adjacentPromise}
-                  commentsPromise={commentsPromise}
-                  postId={post.id}
-                />
-              </Suspense>
+              {/* Article body: we wrap the whole Suspense in the body transition name
+                  to keep the layout stable and animate content entrance smoothly */}
+              <ViewTransition name="article-body" default="none">
+                <Suspense
+                  fallback={
+                    <div className="mt-10 px-6 md:px-10 pb-10 space-y-3">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className={`h-4 animate-pulse rounded bg-muted ${i === 7 ? 'w-3/4' : 'w-full'}`} />
+                      ))}
+                    </div>
+                  }
+                >
+                  <ArticleBody
+                    contentPromise={contentPromise}
+                    adjacentPromise={adjacentPromise}
+                    commentsPromise={commentsPromise}
+                    postId={post.id}
+                  />
+                </Suspense>
+              </ViewTransition>
             </div>
           </article>
-          </ViewTransition>
 
           {/* Right Sidebar Space */}
           <aside className="hidden lg:block lg:col-span-3">

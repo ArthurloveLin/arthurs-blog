@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { unstable_ViewTransition as ViewTransition, useEffect, useRef } from 'react'
+import { unstable_ViewTransition as ViewTransition, useEffect, useRef, useState } from 'react'
 import type { Post } from '@/lib/blog'
 import { useSiteData } from '@/components/SiteDataProvider'
 
@@ -31,6 +31,19 @@ interface BlogPageProps {
   activeYear?: number | null
 }
 
+function getInitialReturningPostSlug() {
+  if (typeof window === 'undefined') return null
+
+  const storedPathname = sessionStorage.getItem('blog-return:pathname')
+  const storedPostSlug = sessionStorage.getItem('blog-return:post-slug')
+
+  if (storedPathname !== window.location.pathname || !storedPostSlug) {
+    return null
+  }
+
+  return storedPostSlug
+}
+
 export default function BlogPage({
   posts,
   fetchError = false,
@@ -41,6 +54,7 @@ export default function BlogPage({
   const { config: siteConfig } = useSiteData()
   const leftSidebarRef = useRef<HTMLDivElement>(null)
   const rightSidebarRef = useRef<HTMLDivElement>(null)
+  const [returningPostSlug, setReturningPostSlug] = useState<string | null>(getInitialReturningPostSlug)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -54,6 +68,22 @@ export default function BlogPage({
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  useEffect(() => {
+    if (!returningPostSlug) {
+      sessionStorage.removeItem('blog-return:pathname')
+      sessionStorage.removeItem('blog-return:post-slug')
+      return
+    }
+
+    const clear = window.setTimeout(() => {
+      setReturningPostSlug(null)
+      sessionStorage.removeItem('blog-return:pathname')
+      sessionStorage.removeItem('blog-return:post-slug')
+    }, 1200)
+
+    return () => window.clearTimeout(clear)
+  }, [returningPostSlug])
 
   return (
     <DirectionalTransition>
@@ -167,7 +197,7 @@ export default function BlogPage({
               <div className="space-y-6">
                 {posts.map((post, index) => (
                   <ViewTransition key={post.id}>
-                    <PostCard post={post} index={index} />
+                    <PostCard post={post} index={index} forceRender={returningPostSlug === post.slug} />
                   </ViewTransition>
                 ))}
               </div>
