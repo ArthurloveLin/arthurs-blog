@@ -1,4 +1,4 @@
-import { getTrendRadarData, listTrendRadarReports, type TrendTitle, type NewSource, type RssGroup, type StandalonePlatform } from "@/lib/trend-radar";
+import { getTrendRadarData, listTrendRadarReports } from "@/lib/trend-radar";
 import { Suspense } from "react";
 import DirectionalTransition from "@/components/DirectionalTransition";
 import ScrollRestorer from "@/components/ScrollRestorer";
@@ -30,7 +30,7 @@ async function TrendRadarContent({
     );
   }
 
-  const { stats, new_titles, rss_items, standalone_data, failed_ids, generated_at } = data;
+  const { failed_ids, generated_at } = data;
 
   const formattedGenerateTime = generated_at
     ? new Date(generated_at).toLocaleString("zh-CN", {
