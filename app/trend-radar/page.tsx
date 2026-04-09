@@ -6,7 +6,7 @@ import ToolsCard from "@/components/ToolsCard";
 import RecentPostsCard from "@/components/RecentPostsCard";
 import ArchiveCard from "@/components/ArchiveCard";
 import AuthorProfileCard from "@/components/AuthorProfileCard";
-import TrendRadarStats from "@/components/TrendRadarStats";
+import TrendRadarDisplay from "@/components/TrendRadarDisplay";
 
 export const revalidate = 3600; // 1 hour cache, reasonable for 3-times-daily crawls
 
@@ -33,165 +33,9 @@ async function TrendRadarContent() {
       })
     : "未知";
 
-  // Flatten RSS groups → individual title entries for display
-  const rssEntries = (rss_items || []).flatMap((group: RssGroup) =>
-    (group.titles || []).map((t) => ({ ...t, word: group.word }))
-  );
-
-  // Merge standalone platforms + rss_feeds for the tabbed section
-  const standalonePlatforms: StandalonePlatform[] = [
-    ...(standalone_data?.platforms || []),
-    ...(standalone_data?.rss_feeds || []),
-  ];
-
   return (
     <div className="space-y-8">
-      {/* ── Hot Keywords (Stats) ── */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
-          <h2 className="text-sm font-semibold text-foreground">趋势看点</h2>
-          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
-            {(stats || []).length} 个焦点
-          </span>
-          <div className="ml-auto flex items-center gap-2">
-             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-             <span className="text-[10px] font-mono text-muted-foreground/60 uppercase">
-               Last Check: {formattedGenerateTime}
-             </span>
-          </div>
-        </div>
-
-        <TrendRadarStats stats={stats || []} />
-      </section>
-
-      {/* ── New Topics (Sources) ── */}
-      {new_titles && new_titles.length > 0 && (
-        <section className="space-y-4 pt-4 border-t border-border/50">
-          <div className="flex items-center gap-2 mb-2">
-            <h2 className="text-sm font-semibold text-foreground">分榜新增</h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {new_titles.map((source: NewSource, sIdx: number) => (
-              <div
-                key={sIdx}
-                className="bg-card/50 rounded-xl p-4 border border-border/40 hover:border-border transition-colors"
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-1 h-3 bg-primary/40 rounded-full"></div>
-                  <h4 className="text-xs font-bold text-foreground">{source.source_name}</h4>
-                </div>
-                <ul className="space-y-2.5">
-                  {source.titles?.slice(0, 5).map((t: TrendTitle, i: number) => (
-                    <li key={i}>
-                      <a
-                        href={t.url || t.mobile_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[13px] text-muted-foreground hover:text-primary transition-colors line-clamp-1 leading-snug"
-                        title={t.title}
-                      >
-                        {t.title}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── RSS Items (flattened from groups) ── */}
-      {rssEntries.length > 0 && (
-        <section className="space-y-4 pt-4 border-t border-border/50">
-          <div className="flex items-center gap-2 mb-2">
-            <h2 className="text-sm font-semibold text-foreground">RSS 订阅更新</h2>
-            <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
-              {rssEntries.length} 条
-            </span>
-          </div>
-          <div className="space-y-2">
-            {rssEntries.map((item, i) => (
-              <a
-                key={i}
-                href={item.url || item.mobile_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-start gap-3 group p-3 rounded-xl border border-border/40 bg-card/50 hover:border-border hover:bg-card transition-all duration-200"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    {item.source_name && (
-                      <span className="text-[10px] font-mono text-muted-foreground bg-muted/50 px-1.5 rounded leading-relaxed shrink-0">
-                        {item.source_name}
-                      </span>
-                    )}
-                    {item.word && (
-                      <span className="text-[10px] font-mono text-primary/60 bg-primary/5 px-1.5 rounded leading-relaxed shrink-0">
-                        {item.word}
-                      </span>
-                    )}
-                    {item.time_display && (
-                      <span className="text-[10px] text-muted-foreground/50 ml-auto shrink-0">{item.time_display}</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-foreground/80 group-hover:text-primary transition-colors line-clamp-2 leading-relaxed">
-                    {item.title}
-                  </p>
-                </div>
-              </a>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Standalone Section (独立展示区) ── */}
-      {standalonePlatforms.length > 0 && (
-        <section className="space-y-4 pt-4 border-t border-border/50">
-          <div className="flex items-center gap-2 mb-2">
-            <h2 className="text-sm font-semibold text-foreground">独立展示区</h2>
-            <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
-              {standalonePlatforms.reduce((acc, p) => acc + p.items.length, 0)} 条
-            </span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {standalonePlatforms.map((platform, pIdx) => (
-              <div
-                key={pIdx}
-                className="bg-card/50 rounded-xl p-4 border border-border/40 hover:border-border transition-colors"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1 h-3 bg-amber-400/70 rounded-full"></div>
-                    <h4 className="text-xs font-bold text-foreground">{platform.name}</h4>
-                  </div>
-                  <span className="text-[10px] font-mono text-muted-foreground/50">{platform.items.length} 条</span>
-                </div>
-                <ol className="space-y-2">
-                  {platform.items.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-[10px] font-mono text-muted-foreground/40 mt-[3px] w-4 shrink-0 text-right">
-                        {i + 1}
-                      </span>
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[13px] text-muted-foreground hover:text-primary transition-colors line-clamp-2 leading-snug"
-                        title={item.title}
-                      >
-                        {item.title}
-                      </a>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      <TrendRadarDisplay data={data} formattedTime={formattedGenerateTime} />
 
       {/* ── Error Debug ── */}
       {failed_ids && failed_ids.length > 0 && (
