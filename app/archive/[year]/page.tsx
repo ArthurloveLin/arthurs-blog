@@ -1,6 +1,7 @@
 import { getPostsByYear, getYearArchive } from '@/lib/blog'
 import type { Post } from '@/lib/blog'
 import BlogPage from '@/components/BlogPage'
+import { getStableYear } from '@/lib/date-format'
 
 export const revalidate = 60
 
@@ -27,6 +28,7 @@ export default async function ArchivePage({
   return (
     <BlogPage
       posts={posts}
+      currentYear={getStableYear()}
       fetchError={fetchError}
       activeYear={parsedYear}
     />

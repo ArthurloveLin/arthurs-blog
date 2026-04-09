@@ -182,6 +182,16 @@
   animation: animate-gradient 5s ease infinite;
 }
 
+.icon-glow-bg {
+  @apply absolute inset-0 rounded-xl transition-all duration-300 opacity-0 group-hover:opacity-100;
+  background: var(--gradient-primary);
+  filter: blur(12px);
+  transform: scale(0.8);
+}
+.group:hover .icon-glow-bg {
+  transform: scale(1.1);
+}
+
 /* Blog Hero Sync Classes */
 .blog-hero-title {
   font-size: 1.5rem; /* text-2xl - 更紧凑且容易对位 */
