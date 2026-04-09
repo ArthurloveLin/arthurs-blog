@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { unstable_ViewTransition as ViewTransition, useEffect, useRef } from 'react'
 import type { Post } from '@/lib/blog'
+import { useSiteData } from '@/components/SiteDataProvider'
 
 import PostCard from '@/components/PostCard'
 import AuthorProfileCard from '@/components/AuthorProfileCard'
@@ -24,7 +25,6 @@ const Live2D = dynamic(() => import('@/components/Live2D'), {
 
 interface BlogPageProps {
   posts: Post[]
-  siteConfig: Record<string, string>
   fetchError?: boolean
   activeCategory?: string | null
   activeTags?: string[]
@@ -33,12 +33,12 @@ interface BlogPageProps {
 
 export default function BlogPage({
   posts,
-  siteConfig,
   fetchError = false,
   activeCategory = null,
   activeTags = [],
   activeYear = null,
 }: BlogPageProps) {
+  const { config: siteConfig } = useSiteData()
   const leftSidebarRef = useRef<HTMLDivElement>(null)
   const rightSidebarRef = useRef<HTMLDivElement>(null)
 
