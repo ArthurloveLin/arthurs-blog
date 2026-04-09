@@ -98,8 +98,10 @@ export default function TournamentDuel({ items: initialItems, onClose, templateC
 
     // Process next round after animation
     setTimeout(() => {
+      // 使用 functional setState 避免闭包中的 loserHistory 过时
+      // rule: rerender-functional-setstate
       const nextLoserHistory = [...loserHistory, loser]
-      setLoserHistory(nextLoserHistory)
+      setLoserHistory(curr => [...curr, loser])
 
       if (pool.length > 0) {
         const nextPool = [...pool]
