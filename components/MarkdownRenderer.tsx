@@ -12,7 +12,7 @@ export default function MarkdownRenderer({ content }: { content: string }) {
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight, rehypeSlug]}
         components={{
-          img: ({ node, ...props }) => {
+          img: ({ ...props }) => {
             // Decodes the URL to handle special characters correctly
             const url = typeof props.src === 'string' ? props.src : ''
             const src = url ? decodeURIComponent(url) : ''

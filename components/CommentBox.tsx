@@ -3,6 +3,7 @@
 import { useState, useRef, useMemo } from 'react'
 import { updatePresenceActivity } from './ActivityBanner'
 import { useAuth } from './AuthProvider'
+import { formatCommentTimestamp } from '@/lib/date-format'
 
 interface Comment {
   id: string
@@ -10,12 +11,6 @@ interface Comment {
   content: string
   created_at: string
   parent_id: string | null
-}
-
-function formatTime(ts: string) {
-  return new Date(ts).toLocaleString('zh-CN', {
-    month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
 }
 
 function CommentItem({
@@ -40,7 +35,7 @@ function CommentItem({
         <div className="flex-1 bg-muted/30 border border-border/50 rounded-2xl px-3 py-2 hover:bg-muted/50 transition-colors">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] font-bold uppercase tracking-tight text-primary/80">{comment.author}</span>
-            <span className="text-[10px] font-medium text-muted-foreground/50">{formatTime(comment.created_at)}</span>
+            <span className="text-[10px] font-medium text-muted-foreground/50">{formatCommentTimestamp(comment.created_at)}</span>
           </div>
           <p className="text-sm text-foreground/90 break-words leading-relaxed">{comment.content}</p>
           <div className="flex items-center justify-end">

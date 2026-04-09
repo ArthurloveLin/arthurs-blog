@@ -1,6 +1,7 @@
 import { getPostsByCategory, getCategories } from '@/lib/blog'
 import type { Post } from '@/lib/blog'
 import BlogPage from '@/components/BlogPage'
+import { getStableYear } from '@/lib/date-format'
 
 export const revalidate = 60
 
@@ -27,6 +28,7 @@ export default async function CategoryPage({
   return (
     <BlogPage
       posts={posts}
+      currentYear={getStableYear()}
       fetchError={fetchError}
       activeCategory={decodedSlug}
     />
