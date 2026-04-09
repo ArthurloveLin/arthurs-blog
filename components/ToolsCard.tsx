@@ -83,7 +83,7 @@ const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
                 <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors leading-none mb-0.5">
                   {tool.label}
                 </p>
-                <p className="text-[11px] text-muted-foreground leading-none">
+                <p className="text-xs text-foreground/60 leading-none">
                   {tool.description}
                 </p>
               </div>
