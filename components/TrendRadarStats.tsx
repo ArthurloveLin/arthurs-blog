@@ -51,7 +51,7 @@ export default function TrendRadarStats({ stats }: Props) {
             当前无热点聚焦数据
           </div>
         )}
-        {filtered.map((item: HotKeyword, idx: number) => {
+        {filtered.map((item: HotKeyword) => {
           const globalIdx = stats.indexOf(item);
           return (
             <div
