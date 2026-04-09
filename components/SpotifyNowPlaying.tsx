@@ -141,7 +141,7 @@ export default function SpotifyNowPlaying() {
 
             {/* Row 2: Status & Device */}
             <div className="flex items-center gap-1.5 h-4 mt-0.5 overflow-hidden">
-              <span className={`text-[10px] font-bold uppercase tracking-tight leading-none flex items-center gap-1 ${isPlaying ? 'text-[#1DB954]' : 'text-muted-foreground/60'}`}>
+              <span className={`text-[10px] font-bold uppercase tracking-tight leading-none flex items-center gap-1 ${isPlaying ? 'text-[#1DB954]' : 'text-muted-foreground'}`}>
                 {isPlaying ? (
                   <>
                     正在播放
