@@ -1,7 +1,8 @@
 'use client'
 import Link from 'next/link'
-import { unstable_ViewTransition as ViewTransition, useEffect, useRef } from 'react'
+import { unstable_ViewTransition as ViewTransition, useEffect, useRef, useState } from 'react'
 import type { Post } from '@/lib/blog'
+import { useSiteData } from '@/components/SiteDataProvider'
 
 import PostCard from '@/components/PostCard'
 import AuthorProfileCard from '@/components/AuthorProfileCard'
@@ -16,6 +17,7 @@ import DirectionalTransition from '@/components/DirectionalTransition'
 import ScrollRestorer from '@/components/ScrollRestorer'
 import ScrollHideWrapper from '@/components/ScrollHideWrapper'
 import dynamic from 'next/dynamic'
+import { BLOG_RETURN_PATHNAME_KEY, BLOG_RETURN_POST_SLUG_KEY } from '@/lib/blog-return'
 
 const Live2D = dynamic(() => import('@/components/Live2D'), { 
   ssr: false,
@@ -24,23 +26,36 @@ const Live2D = dynamic(() => import('@/components/Live2D'), {
 
 interface BlogPageProps {
   posts: Post[]
-  siteConfig: Record<string, string>
   fetchError?: boolean
   activeCategory?: string | null
   activeTags?: string[]
   activeYear?: number | null
 }
 
+function getInitialReturningPostSlug() {
+  if (typeof window === 'undefined') return null
+
+  const storedPathname = sessionStorage.getItem(BLOG_RETURN_PATHNAME_KEY)
+  const storedPostSlug = sessionStorage.getItem(BLOG_RETURN_POST_SLUG_KEY)
+
+  if (storedPathname !== window.location.pathname || !storedPostSlug) {
+    return null
+  }
+
+  return storedPostSlug
+}
+
 export default function BlogPage({
   posts,
-  siteConfig,
   fetchError = false,
   activeCategory = null,
   activeTags = [],
   activeYear = null,
 }: BlogPageProps) {
+  const { config: siteConfig } = useSiteData()
   const leftSidebarRef = useRef<HTMLDivElement>(null)
   const rightSidebarRef = useRef<HTMLDivElement>(null)
+  const [returningPostSlug, setReturningPostSlug] = useState<string | null>(getInitialReturningPostSlug)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -54,6 +69,22 @@ export default function BlogPage({
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  useEffect(() => {
+    if (!returningPostSlug) {
+      sessionStorage.removeItem(BLOG_RETURN_PATHNAME_KEY)
+      sessionStorage.removeItem(BLOG_RETURN_POST_SLUG_KEY)
+      return
+    }
+
+    const clear = window.setTimeout(() => {
+      setReturningPostSlug(null)
+      sessionStorage.removeItem(BLOG_RETURN_PATHNAME_KEY)
+      sessionStorage.removeItem(BLOG_RETURN_POST_SLUG_KEY)
+    }, 1200)
+
+    return () => window.clearTimeout(clear)
+  }, [returningPostSlug])
 
   return (
     <DirectionalTransition>
@@ -167,7 +198,7 @@ export default function BlogPage({
               <div className="space-y-6">
                 {posts.map((post, index) => (
                   <ViewTransition key={post.id}>
-                    <PostCard post={post} index={index} />
+                    <PostCard post={post} index={index} forceRender={returningPostSlug === post.slug} />
                   </ViewTransition>
                 ))}
               </div>
