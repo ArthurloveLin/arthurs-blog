@@ -16,6 +16,12 @@ export default function PrefetchOnHover({ href, className, children, ...rest }: 
     // 记录当前滚动位置，供返回时恢复
     const referrer = window.location.pathname
     sessionStorage.setItem(`scroll-restore:${referrer}`, String(window.scrollY))
+
+    const postSlug = href.startsWith('/blog/') ? href.slice('/blog/'.length) : null
+    if (postSlug) {
+      sessionStorage.setItem('blog-return:post-slug', postSlug)
+      sessionStorage.setItem('blog-return:pathname', referrer)
+    }
   }
 
   return (

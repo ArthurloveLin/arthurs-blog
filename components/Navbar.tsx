@@ -40,8 +40,8 @@ export default function Navbar() {
   }, [pathname])
 
   // 智能返回处理：
-  // - 在文章页 AND 上一页是列表/首页 → router.back()（恢复滚动位置）
-  // - 在文章页 AND 上一页也是文章（如从侧边栏跳转）→ router.push('/') 正常导航
+  // - 在文章页 AND 来源是列表/首页 → push('/') + scroll:false，保留列表滚动上下文
+  // - 在文章页 AND 来源也是文章（如从侧边栏跳转）→ push('/') 正常回首页
   const handleHomeClick = useCallback((e: React.MouseEvent) => {
     const isOnArticle = pathname.startsWith('/blog/') && pathname !== '/blog'
     if (!isOnArticle) return
@@ -60,7 +60,7 @@ export default function Navbar() {
     } else {
       // 上一页是另一篇文章（侧边栏跳转），或首次直接访问 → 正常导航到首页
       startTransition(() => {
-        addTransitionType('nav-forward')
+        addTransitionType('nav-back')
         router.push('/')
       })
     }

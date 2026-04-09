@@ -1,17 +1,27 @@
 'use client'
 
-import { startTransition, unstable_addTransitionType as addTransitionType } from 'react'
+import Link from 'next/link'
+import { startTransition, unstable_addTransitionType as addTransitionType, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function ArticleBackButton() {
+interface ArticleBackButtonProps {
+  returnHref?: string
+}
+
+export default function ArticleBackButton({ returnHref = '/' }: ArticleBackButtonProps) {
   const router = useRouter()
+  const prefetchHref = returnHref.split('#')[0] || '/'
+
+  useEffect(() => {
+    router.prefetch(prefetchHref)
+  }, [prefetchHref, router])
 
   return (
-    <button
+    <Link
+      href={returnHref}
       onClick={() => {
         startTransition(() => {
           addTransitionType('nav-back')
-          router.push('/', { scroll: false })
         })
       }}
       aria-label="返回上一页"
@@ -53,6 +63,6 @@ export default function ArticleBackButton() {
         <path d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
       </svg>
       返回
-    </button>
+    </Link>
   )
 }
