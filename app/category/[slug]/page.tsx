@@ -1,4 +1,4 @@
-import { getPostsByCategory, getSiteConfig, getCategories } from '@/lib/blog'
+import { getPostsByCategory, getCategories } from '@/lib/blog'
 import type { Post } from '@/lib/blog'
 import BlogPage from '@/components/BlogPage'
 
@@ -20,16 +20,13 @@ export default async function CategoryPage({
   const decodedSlug = decodeURIComponent(slug)
   let fetchError = false
 
-  const [posts, siteConfig] = await Promise.all([
-    getPostsByCategory(decodedSlug, 50, 0).catch(() => { fetchError = true; return [] as Post[] }),
-    getSiteConfig().catch(() => ({} as Record<string, string>)),
-  ])
+  // async-parallel: single fetch needs no Promise.all wrapper
+  const posts = await getPostsByCategory(decodedSlug, 50, 0).catch(() => { fetchError = true; return [] as Post[] })
 
 
   return (
     <BlogPage
       posts={posts}
-      siteConfig={siteConfig}
       fetchError={fetchError}
       activeCategory={decodedSlug}
     />

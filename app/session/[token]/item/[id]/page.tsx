@@ -3,7 +3,6 @@ import { supabaseAdmin } from '@/lib/supabase'
 import ItemDetail from '@/components/ItemDetail'
 import ActivityBanner from '@/components/ActivityBanner'
 import RealtimeSync from '@/components/RealtimeSync'
-import { getUserRole, getCurrentUser } from '@/lib/auth'
 
 
 export default async function ItemPage({
@@ -13,20 +12,18 @@ export default async function ItemPage({
 }) {
   const { token, id } = await params
 
-  const [, , { data: item, error }] = await Promise.all([
-    getUserRole(),
-    getCurrentUser(),
-    supabaseAdmin
-      .from('items')
-      .select(`
-        *,
-        sessions(template_config),
-        ratings(score, author, scores, appearance_score, practicality_score, value_score),
-        comments(id, author, content, created_at, parent_id)
-      `)
-      .eq('id', id)
-      .single()
-  ])
+  // async-defer-await: getUserRole/getCurrentUser results were unused; removed
+  // ItemDetail reads auth via useAuth() client-side context instead
+  const { data: item, error } = await supabaseAdmin
+    .from('items')
+    .select(`
+      *,
+      sessions(template_config),
+      ratings(score, author, scores, appearance_score, practicality_score, value_score),
+      comments(id, author, content, created_at, parent_id)
+    `)
+    .eq('id', id)
+    .single()
 
   if (error || !item) notFound()
 
