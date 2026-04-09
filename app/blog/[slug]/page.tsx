@@ -6,6 +6,7 @@ import { getPosts, getPostMeta, getPostContent, getAdjacentPosts, type Post } fr
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import CommentBox from '@/components/CommentBox'
 import ArticleBackButton from '@/components/ArticleBackButton'
+import CurrentArticleReturnTarget from '@/components/CurrentArticleReturnTarget'
 import DirectionalTransition from '@/components/DirectionalTransition'
 import AuthorProfileCard from '@/components/AuthorProfileCard'
 import TableOfContents from '@/components/TableOfContents'
@@ -15,6 +16,7 @@ import ToolsCard from '@/components/ToolsCard'
 import ScrollHideWrapper from '@/components/ScrollHideWrapper'
 import { supabaseAdmin } from '@/lib/supabase'
 import ScrollToTop from '@/components/ScrollToTop'
+import { getPostAnchorHref } from '@/lib/blog-return'
 
 export const revalidate = 60
 
@@ -130,6 +132,7 @@ export default async function BlogPostPage({
   return (
     <DirectionalTransition>
     <main className="min-h-screen bg-background">
+      <CurrentArticleReturnTarget postId={post.id} postSlug={post.slug} />
       <ScrollToTop />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -157,7 +160,7 @@ export default async function BlogPostPage({
                 {/* Floating back button — keep it outside the shared cover snapshot.
                     Otherwise the detail snapshot becomes "cover + button" while the list snapshot
                     is only the cover, which degrades the shared-element morph into a cross-fade. */}
-                <ArticleBackButton returnHref={`/#post-${post.id}`} />
+                <ArticleBackButton returnHref={getPostAnchorHref(post.id)} />
 
                 {/* Hero: Cover - No rounded-2xl md:rounded-3xl here because it's at the top of an overflow-hidden card */}
                 <ViewTransition name={`post-cover-${post.id}`} share="morph" default="none">

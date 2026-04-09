@@ -17,6 +17,7 @@ import DirectionalTransition from '@/components/DirectionalTransition'
 import ScrollRestorer from '@/components/ScrollRestorer'
 import ScrollHideWrapper from '@/components/ScrollHideWrapper'
 import dynamic from 'next/dynamic'
+import { BLOG_RETURN_PATHNAME_KEY, BLOG_RETURN_POST_SLUG_KEY } from '@/lib/blog-return'
 
 const Live2D = dynamic(() => import('@/components/Live2D'), { 
   ssr: false,
@@ -34,8 +35,8 @@ interface BlogPageProps {
 function getInitialReturningPostSlug() {
   if (typeof window === 'undefined') return null
 
-  const storedPathname = sessionStorage.getItem('blog-return:pathname')
-  const storedPostSlug = sessionStorage.getItem('blog-return:post-slug')
+  const storedPathname = sessionStorage.getItem(BLOG_RETURN_PATHNAME_KEY)
+  const storedPostSlug = sessionStorage.getItem(BLOG_RETURN_POST_SLUG_KEY)
 
   if (storedPathname !== window.location.pathname || !storedPostSlug) {
     return null
@@ -71,15 +72,15 @@ export default function BlogPage({
 
   useEffect(() => {
     if (!returningPostSlug) {
-      sessionStorage.removeItem('blog-return:pathname')
-      sessionStorage.removeItem('blog-return:post-slug')
+      sessionStorage.removeItem(BLOG_RETURN_PATHNAME_KEY)
+      sessionStorage.removeItem(BLOG_RETURN_POST_SLUG_KEY)
       return
     }
 
     const clear = window.setTimeout(() => {
       setReturningPostSlug(null)
-      sessionStorage.removeItem('blog-return:pathname')
-      sessionStorage.removeItem('blog-return:post-slug')
+      sessionStorage.removeItem(BLOG_RETURN_PATHNAME_KEY)
+      sessionStorage.removeItem(BLOG_RETURN_POST_SLUG_KEY)
     }, 1200)
 
     return () => window.clearTimeout(clear)

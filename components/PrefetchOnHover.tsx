@@ -2,6 +2,10 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  BLOG_RETURN_PATHNAME_KEY,
+  BLOG_RETURN_POST_SLUG_KEY,
+} from '@/lib/blog-return'
 
 interface Props extends React.HTMLAttributes<HTMLElement> {
   href: string
@@ -19,8 +23,8 @@ export default function PrefetchOnHover({ href, className, children, ...rest }: 
 
     const postSlug = href.startsWith('/blog/') ? href.slice('/blog/'.length) : null
     if (postSlug) {
-      sessionStorage.setItem('blog-return:post-slug', postSlug)
-      sessionStorage.setItem('blog-return:pathname', referrer)
+      sessionStorage.setItem(BLOG_RETURN_POST_SLUG_KEY, postSlug)
+      sessionStorage.setItem(BLOG_RETURN_PATHNAME_KEY, referrer)
     }
   }
 
