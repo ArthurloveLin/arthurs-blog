@@ -59,7 +59,7 @@ export default function Navbar() {
     return () => window.removeEventListener(BLOG_RETURN_TARGET_EVENT, syncHomeHref)
   }, [isOnArticle])
 
-  const handleHomeClick = useCallback((e: React.MouseEvent) => {
+  const handleHomeClick = useCallback(() => {
     if (!isOnArticle) return
 
     const currentPostSlug = sessionStorage.getItem(BLOG_RETURN_CURRENT_POST_SLUG_KEY)
@@ -83,14 +83,16 @@ export default function Navbar() {
 
     const preloadDrawers = () => preloadMobileDrawerModules()
     const warmOnFirstInteraction = () => preloadDrawers()
+    const requestIdle = window.requestIdleCallback?.bind(window)
+    const cancelIdle = window.cancelIdleCallback?.bind(window)
 
-    let timeoutId: number | null = null
+    let timeoutId: ReturnType<typeof globalThis.setTimeout> | null = null
     let idleId: number | null = null
 
-    if ('requestIdleCallback' in window) {
-      idleId = window.requestIdleCallback(preloadDrawers, { timeout: 1500 })
+    if (requestIdle) {
+      idleId = requestIdle(preloadDrawers, { timeout: 1500 })
     } else {
-      timeoutId = window.setTimeout(preloadDrawers, 600)
+      timeoutId = globalThis.setTimeout(preloadDrawers, 600)
     }
 
     window.addEventListener('touchstart', warmOnFirstInteraction, { passive: true, once: true })
@@ -100,11 +102,11 @@ export default function Navbar() {
       window.removeEventListener('touchstart', warmOnFirstInteraction)
       window.removeEventListener('pointerdown', warmOnFirstInteraction)
 
-      if (idleId !== null && 'cancelIdleCallback' in window) {
-        window.cancelIdleCallback(idleId)
+      if (idleId !== null && cancelIdle) {
+        cancelIdle(idleId)
       }
       if (timeoutId !== null) {
-        window.clearTimeout(timeoutId)
+        globalThis.clearTimeout(timeoutId)
       }
     }
   }, [])
@@ -288,8 +290,8 @@ export default function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href === '/' ? homeHref : link.href}
-                    onClick={(e) => {
-                      if (link.href === '/') handleHomeClick(e)
+                    onClick={() => {
+                      if (link.href === '/') handleHomeClick()
                       setIsMobileMenuOpen(false)
                     }}
                     className="block px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
