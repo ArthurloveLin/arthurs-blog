@@ -65,8 +65,10 @@ const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
         {tools.map((tool) => {
           const inner = (
             <div className="flex items-center gap-3 py-2 px-1 rounded-lg hover:bg-muted transition-colors duration-150 group cursor-pointer">
-              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-[image:var(--gradient-primary)] group-hover:text-primary-foreground transition duration-200">
-                {tool.icon}
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-secondary/80 flex items-center justify-center text-muted-foreground group-hover:text-primary transition-all duration-300 relative overflow-hidden">
+                {/* Gaussian Blur Glow */}
+                <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-15 blur-md transition-opacity duration-500" />
+                <div className="relative z-10">{tool.icon}</div>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors leading-none mb-0.5">
