@@ -3,12 +3,7 @@
 import { memo } from 'react'
 import Link from 'next/link'
 import { useSiteData } from './SiteDataProvider'
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })
-}
+import { formatShortDate } from '@/lib/date-format'
 
 const RecentPostsCard = memo(function RecentPostsCard() {
   const { sidebarData: { recentPosts: posts } } = useSiteData()
@@ -35,7 +30,7 @@ const RecentPostsCard = memo(function RecentPostsCard() {
                 {post.title}
               </p>
               <time className="block text-[11px] text-muted-foreground mt-0.5 tabular-nums">
-                {formatDate(post.published_at)}
+                {post.published_at ? formatShortDate(post.published_at) : ''}
               </time>
             </Link>
           </li>
