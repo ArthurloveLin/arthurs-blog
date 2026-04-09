@@ -83,7 +83,13 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
               <div
                 className="relative rounded-full overflow-hidden shadow-[0_4px_16px_rgb(0,0,0,0.12)] border-2 border-background bg-muted w-22 h-22"
               >
-                <Image src={avatarUrl} alt={name} fill className="object-cover" unoptimized />
+                <Image 
+                  src={avatarUrl} 
+                  alt={name} 
+                  fill 
+                  className="object-cover" 
+                  sizes="88px"
+                />
               </div>
             ) : (
               <div

@@ -105,7 +105,14 @@ export default function Navbar() {
           >
             <div className="w-8 h-8 relative rounded-xl bg-gradient-primary flex items-center justify-center shadow-[0_2px_8px_rgb(0,0,0,0.15)] group-hover:scale-105 transition-transform duration-200 overflow-hidden">
               {logoUrl ? (
-                <Image src={logoUrl} alt="Logo" fill className="object-cover" unoptimized priority />
+                <Image 
+                  src={logoUrl} 
+                  alt="Logo" 
+                  fill 
+                  className="object-cover" 
+                  sizes="32px"
+                  priority 
+                />
               ) : (
                 <span className="text-primary-foreground text-[10px] font-bold tracking-tight leading-none">A&G</span>
               )}
