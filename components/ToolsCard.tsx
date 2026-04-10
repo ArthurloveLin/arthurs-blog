@@ -4,7 +4,7 @@ import { memo, useState, startTransition, unstable_addTransitionType as addTrans
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import SpotifyNowPlaying from './SpotifyNowPlaying'
-import { ShoppingBag, Newspaper, BarChart2, ExternalLink } from 'lucide-react'
+import { ShoppingBag, Newspaper, BarChart2, ExternalLink, Camera } from 'lucide-react'
 
 const AnalyticsDashboard = dynamic(() => import('./AnalyticsDashboard'), { ssr: false })
 
@@ -22,6 +22,13 @@ function trackEvent(eventName: string, data: Record<string, string> = {}) {
 }
 
 const tools = [
+  {
+    href: '/life-gallery',
+    label: 'Life Gallery',
+    description: '我的生活画廊与轮播图集',
+    icon: <Camera className="w-4 h-4" strokeWidth={1.75} />,
+    external: false,
+  },
   {
     href: '/wardrobe',
     label: 'LifeLens',
