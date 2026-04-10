@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   experimental: {
     viewTransition: true,
   },
+  outputFileTracingRoot: process.cwd(),
   async headers() {
     return [
       {
@@ -25,7 +26,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: '/(tag|blog/category|archive|wardrobe)/:path*',
+        source: '/(tag|blog/category|archive|wardrobe|life-gallery)/:path*',
         headers: [
           {
             key: 'CDN-Cache-Control',
