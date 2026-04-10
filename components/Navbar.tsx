@@ -25,6 +25,7 @@ import type { DrawerType } from './MobileDrawers'
 
 const navLinks = [
   { href: '/', label: 'Home', tooltip: '首页 - 返回网站主页', external: false },
+  { href: '/life-gallery', label: 'Life Gallery', tooltip: '生活画廊 - 我的生活图像轮播', external: false },
   { href: '/wardrobe', label: 'LifeLens', tooltip: 'LifeLens - 智能评价与决策系统', external: false },
   { href: '/trend-radar', label: 'News', tooltip: '趋势雷达 - 获取最新的趋势资讯', external: false },
 ]

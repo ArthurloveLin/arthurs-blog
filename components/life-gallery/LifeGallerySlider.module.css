@@ -1,0 +1,274 @@
+.sliderRoot {
+  position: relative;
+  width: 100%;
+  min-height: calc(100dvh - 4rem);
+  height: calc(100dvh - 4rem);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: none;
+  isolation: isolate;
+  --life-gallery-bg-1: color-mix(in oklab, var(--foreground) 74%, var(--background) 26%);
+  --life-gallery-bg-2: color-mix(in oklab, var(--primary) 22%, var(--foreground) 58%, var(--background) 20%);
+  --life-gallery-bg-3: color-mix(in oklab, var(--foreground) 66%, var(--background) 34%);
+  --life-gallery-bg-4: color-mix(in oklab, var(--primary) 28%, var(--foreground) 54%, var(--background) 18%);
+  background:
+    radial-gradient(circle at 16% 20%, color-mix(in oklab, var(--primary) 24%, transparent) 0%, transparent 34%),
+    radial-gradient(circle at 84% 18%, color-mix(in oklab, var(--foreground) 14%, transparent) 0%, transparent 28%),
+    linear-gradient(145deg, color-mix(in oklab, var(--background) 58%, black 42%), color-mix(in oklab, var(--foreground) 86%, var(--background) 14%));
+}
+
+.backgroundLayer {
+  position: absolute;
+  inset: 0;
+  opacity: 0.92;
+  z-index: 0;
+}
+
+.grainLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mix-blend-mode: soft-light;
+}
+
+.sliderHeader {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  flex-shrink: 0;
+}
+
+.sliderMenu {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  cursor: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+
+.sliderMenu:hover {
+  border-color: rgba(255, 255, 255, 0.8);
+  transform: scale(1.04);
+}
+
+.sliderMenuLine {
+  width: 18px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.sliderLabel {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  display: none;
+}
+
+.sliderBody {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 32px max(40px, env(safe-area-inset-bottom));
+  min-height: 0;
+}
+
+.sliderLeft {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  z-index: 4;
+}
+
+.sliderTitle {
+  font-family: 'Instrument Sans', var(--font-sans), sans-serif;
+  font-size: clamp(64px, 15vw, 200px);
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  position: relative;
+  margin-top: auto;
+  margin-bottom: auto;
+  text-wrap: balance;
+}
+
+.sliderTitle span {
+  display: inline-block;
+  will-change: transform;
+}
+
+.sliderFooter {
+  flex-shrink: 0;
+  margin-top: 32px;
+}
+
+.sliderDescription,
+.sliderStatus {
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  color: rgba(255, 255, 255, 0.64);
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+
+.sliderStatus {
+  margin-top: 12px;
+  min-height: 2.4em;
+}
+
+.sliderRight {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.sliderImages {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.sliderSlide {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 55%;
+  aspect-ratio: 1.4;
+  overflow: hidden;
+  will-change: transform, filter, opacity;
+  contain: layout style;
+  border-radius: 28px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.26);
+}
+
+.sliderSlide::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.16));
+}
+
+.sliderSlideImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.94);
+}
+
+.sliderCursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  will-change: transform;
+  z-index: 5;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 24px;
+  font-weight: 400;
+}
+
+@media screen and (min-width: 768px) {
+  .sliderHeader {
+    padding: 40px 56px;
+  }
+
+  .sliderLabel {
+    display: flex;
+  }
+
+  .sliderBody {
+    padding: 0 56px 56px;
+  }
+
+  .sliderFooter {
+    margin-top: 48px;
+  }
+
+  .sliderSlide {
+    width: 60%;
+  }
+
+  .sliderCursor {
+    width: 88px;
+    height: 88px;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .sliderBody {
+    flex-direction: row;
+  }
+
+  .sliderLeft {
+    width: 55%;
+    flex-shrink: 0;
+    z-index: auto;
+  }
+
+  .sliderRight {
+    position: static;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sliderSlide {
+    width: 68%;
+  }
+}
+
+@media (pointer: coarse) {
+  .sliderRoot,
+  .sliderMenu {
+    cursor: auto;
+  }
+
+  .sliderCursor {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sliderSlide,
+  .sliderTitle span,
+  .sliderCursor {
+    will-change: auto;
+  }
+}
