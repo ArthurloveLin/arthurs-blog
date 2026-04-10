@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   experimental: {
     viewTransition: true,
   },
+  outputFileTracingRoot: process.cwd(),
   async headers() {
     return [
       {
