@@ -115,7 +115,7 @@
   font-size: clamp(52px, 11vw, 148px);
   font-weight: 700;
   color: #fff;
-  line-height: 0.98;
+  line-height: 1.15;
   letter-spacing: -0.02em;
   overflow: hidden;
   position: relative;
@@ -128,6 +128,7 @@
 
 .sliderTitleLine {
   display: block;
+  padding-bottom: 0.14em;
   will-change: transform;
 }
 
@@ -219,7 +220,7 @@
 
   .sliderTitle {
     font-size: clamp(38px, 9vw, 64px);
-    line-height: 0.96;
+    line-height: 1.15;
     letter-spacing: -0.035em;
     margin-top: 0;
     margin-bottom: 0;

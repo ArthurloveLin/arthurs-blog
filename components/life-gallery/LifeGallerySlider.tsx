@@ -66,6 +66,19 @@ function mod(index: number, total: number) {
   return ((index % total) + total) % total
 }
 
+function getOptimizedImageUrl(imageUrl: string, width: number, quality = 75) {
+  if (
+    imageUrl.startsWith('/_next/image?') ||
+    imageUrl.startsWith('/') ||
+    imageUrl.startsWith('data:') ||
+    imageUrl.startsWith('blob:')
+  ) {
+    return imageUrl
+  }
+
+  return `/_next/image?url=${encodeURIComponent(imageUrl)}&w=${width}&q=${quality}`
+}
+
 type SlideEntry = {
   el: HTMLDivElement
   step: number
@@ -87,6 +100,8 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
   const pendingRoundRef = useRef<LifeGalleryRound | null>(null)
   const requestInFlightRef = useRef(false)
   const advanceRef = useRef<(() => void) | null>(null)
+  const colorCacheRef = useRef(new Map<string, string>())
+  const activeBackgroundImageRef = useRef(initialRound.slides[0]?.imageUrl ?? '')
   const [isFetchingNextRound, setIsFetchingNextRound] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [activeSlide, setActiveSlide] = useState(initialRound.slides[0])
@@ -94,42 +109,106 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
 
   useEffect(() => {
     roundRef.current = initialRound
+    activeBackgroundImageRef.current = initialRound.slides[0]?.imageUrl ?? ''
     setActiveSlide(initialRound.slides[0])
     setActiveIndex(0)
   }, [initialRound])
 
   useEffect(() => {
-    const rootEl = rootRef.current
     const backgroundEl = backgroundLayerRef.current
     const titleEl = titleRef.current
     const imagesEl = imagesRef.current
 
-    if (!rootEl || !backgroundEl || !titleEl || !imagesEl) {
+    if (!backgroundEl || !titleEl || !imagesEl) {
       return
     }
 
     const getCurrentRound = () => roundRef.current
     const getTotal = () => getCurrentRound().slides.length
 
+    const sampleDominantColor = (img: HTMLImageElement): string => {
+      try {
+        const canvas = document.createElement('canvas')
+        const size = 72
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return ''
+        ctx.drawImage(img, 0, 0, size, size)
+        const { data } = ctx.getImageData(0, 0, size, size)
+        let r = 0, g = 0, b = 0, n = 0
+        for (let i = 0; i < data.length; i += 16) {
+          r += data[i]!
+          g += data[i + 1]!
+          b += data[i + 2]!
+          n++
+        }
+        if (n === 0) return ''
+        // Darken the extracted average color for use as a cinematic background
+        return `rgb(${Math.floor((r / n) * 0.52)},${Math.floor((g / n) * 0.52)},${Math.floor((b / n) * 0.52)})`
+      } catch {
+        return ''
+      }
+    }
+
+    const extractColorFromUrl = (imageUrl: string) => {
+      const cachedColor = colorCacheRef.current.get(imageUrl)
+      if (cachedColor) {
+        return Promise.resolve(cachedColor)
+      }
+
+      const sampleUrl = getOptimizedImageUrl(imageUrl, 256, 70)
+      const img = new window.Image()
+      return new Promise<string>((resolve) => {
+        img.onload = () => {
+          const color = sampleDominantColor(img) || 'rgb(17,17,17)'
+          colorCacheRef.current.set(imageUrl, color)
+          resolve(color)
+        }
+
+        img.onerror = () => {
+          resolve('rgb(17,17,17)')
+        }
+
+        img.src = sampleUrl
+      })
+    }
+
     const preloadRound = (round: LifeGalleryRound) => {
       round.slides.forEach((slide) => {
         const image = new window.Image()
         image.src = slide.imageUrl
+        void extractColorFromUrl(slide.imageUrl)
       })
     }
 
-    const getPalette = () => {
-      const computedStyle = window.getComputedStyle(rootEl)
+    const syncBackgroundColor = (imageUrl: string, animate: boolean) => {
+      activeBackgroundImageRef.current = imageUrl
 
-      return [1, 2, 3, 4].map((index) => {
-        const color = computedStyle.getPropertyValue(`--life-gallery-bg-${index}`).trim()
-        return color || '#111111'
+      const applyColor = (color: string) => {
+        if (activeBackgroundImageRef.current !== imageUrl) return
+
+        if (animate) {
+          gsap.to(backgroundEl, {
+            backgroundColor: color,
+            duration: reducedMotionRef.current ? 0.01 : TRANSITION_DURATION,
+            ease: 'power2.inOut',
+          })
+          return
+        }
+
+        gsap.set(backgroundEl, { backgroundColor: color })
+      }
+
+      const cachedColor = colorCacheRef.current.get(imageUrl)
+      if (cachedColor) {
+        applyColor(cachedColor)
+        return
+      }
+
+      void extractColorFromUrl(imageUrl).then((color) => {
+        applyColor(color)
       })
-    }
-
-    const getThemeColor = (slide: LifeGallerySlide) => {
-      const palette = getPalette()
-      return palette[slide.themeIndex % palette.length]
     }
 
     const replaceSlideContent = (slideEl: HTMLDivElement, slide: LifeGallerySlide) => {
@@ -144,7 +223,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
         slideEl.appendChild(imageEl)
       }
 
-      imageEl.src = slide.imageUrl
+      imageEl.src = getOptimizedImageUrl(slide.imageUrl, 1920, 85)
       imageEl.alt = slide.title
       slideEl.dataset.key = slide.key
       slideEl.dataset.title = slide.title
@@ -211,7 +290,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       })
 
       const duration = reducedMotionRef.current ? 0.01 : TRANSITION_DURATION
-      const stagger = reducedMotionRef.current ? 0 : 0.018
+      const stagger = reducedMotionRef.current ? 0 : 0.04
 
       timeline.to(
         oldCharacters,
@@ -219,7 +298,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
           y: -height * stepDirection,
           stagger,
           duration,
-          ease: 'power2.out',
+          ease: 'expo.inOut',
           force3D: true,
         },
         0
@@ -231,7 +310,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
           y: 0,
           stagger,
           duration,
-          ease: 'power2.out',
+          ease: 'expo.inOut',
           force3D: true,
         },
         0
@@ -258,6 +337,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
         y: position.y * height,
         rotation: position.rotation,
         scale: position.scale,
+        blur: position.blur,
         opacity: position.opacity,
         zIndex: absoluteStep === 0 ? 3 : absoluteStep === 1 ? 2 : 1,
       }
@@ -274,6 +354,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
         rotation: properties.rotation,
         scale: properties.scale,
         opacity: properties.opacity,
+        filter: `blur(${properties.blur}px)`,
         zIndex: properties.zIndex,
         force3D: true,
       })
@@ -423,8 +504,9 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
             rotation: properties.rotation,
             scale: properties.scale,
             opacity: properties.opacity,
+            filter: `blur(${properties.blur}px)`,
             duration,
-            ease: 'power2.out',
+            ease: 'power3.inOut',
             force3D: true,
           },
           0
@@ -448,18 +530,11 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       animatingRef.current = true
       startAutoPlay()
 
+      activeBackgroundImageRef.current = targetSlide.imageUrl
       const timeline = gsap.timeline()
-      timeline.to(
-        backgroundEl,
-        {
-          backgroundColor: getThemeColor(targetSlide),
-          duration: reducedMotionRef.current ? 0.01 : TRANSITION_DURATION,
-          ease: 'power2.out',
-        },
-        0
-      )
       timeline.add(animateTitle(targetSlide.title, direction), 0)
       timeline.add(animateCarousel(direction, targetRound, targetIndex, isBoundarySwap), 0)
+      syncBackgroundColor(targetSlide.imageUrl, true)
     }
 
     advanceRef.current = () => go('next')
@@ -513,7 +588,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
     reducedMotionRef.current = mediaQuery.matches
     preloadRound(getCurrentRound())
     setTitle(normalizeTitle(getCurrentRound().slides[0].title))
-    gsap.set(backgroundEl, { backgroundColor: getThemeColor(getCurrentRound().slides[0]) })
+    syncBackgroundColor(getCurrentRound().slides[0].imageUrl, false)
     buildCarousel()
     maybePrefetchNextRound()
     startAutoPlay()
