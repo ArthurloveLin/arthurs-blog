@@ -1,12 +1,29 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { startTransition, unstable_addTransitionType as addTransitionType, useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
+import { ArrowLeft } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import type { LifeGalleryRound, LifeGallerySlide } from '@/lib/life-gallery'
 import styles from './LifeGallerySlider.module.css'
 
 const AUTOPLAY_DELAY = 4000
-const NAVIGATION_LOCK_MS = 1800
+const NAVIGATION_LOCK_MS = 900
+const TRANSITION_DURATION = 0.72
+
+function normalizeTitle(title: string) {
+  return title.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function buildSlideCopy(slide: LifeGallerySlide, slideIndex: number, totalSlides: number) {
+  const title = normalizeTitle(slide.title) || 'Untitled'
+
+  return [
+    `图像主题 · ${title}`,
+    `“愿我们在「${title}」里，看见生活真正想说的话。”`,
+    `当前轮播 ${slideIndex + 1} / ${totalSlides}`,
+  ]
+}
 
 function throttle<T extends (...args: never[]) => void>(callback: T, limit: number) {
   let waiting = false
@@ -55,16 +72,15 @@ type SlideEntry = {
 }
 
 export default function LifeGallerySlider({ initialRound }: { initialRound: LifeGalleryRound }) {
+  const router = useRouter()
   const rootRef = useRef<HTMLElement | null>(null)
   const backgroundLayerRef = useRef<HTMLDivElement | null>(null)
   const titleRef = useRef<HTMLHeadingElement | null>(null)
   const imagesRef = useRef<HTMLDivElement | null>(null)
-  const cursorRef = useRef<HTMLDivElement | null>(null)
   const currentLineRef = useRef<HTMLDivElement | null>(null)
   const currentIndexRef = useRef(0)
   const slideEntriesRef = useRef<SlideEntry[]>([])
   const animatingRef = useRef(false)
-  const cursorVisibleRef = useRef(false)
   const autoPlayTimerRef = useRef<number | null>(null)
   const reducedMotionRef = useRef(false)
   const roundRef = useRef(initialRound)
@@ -73,9 +89,13 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
   const advanceRef = useRef<(() => void) | null>(null)
   const [isFetchingNextRound, setIsFetchingNextRound] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [activeSlide, setActiveSlide] = useState(initialRound.slides[0])
+  const [activeIndex, setActiveIndex] = useState(0)
 
   useEffect(() => {
     roundRef.current = initialRound
+    setActiveSlide(initialRound.slides[0])
+    setActiveIndex(0)
   }, [initialRound])
 
   useEffect(() => {
@@ -83,9 +103,8 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
     const backgroundEl = backgroundLayerRef.current
     const titleEl = titleRef.current
     const imagesEl = imagesRef.current
-    const cursorEl = cursorRef.current
 
-    if (!rootEl || !backgroundEl || !titleEl || !imagesEl || !cursorEl) {
+    if (!rootEl || !backgroundEl || !titleEl || !imagesEl) {
       return
     }
 
@@ -145,7 +164,8 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       titleEl.innerHTML = ''
 
       const lineEl = document.createElement('div')
-      ;[...text].forEach((character) => {
+      lineEl.className = styles.sliderTitleLine
+      ;[...normalizeTitle(text)].forEach((character) => {
         const characterEl = document.createElement('span')
         characterEl.textContent = character === ' ' ? '\u00A0' : character
         lineEl.appendChild(characterEl)
@@ -159,7 +179,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       const currentLine = currentLineRef.current
       if (!currentLine) return gsap.timeline()
 
-      const height = titleEl.offsetHeight
+      const height = currentLine.getBoundingClientRect().height || titleEl.offsetHeight
       const stepDirection = direction === 'next' ? 1 : -1
       const oldCharacters = Array.from(currentLine.querySelectorAll('span'))
 
@@ -167,8 +187,9 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       currentLine.style.cssText = 'position:absolute;top:0;left:0;width:100%'
 
       const newLine = document.createElement('div')
+      newLine.className = styles.sliderTitleLine
       newLine.style.cssText = 'position:absolute;top:0;left:0;width:100%'
-      ;[...text].forEach((character) => {
+      ;[...normalizeTitle(text)].forEach((character) => {
         const characterEl = document.createElement('span')
         characterEl.textContent = character === ' ' ? '\u00A0' : character
         newLine.appendChild(characterEl)
@@ -177,7 +198,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       titleEl.appendChild(newLine)
 
       const newCharacters = Array.from(newLine.querySelectorAll('span'))
-      gsap.set(newCharacters, { y: height * stepDirection })
+      gsap.set(newCharacters, { y: height * stepDirection, force3D: true })
 
       const timeline = gsap.timeline({
         onComplete: () => {
@@ -189,8 +210,8 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
         },
       })
 
-      const duration = reducedMotionRef.current ? 0.01 : 1
-      const stagger = reducedMotionRef.current ? 0 : 0.04
+      const duration = reducedMotionRef.current ? 0.01 : TRANSITION_DURATION
+      const stagger = reducedMotionRef.current ? 0 : 0.018
 
       timeline.to(
         oldCharacters,
@@ -198,7 +219,8 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
           y: -height * stepDirection,
           stagger,
           duration,
-          ease: 'expo.inOut',
+          ease: 'power2.out',
+          force3D: true,
         },
         0
       )
@@ -209,7 +231,8 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
           y: 0,
           stagger,
           duration,
-          ease: 'expo.inOut',
+          ease: 'power2.out',
+          force3D: true,
         },
         0
       )
@@ -235,7 +258,6 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
         y: position.y * height,
         rotation: position.rotation,
         scale: position.scale,
-        blur: position.blur,
         opacity: position.opacity,
         zIndex: absoluteStep === 0 ? 3 : absoluteStep === 1 ? 2 : 1,
       }
@@ -252,8 +274,8 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
         rotation: properties.rotation,
         scale: properties.scale,
         opacity: properties.opacity,
-        filter: `blur(${properties.blur}px)`,
         zIndex: properties.zIndex,
+        force3D: true,
       })
     }
 
@@ -336,6 +358,8 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
         return gsap.timeline()
       }
 
+      const resolvedTargetSlide = targetRound.slides[targetIndex]
+
       const shift = direction === 'next' ? -1 : 1
       const enterStep = direction === 'next' ? 2 : -2
       const newIndex = direction === 'next' ? mod(targetIndex + 1, targetRound.slides.length) : mod(targetIndex - 1, targetRound.slides.length)
@@ -356,7 +380,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
         entry.step += shift
       })
 
-      const duration = reducedMotionRef.current ? 0.01 : 1.2
+      const duration = reducedMotionRef.current ? 0.01 : TRANSITION_DURATION
       const timeline = gsap.timeline({
         onComplete: () => {
           slideEntriesRef.current = slideEntriesRef.current.filter((entry) => {
@@ -373,9 +397,13 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
             roundRef.current = targetRound
             pendingRoundRef.current = null
             syncVisibleSlides(targetRound, 0)
+            setActiveIndex(0)
+            setActiveSlide(targetRound.slides[0])
             void fetchNextRound()
           } else {
             currentIndexRef.current = targetIndex
+            setActiveIndex(targetIndex)
+            setActiveSlide(resolvedTargetSlide)
           }
 
           animatingRef.current = false
@@ -395,9 +423,9 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
             rotation: properties.rotation,
             scale: properties.scale,
             opacity: properties.opacity,
-            filter: `blur(${properties.blur}px)`,
             duration,
-            ease: 'power3.inOut',
+            ease: 'power2.out',
+            force3D: true,
           },
           0
         )
@@ -425,8 +453,8 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
         backgroundEl,
         {
           backgroundColor: getThemeColor(targetSlide),
-          duration: reducedMotionRef.current ? 0.01 : 1.2,
-          ease: 'power2.inOut',
+          duration: reducedMotionRef.current ? 0.01 : TRANSITION_DURATION,
+          ease: 'power2.out',
         },
         0
       )
@@ -460,30 +488,6 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') go('prev')
     }
 
-    const cursorMoveX = gsap.quickTo(cursorEl, 'x', {
-      duration: 0.5,
-      ease: 'power3',
-    })
-    const cursorMoveY = gsap.quickTo(cursorEl, 'y', {
-      duration: 0.5,
-      ease: 'power3',
-    })
-
-    const mouseMoveHandler = (event: MouseEvent) => {
-      if (!cursorVisibleRef.current) {
-        gsap.to(cursorEl, { opacity: 1, duration: 0.3 })
-        cursorVisibleRef.current = true
-      }
-
-      cursorMoveX(event.clientX)
-      cursorMoveY(event.clientY)
-    }
-
-    const mouseLeaveHandler = () => {
-      gsap.to(cursorEl, { opacity: 0, duration: 0.3 })
-      cursorVisibleRef.current = false
-    }
-
     const resizeHandler = debounce(() => {
       if (!animatingRef.current && imagesEl.offsetHeight > 0) {
         slideEntriesRef.current.forEach((entry) => {
@@ -508,9 +512,8 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
 
     reducedMotionRef.current = mediaQuery.matches
     preloadRound(getCurrentRound())
-    setTitle(getCurrentRound().slides[0].title)
+    setTitle(normalizeTitle(getCurrentRound().slides[0].title))
     gsap.set(backgroundEl, { backgroundColor: getThemeColor(getCurrentRound().slides[0]) })
-    gsap.set(cursorEl, { xPercent: -50, yPercent: -50, opacity: 0 })
     buildCarousel()
     maybePrefetchNextRound()
     startAutoPlay()
@@ -520,8 +523,6 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
     window.addEventListener('touchend', touchEndHandler, { passive: true })
     window.addEventListener('keydown', keydownHandler)
     window.addEventListener('resize', resizeHandler, { passive: true })
-    rootEl.addEventListener('mousemove', mouseMoveHandler, { passive: true })
-    rootEl.addEventListener('mouseleave', mouseLeaveHandler)
     document.addEventListener('visibilitychange', visibilityHandler)
     mediaQuery.addEventListener('change', motionChangeHandler)
 
@@ -533,15 +534,31 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       window.removeEventListener('touchend', touchEndHandler)
       window.removeEventListener('keydown', keydownHandler)
       window.removeEventListener('resize', resizeHandler)
-      rootEl.removeEventListener('mousemove', mouseMoveHandler)
-      rootEl.removeEventListener('mouseleave', mouseLeaveHandler)
       document.removeEventListener('visibilitychange', visibilityHandler)
       mediaQuery.removeEventListener('change', motionChangeHandler)
       gsap.killTweensOf(backgroundEl)
-      gsap.killTweensOf(cursorEl)
       slideEntriesRef.current.forEach((entry) => gsap.killTweensOf(entry.el))
     }
   }, [initialRound])
+
+  const handleBack = () => {
+    startTransition(() => addTransitionType('nav-back'))
+
+    const hasSameOriginReferrer =
+      typeof document !== 'undefined' &&
+      typeof window !== 'undefined' &&
+      Boolean(document.referrer) &&
+      document.referrer.startsWith(window.location.origin)
+
+    if (hasSameOriginReferrer) {
+      window.history.back()
+      return
+    }
+
+    router.push('/')
+  }
+
+  const slideCopy = buildSlideCopy(activeSlide, activeIndex, roundRef.current.slides.length)
 
   return (
     <section ref={rootRef} className={styles.sliderRoot} aria-label="Life Gallery slider">
@@ -552,12 +569,15 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
         <button
           type="button"
           className={styles.sliderMenu}
-          aria-label="Next life gallery theme"
-          onClick={() => advanceRef.current?.()}
+          aria-label="返回上一页"
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            handleBack()
+          }}
         >
-          <span className={styles.sliderMenuLine} />
-          <span className={styles.sliderMenuLine} />
-          <span className={styles.sliderMenuLine} />
+          <ArrowLeft className={styles.sliderMenuIcon} strokeWidth={2.2} />
+          <span>返回</span>
         </button>
         <span className={styles.sliderLabel}>Life Gallery - Arthur and Grace</span>
       </div>
@@ -566,19 +586,29 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
         <div className={styles.sliderLeft}>
           <h1 ref={titleRef} className={styles.sliderTitle} aria-live="polite" />
           <div className={styles.sliderFooter}>
-            <p className={styles.sliderDescription}>R2 Obsidian Vault<br />Four rotating themes<br />Randomized by round</p>
+            <p className={styles.sliderDescription}>{slideCopy.join('\n')}</p>
             <p className={styles.sliderStatus}>
-              {fetchError ? fetchError : isFetchingNextRound ? 'Loading the next round in the background.' : 'Scroll, swipe, tap, or use arrow keys.'}
+              {fetchError ? fetchError : isFetchingNextRound ? 'Loading the next round in the background.' : 'Scroll, swipe, or tap.'}
             </p>
           </div>
         </div>
 
-        <div className={styles.sliderRight}>
+        <div
+          className={styles.sliderRight}
+          role="button"
+          tabIndex={0}
+          aria-label="查看下一张 Life Gallery 图片"
+          onClick={() => advanceRef.current?.()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              advanceRef.current?.()
+            }
+          }}
+        >
           <div ref={imagesRef} className={styles.sliderImages} />
         </div>
       </div>
-
-      <div ref={cursorRef} className={styles.sliderCursor} aria-hidden="true">+</div>
     </section>
   )
 }
