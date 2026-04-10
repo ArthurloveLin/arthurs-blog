@@ -1,4 +1,5 @@
 import { getTrendRadarData, listTrendRadarReports } from "@/lib/trend-radar";
+import { formatStableDate } from "@/lib/date-format";
 import { Suspense } from "react";
 import DirectionalTransition from "@/components/DirectionalTransition";
 import ScrollRestorer from "@/components/ScrollRestorer";
@@ -13,9 +14,10 @@ export const revalidate = 3600; // 1 hour cache, reasonable for 3-times-daily cr
 async function TrendRadarContent({
   searchParams,
 }: {
-  searchParams: { report?: string };
+  searchParams: Promise<{ report?: string }>;
 }) {
-  const reportKey = searchParams.report || "reports/latest.json";
+  const { report } = await searchParams;
+  const reportKey = report || "reports/latest.json";
   const [data, history] = await Promise.all([
     getTrendRadarData(reportKey),
     listTrendRadarReports(),
@@ -33,7 +35,7 @@ async function TrendRadarContent({
   const { failed_ids, generated_at } = data;
 
   const formattedGenerateTime = generated_at
-    ? new Date(generated_at).toLocaleString("zh-CN", {
+    ? formatStableDate(generated_at, {
         month: "2-digit",
         day: "2-digit",
         hour: "2-digit",
@@ -64,7 +66,7 @@ async function TrendRadarContent({
 export default function TrendRadarPage({
   searchParams,
 }: {
-  searchParams: { report?: string };
+  searchParams: Promise<{ report?: string }>;
 }) {
   return (
     <DirectionalTransition>
