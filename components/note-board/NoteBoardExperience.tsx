@@ -425,6 +425,16 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
         .map(([id, position]) => [id, sanitizeNotePosition(position)]),
     )
   }, [placedNotes, visibleMessages])
+  const resolvedCardZIndices = useMemo(
+    () =>
+      Object.fromEntries(
+        visibleMessages.map((message, index) => [
+          message.id,
+          cardZIndices[message.id] ?? visibleMessages.length - index + 2,
+        ]),
+      ),
+    [cardZIndices, visibleMessages],
+  )
 
   function bringCardToFront(id: string) {
     setCardZIndices((current) => ({ ...current, [id]: zIndexCounterRef.current++ }))
@@ -485,7 +495,7 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
                 x={position.x}
                 y={position.y}
                 rotation={position.rotation}
-                zIndex={cardZIndices[message.id] ?? (placed ? visibleMessages.length + index + 4 : visibleMessages.length - index + 2)}
+                zIndex={resolvedCardZIndices[message.id] ?? (placed ? visibleMessages.length + index + 4 : visibleMessages.length - index + 2)}
                 width={cardWidth}
                 bounds={{ width: size.width, height: size.height }}
                 colorIndex={index}
@@ -551,7 +561,7 @@ function MobileStickyDeck({
                     message={message}
                     x={clamp(stackX - stackDepth * 5, 0, Math.max(size.width - cardWidth, 0))}
                     y={stackY + stackDepth * 6}
-                    rotation={(seededUnit(message.id, 7) - 0.5) * 6}
+                    rotation={(seededUnit(message.id, 5) - 0.5) * 6}
                     zIndex={activeMessages.length - stackDepth + 2}
                     width={cardWidth}
                     bounds={{ width: size.width, height: 320 }}
@@ -693,8 +703,9 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       return
     }
 
-    setMessages((current) => current.filter((message) => message.id !== id))
-    setMobileActiveIndex((current) => Math.max(Math.min(current, messages.length - 2), 0))
+    const nextMessages = messages.filter((message) => message.id !== id)
+    setMessages(nextMessages)
+    setMobileActiveIndex((current) => Math.max(Math.min(current, nextMessages.length - 1), 0))
     setCustomPositions((current) => {
       const next = { ...current }
       delete next[id]
