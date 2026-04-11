@@ -280,7 +280,7 @@ export default function NewSession() {
             disabled={loading}
             className="w-full bg-primary text-primary-foreground py-3.5 rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50 active:scale-[0.98]"
           >
-            {loading ? '正在开启视角…' : `开启 ${TEMPLATES[templateId]?.name || 'LifeLens'} 评价会话`}
+            {loading ? '正在开启视角…' : `开启 ${TEMPLATES[templateId]?.name || 'Life Lens'} 评价会话`}
           </button>
         </form>
       </div>

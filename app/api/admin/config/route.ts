@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       await upsertSiteConfig(entries)
     }
 
-    revalidateTag('site-config')
+    revalidateTag('site-config', 'max')
 
     return NextResponse.json({ success: true, updated: Object.keys(entries) })
   } catch (error) {

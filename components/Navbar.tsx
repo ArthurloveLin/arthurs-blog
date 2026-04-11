@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useCallback, startTransition, unstable_addTransitionType as addTransitionType } from 'react'
+import { useState, useEffect, useCallback, startTransition } from 'react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -26,7 +26,7 @@ import type { DrawerType } from './MobileDrawers'
 const navLinks = [
   { href: '/', label: 'Home', tooltip: '首页 - 返回网站主页', external: false },
   { href: '/life-gallery', label: 'Life Gallery', tooltip: '生活画廊 - 我的生活图像轮播', external: false },
-  { href: '/wardrobe', label: 'LifeLens', tooltip: 'LifeLens - 智能评价与决策系统', external: false },
+  { href: '/wardrobe', label: 'Life Lens', tooltip: 'Life Lens - 记录真实评价的决策系统', external: false },
   { href: '/trend-radar', label: 'News', tooltip: '趋势雷达 - 获取最新的趋势资讯', external: false },
 ]
 
@@ -68,10 +68,6 @@ export default function Navbar() {
       sessionStorage.setItem(BLOG_RETURN_PATHNAME_KEY, '/')
       sessionStorage.setItem(BLOG_RETURN_POST_SLUG_KEY, currentPostSlug)
     }
-
-    startTransition(() => {
-      addTransitionType('nav-back')
-    })
   }, [isOnArticle])
 
   useEffect(() => {
@@ -137,6 +133,7 @@ export default function Navbar() {
           <Link 
             href={homeHref}
             onClick={handleHomeClick}
+            transitionTypes={isOnArticle ? ['nav-back'] : undefined}
             className="flex items-center gap-2.5 flex-shrink-0 group"
           >
             <div className="w-8 h-8 relative flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
@@ -182,6 +179,7 @@ export default function Navbar() {
                   key={link.href}
                   href={link.href === '/' ? homeHref : link.href}
                   onClick={link.href === '/' ? handleHomeClick : undefined}
+                  transitionTypes={link.href === '/' && isOnArticle ? ['nav-back'] : undefined}
                   className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
                   title={link.tooltip}
                 >

@@ -26,10 +26,10 @@ export default async function WardrobePage() {
           </Link>
 
           <h1 className="text-[2.5rem] lg:text-[3.5rem] font-bold tracking-tight leading-none text-foreground mb-4">
-            Life <span className="text-gradient-primary">Lens</span>
+            <span className="text-gradient-primary">Life</span> Lens
           </h1>
           <p className="max-w-md text-sm text-muted-foreground leading-relaxed italic mb-8">
-            &quot;记录我们对事物的真实评价。告别碎片化的纠结，用灵活的模版和直观的对比，把每一次买衣服、吃大餐和去旅行，都沉淀为专属于我们的生活指南。&quot;
+            &quot;记录我们对事物的真实评价，把当下的感受沉淀成之后仍然能回看的判断。无论是买衣服、吃大餐还是去旅行，都能用灵活模板和直观对比，留下更诚实也更有用的生活参考。&quot;
           </p>
 
           <AdminOnly>

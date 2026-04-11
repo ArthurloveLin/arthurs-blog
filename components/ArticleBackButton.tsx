@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { startTransition, unstable_addTransitionType as addTransitionType, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 
@@ -20,11 +20,7 @@ export default function ArticleBackButton({ returnHref = '/' }: ArticleBackButto
   return (
     <Link
       href={returnHref}
-      onClick={() => {
-        startTransition(() => {
-          addTransitionType('nav-back')
-        })
-      }}
+      transitionTypes={['nav-back']}
       aria-label="返回上一页"
       className={[
         // Position: top-left of cover image

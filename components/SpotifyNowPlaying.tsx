@@ -103,6 +103,7 @@ export default function SpotifyNowPlaying() {
               src={data.albumImageUrl}
               alt=""
               fill
+              sizes="(max-width: 768px) 100vw, 320px"
               className="object-cover blur-3xl scale-150"
               unoptimized
             />
@@ -117,6 +118,7 @@ export default function SpotifyNowPlaying() {
                 src={data.albumImageUrl || ''}
                 alt={data.album || ''}
                 fill
+                sizes={isExpanded ? '48px' : '32px'}
                 className={`object-cover ${!isPlaying ? 'grayscale bg-muted opacity-80' : ''}`}
                 unoptimized
               />
@@ -185,6 +187,7 @@ export default function SpotifyNowPlaying() {
                       src={track.albumImageUrl}
                       alt={track.album}
                       fill
+                      sizes="32px"
                       className="object-cover"
                       unoptimized
                     />

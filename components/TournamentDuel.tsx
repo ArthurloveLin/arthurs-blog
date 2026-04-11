@@ -275,7 +275,7 @@ function AwardsScreen({ results, onClose, saving, templateConfig }: { results: A
         <span className="inline-block px-5 py-2 rounded-full bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-500 text-[10px] md:text-xs font-black tracking-[0.2em] uppercase mb-6 border border-yellow-500/20 shadow-[0_0_30px_rgba(234,179,8,0.1)]">
           🏆 Tournament Finished
         </span>
-        <h2 className="text-3xl md:text-6xl font-black text-white mb-4 tracking-tighter">Your {templateConfig?.name || 'LifeLens'} <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500">Elite</span></h2>
+        <h2 className="text-3xl md:text-6xl font-black text-white mb-4 tracking-tighter">Your {templateConfig?.name || 'Life Lens'} <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500">Elite</span></h2>
         <p className="text-white/40 text-[10px] md:text-sm font-medium px-6">The results are in. These {templateConfig?.itemLabel || 'items'} represent your ultimate choice.</p>
       </div>
       
@@ -346,6 +346,7 @@ function AwardCard({ item, rank, label, color }: { item: Item, rank: number, lab
             src={item.image_url}
             alt={label}
             fill
+            sizes="(max-width: 768px) 200px, 400px"
             className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
