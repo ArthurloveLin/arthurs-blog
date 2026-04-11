@@ -15,6 +15,7 @@
     radial-gradient(circle at 16% 20%, color-mix(in oklab, var(--primary) 24%, transparent) 0%, transparent 34%),
     radial-gradient(circle at 84% 18%, color-mix(in oklab, var(--foreground) 14%, transparent) 0%, transparent 28%),
     linear-gradient(145deg, color-mix(in oklab, var(--background) 58%, black 42%), color-mix(in oklab, var(--foreground) 86%, var(--background) 14%));
+  touch-action: manipulation;
 }
 
 .backgroundLayer {
@@ -211,7 +212,7 @@
   }
 
   .sliderBody {
-    padding: 0 20px max(28px, env(safe-area-inset-bottom));
+    padding: 0 20px calc(env(safe-area-inset-bottom) + 104px);
   }
 
   .sliderLeft {
@@ -228,11 +229,12 @@
 
   .sliderFooter {
     margin-top: auto;
+    padding-bottom: 18px;
   }
 
   .sliderRight {
     align-items: flex-end;
-    padding: 0 20px 18vh;
+    padding: 0 20px 21vh;
   }
 
   .sliderSlide {

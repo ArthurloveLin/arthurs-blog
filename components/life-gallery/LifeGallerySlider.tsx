@@ -1,6 +1,6 @@
 'use client'
 
-import { startTransition, unstable_addTransitionType as addTransitionType, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -67,16 +67,33 @@ function mod(index: number, total: number) {
 }
 
 function getOptimizedImageUrl(imageUrl: string, width: number, quality = 75) {
-  if (
-    imageUrl.startsWith('/_next/image?') ||
-    imageUrl.startsWith('/') ||
-    imageUrl.startsWith('data:') ||
-    imageUrl.startsWith('blob:')
-  ) {
-    return imageUrl
+  void width
+  void quality
+
+  return imageUrl
+}
+
+function getLifeGallerySampleUrl(key: string) {
+  const encodedKey = key
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')
+
+  return `/api/life-gallery/image/${encodedKey}`
+}
+
+function getFallbackBackdrop(seed: string) {
+  let hash = 0
+
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = (hash * 33 + seed.charCodeAt(index)) >>> 0
   }
 
-  return `/_next/image?url=${encodeURIComponent(imageUrl)}&w=${width}&q=${quality}`
+  const hue = hash % 360
+  const saturation = 34 + (hash % 18)
+  const lightness = 18 + (hash % 8)
+
+  return `hsl(${hue} ${saturation}% ${lightness}%)`
 }
 
 type SlideEntry = {
@@ -100,8 +117,9 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
   const pendingRoundRef = useRef<LifeGalleryRound | null>(null)
   const requestInFlightRef = useRef(false)
   const advanceRef = useRef<(() => void) | null>(null)
+  const retreatRef = useRef<(() => void) | null>(null)
   const colorCacheRef = useRef(new Map<string, string>())
-  const activeBackgroundImageRef = useRef(initialRound.slides[0]?.imageUrl ?? '')
+  const activeBackgroundKeyRef = useRef(initialRound.slides[0]?.key ?? '')
   const [isFetchingNextRound, setIsFetchingNextRound] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [activeSlide, setActiveSlide] = useState(initialRound.slides[0])
@@ -109,7 +127,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
 
   useEffect(() => {
     roundRef.current = initialRound
-    activeBackgroundImageRef.current = initialRound.slides[0]?.imageUrl ?? ''
+    activeBackgroundKeyRef.current = initialRound.slides[0]?.key ?? ''
     setActiveSlide(initialRound.slides[0])
     setActiveIndex(0)
   }, [initialRound])
@@ -151,23 +169,25 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       }
     }
 
-    const extractColorFromUrl = (imageUrl: string) => {
-      const cachedColor = colorCacheRef.current.get(imageUrl)
+    const extractColorFromSlide = (slide: LifeGallerySlide) => {
+      const cachedColor = colorCacheRef.current.get(slide.key)
       if (cachedColor) {
         return Promise.resolve(cachedColor)
       }
 
-      const sampleUrl = getOptimizedImageUrl(imageUrl, 256, 70)
+      const sampleUrl = getLifeGallerySampleUrl(slide.key)
+      const fallbackColor = getFallbackBackdrop(`${slide.key}:${slide.title}`)
       const img = new window.Image()
       return new Promise<string>((resolve) => {
         img.onload = () => {
-          const color = sampleDominantColor(img) || 'rgb(17,17,17)'
-          colorCacheRef.current.set(imageUrl, color)
+          const color = sampleDominantColor(img) || fallbackColor
+          colorCacheRef.current.set(slide.key, color)
           resolve(color)
         }
 
         img.onerror = () => {
-          resolve('rgb(17,17,17)')
+          colorCacheRef.current.set(slide.key, fallbackColor)
+          resolve(fallbackColor)
         }
 
         img.src = sampleUrl
@@ -178,15 +198,15 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       round.slides.forEach((slide) => {
         const image = new window.Image()
         image.src = slide.imageUrl
-        void extractColorFromUrl(slide.imageUrl)
+        void extractColorFromSlide(slide)
       })
     }
 
-    const syncBackgroundColor = (imageUrl: string, animate: boolean) => {
-      activeBackgroundImageRef.current = imageUrl
+    const syncBackgroundColor = (slide: LifeGallerySlide, animate: boolean) => {
+      activeBackgroundKeyRef.current = slide.key
 
       const applyColor = (color: string) => {
-        if (activeBackgroundImageRef.current !== imageUrl) return
+        if (activeBackgroundKeyRef.current !== slide.key) return
 
         if (animate) {
           gsap.to(backgroundEl, {
@@ -200,13 +220,13 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
         gsap.set(backgroundEl, { backgroundColor: color })
       }
 
-      const cachedColor = colorCacheRef.current.get(imageUrl)
+      const cachedColor = colorCacheRef.current.get(slide.key)
       if (cachedColor) {
         applyColor(cachedColor)
         return
       }
 
-      void extractColorFromUrl(imageUrl).then((color) => {
+      void extractColorFromSlide(slide).then((color) => {
         applyColor(color)
       })
     }
@@ -530,14 +550,14 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       animatingRef.current = true
       startAutoPlay()
 
-      activeBackgroundImageRef.current = targetSlide.imageUrl
       const timeline = gsap.timeline()
       timeline.add(animateTitle(targetSlide.title, direction), 0)
       timeline.add(animateCarousel(direction, targetRound, targetIndex, isBoundarySwap), 0)
-      syncBackgroundColor(targetSlide.imageUrl, true)
+      syncBackgroundColor(targetSlide, true)
     }
 
     advanceRef.current = () => go('next')
+    retreatRef.current = () => go('prev')
 
     const wheelHandler = throttle((event: WheelEvent) => {
       if (animatingRef.current) return
@@ -588,7 +608,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
     reducedMotionRef.current = mediaQuery.matches
     preloadRound(getCurrentRound())
     setTitle(normalizeTitle(getCurrentRound().slides[0].title))
-    syncBackgroundColor(getCurrentRound().slides[0].imageUrl, false)
+    syncBackgroundColor(getCurrentRound().slides[0], false)
     buildCarousel()
     maybePrefetchNextRound()
     startAutoPlay()
@@ -604,6 +624,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
     return () => {
       stopAutoPlay()
       advanceRef.current = null
+      retreatRef.current = null
       window.removeEventListener('wheel', wheelHandler)
       window.removeEventListener('touchstart', touchStartHandler)
       window.removeEventListener('touchend', touchEndHandler)
@@ -617,8 +638,6 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
   }, [initialRound])
 
   const handleBack = () => {
-    startTransition(() => addTransitionType('nav-back'))
-
     const hasSameOriginReferrer =
       typeof document !== 'undefined' &&
       typeof window !== 'undefined' &&
@@ -630,13 +649,41 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       return
     }
 
-    router.push('/')
+    router.push('/', { transitionTypes: ['nav-back'] })
+  }
+
+  const handleMobileTap = (event: React.PointerEvent<HTMLElement>) => {
+    if (event.pointerType === 'mouse') return
+    if (typeof window === 'undefined') return
+    if (window.matchMedia('(min-width: 1024px)').matches) return
+    if (animatingRef.current) return
+
+    const target = event.target as HTMLElement | null
+    if (target?.closest('button, a, input, textarea, select, [data-life-gallery-interactive="true"]')) {
+      return
+    }
+
+    const bounds = rootRef.current?.getBoundingClientRect()
+    if (!bounds) return
+
+    const midpoint = bounds.left + bounds.width / 2
+    if (event.clientX < midpoint) {
+      retreatRef.current?.()
+      return
+    }
+
+    advanceRef.current?.()
   }
 
   const slideCopy = buildSlideCopy(activeSlide, activeIndex, roundRef.current.slides.length)
 
   return (
-    <section ref={rootRef} className={styles.sliderRoot} aria-label="Life Gallery slider">
+    <section
+      ref={rootRef}
+      className={styles.sliderRoot}
+      aria-label="Life Gallery slider"
+      onPointerUp={handleMobileTap}
+    >
       <div ref={backgroundLayerRef} className={styles.backgroundLayer} aria-hidden="true" />
       <div className={styles.grainLayer} aria-hidden="true" />
 
@@ -663,7 +710,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
           <div className={styles.sliderFooter}>
             <p className={styles.sliderDescription}>{slideCopy.join('\n')}</p>
             <p className={styles.sliderStatus}>
-              {fetchError ? fetchError : isFetchingNextRound ? 'Loading the next round in the background.' : 'Scroll, swipe, or tap.'}
+              {fetchError ? fetchError : isFetchingNextRound ? 'Loading the next round in the background.' : 'Scroll, swipe, or tap left / right.'}
             </p>
           </div>
         </div>
@@ -673,6 +720,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
           role="button"
           tabIndex={0}
           aria-label="查看下一张 Life Gallery 图片"
+          data-life-gallery-interactive="true"
           onClick={() => advanceRef.current?.()}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {

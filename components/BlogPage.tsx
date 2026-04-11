@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { unstable_ViewTransition as ViewTransition, useEffect, useRef, useState } from 'react'
+import { ViewTransition, useEffect, useRef, useState } from 'react'
 import type { Post } from '@/lib/blog'
 import { useSiteData } from '@/components/SiteDataProvider'
 
@@ -114,7 +114,7 @@ export default function BlogPage({
             <span className="block sm:inline">{siteConfig.site_title_rest || "的记录与分享"}</span>
           </h1>
           <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-sm">
-            {siteConfig.site_description || "探索编程、设计、LifeLens 智能评价等领域的见解与思考。记录成长，分享知识，连接彼此。"}
+            {siteConfig.site_description || "探索编程、设计、Life Lens 真实评价等领域的见解与思考。记录成长，分享知识，连接彼此。"}
           </p>
           
           <Live2D />
@@ -231,7 +231,7 @@ export default function BlogPage({
           </p>
           <nav className="lg:hidden flex items-center gap-5 font-mono text-[11px] text-muted-foreground">
             <Link href="/wardrobe" className="hover:text-foreground transition-colors">
-              LifeLens
+              Life Lens
             </Link>
             <a
               href="https://trendradar.arthurlovegrace.top"

@@ -86,7 +86,7 @@ export default function TrendRadarPage({
               全网热点实时追踪
             </h1>
             <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-sm">
-              多平台热榜聚合分析，挖掘隐藏在信息流中的焦点与变化。所有数据通过 S3 (Cloudflare R2) 自动同步。
+              多平台热榜聚合分析，挖掘隐藏在信息流中的焦点与变化。
             </p>
           </div>
         </div>
