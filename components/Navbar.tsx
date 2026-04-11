@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useCallback, startTransition, useSyncExternalStore } from 'react'
+import { useEffect, useCallback, startTransition, useSyncExternalStore } from 'react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -22,7 +22,7 @@ import {
 
 const ThemeToggle = dynamic(() => import('./ThemeToggle'), { ssr: false })
 import MobileDrawers, { preloadMobileDrawerModules } from './MobileDrawers'
-import type { DrawerType } from './MobileDrawers'
+import { NavbarUiStateProvider, useNavbarUiState, type DrawerType } from './NavbarUiState'
 
 interface DrawerToggleItem {
   key: Exclude<DrawerType, null>
@@ -50,101 +50,139 @@ function getDrawerButtonClass(isActive: boolean) {
   return `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`
 }
 
+function AdminRoleBadge() {
+  return (
+    <span className="text-xs font-semibold px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-md">
+      管理员
+    </span>
+  )
+}
+
+function GuestIdentity({ guestId }: { guestId: string }) {
+  if (!guestId) return null
+
+  return (
+    <span className="text-xs text-muted-foreground font-mono">
+      游客&nbsp;{guestId.slice(0, 6)}
+    </span>
+  )
+}
+
+function DesktopGuestAuth({ guestId }: { guestId: string }) {
+  return (
+    <>
+      <GuestIdentity guestId={guestId} />
+      <Link
+        href="/auth/login"
+        className="px-3 py-1.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+      >
+        登录
+      </Link>
+    </>
+  )
+}
+
+function DesktopSignedInAuth({
+  displayName,
+  email,
+  isAdmin,
+}: {
+  displayName: string | null
+  email: string | null
+  isAdmin: boolean
+}) {
+  return (
+    <>
+      {isAdmin && <AdminRoleBadge />}
+      <span className="text-sm text-foreground/60 max-w-[120px] truncate">
+        {displayName ?? email}
+      </span>
+      <form action={logout}>
+        <button
+          type="submit"
+          className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+        >
+          退出
+        </button>
+      </form>
+    </>
+  )
+}
+
+function MobileGuestAuth({ guestId, onClose }: { guestId: string; onClose: () => void }) {
+  return (
+    <Link
+      href="/auth/login"
+      className="block px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+      onClick={onClose}
+    >
+      登录{guestId ? `（游客 ${guestId.slice(0, 6)}）` : ''}
+    </Link>
+  )
+}
+
+function MobileSignedInAuth({
+  displayName,
+  email,
+  isAdmin,
+  onClose,
+}: {
+  displayName: string | null
+  email: string | null
+  isAdmin: boolean
+  onClose: () => void
+}) {
+  return (
+    <div className="px-4 py-2.5 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        {isAdmin && (
+          <>
+            <AdminRoleBadge />
+            <Link
+              href="/admin/settings"
+              className="p-1 px-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-foreground/5 rounded-md flex items-center gap-1"
+              onClick={onClose}
+            >
+              <Settings className="w-3 h-3" strokeWidth={2} />
+              设置
+            </Link>
+          </>
+        )}
+        <span className="text-sm text-foreground/60">{displayName ?? email}</span>
+      </div>
+      <form action={logout}>
+        <button type="submit" className="text-sm text-muted-foreground hover:text-foreground">
+          退出
+        </button>
+      </form>
+    </div>
+  )
+}
+
 function NavDesktopAuthStatus() {
-  const {
-    state: { role, displayName, email, loading },
-    meta: { guestId },
-  } = useAuth()
+  const { role, displayName, email, loading, guestId } = useAuth()
 
   if (loading) return null
 
   return (
     <div className="hidden sm:flex items-center gap-1.5 ml-1">
-      {role === 'guest' && (
-        <>
-          {guestId && (
-            <span className="text-xs text-muted-foreground font-mono">
-              游客&nbsp;{guestId.slice(0, 6)}
-            </span>
-          )}
-          <Link
-            href="/auth/login"
-            className="px-3 py-1.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
-          >
-            登录
-          </Link>
-        </>
-      )}
-      {(role === 'user' || role === 'admin') && (
-        <>
-          {role === 'admin' && (
-            <span className="text-xs font-semibold px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-md">
-              管理员
-            </span>
-          )}
-          <span className="text-sm text-foreground/60 max-w-[120px] truncate">
-            {displayName ?? email}
-          </span>
-          <form action={logout}>
-            <button
-              type="submit"
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
-            >
-              退出
-            </button>
-          </form>
-        </>
-      )}
+      {role === 'guest'
+        ? <DesktopGuestAuth guestId={guestId} />
+        : <DesktopSignedInAuth displayName={displayName} email={email} isAdmin={role === 'admin'} />}
     </div>
   )
 }
 
 function NavMobileAuthSection({ onClose }: { onClose: () => void }) {
-  const {
-    state: { role, displayName, email, loading },
-    meta: { guestId },
-  } = useAuth()
+  const { role, displayName, email, loading, guestId } = useAuth()
 
   if (loading) return null
 
   return (
     <>
-      {role === 'guest' && (
-        <Link
-          href="/auth/login"
-          className="block px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
-          onClick={onClose}
-        >
-          登录{guestId ? `（游客 ${guestId.slice(0, 6)}）` : ''}
-        </Link>
-      )}
-      {(role === 'user' || role === 'admin') && (
-        <div className="px-4 py-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {role === 'admin' && (
-              <>
-                <span className="text-xs font-semibold px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-md">
-                  管理员
-                </span>
-                <Link
-                  href="/admin/settings"
-                  className="p-1 px-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-foreground/5 rounded-md flex items-center gap-1"
-                  onClick={onClose}
-                >
-                  <Settings className="w-3 h-3" strokeWidth={2} />
-                  设置
-                </Link>
-              </>
-            )}
-            <span className="text-sm text-foreground/60">{displayName ?? email}</span>
-          </div>
-          <form action={logout}>
-            <button type="submit" className="text-sm text-muted-foreground hover:text-foreground">
-              退出
-            </button>
-          </form>
-        </div>
-      )}
+      {role === 'guest'
+        ? <MobileGuestAuth guestId={guestId} onClose={onClose} />
+        : <MobileSignedInAuth displayName={displayName} email={email} isAdmin={role === 'admin'} onClose={onClose} />}
     </>
   )
 }
@@ -182,16 +220,19 @@ function NavMobileBar({
   )
 }
 
-export default function Navbar() {
+function NavbarContent() {
   const config = useSiteConfig()
   const logoUrl = config?.author_avatar_url
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
-  const [uiState, setUiState] = useState(() => ({
-    pathname,
-    isMobileMenuOpen: false,
-    activeDrawer: null as DrawerType,
-  }))
+  const {
+    activeDrawer,
+    closeDrawer,
+    closeMobileMenu,
+    isMobileMenuOpen,
+    setIsMobileMenuOpen,
+    toggleDrawer: toggleDrawerInternal,
+  } = useNavbarUiState()
 
   const isOnArticle = pathname.startsWith('/blog/') && pathname !== '/blog'
 
@@ -223,34 +264,6 @@ export default function Navbar() {
   )
 
   const homeHref = isOnArticle ? articleHomeHref : '/'
-  const isMobileMenuOpen = uiState.pathname === pathname ? uiState.isMobileMenuOpen : false
-  const activeDrawer = uiState.pathname === pathname ? uiState.activeDrawer : null
-
-  const setIsMobileMenuOpen = useCallback((next: boolean | ((current: boolean) => boolean)) => {
-    setUiState((current) => {
-      const currentMenuState = current.pathname === pathname ? current.isMobileMenuOpen : false
-      const resolvedState = typeof next === 'function' ? next(currentMenuState) : next
-
-      return {
-        pathname,
-        isMobileMenuOpen: resolvedState,
-        activeDrawer: current.pathname === pathname ? current.activeDrawer : null,
-      }
-    })
-  }, [pathname])
-
-  const setActiveDrawer = useCallback((next: DrawerType | ((current: DrawerType) => DrawerType)) => {
-    setUiState((current) => {
-      const currentDrawerState = current.pathname === pathname ? current.activeDrawer : null
-      const resolvedState = typeof next === 'function' ? next(currentDrawerState) : next
-
-      return {
-        pathname,
-        isMobileMenuOpen: current.pathname === pathname ? current.isMobileMenuOpen : false,
-        activeDrawer: resolvedState,
-      }
-    })
-  }, [pathname])
 
   const handleHomeClick = useCallback(() => {
     if (!isOnArticle) return
@@ -298,9 +311,21 @@ export default function Navbar() {
 
   const toggleDrawer = useCallback((drawer: Exclude<DrawerType, null>) => {
     startTransition(() => {
-      setActiveDrawer((current) => current === drawer ? null : drawer)
+      closeMobileMenu()
+      toggleDrawerInternal(drawer)
     })
-  }, [setActiveDrawer])
+  }, [closeMobileMenu, toggleDrawerInternal])
+
+  const toggleMobileMenu = useCallback(() => {
+    if (!isMobileMenuOpen) {
+      closeDrawer()
+    }
+    setIsMobileMenuOpen(!isMobileMenuOpen)
+  }, [closeDrawer, isMobileMenuOpen, setIsMobileMenuOpen])
+
+  const closeMobileNavigation = useCallback(() => {
+    closeMobileMenu()
+  }, [closeMobileMenu])
 
   return (
     <>
@@ -406,7 +431,7 @@ export default function Navbar() {
 
             {/* Mobile Menu Toggle */}
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={toggleMobileMenu}
               className="md:hidden p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
               aria-label="菜单"
             >
@@ -431,7 +456,7 @@ export default function Navbar() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={closeMobileNavigation}
                   >
                     {link.label}
                   </a>
@@ -441,7 +466,7 @@ export default function Navbar() {
                     href={link.href === '/' ? homeHref : link.href}
                     onClick={() => {
                       if (link.href === '/') handleHomeClick()
-                      setIsMobileMenuOpen(false)
+                      closeMobileNavigation()
                     }}
                     className="block px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
                   >
@@ -461,7 +486,7 @@ export default function Navbar() {
                   ].map((t) => (
                     <button
                       key={t.id}
-                      onClick={() => { setTheme(t.id); setIsMobileMenuOpen(false) }}
+                      onClick={() => { setTheme(t.id); closeMobileNavigation() }}
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                         theme === t.id
                           ? 'bg-foreground text-background'
@@ -474,7 +499,7 @@ export default function Navbar() {
                   ))}
                 </div>
               </div>
-              <NavMobileAuthSection onClose={() => setIsMobileMenuOpen(false)} />
+              <NavMobileAuthSection onClose={closeMobileNavigation} />
             </div>
           </nav>
         )}
@@ -486,7 +511,17 @@ export default function Navbar() {
     <NavMobileBar activeDrawer={activeDrawer} toggleDrawer={toggleDrawer} />
 
     {/* ── Mobile Sidebar Drawers ────────────────────────── */}
-    <MobileDrawers activeDrawer={activeDrawer} setActiveDrawer={setActiveDrawer} />
+    <MobileDrawers />
     </>
+  )
+}
+
+export default function Navbar() {
+  const pathname = usePathname()
+
+  return (
+    <NavbarUiStateProvider key={pathname}>
+      <NavbarContent />
+    </NavbarUiStateProvider>
   )
 }

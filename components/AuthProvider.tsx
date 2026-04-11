@@ -6,27 +6,21 @@ import { getOrCreateGuestId } from '@/lib/guest'
 
 export type UserRole = 'guest' | 'user' | 'admin'
 
-interface AuthState {
+interface AuthUser {
   email: string | null
   displayName: string | null
-  role: UserRole
-  identity: string
-  loading: boolean
-  isAuthenticated: boolean
-}
-
-interface AuthPermissions {
-  isAdmin: boolean
-}
-
-interface AuthMeta {
-  guestId: string
 }
 
 interface AuthContextValue {
-  state: AuthState
-  permissions: AuthPermissions
-  meta: AuthMeta
+  role: UserRole
+  user: AuthUser | null
+  email: string | null
+  displayName: string | null
+  guestId: string
+  identity: string
+  loading: boolean
+  isAuthenticated: boolean
+  isAdmin: boolean
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -37,6 +31,10 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
+}
+
+export function useAuthIdentity() {
+  return useAuth().identity
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.ok ? r.json() : null)
@@ -64,22 +62,18 @@ export default function AuthProvider({ children, initialData }: AuthProviderProp
   const role = (data?.role as UserRole) ?? 'guest'
   const displayName = data?.display_name ?? null
   const email = data?.email ?? null
+  const user = role === 'guest' ? null : { email, displayName }
   const identity = displayName ?? email ?? guestId
   const value: AuthContextValue = {
-    state: {
-      email,
-      displayName,
-      role,
-      identity,
-      loading: isLoading && !data,
-      isAuthenticated: role !== 'guest',
-    },
-    permissions: {
-      isAdmin: role === 'admin',
-    },
-    meta: {
-      guestId,
-    },
+    role,
+    user,
+    email,
+    displayName,
+    guestId,
+    identity,
+    loading: isLoading && !data,
+    isAuthenticated: role !== 'guest',
+    isAdmin: role === 'admin',
   }
 
   return (
