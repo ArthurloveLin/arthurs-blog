@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, startTransition, unstable_addTransitionType as addTransitionType } from 'react'
+import { memo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import SpotifyNowPlaying from './SpotifyNowPlaying'
@@ -31,8 +31,8 @@ const tools = [
   },
   {
     href: '/wardrobe',
-    label: 'LifeLens',
-    description: '智能评价与服装管理系统',
+    label: 'Life Lens',
+    description: '记录对事物的真实评价',
     icon: <ShoppingBag className="w-4 h-4" strokeWidth={1.75} />,
     external: false,
   },
@@ -117,7 +117,7 @@ const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
               ) : (
                 <Link
                   href={tool.href}
-                  onClick={() => startTransition(() => { addTransitionType('nav-forward') })}
+                  transitionTypes={['nav-forward']}
                 >
                   {inner}
                 </Link>

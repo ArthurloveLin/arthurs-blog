@@ -120,19 +120,19 @@ export async function POST() {
   revalidatePath('/wardrobe')
 
   // P1: Data Cache Invalidation (More precise than path revalidation)
-  revalidateTag('posts')
-  revalidateTag('categories')
-  revalidateTag('all-tags')
-  revalidateTag('year-archive')
+  revalidateTag('posts', 'max')
+  revalidateTag('categories', 'max')
+  revalidateTag('all-tags', 'max')
+  revalidateTag('year-archive', 'max')
 
   const updatedResults = results.filter((r) => r.status === 'ok')
 
   // Invalidating specific post data
   for (const { slug, key } of updatedResults) {
     const normalizedSlug = decodeURIComponent(slug)
-    revalidateTag(`post-meta-${normalizedSlug}`)
-    revalidateTag(`post-content-${normalizedSlug}`)
-    revalidateTag(`post-raw-${key}`)
+    revalidateTag(`post-meta-${normalizedSlug}`, 'max')
+    revalidateTag(`post-content-${normalizedSlug}`, 'max')
+    revalidateTag(`post-raw-${key}`, 'max')
   }
 
   if (updatedResults.length > 0 && process.env.CF_ZONE_ID && process.env.CF_API_TOKEN) {

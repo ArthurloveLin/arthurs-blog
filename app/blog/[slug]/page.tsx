@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Suspense, unstable_ViewTransition as ViewTransition } from 'react'
+import { Suspense, ViewTransition } from 'react'
 import { getPosts, getPostMeta, getPostContent, getAdjacentPosts, type Post } from '@/lib/blog'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import CommentBox from '@/components/CommentBox'
@@ -172,6 +172,7 @@ export default async function BlogPostPage({
                       src={decodeURIComponent(post.cover_image)}
                       alt={post.title}
                       fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 66vw, 960px"
                       priority
                       className="object-cover"
                     />

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { memo, unstable_ViewTransition as ViewTransition } from 'react'
+import { memo, ViewTransition } from 'react'
 import type { Post } from '@/lib/blog'
 import PrefetchOnHover from './PrefetchOnHover'
 

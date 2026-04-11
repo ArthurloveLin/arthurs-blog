@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, memo, unstable_ViewTransition as ViewTransition } from 'react'
+import { useState, useEffect, useMemo, memo, ViewTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 
