@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useAuth } from '@/components/AuthProvider'
@@ -13,6 +13,7 @@ const NOTE_CARD_WIDTH = 184
 const PREVIEW_CARD_SIZE = 184
 const PREVIEW_STACK_LIMIT = 6
 const PREVIEW_REVEAL_THRESHOLD = 112
+const MOBILE_STACK_LIMIT = 4
 
 interface Size {
   width: number
@@ -33,6 +34,18 @@ interface NoteBoardPageProps {
 interface StickyStackPreviewProps {
   board: NoteBoardViewConfig
   messages: NoteMessage[]
+}
+
+interface MobileStickyDeckProps {
+  board: NoteBoardViewConfig
+  messages: NoteMessage[]
+  activeIndex: number
+  canGoPrevious: boolean
+  canGoNext: boolean
+  onPrevious: () => void
+  onNext: () => void
+  canDeleteMessage: (message: NoteMessage) => boolean
+  onDeleteMessage: (id: string) => void
 }
 
 interface StickyNoteCardProps {
@@ -137,6 +150,37 @@ function getDeletePermission(board: NoteBoardSlug, isAdmin: boolean, identity: s
 
 function getBoardHref(board: NoteBoardSlug) {
   return board === 'memo' ? '/memo' : '/guestbook'
+}
+
+function NoteListCard({
+  message,
+  showDelete,
+  onDelete,
+}: {
+  message: NoteMessage
+  showDelete: boolean
+  onDelete?: () => void
+}) {
+  return (
+    <article className="rounded-[24px] border border-border/60 bg-background/80 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.06)] sm:p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">{message.author}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{formatCommentTimestamp(message.created_at)}</p>
+        </div>
+        {showDelete && onDelete ? (
+          <button
+            type="button"
+            className="rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground transition hover:border-foreground/20 hover:bg-accent hover:text-foreground"
+            onClick={onDelete}
+          >
+            删除
+          </button>
+        ) : null}
+      </div>
+      <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-foreground/90">{message.content}</p>
+    </article>
+  )
 }
 
 function StickyNoteCard({
@@ -361,35 +405,33 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
   )
   const [revealedCount, setRevealedCount] = useState(0)
   const [placedNotes, setPlacedNotes] = useState<Record<string, NotePosition>>({})
-  const [hasSettledLayout, setHasSettledLayout] = useState(false)
+  const [cardZIndices, setCardZIndices] = useState<Record<string, number>>(() =>
+    Object.fromEntries(visibleMessages.map((message, index) => [message.id, visibleMessages.length - index + 2])),
+  )
+  const zIndexCounterRef = useRef(visibleMessages.length + 6)
   const cardWidth = PREVIEW_CARD_SIZE
   const stackX = Math.max(size.width - cardWidth - 28, 0)
   const stackY = Math.max(size.height - PREVIEW_CARD_SIZE - 36, 10)
   const boardHref = getBoardHref(board.slug)
   const hasMeasured = size.width > 0 && size.height > 0
+  const maxRevealedCount = Math.max(visibleMessages.length - 1, 0)
+  const effectiveRevealedCount = Math.min(revealedCount, maxRevealedCount)
+  const sanitizedPlacedNotes = useMemo(() => {
+    const allowedIds = new Set(visibleMessages.map((message) => message.id))
 
-  useEffect(() => {
-    const maxRevealedCount = Math.max(visibleMessages.length - 1, 0)
-    setRevealedCount((current) => Math.min(current, maxRevealedCount))
-    setPlacedNotes((current) => {
-      const allowedIds = new Set(visibleMessages.map((message) => message.id))
-      return Object.fromEntries(
-        Object.entries(current)
-          .filter(([id]) => allowedIds.has(id))
-          .map(([id, position]) => [id, sanitizeNotePosition(position)]),
-      )
-    })
-  }, [visibleMessages])
+    return Object.fromEntries(
+      Object.entries(placedNotes)
+        .filter(([id]) => allowedIds.has(id))
+        .map(([id, position]) => [id, sanitizeNotePosition(position)]),
+    )
+  }, [placedNotes, visibleMessages])
 
-  useEffect(() => {
-    if (!hasMeasured || hasSettledLayout) return
-    setHasSettledLayout(true)
-  }, [hasMeasured, hasSettledLayout])
+  function bringCardToFront(id: string) {
+    setCardZIndices((current) => ({ ...current, [id]: zIndexCounterRef.current++ }))
+  }
 
   function handleCommit(index: number, message: NoteMessage, nextPosition: NotePosition, distance: number) {
-    const maxRevealedCount = Math.max(visibleMessages.length - 1, 0)
-
-    if (index === revealedCount) {
+    if (index === effectiveRevealedCount) {
       if (distance >= PREVIEW_REVEAL_THRESHOLD) {
         setPlacedNotes((current) => ({ ...current, [message.id]: nextPosition }))
         setRevealedCount((current) => Math.min(current + 1, maxRevealedCount))
@@ -421,9 +463,8 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
       ) : !hasMeasured ? null : (
         <>
           {visibleMessages.map((message, index) => {
-            const depth = visibleMessages.length - index - 1
-            const placed = placedNotes[message.id]
-            const stackDepth = Math.max(index - revealedCount, 0)
+            const placed = sanitizedPlacedNotes[message.id]
+            const stackDepth = Math.max(index - effectiveRevealedCount, 0)
             const position = placed
               ? {
                   x: clamp(placed.x, 0, Math.max(size.width - cardWidth, 0)),
@@ -433,9 +474,9 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
               : {
                   x: clamp(stackX - Math.min(stackDepth, 4) * 5, 0, Math.max(size.width - cardWidth, 0)),
                   y: clamp(stackY + Math.min(stackDepth, 4) * 6, 0, Math.max(size.height - PREVIEW_CARD_SIZE, 0)),
-                  rotation: (seededUnit(message.id, 5) - 0.5) * 6,
-                }
-            const isDraggable = index <= revealedCount
+                   rotation: (seededUnit(message.id, 5) - 0.5) * 6,
+                 }
+            const isDraggable = index <= effectiveRevealedCount
 
             return (
               <StickyNoteCard
@@ -444,7 +485,7 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
                 x={position.x}
                 y={position.y}
                 rotation={position.rotation}
-                zIndex={placed ? visibleMessages.length + index + 4 : visibleMessages.length - index + 2}
+                zIndex={cardZIndices[message.id] ?? (placed ? visibleMessages.length + index + 4 : visibleMessages.length - index + 2)}
                 width={cardWidth}
                 bounds={{ width: size.width, height: size.height }}
                 colorIndex={index}
@@ -452,13 +493,108 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
                 variant="preview"
                 ctaHref={boardHref}
                 ctaLabel={board.ctaLabel}
-                animatePosition={hasSettledLayout}
+                animatePosition={hasMeasured}
+                onLift={() => bringCardToFront(message.id)}
                 onCommit={(nextPosition, metrics) => handleCommit(index, message, nextPosition, metrics.distance)}
               />
             )
           })}
         </>
       )}
+    </div>
+  )
+}
+
+function MobileStickyDeck({
+  board,
+  messages,
+  activeIndex,
+  canGoPrevious,
+  canGoNext,
+  onPrevious,
+  onNext,
+  canDeleteMessage,
+  onDeleteMessage,
+}: MobileStickyDeckProps) {
+  const [containerRef, size] = useElementSize<HTMLDivElement>()
+  const activeMessages = useMemo(
+    () => messages.slice(activeIndex, activeIndex + MOBILE_STACK_LIMIT),
+    [messages, activeIndex],
+  )
+  const cardWidth = clamp(size.width - 28, 216, 320)
+  const stackX = Math.max((size.width - cardWidth) / 2, 0)
+  const stackY = 18
+
+  return (
+    <div className="space-y-4 md:hidden">
+      <div
+        ref={containerRef}
+        className="note-board-canvas relative overflow-hidden rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]"
+        style={{ minHeight: 320 }}
+      >
+        {messages.length === 0 ? (
+          <div className="flex min-h-[240px] items-center justify-center rounded-[24px] border border-dashed border-border/70 bg-white/55 text-center text-sm text-muted-foreground">
+            {board.emptyLabel}
+          </div>
+        ) : size.width <= 0 ? null : (
+          <div className="relative min-h-[272px]">
+            {activeMessages
+              .slice()
+              .reverse()
+              .map((message, reverseIndex) => {
+                const index = activeMessages.length - reverseIndex - 1
+                const stackDepth = index
+
+                return (
+                  <StickyNoteCard
+                    key={message.id}
+                    message={message}
+                    x={clamp(stackX - stackDepth * 5, 0, Math.max(size.width - cardWidth, 0))}
+                    y={stackY + stackDepth * 6}
+                    rotation={(seededUnit(message.id, 7) - 0.5) * 6}
+                    zIndex={activeMessages.length - stackDepth + 2}
+                    width={cardWidth}
+                    bounds={{ width: size.width, height: 320 }}
+                    colorIndex={activeIndex + index}
+                    draggable={false}
+                    variant="preview"
+                    showDelete={index === 0 && canDeleteMessage(message)}
+                    onDelete={index === 0 ? () => onDeleteMessage(message.id) : undefined}
+                    animatePosition
+                  />
+                )
+              })}
+          </div>
+        )}
+      </div>
+
+      {messages.length > 0 ? (
+        <div className="flex items-center justify-between gap-3 rounded-[22px] border border-border/60 bg-card/75 px-4 py-3 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+          <button
+            type="button"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-border/70 px-4 text-sm text-foreground transition hover:border-foreground/20 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-35"
+            onClick={onPrevious}
+            disabled={!canGoPrevious}
+            aria-label="上一张便签"
+          >
+            <ChevronLeft size={16} />
+            上一张
+          </button>
+          <p className="text-xs text-muted-foreground">
+            {activeIndex + 1} / {messages.length}
+          </p>
+          <button
+            type="button"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-border/70 px-4 text-sm text-foreground transition hover:border-foreground/20 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-35"
+            onClick={onNext}
+            disabled={!canGoNext}
+            aria-label="下一张便签"
+          >
+            下一张
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -474,6 +610,8 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isScattered, setIsScattered] = useState(false)
+  const [displayMode, setDisplayMode] = useState<'sticky' | 'list'>('sticky')
+  const [mobileActiveIndex, setMobileActiveIndex] = useState(0)
   const [nextOffset, setNextOffset] = useState(initialMessages.length)
   const [hasMore, setHasMore] = useState(initialMessages.length >= board.initialPageLimit)
   const [isPending, startTransition] = useTransition()
@@ -482,6 +620,13 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   const canWrite = board.slug === 'guestbook' || isAdmin
   const { cardWidth, height, layouts } = useMemo(() => computeBoardLayout(messages, size.width), [messages, size.width])
   const hasMeasured = size.width > 0 && size.height > 0
+  const activeMobileIndex = clamp(mobileActiveIndex, 0, Math.max(messages.length - 1, 0))
+  const showStickyBoard = displayMode === 'sticky'
+  const showListBoard = displayMode === 'list'
+
+  function canDeleteMessage(message: NoteMessage) {
+    return getDeletePermission(board.slug, isAdmin, identity, message)
+  }
 
   useEffect(() => {
     if (!hasMeasured) return
@@ -527,6 +672,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       const message = (await response.json()) as NoteMessage
       setMessages((current) => [message, ...current])
       setNextOffset((current) => current + 1)
+      setMobileActiveIndex(0)
       setDraft('')
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : '便签保存失败，请稍后再试。')
@@ -548,6 +694,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
     }
 
     setMessages((current) => current.filter((message) => message.id !== id))
+    setMobileActiveIndex((current) => Math.max(Math.min(current, messages.length - 2), 0))
     setCustomPositions((current) => {
       const next = { ...current }
       delete next[id]
@@ -587,75 +734,124 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
                 : 'Memo 维持相同的便签交互，公开展示但仅 admin 可维护内容。'}
             </p>
           </div>
-          <p className="text-xs text-muted-foreground/80">当前已加载 {messages.length} 张便签</p>
-        </div>
-
-        <div className="md:hidden rounded-[24px] border border-dashed border-border/70 bg-background/55 px-4 py-6 text-sm leading-7 text-muted-foreground">
-          移动端暂不显示便签墙，请在更宽的屏幕上查看和拖拽这些便签。
-        </div>
-
-        <div className="hidden md:block">
-          <div
-            ref={containerRef}
-            className="note-board-canvas relative overflow-hidden rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-6"
-            style={{ minHeight: Math.max(height, 420) }}
-          >
-            {messages.length === 0 ? (
-              <div className="flex min-h-[280px] items-center justify-center rounded-[24px] border border-dashed border-border/70 bg-white/55 text-center text-sm text-muted-foreground">
-                {board.emptyLabel}
-              </div>
-            ) : !hasMeasured ? null : (
-              <div className="relative" style={{ minHeight: Math.max(height, 320) }}>
-                {messages.map((message, index) => {
-                  const layout = layouts[index]
-                  const fallbackX = Math.max((size.width - cardWidth) / 2, 0) + Math.min(index, 4) * 2
-                  const fallbackY = 22 + Math.min(index, 4) * 4
-                  const custom = customPositions[message.id]
-                  const position = custom ?? {
-                    x: isScattered ? layout?.x ?? fallbackX : fallbackX,
-                    y: isScattered ? layout?.y ?? fallbackY : fallbackY,
-                    rotation: isScattered ? layout?.rotation ?? 0 : (index % 2 === 0 ? -2 : 2),
-                  }
-
-                  return (
-                    <StickyNoteCard
-                      key={message.id}
-                      message={message}
-                      x={position.x}
-                      y={position.y}
-                      rotation={position.rotation}
-                      zIndex={cardZIndices[message.id] ?? layout?.zIndex ?? messages.length - index}
-                      width={cardWidth}
-                      bounds={{ width: size.width, height: Math.max(height, 420) }}
-                      colorIndex={layout?.colorIndex ?? index}
-                      draggable={isScattered}
-                      variant="board"
-                      showDelete={getDeletePermission(board.slug, isAdmin, identity, message)}
-                      onDelete={() => handleDelete(message.id)}
-                      onLift={() => bringCardToFront(message.id)}
-                      onCommit={(nextPosition) => {
-                        setCustomPositions((current) => ({ ...current, [message.id]: nextPosition }))
-                      }}
-                    />
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          {hasMore ? (
-            <div className="mt-6 flex justify-center">
+          <div className="flex items-center justify-between gap-3 sm:block">
+            <p className="text-xs text-muted-foreground/80">当前已加载 {messages.length} 张便签</p>
+            <div className="mt-3 inline-flex rounded-full border border-border/70 bg-background/70 p-1">
               <button
                 type="button"
-                className="rounded-full border border-border/70 bg-card px-5 py-2 text-sm text-foreground transition hover:border-foreground/20 hover:bg-accent"
-                onClick={handleLoadMore}
-                disabled={isPending}
+                className={`rounded-full px-3 py-1.5 text-xs transition ${showStickyBoard ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => setDisplayMode('sticky')}
               >
-                {isPending ? '正在展开更多便签…' : '加载更多便签'}
+                便签视图
+              </button>
+              <button
+                type="button"
+                className={`rounded-full px-3 py-1.5 text-xs transition ${showListBoard ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => setDisplayMode('list')}
+              >
+                列表视图
               </button>
             </div>
-          ) : null}
+          </div>
         </div>
+
+        {showStickyBoard ? (
+          <MobileStickyDeck
+            board={board}
+            messages={messages}
+            activeIndex={activeMobileIndex}
+            canGoPrevious={activeMobileIndex > 0}
+            canGoNext={activeMobileIndex < messages.length - 1}
+            onPrevious={() => setMobileActiveIndex((current) => Math.max(current - 1, 0))}
+            onNext={() => setMobileActiveIndex((current) => Math.min(current + 1, Math.max(messages.length - 1, 0)))}
+            canDeleteMessage={canDeleteMessage}
+            onDeleteMessage={handleDelete}
+          />
+        ) : null}
+
+        {showStickyBoard ? (
+          <div className="hidden md:block">
+            <div
+              ref={containerRef}
+              className="note-board-canvas relative overflow-hidden rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-6"
+              style={{ minHeight: Math.max(height, 420) }}
+            >
+              {messages.length === 0 ? (
+                <div className="flex min-h-[280px] items-center justify-center rounded-[24px] border border-dashed border-border/70 bg-white/55 text-center text-sm text-muted-foreground">
+                  {board.emptyLabel}
+                </div>
+              ) : !hasMeasured ? null : (
+                <div className="relative" style={{ minHeight: Math.max(height, 320) }}>
+                  {messages.map((message, index) => {
+                    const layout = layouts[index]
+                    const fallbackX = Math.max((size.width - cardWidth) / 2, 0) + Math.min(index, 4) * 2
+                    const fallbackY = 22 + Math.min(index, 4) * 4
+                    const custom = customPositions[message.id]
+                    const position = custom ?? {
+                      x: isScattered ? layout?.x ?? fallbackX : fallbackX,
+                      y: isScattered ? layout?.y ?? fallbackY : fallbackY,
+                      rotation: isScattered ? layout?.rotation ?? 0 : (index % 2 === 0 ? -2 : 2),
+                    }
+
+                    return (
+                      <StickyNoteCard
+                        key={message.id}
+                        message={message}
+                        x={position.x}
+                        y={position.y}
+                        rotation={position.rotation}
+                        zIndex={cardZIndices[message.id] ?? layout?.zIndex ?? messages.length - index}
+                        width={cardWidth}
+                        bounds={{ width: size.width, height: Math.max(height, 420) }}
+                        colorIndex={layout?.colorIndex ?? index}
+                        draggable={isScattered}
+                        variant="board"
+                        showDelete={canDeleteMessage(message)}
+                        onDelete={() => handleDelete(message.id)}
+                        onLift={() => bringCardToFront(message.id)}
+                        onCommit={(nextPosition) => {
+                          setCustomPositions((current) => ({ ...current, [message.id]: nextPosition }))
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {showListBoard ? (
+          <div className="space-y-4">
+            {messages.length === 0 ? (
+              <div className="rounded-[24px] border border-dashed border-border/70 bg-background/55 px-4 py-8 text-center text-sm text-muted-foreground">
+                {board.emptyLabel}
+              </div>
+            ) : (
+              messages.map((message) => (
+                <NoteListCard
+                  key={message.id}
+                  message={message}
+                  showDelete={canDeleteMessage(message)}
+                  onDelete={() => handleDelete(message.id)}
+                />
+              ))
+            )}
+          </div>
+        ) : null}
+
+        {hasMore ? (
+          <div className="mt-6 flex justify-center">
+            <button
+              type="button"
+              className="rounded-full border border-border/70 bg-card px-5 py-2 text-sm text-foreground transition hover:border-foreground/20 hover:bg-accent"
+              onClick={handleLoadMore}
+              disabled={isPending}
+            >
+              {isPending ? '正在展开更多便签…' : '加载更多便签'}
+            </button>
+          </div>
+        ) : null}
       </section>
 
       <section className="rounded-[28px] border border-border/60 bg-card/75 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)] backdrop-blur-sm">
