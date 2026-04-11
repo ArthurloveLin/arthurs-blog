@@ -7,10 +7,14 @@ export const revalidate = 60
 
 export default async function HomePage() {
   const currentYear = getStableYear()
+  let posts: Post[] = []
   let fetchError = false
 
-  // async-parallel: single fetch needs no Promise.all wrapper
-  const posts = await getPostsByYear(currentYear, 50, 0).catch(() => { fetchError = true; return [] as Post[] })
+  try {
+    posts = await getPostsByYear(currentYear, 50, 0)
+  } catch {
+    fetchError = true
+  }
 
 
   return (

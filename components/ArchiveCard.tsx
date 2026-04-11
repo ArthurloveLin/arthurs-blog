@@ -2,14 +2,14 @@
 
 import { memo } from 'react'
 import Link from 'next/link'
-import { useSiteData } from './SiteDataProvider'
+import { useSiteArchive } from './SiteDataProvider'
 
 interface ArchiveCardProps {
   activeYear?: number | null
 }
 
 const ArchiveCard = memo(function ArchiveCard({ activeYear }: ArchiveCardProps) {
-  const { sidebarData: { yearArchive: archive } } = useSiteData()
+  const archive = useSiteArchive()
   if (archive.length === 0) return null
 
   return (

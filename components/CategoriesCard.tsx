@@ -2,14 +2,14 @@
 
 import { memo } from 'react'
 import Link from 'next/link'
-import { useSiteData } from './SiteDataProvider'
+import { useSiteCategories } from './SiteDataProvider'
 
 interface CategoriesCardProps {
   activeCategory?: string | null
 }
 
 const CategoriesCard = memo(function CategoriesCard({ activeCategory }: CategoriesCardProps) {
-  const { sidebarData: { categories } } = useSiteData()
+  const categories = useSiteCategories()
   if (categories.length === 0) return null
 
   return (

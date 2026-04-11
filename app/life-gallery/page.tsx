@@ -11,19 +11,15 @@ export const metadata: Metadata = {
 }
 
 export default async function LifeGalleryPage() {
-  try {
-    const initialRound = await getLifeGalleryRound()
+  let initialRound = null
 
-    return (
-      <DirectionalTransition>
-        <main className="relative -mb-24 min-h-[calc(100dvh-4rem)] overflow-hidden bg-background md:mb-0">
-          <LifeGallerySlider initialRound={initialRound} />
-        </main>
-      </DirectionalTransition>
-    )
+  try {
+    initialRound = await getLifeGalleryRound()
   } catch (error) {
     console.error('Failed to render Life Gallery page:', error)
+  }
 
+  if (!initialRound) {
     return (
       <DirectionalTransition>
         <main className="min-h-[calc(100dvh-4rem)] bg-background px-4 py-10 sm:px-6 lg:px-8">
@@ -38,4 +34,12 @@ export default async function LifeGalleryPage() {
       </DirectionalTransition>
     )
   }
+
+  return (
+    <DirectionalTransition>
+      <main className="relative -mb-24 min-h-[calc(100dvh-4rem)] overflow-hidden bg-background md:mb-0">
+        <LifeGallerySlider initialRound={initialRound} />
+      </main>
+    </DirectionalTransition>
+  )
 }

@@ -2,10 +2,10 @@
 import Link from 'next/link'
 import { ViewTransition, useEffect, useRef, useState } from 'react'
 import type { Post } from '@/lib/blog'
-import { useSiteData } from '@/components/SiteDataProvider'
+import { useSiteConfig } from '@/components/SiteDataProvider'
 
-import PostCard from '@/components/PostCard'
-import AuthorProfileCard from '@/components/AuthorProfileCard'
+import PostCard, { EagerPostCard } from '@/components/PostCard'
+import AuthorProfileCard, { AuthorProfileCompactCard } from '@/components/AuthorProfileCard'
 import CategoriesCard from '@/components/CategoriesCard'
 import TagsCloudCard from '@/components/TagsCloudCard'
 import RecentPostsCard from '@/components/RecentPostsCard'
@@ -46,6 +46,10 @@ function getInitialReturningPostSlug() {
   return storedPostSlug
 }
 
+function getPostCardComponent(isReturningPost: boolean) {
+  return isReturningPost ? EagerPostCard : PostCard
+}
+
 export default function BlogPage({
   posts,
   currentYear,
@@ -54,7 +58,7 @@ export default function BlogPage({
   activeTags = [],
   activeYear = null,
 }: BlogPageProps) {
-  const { config: siteConfig } = useSiteData()
+  const siteConfig = useSiteConfig()
   const leftSidebarRef = useRef<HTMLDivElement>(null)
   const rightSidebarRef = useRef<HTMLDivElement>(null)
   const [returningPostSlug, setReturningPostSlug] = useState<string | null>(getInitialReturningPostSlug)
@@ -135,7 +139,7 @@ export default function BlogPage({
               <ScrollHideWrapper threshold={300} vanish={false}>
                 {(isTriggered) => (
                   <ViewTransition name="sidebar-author-card">
-                    <AuthorProfileCard id="sidebar" compact={isTriggered} />
+                    {isTriggered ? <AuthorProfileCompactCard id="sidebar" /> : <AuthorProfileCard id="sidebar" />}
                   </ViewTransition>
                 )}
               </ScrollHideWrapper>
@@ -198,11 +202,15 @@ export default function BlogPage({
             {/* Post cards */}
             {posts.length > 0 && (
               <div className="space-y-6">
-                {posts.map((post, index) => (
-                  <ViewTransition key={post.id}>
-                    <PostCard post={post} index={index} forceRender={returningPostSlug === post.slug} />
-                  </ViewTransition>
-                ))}
+                {posts.map((post, index) => {
+                  const CardComponent = getPostCardComponent(returningPostSlug === post.slug)
+
+                  return (
+                    <ViewTransition key={post.id}>
+                      <CardComponent post={post} index={index} />
+                    </ViewTransition>
+                  )
+                })}
               </div>
             )}
           </section>

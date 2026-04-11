@@ -8,7 +8,7 @@ import CommentBox from '@/components/CommentBox'
 import ArticleBackButton from '@/components/ArticleBackButton'
 import CurrentArticleReturnTarget from '@/components/CurrentArticleReturnTarget'
 import DirectionalTransition from '@/components/DirectionalTransition'
-import AuthorProfileCard from '@/components/AuthorProfileCard'
+import { AuthorProfileCompactCard } from '@/components/AuthorProfileCard'
 import TableOfContents from '@/components/TableOfContents'
 import CategoriesCard from '@/components/CategoriesCard'
 import RecentPostsCard from '@/components/RecentPostsCard'
@@ -141,7 +141,7 @@ export default async function BlogPostPage({
             <div className="sticky top-24 space-y-4">
               <ScrollHideWrapper threshold={300}>
                 <ViewTransition name="sidebar-author-card">
-                  <AuthorProfileCard id="sidebar" compact />
+                  <AuthorProfileCompactCard id="sidebar" />
                 </ViewTransition>
               </ScrollHideWrapper>
               <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-muted" />}>
