@@ -15,6 +15,8 @@ import { useScrollTriggered } from '@/components/ScrollHideWrapper'
 import BlogHero from '@/components/BlogHero'
 import BlogFeedSection from '@/components/BlogFeedSection'
 import { BLOG_RETURN_PATHNAME_KEY, BLOG_RETURN_POST_SLUG_KEY } from '@/lib/blog-return'
+import { getNoteBoardConfig, type NoteBoardViewConfig } from '@/lib/note-board-config'
+import type { NoteMessage } from '@/lib/note-boards'
 
 interface BlogPageProps {
   posts: Post[]
@@ -23,6 +25,8 @@ interface BlogPageProps {
   activeCategory?: string | null
   activeTags?: string[]
   activeYear?: number | null
+  initialGuestbookMessages?: NoteMessage[]
+  guestbookBoard?: NoteBoardViewConfig
 }
 
 function getInitialReturningPostSlug() {
@@ -76,6 +80,8 @@ export default function BlogPage({
   activeCategory = null,
   activeTags = [],
   activeYear = null,
+  initialGuestbookMessages = [],
+  guestbookBoard = getNoteBoardConfig('guestbook'),
 }: BlogPageProps) {
   const leftSidebarRef = useRef<HTMLDivElement>(null)
   const rightSidebarRef = useRef<HTMLDivElement>(null)
@@ -98,7 +104,7 @@ export default function BlogPage({
     <ScrollRestorer />
     <main className="min-h-screen bg-background">
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <BlogHero />
+      <BlogHero guestbookBoard={guestbookBoard} initialGuestbookMessages={initialGuestbookMessages} />
 
       {/* ── 3-Column Body ────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
