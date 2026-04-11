@@ -1,5 +1,6 @@
 'use client'
 
+import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useAuth } from '@/components/AuthProvider'
@@ -8,6 +9,9 @@ import type { NoteBoardSlug, NoteBoardViewConfig } from '@/lib/note-board-config
 import type { NoteMessage } from '@/lib/note-boards'
 
 const STICKY_COLORS = ['#f8ef9f', '#ffd0a8', '#f8bfd3', '#c9eff3', '#d9ccff']
+const NOTE_CARD_WIDTH = 184
+const PREVIEW_CARD_SIZE = 184
+const PREVIEW_STACK_LIMIT = 6
 const PREVIEW_REVEAL_THRESHOLD = 112
 
 interface Size {
@@ -43,12 +47,24 @@ interface StickyNoteCardProps {
   draggable: boolean
   variant: 'preview' | 'board'
   showDelete?: boolean
+  ctaHref?: string
+  ctaLabel?: string
+  animatePosition?: boolean
   onDelete?: () => void
+  onLift?: () => void
   onCommit?: (nextPosition: NotePosition, metrics: { distance: number }) => void
 }
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
+}
+
+function sanitizeNotePosition(position: NotePosition): NotePosition {
+  return {
+    x: Number.isFinite(position.x) ? position.x : 0,
+    y: Number.isFinite(position.y) ? position.y : 0,
+    rotation: Number.isFinite(position.rotation) ? position.rotation : 0,
+  }
 }
 
 function seededUnit(seed: string, salt: number) {
@@ -85,8 +101,8 @@ function useElementSize<T extends HTMLElement>() {
 }
 
 function getCardWidth(width: number) {
-  if (width <= 0) return 228
-  return clamp(width - 32, 196, 228)
+  if (width <= 0) return NOTE_CARD_WIDTH
+  return clamp(width - 32, NOTE_CARD_WIDTH, NOTE_CARD_WIDTH)
 }
 
 function computeBoardLayout(messages: NoteMessage[], width: number) {
@@ -103,13 +119,13 @@ function computeBoardLayout(messages: NoteMessage[], width: number) {
     const jitterY = (seededUnit(message.id, 2) - 0.5) * 24
     const rotation = (seededUnit(message.id, 3) - 0.5) * 12
     const x = clamp(column * (columnWidth + gapX) + jitterX, 0, Math.max(width - cardWidth, 0))
-    const y = row * (214 + gapY) + jitterY
+    const y = row * (204 + gapY) + jitterY
     return { x, y, rotation, zIndex: messages.length - index, colorIndex: index }
   })
 
   const height = layouts.length === 0
     ? 320
-    : Math.max(...layouts.map((layout) => layout.y)) + 260
+    : Math.max(...layouts.map((layout) => layout.y)) + 232
 
   return { cardWidth, height, layouts }
 }
@@ -117,6 +133,10 @@ function computeBoardLayout(messages: NoteMessage[], width: number) {
 function getDeletePermission(board: NoteBoardSlug, isAdmin: boolean, identity: string, message: NoteMessage) {
   if (board === 'memo') return isAdmin
   return isAdmin || (!!identity && identity === message.author)
+}
+
+function getBoardHref(board: NoteBoardSlug) {
+  return board === 'memo' ? '/memo' : '/guestbook'
 }
 
 function StickyNoteCard({
@@ -131,22 +151,65 @@ function StickyNoteCard({
   draggable,
   variant,
   showDelete = false,
+  ctaHref,
+  ctaLabel,
+  animatePosition = true,
   onDelete,
+  onLift,
   onCommit,
 }: StickyNoteCardProps) {
   const dragOriginRef = useRef<NotePosition | null>(null)
   const dragPointerRef = useRef<{ startClientX: number; startClientY: number } | null>(null)
+  const velocityRef = useRef({ lastClientX: 0, lastClientY: 0, lastTime: 0, velocityX: 0, velocityY: 0 })
+  const frameRef = useRef<number | null>(null)
+  const queuedDragPositionRef = useRef<NotePosition | null>(null)
+  const latestDragPositionRef = useRef<NotePosition | null>(null)
   const [dragPosition, setDragPosition] = useState<NotePosition | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const isPreview = variant === 'preview'
+
+  useEffect(() => {
+    return () => {
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current)
+      }
+    }
+  }, [])
+
+  function scheduleDragPosition(nextPosition: NotePosition) {
+    latestDragPositionRef.current = nextPosition
+    queuedDragPositionRef.current = nextPosition
+
+    if (frameRef.current !== null) return
+
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = null
+
+      if (!queuedDragPositionRef.current) return
+
+      setDragPosition(queuedDragPositionRef.current)
+      queuedDragPositionRef.current = null
+    })
+  }
 
   const activePosition = isDragging && dragPosition ? dragPosition : { x, y, rotation }
 
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
     if (!draggable) return
 
+    onLift?.()
     dragOriginRef.current = { x, y, rotation }
     dragPointerRef.current = { startClientX: event.clientX, startClientY: event.clientY }
+    velocityRef.current = {
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      lastTime: event.timeStamp,
+      velocityX: 0,
+      velocityY: 0,
+    }
     setIsDragging(true)
+    latestDragPositionRef.current = { x, y, rotation }
+    queuedDragPositionRef.current = null
     setDragPosition({ x, y, rotation })
     event.currentTarget.setPointerCapture(event.pointerId)
   }
@@ -156,24 +219,51 @@ function StickyNoteCard({
 
     const deltaX = event.clientX - dragPointerRef.current.startClientX
     const deltaY = event.clientY - dragPointerRef.current.startClientY
+    const elapsed = Math.max(event.timeStamp - velocityRef.current.lastTime, 16)
+    const instantVelocityX = (event.clientX - velocityRef.current.lastClientX) / elapsed
+    const instantVelocityY = (event.clientY - velocityRef.current.lastClientY) / elapsed
+    const velocityX = velocityRef.current.velocityX * 0.32 + instantVelocityX * 0.68
+    const velocityY = velocityRef.current.velocityY * 0.32 + instantVelocityY * 0.68
+    const wobble = clamp(velocityX * -140, -9, 9)
     const nextX = clamp(dragOriginRef.current.x + deltaX, 0, Math.max(bounds.width - width, 0))
-    const nextY = clamp(dragOriginRef.current.y + deltaY, 0, Math.max(bounds.height - 180, 0))
-    const nextRotation = dragOriginRef.current.rotation + clamp(deltaX * 0.03, -8, 8)
+    const nextY = clamp(dragOriginRef.current.y + deltaY, 0, Math.max(bounds.height - (isPreview ? PREVIEW_CARD_SIZE : 180), 0))
+    const nextRotation = dragOriginRef.current.rotation + clamp(deltaX * 0.016, -7, 7) + wobble * 0.42
 
-    setDragPosition({ x: nextX, y: nextY, rotation: nextRotation })
+    velocityRef.current = {
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      lastTime: event.timeStamp,
+      velocityX,
+      velocityY,
+    }
+
+    scheduleDragPosition({ x: nextX, y: nextY, rotation: nextRotation })
   }
 
   function commitDrag() {
     if (!dragOriginRef.current) return
 
     const origin = dragOriginRef.current
-    const finalPosition = dragPosition ?? { x, y, rotation }
+    const finalPosition = latestDragPositionRef.current ?? dragPosition ?? { x, y, rotation }
+    const settledRotation = clamp(finalPosition.rotation + clamp(velocityRef.current.velocityX * -120, -7, 7) * 0.4, -18, 18)
+    const nextPosition = sanitizeNotePosition({
+      x: finalPosition.x,
+      y: finalPosition.y,
+      rotation: settledRotation,
+    })
     const distance = Math.hypot(finalPosition.x - origin.x, finalPosition.y - origin.y)
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current)
+      frameRef.current = null
+    }
     dragOriginRef.current = null
     dragPointerRef.current = null
+    velocityRef.current = { lastClientX: 0, lastClientY: 0, lastTime: 0, velocityX: 0, velocityY: 0 }
+    latestDragPositionRef.current = null
+    queuedDragPositionRef.current = null
     setIsDragging(false)
     setDragPosition(null)
-    onCommit?.(finalPosition, { distance })
+    onCommit?.(nextPosition, { distance })
   }
 
   function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
@@ -189,12 +279,19 @@ function StickyNoteCard({
 
   return (
     <article
-      className="note-board-sticky absolute touch-none select-none"
+      className={`note-board-sticky absolute touch-none select-none note-board-sticky--paper ${isPreview ? 'note-board-sticky--preview' : 'note-board-sticky--board'}`}
       style={{
         width,
         zIndex: isDragging ? 999 : zIndex,
-        transform: `translate3d(${activePosition.x}px, ${activePosition.y}px, 0) rotate(${activePosition.rotation}deg) scale(${isDragging ? 1.03 : 1})`,
-        transition: isDragging ? 'box-shadow 120ms ease, filter 120ms ease' : 'transform 460ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 160ms ease, filter 160ms ease',
+        transform: isPreview
+          ? `translate3d(${activePosition.x}px, ${activePosition.y}px, 0) rotate(${activePosition.rotation}deg)`
+          : `translate3d(${activePosition.x}px, ${activePosition.y}px, 0) rotate(${activePosition.rotation}deg)`,
+        transition: isDragging
+          ? 'transform 140ms cubic-bezier(0.22, 1, 0.36, 1), filter 120ms ease'
+          : animatePosition
+            ? 'transform 520ms cubic-bezier(0.22, 1, 0.36, 1), filter 180ms ease'
+            : 'none',
+        cursor: draggable ? (isDragging ? 'grabbing' : 'grab') : 'default',
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -202,34 +299,54 @@ function StickyNoteCard({
       onPointerCancel={handlePointerCancel}
       data-dragging={isDragging ? 'true' : 'false'}
     >
-      <div className="note-board-sticky__pin" />
       <div
-        className="note-board-sticky__paper"
-        style={{ backgroundColor: STICKY_COLORS[colorIndex % STICKY_COLORS.length] }}
+        className={`note-board-sticky__paper ${isPreview ? 'note-board-sticky__paper--preview' : 'note-board-sticky__paper--board'}`}
+        style={{
+          backgroundColor: STICKY_COLORS[colorIndex % STICKY_COLORS.length],
+          transform: `rotateX(${isDragging ? 24 : 5}deg) scale(${isDragging ? 1.08 : 1})`,
+          boxShadow: isDragging
+            ? '-1px 14px 40px -4px rgba(0, 0, 0, 0.16), inset 0 18px 24px -12px rgba(0, 0, 0, 0.28)'
+            : '-1px 10px 5px -4px rgba(0, 0, 0, 0.12), inset 0 24px 30px -12px rgba(0, 0, 0, 0.3)',
+        }}
       >
-        <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="note-board-sticky__meta">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-700/70">{message.author}</p>
+            <p className="note-board-sticky__author">{message.author}</p>
             {variant === 'board' ? (
-              <p className="mt-1 text-[11px] text-slate-600/70">{formatCommentTimestamp(message.created_at)}</p>
+              <p className="note-board-sticky__time note-board-sticky__time--board">{formatCommentTimestamp(message.created_at)}</p>
             ) : null}
           </div>
-          {showDelete && onDelete ? (
-            <button
-              type="button"
-              className="rounded-full px-2 py-1 text-sm leading-none text-slate-600/60 transition hover:bg-black/6 hover:text-slate-900"
-              onClick={(event) => {
-                event.stopPropagation()
-                onDelete()
-              }}
-            >
-              ×
-            </button>
-          ) : null}
+          <div className="note-board-sticky__actions">
+            {ctaHref && ctaLabel ? (
+              <Link
+                href={ctaHref}
+                aria-label={ctaLabel}
+                className="note-board-sticky__icon-link"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <ArrowRight size={18} strokeWidth={1.85} />
+                <span className="note-board-sticky__icon-tooltip">{ctaLabel}</span>
+              </Link>
+            ) : null}
+            {showDelete && onDelete ? (
+              <button
+                type="button"
+                className="rounded-full px-2 py-1 text-sm leading-none text-slate-700/70 transition hover:bg-black/10 hover:text-slate-900"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onDelete()
+                }}
+              >
+                ×
+              </button>
+            ) : null}
+          </div>
         </div>
-        <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-900/90">{message.content}</p>
+        <p className={`note-board-sticky__text ${isPreview ? 'note-board-sticky__text--preview' : 'note-board-sticky__text--board'}`}>{message.content}</p>
         {variant === 'preview' ? (
-          <p className="mt-4 text-[11px] text-slate-600/75">{formatCommentTimestamp(message.created_at)}</p>
+          <p className="note-board-sticky__time">{formatCommentTimestamp(message.created_at)}</p>
         ) : null}
       </div>
     </article>
@@ -238,18 +355,44 @@ function StickyNoteCard({
 
 export function StickyStackPreview({ board, messages }: StickyStackPreviewProps) {
   const [containerRef, size] = useElementSize<HTMLDivElement>()
+  const visibleMessages = useMemo(
+    () => messages.slice(0, Math.min(board.previewLimit, PREVIEW_STACK_LIMIT)),
+    [messages, board.previewLimit],
+  )
   const [revealedCount, setRevealedCount] = useState(0)
   const [placedNotes, setPlacedNotes] = useState<Record<string, NotePosition>>({})
-  const visibleMessages = useMemo(() => messages.slice(0, board.previewLimit), [messages, board.previewLimit])
-  const cardWidth = getCardWidth(size.width > 0 ? Math.min(size.width, 260) : 260)
-  const stackX = Math.max(size.width - cardWidth - 26, 0)
-  const stackY = 26
+  const [hasSettledLayout, setHasSettledLayout] = useState(false)
+  const cardWidth = PREVIEW_CARD_SIZE
+  const stackX = Math.max(size.width - cardWidth - 28, 0)
+  const stackY = Math.max(size.height - PREVIEW_CARD_SIZE - 36, 10)
+  const boardHref = getBoardHref(board.slug)
+  const hasMeasured = size.width > 0 && size.height > 0
+
+  useEffect(() => {
+    const maxRevealedCount = Math.max(visibleMessages.length - 1, 0)
+    setRevealedCount((current) => Math.min(current, maxRevealedCount))
+    setPlacedNotes((current) => {
+      const allowedIds = new Set(visibleMessages.map((message) => message.id))
+      return Object.fromEntries(
+        Object.entries(current)
+          .filter(([id]) => allowedIds.has(id))
+          .map(([id, position]) => [id, sanitizeNotePosition(position)]),
+      )
+    })
+  }, [visibleMessages])
+
+  useEffect(() => {
+    if (!hasMeasured || hasSettledLayout) return
+    setHasSettledLayout(true)
+  }, [hasMeasured, hasSettledLayout])
 
   function handleCommit(index: number, message: NoteMessage, nextPosition: NotePosition, distance: number) {
+    const maxRevealedCount = Math.max(visibleMessages.length - 1, 0)
+
     if (index === revealedCount) {
       if (distance >= PREVIEW_REVEAL_THRESHOLD) {
         setPlacedNotes((current) => ({ ...current, [message.id]: nextPosition }))
-        setRevealedCount((current) => Math.min(current + 1, visibleMessages.length))
+        setRevealedCount((current) => Math.min(current + 1, maxRevealedCount))
         return
       }
 
@@ -265,47 +408,57 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
   }
 
   return (
-    <div className="note-board-preview-shell">
-      <div ref={containerRef} className="note-board-preview">
-        {visibleMessages.length === 0 ? (
-          <div className="note-board-preview__empty">{board.emptyLabel}</div>
-        ) : (
-          <>
-            {visibleMessages.map((message, index) => {
-              const placed = placedNotes[message.id]
-              const stackIndex = Math.max(index - revealedCount, 0)
-              const position = placed ?? {
-                x: stackX - Math.min(stackIndex, 4) * 3,
-                y: stackY + Math.min(stackIndex, 4) * 5,
-                rotation: (seededUnit(message.id, 5) - 0.5) * 6,
-              }
+    <div ref={containerRef} className="note-board-preview">
+      {visibleMessages.length === 0 ? (
+        <div className="note-board-preview__empty">
+          <div className="note-board-preview__empty-content">
+            <p>{board.emptyLabel}</p>
+            <Link href={boardHref} className="note-board-preview__empty-link">
+              {board.ctaLabel}
+            </Link>
+          </div>
+        </div>
+      ) : !hasMeasured ? null : (
+        <>
+          {visibleMessages.map((message, index) => {
+            const depth = visibleMessages.length - index - 1
+            const placed = placedNotes[message.id]
+            const stackDepth = Math.max(index - revealedCount, 0)
+            const position = placed
+              ? {
+                  x: clamp(placed.x, 0, Math.max(size.width - cardWidth, 0)),
+                  y: clamp(placed.y, 0, Math.max(size.height - PREVIEW_CARD_SIZE, 0)),
+                  rotation: placed.rotation,
+                }
+              : {
+                  x: clamp(stackX - Math.min(stackDepth, 4) * 5, 0, Math.max(size.width - cardWidth, 0)),
+                  y: clamp(stackY + Math.min(stackDepth, 4) * 6, 0, Math.max(size.height - PREVIEW_CARD_SIZE, 0)),
+                  rotation: (seededUnit(message.id, 5) - 0.5) * 6,
+                }
+            const isDraggable = index <= revealedCount
 
-              return (
-                <StickyNoteCard
-                  key={message.id}
-                  message={message}
-                  x={position.x}
-                  y={position.y}
-                  rotation={position.rotation}
-                  zIndex={visibleMessages.length - index}
-                  width={cardWidth}
-                  bounds={{ width: size.width, height: size.height }}
-                  colorIndex={index}
-                  draggable={index <= revealedCount}
-                  variant="preview"
-                  onCommit={(nextPosition, metrics) => handleCommit(index, message, nextPosition, metrics.distance)}
-                />
-              )
-            })}
-            <div className="note-board-preview__hint">
-              <p>{board.heroHint}</p>
-              <Link href={`/${board.slug}`} transitionTypes={['nav-forward']} className="note-board-preview__cta">
-                {board.ctaLabel}
-              </Link>
-            </div>
-          </>
-        )}
-      </div>
+            return (
+              <StickyNoteCard
+                key={message.id}
+                message={message}
+                x={position.x}
+                y={position.y}
+                rotation={position.rotation}
+                zIndex={placed ? visibleMessages.length + index + 4 : visibleMessages.length - index + 2}
+                width={cardWidth}
+                bounds={{ width: size.width, height: size.height }}
+                colorIndex={index}
+                draggable={isDraggable}
+                variant="preview"
+                ctaHref={boardHref}
+                ctaLabel={board.ctaLabel}
+                animatePosition={hasSettledLayout}
+                onCommit={(nextPosition, metrics) => handleCommit(index, message, nextPosition, metrics.distance)}
+              />
+            )
+          })}
+        </>
+      )}
     </div>
   )
 }
@@ -315,6 +468,9 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   const [containerRef, size] = useElementSize<HTMLDivElement>()
   const [messages, setMessages] = useState(initialMessages)
   const [customPositions, setCustomPositions] = useState<Record<string, NotePosition>>({})
+  const [cardZIndices, setCardZIndices] = useState<Record<string, number>>(() =>
+    Object.fromEntries(initialMessages.map((message, index) => [message.id, initialMessages.length - index + 1])),
+  )
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isScattered, setIsScattered] = useState(false)
@@ -322,13 +478,33 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   const [hasMore, setHasMore] = useState(initialMessages.length >= board.initialPageLimit)
   const [isPending, startTransition] = useTransition()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const zIndexCounterRef = useRef(initialMessages.length + 2)
   const canWrite = board.slug === 'guestbook' || isAdmin
   const { cardWidth, height, layouts } = useMemo(() => computeBoardLayout(messages, size.width), [messages, size.width])
+  const hasMeasured = size.width > 0 && size.height > 0
 
   useEffect(() => {
+    if (!hasMeasured) return
+
     const frame = window.requestAnimationFrame(() => setIsScattered(true))
     return () => window.cancelAnimationFrame(frame)
-  }, [])
+  }, [hasMeasured])
+
+  useEffect(() => {
+    setCardZIndices((current) => {
+      const next: Record<string, number> = {}
+
+      for (const message of messages) {
+        next[message.id] = current[message.id] ?? zIndexCounterRef.current++
+      }
+
+      return next
+    })
+  }, [messages])
+
+  function bringCardToFront(id: string) {
+    setCardZIndices((current) => ({ ...current, [id]: zIndexCounterRef.current++ }))
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -377,6 +553,11 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       delete next[id]
       return next
     })
+    setCardZIndices((current) => {
+      const next = { ...current }
+      delete next[id]
+      return next
+    })
   }
 
   async function handleLoadMore() {
@@ -395,119 +576,126 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   }
 
   return (
-    <div className="space-y-8">
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="rounded-[28px] border border-border/60 bg-card/70 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.06)] backdrop-blur-sm">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{board.title}</p>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">{board.intro}</p>
-        </div>
-        <div className="rounded-[28px] border border-border/60 bg-card/70 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.06)] backdrop-blur-sm">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Board Status</p>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            {board.slug === 'guestbook'
-              ? '公开留言板，任何访客都能留下便签。'
-              : 'Memo 对外展示，但只有 admin 可以新增或删除便签。'}
-          </p>
-          <p className="mt-3 text-sm text-muted-foreground/80">当前已加载 {messages.length} 张便签。</p>
-        </div>
-      </section>
-
-      <section className="space-y-6">
-        <div
-          ref={containerRef}
-          className="note-board-canvas relative overflow-hidden rounded-[32px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]"
-          style={{ minHeight: Math.max(height, 420) }}
-        >
-          {messages.length === 0 ? (
-            <div className="flex min-h-[280px] items-center justify-center rounded-[24px] border border-dashed border-border/70 bg-white/55 text-center text-sm text-muted-foreground">
-              {board.emptyLabel}
-            </div>
-          ) : (
-            <div className="relative" style={{ minHeight: Math.max(height, 320) }}>
-              {messages.map((message, index) => {
-                const layout = layouts[index]
-                const fallbackX = Math.max((size.width - cardWidth) / 2, 0) + Math.min(index, 4) * 2
-                const fallbackY = 22 + Math.min(index, 4) * 4
-                const custom = customPositions[message.id]
-                const position = custom ?? {
-                  x: isScattered ? layout?.x ?? fallbackX : fallbackX,
-                  y: isScattered ? layout?.y ?? fallbackY : fallbackY,
-                  rotation: isScattered ? layout?.rotation ?? 0 : (index % 2 === 0 ? -2 : 2),
-                }
-
-                return (
-                  <StickyNoteCard
-                    key={message.id}
-                    message={message}
-                    x={position.x}
-                    y={position.y}
-                    rotation={position.rotation}
-                    zIndex={layout?.zIndex ?? messages.length - index}
-                    width={cardWidth}
-                    bounds={{ width: size.width, height: Math.max(height, 420) }}
-                    colorIndex={layout?.colorIndex ?? index}
-                    draggable={isScattered}
-                    variant="board"
-                    showDelete={getDeletePermission(board.slug, isAdmin, identity, message)}
-                    onDelete={() => handleDelete(message.id)}
-                    onCommit={(nextPosition) => {
-                      setCustomPositions((current) => ({ ...current, [message.id]: nextPosition }))
-                    }}
-                  />
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {hasMore ? (
-          <div className="flex justify-center">
-            <button
-              type="button"
-              className="rounded-full border border-border/70 bg-card px-5 py-2 text-sm text-foreground transition hover:border-foreground/20 hover:bg-accent"
-              onClick={handleLoadMore}
-              disabled={isPending}
-            >
-              {isPending ? '正在展开更多便签…' : '加载更多便签'}
-            </button>
+    <div className="space-y-6">
+      <section className="rounded-[32px] border border-border/60 bg-card/75 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:p-6">
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{board.title}</p>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+              {board.slug === 'guestbook'
+                ? '拖动便签整理视线顺序，拿起和放下会带出更明显的纸张反馈。'
+                : 'Memo 维持相同的便签交互，公开展示但仅 admin 可维护内容。'}
+            </p>
           </div>
-        ) : null}
+          <p className="text-xs text-muted-foreground/80">当前已加载 {messages.length} 张便签</p>
+        </div>
+
+        <div className="md:hidden rounded-[24px] border border-dashed border-border/70 bg-background/55 px-4 py-6 text-sm leading-7 text-muted-foreground">
+          移动端暂不显示便签墙，请在更宽的屏幕上查看和拖拽这些便签。
+        </div>
+
+        <div className="hidden md:block">
+          <div
+            ref={containerRef}
+            className="note-board-canvas relative overflow-hidden rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-6"
+            style={{ minHeight: Math.max(height, 420) }}
+          >
+            {messages.length === 0 ? (
+              <div className="flex min-h-[280px] items-center justify-center rounded-[24px] border border-dashed border-border/70 bg-white/55 text-center text-sm text-muted-foreground">
+                {board.emptyLabel}
+              </div>
+            ) : !hasMeasured ? null : (
+              <div className="relative" style={{ minHeight: Math.max(height, 320) }}>
+                {messages.map((message, index) => {
+                  const layout = layouts[index]
+                  const fallbackX = Math.max((size.width - cardWidth) / 2, 0) + Math.min(index, 4) * 2
+                  const fallbackY = 22 + Math.min(index, 4) * 4
+                  const custom = customPositions[message.id]
+                  const position = custom ?? {
+                    x: isScattered ? layout?.x ?? fallbackX : fallbackX,
+                    y: isScattered ? layout?.y ?? fallbackY : fallbackY,
+                    rotation: isScattered ? layout?.rotation ?? 0 : (index % 2 === 0 ? -2 : 2),
+                  }
+
+                  return (
+                    <StickyNoteCard
+                      key={message.id}
+                      message={message}
+                      x={position.x}
+                      y={position.y}
+                      rotation={position.rotation}
+                      zIndex={cardZIndices[message.id] ?? layout?.zIndex ?? messages.length - index}
+                      width={cardWidth}
+                      bounds={{ width: size.width, height: Math.max(height, 420) }}
+                      colorIndex={layout?.colorIndex ?? index}
+                      draggable={isScattered}
+                      variant="board"
+                      showDelete={getDeletePermission(board.slug, isAdmin, identity, message)}
+                      onDelete={() => handleDelete(message.id)}
+                      onLift={() => bringCardToFront(message.id)}
+                      onCommit={(nextPosition) => {
+                        setCustomPositions((current) => ({ ...current, [message.id]: nextPosition }))
+                      }}
+                    />
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {hasMore ? (
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                className="rounded-full border border-border/70 bg-card px-5 py-2 text-sm text-foreground transition hover:border-foreground/20 hover:bg-accent"
+                onClick={handleLoadMore}
+                disabled={isPending}
+              >
+                {isPending ? '正在展开更多便签…' : '加载更多便签'}
+              </button>
+            </div>
+          ) : null}
+        </div>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="rounded-[28px] border border-border/60 bg-card/75 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)] backdrop-blur-sm">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Write</p>
-          {canWrite ? (
-            <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
-              <textarea
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                maxLength={180}
-                placeholder={board.slug === 'guestbook' ? '写下想贴在主页上的留言。' : '写一条新的 Memo 便签。'}
-                className="min-h-[140px] w-full rounded-[24px] border border-border/70 bg-background/70 px-4 py-4 text-sm leading-7 text-foreground outline-none transition placeholder:text-muted-foreground/45 focus:border-foreground/15 focus:ring-2 focus:ring-primary/12"
-              />
-              <div className="flex items-center justify-between gap-4">
-                <p className="text-xs text-muted-foreground">当前身份：{loading ? '加载中…' : identity}</p>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !draft.trim()}
-                  className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-35"
-                >
-                  {isSubmitting ? '保存中…' : '贴上便签'}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <p className="mt-4 text-sm leading-7 text-muted-foreground">这个页面当前为只读模式，只有 admin 可以维护 Memo 内容。</p>
-          )}
-          {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
+      <section className="rounded-[28px] border border-border/60 bg-card/75 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)] backdrop-blur-sm">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              {board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'}
+            </p>
+            <p className="mt-2 text-sm leading-7 text-muted-foreground">
+              {board.slug === 'guestbook'
+                ? '任何访客都可以写一张新的便签。'
+                : '页面对外公开，但只有 admin 可以新增或删除 Memo。'}
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground">当前身份：{loading ? '加载中…' : identity}</p>
         </div>
-        <div className="rounded-[28px] border border-border/60 bg-card/75 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)] backdrop-blur-sm">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Interaction</p>
-          <p className="mt-4 text-sm leading-7 text-muted-foreground">
-            进入页面后，便签会从一叠纸张散开到当前时间顺序的位置。之后每张便签都可以继续拖拽到你想看的位置。
-          </p>
-        </div>
+
+        {canWrite ? (
+          <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
+            <textarea
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              maxLength={180}
+              placeholder={board.slug === 'guestbook' ? '写下想贴在主页上的留言。' : '写一条新的 Memo 便签。'}
+              className="min-h-[140px] w-full rounded-[24px] border border-border/70 bg-background/70 px-4 py-4 text-sm leading-7 text-foreground outline-none transition placeholder:text-muted-foreground/45 focus:border-foreground/15 focus:ring-2 focus:ring-primary/12"
+            />
+            <div className="flex items-center justify-end gap-4">
+              <button
+                type="submit"
+                disabled={isSubmitting || !draft.trim()}
+                className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                {isSubmitting ? '保存中…' : '贴上便签'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <p className="mt-4 text-sm leading-7 text-muted-foreground">这个页面当前为只读模式，只有 admin 可以维护 Memo 内容。</p>
+        )}
+        {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
       </section>
     </div>
   )
