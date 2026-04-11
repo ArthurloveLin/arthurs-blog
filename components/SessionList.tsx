@@ -23,7 +23,7 @@ interface SessionListProps {
 }
 
 export default function SessionList({ sessions }: SessionListProps) {
-  const { permissions: { isAdmin } } = useAuth()
+  const { isAdmin } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const showArchived = searchParams.get('archived') === '1'
