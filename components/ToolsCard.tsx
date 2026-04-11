@@ -43,18 +43,87 @@ const tools = [
     icon: <Newspaper className="w-4 h-4" strokeWidth={1.75} />,
     external: false,
   },
-  {
-    href: '#analytics-dashboard',
-    label: 'Analytics',
-    description: '站点访问流量实时监控',
-    icon: <BarChart2 className="w-4 h-4" strokeWidth={1.75} />,
-    external: false,
-    analytics: true,
-  },
 ]
 
+function ToolRow({
+  icon,
+  label,
+  description,
+  external,
+}: {
+  icon: React.ReactNode
+  label: string
+  description: string
+  external?: boolean
+}) {
+  return (
+    <div className="flex items-center gap-3 py-2 px-1 rounded-lg hover:bg-muted transition-colors duration-150 group cursor-pointer">
+      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-secondary/80 flex items-center justify-center text-muted-foreground group-hover:text-primary transition-all duration-300 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-15 blur-md transition-opacity duration-500" />
+        <div className="relative z-10">{icon}</div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors leading-none mb-0.5">
+          {label}
+        </p>
+        <p className="text-xs text-foreground/60 leading-none">
+          {description}
+        </p>
+      </div>
+      {external && (
+        <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0" strokeWidth={2} />
+      )}
+    </div>
+  )
+}
+
+function AnalyticsToolSection({
+  isOpen,
+  onToggle,
+  placement,
+}: {
+  isOpen: boolean
+  onToggle: () => void
+  placement: 'mobile' | 'desktop'
+}) {
+  return (
+    <>
+      <li>
+        <button
+          type="button"
+          className="w-full text-left"
+          onClick={onToggle}
+          aria-expanded={isOpen}
+          aria-controls="analytics-dashboard-panel"
+        >
+          <ToolRow
+            icon={<BarChart2 className="w-4 h-4" strokeWidth={1.75} />}
+            label="Analytics"
+            description="站点访问流量实时监控"
+          />
+        </button>
+      </li>
+      {isOpen && (
+        <li id="analytics-dashboard-panel">
+          <AnalyticsDashboard placement={placement} />
+        </li>
+      )}
+    </>
+  )
+}
+
 const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
-  const [showAnalytics, setShowAnalytics] = useState(false)
+  const placement = id === 'mobile' ? 'mobile' : 'desktop'
+  const [activePanel, setActivePanel] = useState<'analytics' | null>(null)
+
+  const toggleAnalyticsPanel = () => {
+    const nextPanel = activePanel === 'analytics' ? null : 'analytics'
+    setActivePanel(nextPanel)
+
+    if (nextPanel === 'analytics') {
+      trackEvent('analytics_open', { placement })
+    }
+  }
 
   return (
     <div className="bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:border-white/20 p-5">
@@ -70,68 +139,38 @@ const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
           <SpotifyNowPlaying />
         </li>
         {tools.map((tool) => {
-          const inner = (
-            <div className="flex items-center gap-3 py-2 px-1 rounded-lg hover:bg-muted transition-colors duration-150 group cursor-pointer">
-              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-secondary/80 flex items-center justify-center text-muted-foreground group-hover:text-primary transition-all duration-300 relative overflow-hidden">
-                {/* Gaussian Blur Glow */}
-                <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-15 blur-md transition-opacity duration-500" />
-                <div className="relative z-10">{tool.icon}</div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors leading-none mb-0.5">
-                  {tool.label}
-                </p>
-                <p className="text-xs text-foreground/60 leading-none">
-                  {tool.description}
-                </p>
-              </div>
-              {tool.external && (
-                <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0" strokeWidth={2} />
-              )}
-            </div>
-          )
-
           return (
             <li key={tool.href}>
-              {tool.analytics ? (
-                <button
-                  type="button"
-                  className="w-full text-left"
-                  onClick={() => {
-                    const next = !showAnalytics
-                    setShowAnalytics(next)
-
-                    if (next) {
-                      trackEvent('analytics_open', { placement: id === 'mobile' ? 'mobile' : 'desktop' })
-                    }
-                  }}
-                  aria-expanded={showAnalytics}
-                  aria-controls="analytics-dashboard-panel"
-                >
-                  {inner}
-                </button>
-              ) : tool.external ? (
+              {tool.external ? (
                 <a href={tool.href} target="_blank" rel="noopener noreferrer">
-                  {inner}
+                  <ToolRow
+                    icon={tool.icon}
+                    label={tool.label}
+                    description={tool.description}
+                    external
+                  />
                 </a>
               ) : (
                 <Link
                   href={tool.href}
                   transitionTypes={['nav-forward']}
                 >
-                  {inner}
+                  <ToolRow
+                    icon={tool.icon}
+                    label={tool.label}
+                    description={tool.description}
+                  />
                 </Link>
               )}
             </li>
           )
         })}
+        <AnalyticsToolSection
+          isOpen={activePanel === 'analytics'}
+          onToggle={toggleAnalyticsPanel}
+          placement={placement}
+        />
       </ul>
-
-      {showAnalytics && (
-        <div id="analytics-dashboard-panel">
-          <AnalyticsDashboard placement={id === 'mobile' ? 'mobile' : 'desktop'} />
-        </div>
-      )}
 
     </div>
   )

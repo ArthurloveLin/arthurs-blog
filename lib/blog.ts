@@ -48,12 +48,17 @@ export async function getRecentPostsMetadata(limit = 10): Promise<Post[]> {
 
 export const getPostsCount = unstable_cache(
   async function (): Promise<number> {
-    const { count, error } = await supabase
-      .from('posts')
-      .select('*', { count: 'exact', head: true })
-      .eq('published', true)
-    if (error) throw new Error(error.message)
-    return count ?? 0
+    try {
+      const { count, error } = await supabase
+        .from('posts')
+        .select('*', { count: 'exact', head: true })
+        .eq('published', true)
+      if (error) throw new Error(error.message)
+      return count ?? 0
+    } catch (error) {
+      console.error('Failed to load posts count from Supabase:', error)
+      return 0
+    }
   },
   ['posts-count'],
   { revalidate: 300, tags: ['posts-count'] }
@@ -226,23 +231,28 @@ export const getPostsByCategory = unstable_cache(
 
 export const getCategories = unstable_cache(
   async function (): Promise<{ name: string; count: number; slug: string }[]> {
-    const { data, error } = await supabase
-      .from('posts')
-      .select('category')
-      .eq('published', true)
-      .not('category', 'is', null)
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('category')
+        .eq('published', true)
+        .not('category', 'is', null)
 
-    if (error) throw new Error(error.message)
+      if (error) throw new Error(error.message)
 
-    const countMap = new Map<string, number>()
-    for (const row of data ?? []) {
-      const cat = row.category as string
-      countMap.set(cat, (countMap.get(cat) ?? 0) + 1)
+      const countMap = new Map<string, number>()
+      for (const row of data ?? []) {
+        const cat = row.category as string
+        countMap.set(cat, (countMap.get(cat) ?? 0) + 1)
+      }
+
+      return Array.from(countMap.entries())
+        .map(([name, count]) => ({ name, count, slug: encodeURIComponent(name) }))
+        .sort((a, b) => b.count - a.count)
+    } catch (error) {
+      console.error('Failed to load categories from Supabase:', error)
+      return []
     }
-
-    return Array.from(countMap.entries())
-      .map(([name, count]) => ({ name, count, slug: encodeURIComponent(name) }))
-      .sort((a, b) => b.count - a.count)
   },
   ['categories'],
   { revalidate: 300, tags: ['categories'] }
@@ -270,26 +280,31 @@ export const getPostsByYear = unstable_cache(
 
 export const getYearArchive = unstable_cache(
   async function (): Promise<{ year: number; count: number }[]> {
-    const currentYear = new Date().getFullYear()
+    try {
+      const currentYear = new Date().getFullYear()
 
-    const { data, error } = await supabase
-      .from('posts')
-      .select('published_at')
-      .eq('published', true)
-      .not('published_at', 'is', null)
-      .lt('published_at', `${currentYear}-01-01T00:00:00.000Z`)
+      const { data, error } = await supabase
+        .from('posts')
+        .select('published_at')
+        .eq('published', true)
+        .not('published_at', 'is', null)
+        .lt('published_at', `${currentYear}-01-01T00:00:00.000Z`)
 
-    if (error) throw new Error(error.message)
+      if (error) throw new Error(error.message)
 
-    const yearMap = new Map<number, number>()
-    for (const row of data ?? []) {
-      const year = new Date(row.published_at as string).getFullYear()
-      yearMap.set(year, (yearMap.get(year) ?? 0) + 1)
+      const yearMap = new Map<number, number>()
+      for (const row of data ?? []) {
+        const year = new Date(row.published_at as string).getFullYear()
+        yearMap.set(year, (yearMap.get(year) ?? 0) + 1)
+      }
+
+      return Array.from(yearMap.entries())
+        .map(([year, count]) => ({ year, count }))
+        .sort((a, b) => b.year - a.year)
+    } catch (error) {
+      console.error('Failed to load year archive from Supabase:', error)
+      return []
     }
-
-    return Array.from(yearMap.entries())
-      .map(([year, count]) => ({ year, count }))
-      .sort((a, b) => b.year - a.year)
   },
   ['year-archive'],
   { revalidate: 300, tags: ['year-archive'] }
@@ -297,23 +312,28 @@ export const getYearArchive = unstable_cache(
 
 export const getAllTags = unstable_cache(
   async function (): Promise<{ tag: string; count: number }[]> {
-    const { data, error } = await supabase
-      .from('posts')
-      .select('tags')
-      .eq('published', true)
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('tags')
+        .eq('published', true)
 
-    if (error) throw new Error(error.message)
+      if (error) throw new Error(error.message)
 
-    const tagMap = new Map<string, number>()
-    for (const row of data ?? []) {
-      for (const tag of (row.tags as string[]) ?? []) {
-        tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1)
+      const tagMap = new Map<string, number>()
+      for (const row of data ?? []) {
+        for (const tag of (row.tags as string[]) ?? []) {
+          tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1)
+        }
       }
-    }
 
-    return Array.from(tagMap.entries())
-      .map(([tag, count]) => ({ tag, count }))
-      .sort((a, b) => b.count - a.count)
+      return Array.from(tagMap.entries())
+        .map(([tag, count]) => ({ tag, count }))
+        .sort((a, b) => b.count - a.count)
+    } catch (error) {
+      console.error('Failed to load tags from Supabase:', error)
+      return []
+    }
   },
   ['all-tags'],
   { revalidate: 300, tags: ['all-tags'] }
@@ -321,12 +341,17 @@ export const getAllTags = unstable_cache(
 
 export const getSiteConfig = unstable_cache(
   async function (): Promise<Record<string, string>> {
-    const { data, error } = await supabase
-      .from('site_config')
-      .select('key, value')
+    try {
+      const { data, error } = await supabase
+        .from('site_config')
+        .select('key, value')
 
-    if (error) throw new Error(error.message)
-    return Object.fromEntries((data ?? []).map((r) => [r.key, r.value]))
+      if (error) throw new Error(error.message)
+      return Object.fromEntries((data ?? []).map((r) => [r.key, r.value]))
+    } catch (error) {
+      console.error('Failed to load site config from Supabase:', error)
+      return {}
+    }
   },
   ['site-config'],
   { revalidate: 300, tags: ['site-config'] }

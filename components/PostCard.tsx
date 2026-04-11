@@ -15,11 +15,17 @@ function formatDate(dateStr: string | null): string {
 interface PostCardProps {
   post: Post
   index?: number
-  forceRender?: boolean
 }
 
-const PostCard = memo(function PostCard({ post, index = 0, forceRender = false }: PostCardProps) {
+type PostCardRenderMode = 'auto' | 'eager'
+
+interface PostCardContentProps extends PostCardProps {
+  renderMode: PostCardRenderMode
+}
+
+const PostCardContent = memo(function PostCardContent({ post, index = 0, renderMode }: PostCardContentProps) {
   const date = formatDate(post.published_at)
+  const isEager = renderMode === 'eager'
 
   // 解码一次，避免 DB 中已编码的 URL（如 %7B）被 next/image 二次编码成 %257B
   const coverSrc = post.cover_image ? decodeURIComponent(post.cover_image) : null
@@ -30,8 +36,8 @@ const PostCard = memo(function PostCard({ post, index = 0, forceRender = false }
       id={`post-${post.id}`}
       className="bg-card text-card-foreground border border-border/50 dark:border-white/10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:border-white/20 overflow-hidden group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       style={{
-        contentVisibility: forceRender ? 'visible' : 'auto',
-        containIntrinsicSize: forceRender ? undefined : '0 400px', // Estimates the height of the card
+        contentVisibility: isEager ? 'visible' : 'auto',
+        containIntrinsicSize: isEager ? undefined : '0 400px',
         scrollMarginTop: '6rem',
       }}
     >
@@ -89,6 +95,14 @@ const PostCard = memo(function PostCard({ post, index = 0, forceRender = false }
 
     </PrefetchOnHover>
   )
+})
+
+const PostCard = memo(function PostCard(props: PostCardProps) {
+  return <PostCardContent {...props} renderMode="auto" />
+})
+
+export const EagerPostCard = memo(function EagerPostCard(props: PostCardProps) {
+  return <PostCardContent {...props} renderMode="eager" />
 })
 
 export default PostCard

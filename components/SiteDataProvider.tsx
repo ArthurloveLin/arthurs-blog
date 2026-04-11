@@ -1,9 +1,9 @@
 'use client'
 
-import { createContext, useContext, ReactNode } from 'react'
+import { createContext, use, ReactNode } from 'react'
 import type { Post } from '@/lib/blog'
 
-interface SiteState {
+export interface SiteState {
   config: Record<string, string>
   stats: {
     postsCount: number
@@ -20,6 +20,14 @@ interface SiteState {
 
 const SiteDataContext = createContext<SiteState | null>(null)
 
+function useSiteDataContext() {
+  const context = use(SiteDataContext)
+  if (!context) {
+    throw new Error('useSiteData must be used within a SiteDataProvider')
+  }
+  return context
+}
+
 export function SiteDataProvider({
   children,
   initialState,
@@ -35,9 +43,29 @@ export function SiteDataProvider({
 }
 
 export function useSiteData() {
-  const context = useContext(SiteDataContext)
-  if (!context) {
-    throw new Error('useSiteData must be used within a SiteDataProvider')
-  }
-  return context
+  return useSiteDataContext()
+}
+
+export function useSiteConfig() {
+  return useSiteDataContext().config
+}
+
+export function useSiteStats() {
+  return useSiteDataContext().stats
+}
+
+export function useSiteCategories() {
+  return useSiteDataContext().sidebarData.categories
+}
+
+export function useSiteTags() {
+  return useSiteDataContext().sidebarData.tags
+}
+
+export function useSiteArchive() {
+  return useSiteDataContext().sidebarData.yearArchive
+}
+
+export function useRecentPosts() {
+  return useSiteDataContext().sidebarData.recentPosts
 }

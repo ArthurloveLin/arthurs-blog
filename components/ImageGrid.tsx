@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, memo } from 'react'
+import { useState, memo, createContext, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { TemplateConfig } from '@/lib/templates'
@@ -27,216 +27,261 @@ interface ImageGridProps {
   templateConfig?: TemplateConfig
 }
 
-export default function ImageGrid({ items: initialItems, sessionToken, templateConfig }: ImageGridProps) {
+interface ImageGridSection {
+  key: string
+  label?: string
+  items: Item[]
+}
+
+interface ImageGridController {
+  mode: 'browse' | 'select'
+  deletingId: string | null
+  isBulkDeleting: boolean
+  selectedIds: Set<string>
+  selectedCount: number
+  startSelection: () => void
+  resetSelection: () => void
+  toggleSelection: (id: string) => void
+  deleteItem: (id: string) => Promise<void>
+  deleteSelected: () => Promise<void>
+}
+
+const CATEGORY_ORDER = ['上衣', '裤子', '鞋子', '配饰', '其他', '未分类']
+
+interface ImageGridContextValue {
+  controller: ImageGridController
+  sessionToken: string
+  templateConfig?: TemplateConfig
+}
+
+const ImageGridContext = createContext<ImageGridContextValue | null>(null)
+
+function useImageGridCtx() {
+  const ctx = use(ImageGridContext)
+  if (!ctx) throw new Error('useImageGridCtx must be inside ImageGridContext')
+  return ctx
+}
+
+function buildImageGridSections(items: Item[]): ImageGridSection[] {
+  const hasCategories = items.some((item) => item.category)
+
+  if (!hasCategories) {
+    return [{ key: 'all-items', items }]
+  }
+
+  const groupedItems = items.reduce<Record<string, Item[]>>((accumulator, item) => {
+    const category = item.category || '未分类'
+    if (!accumulator[category]) {
+      accumulator[category] = []
+    }
+    accumulator[category].push(item)
+    return accumulator
+  }, {})
+
+  return Object.keys(groupedItems)
+    .sort((left, right) => {
+      const leftIndex = CATEGORY_ORDER.indexOf(left)
+      const rightIndex = CATEGORY_ORDER.indexOf(right)
+      if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right)
+      if (leftIndex === -1) return 1
+      if (rightIndex === -1) return -1
+      return leftIndex - rightIndex
+    })
+    .map((category) => ({
+      key: category,
+      label: category,
+      items: groupedItems[category],
+    }))
+}
+
+function useImageGridController(): ImageGridController {
   const router = useRouter()
-  const [deleting, setDeleting] = useState<string | null>(null)
-  const [selectMode, setSelectMode] = useState(false)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [bulkDeleting, setBulkDeleting] = useState(false)
-  // Group items if categories exist
-  const hasCategories = initialItems.some((i) => i.category)
-  const groupedItems = hasCategories
-    ? initialItems.reduce((acc, item) => {
-        const cat = item.category || '未分类'
-        if (!acc[cat]) acc[cat] = []
-        acc[cat].push(item)
-        return acc
-      }, {} as Record<string, Item[]>)
-    : null
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [mode, setMode] = useState<'browse' | 'select'>('browse')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
 
-  const CATEGORY_ORDER = ['上衣', '裤子', '鞋子', '配饰', '其他', '未分类']
-  const sortedCategoryKeys = groupedItems
-    ? Object.keys(groupedItems).sort((a, b) => {
-        const indexA = CATEGORY_ORDER.indexOf(a)
-        const indexB = CATEGORY_ORDER.indexOf(b)
-        if (indexA === -1 && indexB === -1) return a.localeCompare(b)
-        if (indexA === -1) return 1
-        if (indexB === -1) return -1
-        return indexA - indexB
-      })
-    : []
-
-  async function handleDelete(id: string) {
+  async function deleteItem(id: string) {
     if (!confirm('确定删除这张图片吗？')) return
-    setDeleting(id)
+    setDeletingId(id)
     try {
       const res = await fetch(`/api/items/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Delete failed')
       router.refresh()
     } finally {
-      setDeleting(null)
+      setDeletingId(null)
     }
   }
 
-  function toggleSelect(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) { next.delete(id) } else { next.add(id) }
+  function toggleSelection(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }
 
-  async function handleBulkDelete() {
-    if (selected.size === 0) return
-    if (!confirm(`确定删除选中的 ${selected.size} 张图片吗？`)) return
-    setBulkDeleting(true)
+  function resetSelection() {
+    setMode('browse')
+    setSelectedIds(new Set())
+  }
+
+  async function deleteSelected() {
+    if (selectedIds.size === 0) return
+    if (!confirm(`确定删除选中的 ${selectedIds.size} 张图片吗？`)) return
+    setIsBulkDeleting(true)
     try {
       const res = await fetch('/api/items/bulk-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: Array.from(selected) }),
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
       })
       if (!res.ok) throw new Error('Bulk delete failed')
-      setSelected(new Set())
-      setSelectMode(false)
+      resetSelection()
       router.refresh()
     } finally {
-      setBulkDeleting(false)
+      setIsBulkDeleting(false)
     }
   }
 
-  if (initialItems.length === 0) {
-    const getEmptyEmoji = () => {
-      if (templateConfig?.name === '美食') return '🍽️'
-      if (templateConfig?.name === '打卡') return '🗺️'
-      return '📷'
-    }
-    const getEmptyHint = () => {
-      if (templateConfig?.name === '美食') return '上传第一张美食照片，开始探店点评吧～'
-      if (templateConfig?.name === '打卡') return '上传第一张打卡照片，开始记录吧～'
-      return '上传第一张，开始选衣吧～'
-    }
-    return (
-      <div className="text-center py-24 text-muted-foreground/50">
-        <div className="text-6xl mb-5 opacity-40">{getEmptyEmoji()}</div>
-        <p className="text-base font-semibold text-muted-foreground/60">还没有内容</p>
-        <p className="text-sm mt-2 opacity-60">{getEmptyHint()}</p>
-      </div>
-    )
+  return {
+    mode,
+    deletingId,
+    isBulkDeleting,
+    selectedIds,
+    selectedCount: selectedIds.size,
+    startSelection: () => setMode('select'),
+    resetSelection,
+    toggleSelection,
+    deleteItem,
+    deleteSelected,
   }
+}
 
-  const grid = (
-    <div className="space-y-8">
-      {groupedItems ? (
-        sortedCategoryKeys.map((cat) => (
-          <div key={cat} className="space-y-3">
-            <h3 className="text-sm font-bold text-muted-foreground flex items-center gap-2">
-              <span className="w-1 h-4 bg-primary rounded-full opacity-60" />
-              {cat}
-              <span className="text-xs font-normal opacity-50">
-                ({groupedItems[cat].length})
-              </span>
-            </h3>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-              {groupedItems[cat].map((item) => (
-                  <div
-                    key={item.id}
-                    className="relative group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
-                  >
-                    {selectMode ? (
-                      <SelectableItemCard
-                        item={item}
-                        selected={selected.has(item.id)}
-                        onToggleSelect={toggleSelect}
-                      />
-                    ) : (
-                      <ViewableItemCard
-                        item={item}
-                        sessionToken={sessionToken}
-                        deleting={deleting}
-                        onDelete={handleDelete}
-                        hasConflict={
-                          item.arthurScore !== null &&
-                          item.graceScore !== null &&
-                          Math.abs(item.arthurScore - item.graceScore) >= 2
-                        }
-                        scoreDiff={
-                          item.arthurScore !== null && item.graceScore !== null
-                            ? Math.abs(item.arthurScore - item.graceScore)
-                            : null
-                        }
-                        templateConfig={templateConfig}
-                      />
-                    )}
-                  </div>
-                ))}
-            </div>
-          </div>
-        ))
-      ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {initialItems.map((item) => {
-            const scoreDiff =
-              item.arthurScore !== null && item.graceScore !== null
-                ? Math.abs(item.arthurScore - item.graceScore)
-                : null
-            const hasConflict = scoreDiff !== null && scoreDiff >= 2
-
-            return (
-              <div
-                key={item.id}
-                className="relative group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
-              >
-                {selectMode ? (
-                  <SelectableItemCard
-                    item={item}
-                    selected={selected.has(item.id)}
-                    onToggleSelect={toggleSelect}
-                  />
-                ) : (
-                  <ViewableItemCard
-                    item={item}
-                    sessionToken={sessionToken}
-                    deleting={deleting}
-                    onDelete={handleDelete}
-                    hasConflict={hasConflict}
-                    scoreDiff={scoreDiff}
-                    templateConfig={templateConfig}
-                  />
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
+function ImageGridEmptyState({ templateConfig }: { templateConfig?: TemplateConfig }) {
+  const emptyEmoji = templateConfig?.name === '美食' ? '🍽️' : templateConfig?.name === '打卡' ? '🗺️' : '📷'
+  const emptyHint = templateConfig?.name === '美食'
+    ? '上传第一张美食照片，开始探店点评吧～'
+    : templateConfig?.name === '打卡'
+    ? '上传第一张打卡照片，开始记录吧～'
+    : '上传第一张，开始选衣吧～'
 
   return (
-    <div>
-      {/* Toolbar */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          {selectMode && selected.size > 0 && (
-            <button
-              onClick={handleBulkDelete}
-              disabled={bulkDeleting}
-              className="px-3 py-1 rounded-full text-xs bg-destructive text-destructive-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
-            >
-              {bulkDeleting ? '删除中…' : `删除 ${selected.size} 张`}
-            </button>
-          )}
-          {selectMode && (
-            <button
-              onClick={() => { setSelectMode(false); setSelected(new Set()) }}
-              className="px-3 py-1 rounded-full text-xs bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
-            >
-              取消
-            </button>
-          )}
-        </div>
-        {!selectMode && (
+    <div className="text-center py-24 text-muted-foreground/50">
+      <div className="text-6xl mb-5 opacity-40">{emptyEmoji}</div>
+      <p className="text-base font-semibold text-muted-foreground/60">还没有内容</p>
+      <p className="text-sm mt-2 opacity-60">{emptyHint}</p>
+    </div>
+  )
+}
+
+function ImageGridToolbar() {
+  const { controller } = useImageGridCtx()
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2">
+        {controller.mode === 'select' && controller.selectedCount > 0 && (
           <button
-            onClick={() => setSelectMode(true)}
-            className="px-3 py-1 rounded-full text-xs bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800 ml-auto transition-colors"
+            onClick={controller.deleteSelected}
+            disabled={controller.isBulkDeleting}
+            className="px-3 py-1 rounded-full text-xs bg-destructive text-destructive-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
-            批量选择
+            {controller.isBulkDeleting ? '删除中…' : `删除 ${controller.selectedCount} 张`}
+          </button>
+        )}
+        {controller.mode === 'select' && (
+          <button
+            onClick={controller.resetSelection}
+            className="px-3 py-1 rounded-full text-xs bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+          >
+            取消
           </button>
         )}
       </div>
-
-      {grid}
+      {controller.mode === 'browse' && (
+        <button
+          onClick={controller.startSelection}
+          className="px-3 py-1 rounded-full text-xs bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800 ml-auto transition-colors"
+        >
+          批量选择
+        </button>
+      )}
     </div>
+  )
+}
+
+function ImageGridSections({ sections }: { sections: ImageGridSection[] }) {
+  return (
+    <div className="space-y-8">
+      {sections.map((section) => (
+        <section key={section.key} className="space-y-3">
+          {section.label && (
+            <h3 className="text-sm font-bold text-muted-foreground flex items-center gap-2">
+              <span className="w-1 h-4 bg-primary rounded-full opacity-60" />
+              {section.label}
+              <span className="text-xs font-normal opacity-50">({section.items.length})</span>
+            </h3>
+          )}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {section.items.map((item) => (
+              <ImageGridCard key={item.id} item={item} />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  )
+}
+
+function ImageGridCard({ item }: { item: Item }) {
+  const { controller, sessionToken, templateConfig } = useImageGridCtx()
+  const scoreDiff = item.arthurScore !== null && item.graceScore !== null
+    ? Math.abs(item.arthurScore - item.graceScore)
+    : null
+  const hasConflict = scoreDiff !== null && scoreDiff >= 2
+
+  return (
+    <div className="relative group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all active:scale-[0.98]">
+      {controller.mode === 'select' ? (
+        <SelectableItemCard
+          item={item}
+          selected={controller.selectedIds.has(item.id)}
+          onToggleSelect={controller.toggleSelection}
+        />
+      ) : (
+        <ViewableItemCard
+          item={item}
+          sessionToken={sessionToken}
+          deleting={controller.deletingId}
+          onDelete={controller.deleteItem}
+          hasConflict={hasConflict}
+          scoreDiff={scoreDiff}
+          templateConfig={templateConfig}
+        />
+      )}
+    </div>
+  )
+}
+
+export default function ImageGrid({ items: initialItems, sessionToken, templateConfig }: ImageGridProps) {
+  const controller = useImageGridController()
+  const sections = buildImageGridSections(initialItems)
+
+  if (initialItems.length === 0) {
+    return <ImageGridEmptyState templateConfig={templateConfig} />
+  }
+
+  return (
+    <ImageGridContext value={{ controller, sessionToken, templateConfig }}>
+      <div>
+        <ImageGridToolbar />
+        <ImageGridSections sections={sections} />
+      </div>
+    </ImageGridContext>
   )
 }
 
