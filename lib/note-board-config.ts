@@ -33,8 +33,8 @@ const NOTE_BOARD_CONFIGS: Record<NoteBoardSlug, NoteBoardViewConfig> = {
   memo: {
     slug: 'memo',
     title: 'Memo',
-    subtitle: '公开展示的私人备忘录。',
-    intro: '和留言板一致的便签逻辑与动画，仅 admin 可以维护内容。',
+    subtitle: '记录每日灵感。',
+    intro: '以便签墙整理每日灵感，仅 admin 可以维护内容。',
     heroHint: 'Memo 仅在独立页面展开。',
     ctaLabel: '进入 Memo',
     emptyLabel: '暂时没有备忘录便签。',
