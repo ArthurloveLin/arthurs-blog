@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { ViewTransition, useEffect, useRef, useState } from 'react'
 import type { Post } from '@/lib/blog'
 
-import AuthorProfileCard, { AuthorProfileCompactCard } from '@/components/AuthorProfileCard'
+import AuthorProfileCard, { AuthorProfileCardContent } from '@/components/AuthorProfileCard'
 import CategoriesCard from '@/components/CategoriesCard'
 import TagsCloudCard from '@/components/TagsCloudCard'
 import RecentPostsCard from '@/components/RecentPostsCard'
@@ -105,7 +105,7 @@ export default function BlogPage({
               <ScrollStateWrapper threshold={300}>
                 {(isTriggered) => (
                   <ViewTransition name="sidebar-author-card">
-                    {isTriggered ? <AuthorProfileCompactCard id="sidebar" /> : <AuthorProfileCard id="sidebar" />}
+                    <AuthorProfileCardContent id="sidebar" variant={isTriggered ? 'compact' : 'full'} />
                   </ViewTransition>
                 )}
               </ScrollStateWrapper>

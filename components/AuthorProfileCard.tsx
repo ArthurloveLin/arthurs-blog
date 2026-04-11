@@ -274,4 +274,6 @@ export const AuthorProfileCompactCard = memo(function AuthorProfileCompactCard(p
   return <AuthorProfileCardContent {...props} variant="compact" />
 })
 
+export { AuthorProfileCardContent }
+export type { AuthorProfileCardVariant }
 export default AuthorProfileCard
