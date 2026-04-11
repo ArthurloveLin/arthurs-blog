@@ -2,11 +2,19 @@
 
 import { memo, useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { useSiteData } from './SiteDataProvider'
+import { useSiteTags } from './SiteDataProvider'
 import { ChevronDown } from 'lucide-react'
 
 interface TagsCloudCardProps {
   activeTags?: string[]
+}
+
+function getTagDelay(tag: string): number {
+  let hash = 0
+  for (const character of tag) {
+    hash = (hash * 31 + character.charCodeAt(0)) % 200
+  }
+  return hash
 }
 
 function buildTagsUrl(activeTags: string[], toggleTag: string): string {
@@ -16,15 +24,9 @@ function buildTagsUrl(activeTags: string[], toggleTag: string): string {
 }
 
 const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloudCardProps) {
-  const { sidebarData: { tags } } = useSiteData()
+  const tags = useSiteTags()
   const [isExpanded, setIsExpanded] = useState(false)
-  const [mounted, setMounted] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-    setIsMobile(window.innerWidth < 768)
-  }, [])
+  const [isMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768)
 
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -44,11 +46,11 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
 
   const tagDelays = useMemo(() => {
     const map = new Map<string, number>()
-    if (!mounted || !isExpanded || isMobile) return map
+    if (!isExpanded || isMobile) return map
     
-    tags.forEach(({ tag }) => map.set(tag, Math.random() * 200))
+    tags.forEach(({ tag }) => map.set(tag, getTagDelay(tag)))
     return map
-  }, [tags, mounted, isExpanded, isMobile])
+  }, [tags, isExpanded, isMobile])
 
   const processedTags = useMemo(() => {
     if (tags.length === 0) return []
