@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, memo } from 'react'
+import { useState, memo, createContext, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { TemplateConfig } from '@/lib/templates'
@@ -47,6 +47,20 @@ interface ImageGridController {
 }
 
 const CATEGORY_ORDER = ['上衣', '裤子', '鞋子', '配饰', '其他', '未分类']
+
+interface ImageGridContextValue {
+  controller: ImageGridController
+  sessionToken: string
+  templateConfig?: TemplateConfig
+}
+
+const ImageGridContext = createContext<ImageGridContextValue | null>(null)
+
+function useImageGridCtx() {
+  const ctx = use(ImageGridContext)
+  if (!ctx) throw new Error('useImageGridCtx must be inside ImageGridContext')
+  return ctx
+}
 
 function buildImageGridSections(items: Item[]): ImageGridSection[] {
   const hasCategories = items.some((item) => item.category)
@@ -165,7 +179,8 @@ function ImageGridEmptyState({ templateConfig }: { templateConfig?: TemplateConf
   )
 }
 
-function ImageGridToolbar({ controller }: { controller: ImageGridController }) {
+function ImageGridToolbar() {
+  const { controller } = useImageGridCtx()
   return (
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
@@ -199,17 +214,7 @@ function ImageGridToolbar({ controller }: { controller: ImageGridController }) {
   )
 }
 
-function ImageGridSections({
-  sections,
-  controller,
-  sessionToken,
-  templateConfig,
-}: {
-  sections: ImageGridSection[]
-  controller: ImageGridController
-  sessionToken: string
-  templateConfig?: TemplateConfig
-}) {
+function ImageGridSections({ sections }: { sections: ImageGridSection[] }) {
   return (
     <div className="space-y-8">
       {sections.map((section) => (
@@ -223,13 +228,7 @@ function ImageGridSections({
           )}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {section.items.map((item) => (
-              <ImageGridCard
-                key={item.id}
-                item={item}
-                controller={controller}
-                sessionToken={sessionToken}
-                templateConfig={templateConfig}
-              />
+              <ImageGridCard key={item.id} item={item} />
             ))}
           </div>
         </section>
@@ -238,17 +237,8 @@ function ImageGridSections({
   )
 }
 
-function ImageGridCard({
-  item,
-  controller,
-  sessionToken,
-  templateConfig,
-}: {
-  item: Item
-  controller: ImageGridController
-  sessionToken: string
-  templateConfig?: TemplateConfig
-}) {
+function ImageGridCard({ item }: { item: Item }) {
+  const { controller, sessionToken, templateConfig } = useImageGridCtx()
   const scoreDiff = item.arthurScore !== null && item.graceScore !== null
     ? Math.abs(item.arthurScore - item.graceScore)
     : null
@@ -286,15 +276,12 @@ export default function ImageGrid({ items: initialItems, sessionToken, templateC
   }
 
   return (
-    <div>
-      <ImageGridToolbar controller={controller} />
-      <ImageGridSections
-        sections={sections}
-        controller={controller}
-        sessionToken={sessionToken}
-        templateConfig={templateConfig}
-      />
-    </div>
+    <ImageGridContext value={{ controller, sessionToken, templateConfig }}>
+      <div>
+        <ImageGridToolbar />
+        <ImageGridSections sections={sections} />
+      </div>
+    </ImageGridContext>
   )
 }
 
