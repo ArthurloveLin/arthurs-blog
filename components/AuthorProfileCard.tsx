@@ -18,21 +18,19 @@ const STATUS_EMOJI_MAP: Record<string, string> = {
   '挂机中': '💤',
 }
 
-type AuthorProfileCardVariant = 'full' | 'compact'
-
 interface AuthorProfileCardProps {
   id?: string
 }
 
-interface AuthorProfileCardContentProps extends AuthorProfileCardProps {
-  variant: AuthorProfileCardVariant
+interface AuthorProfileCardBodyProps extends AuthorProfileCardProps {
+  compact?: boolean
 }
 
-const AuthorProfileCardContent = memo(function AuthorProfileCardContent({ variant, id }: AuthorProfileCardContentProps) {
+const AuthorProfileCardBody = memo(function AuthorProfileCardBody({ compact = false, id }: AuthorProfileCardBodyProps) {
   const config = useSiteConfig()
   const stats = useSiteStats()
-  const { permissions: { isAdmin } } = useAuth()
-  const isCompact = variant === 'compact'
+  const { isAdmin } = useAuth()
+  const isCompact = compact
 
   const {
     author_name: name = 'Arthur & Grace',
@@ -267,13 +265,15 @@ const AuthorProfileCardContent = memo(function AuthorProfileCardContent({ varian
 })
 
 const AuthorProfileCard = memo(function AuthorProfileCard(props: AuthorProfileCardProps) {
-  return <AuthorProfileCardContent {...props} variant="full" />
+  return <AuthorProfileCardBody {...props} />
 })
 
 export const AuthorProfileCompactCard = memo(function AuthorProfileCompactCard(props: AuthorProfileCardProps) {
-  return <AuthorProfileCardContent {...props} variant="compact" />
+  return <AuthorProfileCardBody {...props} compact />
 })
 
-export { AuthorProfileCardContent }
-export type { AuthorProfileCardVariant }
+export const SidebarAuthorProfileCard = memo(function SidebarAuthorProfileCard(props: AuthorProfileCardBodyProps) {
+  return <AuthorProfileCardBody {...props} />
+})
+
 export default AuthorProfileCard

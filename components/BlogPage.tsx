@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { ViewTransition, useEffect, useRef, useState } from 'react'
 import type { Post } from '@/lib/blog'
 
-import AuthorProfileCard, { AuthorProfileCardContent } from '@/components/AuthorProfileCard'
+import { SidebarAuthorProfileCard } from '@/components/AuthorProfileCard'
 import CategoriesCard from '@/components/CategoriesCard'
 import TagsCloudCard from '@/components/TagsCloudCard'
 import RecentPostsCard from '@/components/RecentPostsCard'
@@ -42,7 +42,7 @@ function SidebarAuthorCard() {
   const isTriggered = useScrollTriggered(300)
   return (
     <ViewTransition name="sidebar-author-card">
-      <AuthorProfileCardContent id="sidebar" variant={isTriggered ? 'compact' : 'full'} />
+      <SidebarAuthorProfileCard id="sidebar" compact={isTriggered} />
     </ViewTransition>
   )
 }

@@ -88,7 +88,7 @@ interface CommentBoxProps {
 }
 
 export default function CommentBox({ targetType, targetId, initialComments }: CommentBoxProps) {
-  const { state: { identity } } = useAuth()
+  const { identity } = useAuth()
 
   const [comments, setComments] = useState<Comment[]>(initialComments)
   const [text, setText] = useState('')
