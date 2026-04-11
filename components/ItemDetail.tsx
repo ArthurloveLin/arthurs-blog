@@ -56,10 +56,10 @@ export default function ItemDetail({
   token, 
   templateConfig: initialTemplateConfig
 }: ItemDetailProps) {
-  const { role, displayName, email, guestId } = useAuth()
-  
-  const isAdmin = role === 'admin'
-  const identity = displayName || email || guestId
+  const {
+    state: { identity },
+    permissions: { isAdmin },
+  } = useAuth()
 
   const templateConfig = initialTemplateConfig || TEMPLATES[DEFAULT_TEMPLATE]
   const dimensions = templateConfig.dimensions

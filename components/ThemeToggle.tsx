@@ -13,15 +13,9 @@ const themes = [
 ]
 
 export default function ThemeToggle() {
-  const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-
-  // useEffect only runs on the client, so now we can safely show the UI
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -37,14 +31,6 @@ export default function ThemeToggle() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [isOpen])
-
-  if (!mounted) {
-    return (
-      <button className="p-2 text-muted-foreground opacity-50 cursor-default rounded-lg">
-        <Sun className="w-[18px] h-[18px]" strokeWidth={1.75} />
-      </button>
-    )
-  }
 
   return (
     <div className="relative" ref={menuRef}>

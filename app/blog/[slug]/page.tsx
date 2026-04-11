@@ -8,12 +8,12 @@ import CommentBox from '@/components/CommentBox'
 import ArticleBackButton from '@/components/ArticleBackButton'
 import CurrentArticleReturnTarget from '@/components/CurrentArticleReturnTarget'
 import DirectionalTransition from '@/components/DirectionalTransition'
-import AuthorProfileCard from '@/components/AuthorProfileCard'
+import { AuthorProfileCompactCard } from '@/components/AuthorProfileCard'
 import TableOfContents from '@/components/TableOfContents'
 import CategoriesCard from '@/components/CategoriesCard'
 import RecentPostsCard from '@/components/RecentPostsCard'
 import ToolsCard from '@/components/ToolsCard'
-import ScrollHideWrapper from '@/components/ScrollHideWrapper'
+import ScrollCollapseWrapper from '@/components/ScrollHideWrapper'
 import { supabaseAdmin } from '@/lib/supabase'
 import ScrollToTop from '@/components/ScrollToTop'
 import { getPostAnchorHref } from '@/lib/blog-return'
@@ -139,11 +139,11 @@ export default async function BlogPostPage({
           {/* Left Sidebar Space - Matches Blog List Grid */}
           <aside className="hidden md:block md:col-span-4 lg:col-span-3 h-full">
             <div className="sticky top-24 space-y-4">
-              <ScrollHideWrapper threshold={300}>
+              <ScrollCollapseWrapper threshold={300}>
                 <ViewTransition name="sidebar-author-card">
-                  <AuthorProfileCard id="sidebar" compact />
+                  <AuthorProfileCompactCard id="sidebar" />
                 </ViewTransition>
-              </ScrollHideWrapper>
+              </ScrollCollapseWrapper>
               <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-muted" />}>
                 <TableOfContentsSection contentPromise={contentPromise} />
               </Suspense>

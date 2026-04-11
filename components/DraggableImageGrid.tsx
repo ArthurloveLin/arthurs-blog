@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 import Image from 'next/image'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 
@@ -28,26 +28,27 @@ interface DraggableImageGridProps {
 export default function DraggableImageGrid({ items: initialItems, sessionToken }: DraggableImageGridProps) {
   const router = useRouter()
   const [orderedItems, setOrderedItems] = useState<Item[]>(initialItems)
-  const isDraggingRef = useRef(false)
-  const orderedItemsRef = useRef(orderedItems)
-  orderedItemsRef.current = orderedItems
+  const [isDragging, setIsDragging] = useState(false)
 
-  // Keep ordered items in sync when parent re-renders (unless drag is in progress)
-  useEffect(() => {
-    if (isDraggingRef.current) return
-    const newIds = initialItems.map((i) => i.id).join(',')
-    const curIds = orderedItemsRef.current.map((i) => i.id).join(',')
-    if (newIds !== curIds) setOrderedItems(initialItems)
-  }, [initialItems])
+  const hasSameItemSet = useCallback((left: Item[], right: Item[]) => {
+    if (left.length !== right.length) return false
+    const leftIds = new Set(left.map((item) => item.id))
+    return right.every((item) => leftIds.has(item.id))
+  }, [])
 
-  const onDragStart = useCallback(() => { isDraggingRef.current = true }, [])
+  const displayItems = isDragging || hasSameItemSet(orderedItems, initialItems)
+    ? orderedItems
+    : initialItems
+
+  const onDragStart = useCallback(() => { setIsDragging(true) }, [])
 
   const onDragEnd = useCallback(
     async (result: DropResult) => {
-      isDraggingRef.current = false
+      setIsDragging(false)
       if (!result.destination || result.destination.index === result.source.index) return
 
-      const reordered = Array.from(orderedItems)
+      const sourceItems = hasSameItemSet(orderedItems, initialItems) ? orderedItems : initialItems
+      const reordered = Array.from(sourceItems)
       const [moved] = reordered.splice(result.source.index, 1)
       reordered.splice(result.destination.index, 0, moved)
       setOrderedItems(reordered)
@@ -59,7 +60,7 @@ export default function DraggableImageGrid({ items: initialItems, sessionToken }
       })
       router.refresh()
     },
-    [orderedItems, router]
+    [hasSameItemSet, initialItems, orderedItems, router]
   )
 
   return (
@@ -68,7 +69,7 @@ export default function DraggableImageGrid({ items: initialItems, sessionToken }
         {(provided) => (
           <div ref={provided.innerRef} {...provided.droppableProps}>
             <div className="space-y-3">
-              {orderedItems.map((item, index) => {
+              {displayItems.map((item, index) => {
                 const scoreDiff =
                   item.arthurScore !== null && item.graceScore !== null
                     ? Math.abs(item.arthurScore - item.graceScore)
