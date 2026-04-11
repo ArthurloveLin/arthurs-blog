@@ -50,11 +50,139 @@ function getDrawerButtonClass(isActive: boolean) {
   return `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`
 }
 
-export default function Navbar() {
+function NavDesktopAuthStatus() {
   const {
     state: { role, displayName, email, loading },
     meta: { guestId },
   } = useAuth()
+
+  if (loading) return null
+
+  return (
+    <div className="hidden sm:flex items-center gap-1.5 ml-1">
+      {role === 'guest' && (
+        <>
+          {guestId && (
+            <span className="text-xs text-muted-foreground font-mono">
+              游客&nbsp;{guestId.slice(0, 6)}
+            </span>
+          )}
+          <Link
+            href="/auth/login"
+            className="px-3 py-1.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+          >
+            登录
+          </Link>
+        </>
+      )}
+      {(role === 'user' || role === 'admin') && (
+        <>
+          {role === 'admin' && (
+            <span className="text-xs font-semibold px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-md">
+              管理员
+            </span>
+          )}
+          <span className="text-sm text-foreground/60 max-w-[120px] truncate">
+            {displayName ?? email}
+          </span>
+          <form action={logout}>
+            <button
+              type="submit"
+              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+            >
+              退出
+            </button>
+          </form>
+        </>
+      )}
+    </div>
+  )
+}
+
+function NavMobileAuthSection({ onClose }: { onClose: () => void }) {
+  const {
+    state: { role, displayName, email, loading },
+    meta: { guestId },
+  } = useAuth()
+
+  if (loading) return null
+
+  return (
+    <>
+      {role === 'guest' && (
+        <Link
+          href="/auth/login"
+          className="block px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+          onClick={onClose}
+        >
+          登录{guestId ? `（游客 ${guestId.slice(0, 6)}）` : ''}
+        </Link>
+      )}
+      {(role === 'user' || role === 'admin') && (
+        <div className="px-4 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {role === 'admin' && (
+              <>
+                <span className="text-xs font-semibold px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-md">
+                  管理员
+                </span>
+                <Link
+                  href="/admin/settings"
+                  className="p-1 px-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-foreground/5 rounded-md flex items-center gap-1"
+                  onClick={onClose}
+                >
+                  <Settings className="w-3 h-3" strokeWidth={2} />
+                  设置
+                </Link>
+              </>
+            )}
+            <span className="text-sm text-foreground/60">{displayName ?? email}</span>
+          </div>
+          <form action={logout}>
+            <button type="submit" className="text-sm text-muted-foreground hover:text-foreground">
+              退出
+            </button>
+          </form>
+        </div>
+      )}
+    </>
+  )
+}
+
+function NavMobileBar({
+  activeDrawer,
+  toggleDrawer,
+}: {
+  activeDrawer: DrawerType
+  toggleDrawer: (drawer: Exclude<DrawerType, null>) => void
+}) {
+  return (
+    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 md:hidden">
+      <div className={
+        "flex items-center gap-0.5 px-2 py-1.5 " +
+        "bg-white/94 border border-black/5 " +
+        "dark:bg-black/90 dark:backdrop-blur-none dark:border-white/10 " +
+        "rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.32)]"
+      }>
+        {mobileDrawerItems.map(({ key, label, Icon }, index) => (
+          <div key={key} className="flex items-center">
+            {index > 0 && <div className="w-px h-5 bg-border/60 mx-0.5" />}
+            <button
+              onClick={() => toggleDrawer(key)}
+              className={getDrawerButtonClass(activeDrawer === key)}
+              aria-label={label}
+            >
+              <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
+              <span className="text-[9px] font-medium leading-none">{label}</span>
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default function Navbar() {
   const config = useSiteConfig()
   const logoUrl = config?.author_avatar_url
   const { theme, setTheme } = useTheme()
@@ -274,45 +402,7 @@ export default function Navbar() {
             <ThemeToggle />
 
             {/* Auth Status */}
-            {!loading && (
-              <div className="hidden sm:flex items-center gap-1.5 ml-1">
-                {role === 'guest' && (
-                  <>
-                    {guestId && (
-                      <span className="text-xs text-muted-foreground font-mono">
-                        游客&nbsp;{guestId.slice(0, 6)}
-                      </span>
-                    )}
-                    <Link
-                      href="/auth/login"
-                      className="px-3 py-1.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
-                    >
-                      登录
-                    </Link>
-                  </>
-                )}
-                {(role === 'user' || role === 'admin') && (
-                  <>
-                    {role === 'admin' && (
-                      <span className="text-xs font-semibold px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-md">
-                        管理员
-                      </span>
-                    )}
-                    <span className="text-sm text-foreground/60 max-w-[120px] truncate">
-                      {displayName ?? email}
-                    </span>
-                    <form action={logout}>
-                      <button
-                        type="submit"
-                        className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
-                      >
-                        退出
-                      </button>
-                    </form>
-                  </>
-                )}
-              </div>
-            )}
+            <NavDesktopAuthStatus />
 
             {/* Mobile Menu Toggle */}
             <button
@@ -384,42 +474,7 @@ export default function Navbar() {
                   ))}
                 </div>
               </div>
-              {!loading && role === 'guest' && (
-                <Link
-                  href="/auth/login"
-                  className="block px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  登录{guestId ? `（游客 ${guestId.slice(0, 6)}）` : ''}
-                </Link>
-              )}
-              {!loading && (role === 'user' || role === 'admin') && (
-                <div className="px-4 py-2.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {role === 'admin' && (
-                      <>
-                        <span className="text-xs font-semibold px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-md">
-                          管理员
-                        </span>
-                        <Link
-                          href="/admin/settings"
-                          className="p-1 px-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-foreground/5 rounded-md flex items-center gap-1"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          <Settings className="w-3 h-3" strokeWidth={2} />
-                          设置
-                        </Link>
-                      </>
-                    )}
-                    <span className="text-sm text-foreground/60">{displayName ?? email}</span>
-                  </div>
-                  <form action={logout}>
-                    <button type="submit" className="text-sm text-muted-foreground hover:text-foreground">
-                      退出
-                    </button>
-                  </form>
-                </div>
-              )}
+              <NavMobileAuthSection onClose={() => setIsMobileMenuOpen(false)} />
             </div>
           </nav>
         )}
@@ -428,32 +483,7 @@ export default function Navbar() {
 
 
     {/* ── Mobile Bottom Dock ───────────────────────────── */}
-
-    <div
-      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 md:hidden"
-    >
-      <div className={
-        "flex items-center gap-0.5 px-2 py-1.5 " +
-        "bg-white/94 border border-black/5 " +
-        "dark:bg-black/90 dark:backdrop-blur-none dark:border-white/10 " +
-        "rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.32)]"
-      }>
-        {mobileDrawerItems.map(({ key, label, Icon }, index) => (
-          <div key={key} className="flex items-center">
-            {index > 0 && <div className="w-px h-5 bg-border/60 mx-0.5" />}
-            <button
-              onClick={() => toggleDrawer(key)}
-              className={getDrawerButtonClass(activeDrawer === key)}
-              aria-label={label}
-            >
-              <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
-              <span className="text-[9px] font-medium leading-none">{label}</span>
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-
+    <NavMobileBar activeDrawer={activeDrawer} toggleDrawer={toggleDrawer} />
 
     {/* ── Mobile Sidebar Drawers ────────────────────────── */}
     <MobileDrawers activeDrawer={activeDrawer} setActiveDrawer={setActiveDrawer} />

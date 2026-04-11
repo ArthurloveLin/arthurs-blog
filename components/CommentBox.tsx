@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, createContext, use } from 'react'
 import { updatePresenceActivity } from './ActivityBanner'
 import { useAuth } from './AuthProvider'
 import { formatCommentTimestamp } from '@/lib/date-format'
@@ -13,17 +13,22 @@ interface Comment {
   parent_id: string | null
 }
 
-function CommentCard({
-  comment,
-  onReply,
-  onDelete,
-  identity,
-}: {
-  comment: Comment
+interface CommentTreeContextValue {
+  identity: string
   onReply: (comment: Comment) => void
   onDelete: (id: string) => void
-  identity: string
-}) {
+}
+
+const CommentTreeContext = createContext<CommentTreeContextValue | null>(null)
+
+function useCommentTree() {
+  const ctx = use(CommentTreeContext)
+  if (!ctx) throw new Error('useCommentTree must be used within CommentTreeContext')
+  return ctx
+}
+
+function CommentCard({ comment }: { comment: Comment }) {
+  const { identity, onReply, onDelete } = useCommentTree()
   return (
     <div className="flex gap-2 items-start">
       <div className="flex-1 bg-muted/30 border border-border/50 rounded-2xl px-3 py-2 hover:bg-muted/50 transition-colors">
@@ -53,60 +58,22 @@ function CommentCard({
   )
 }
 
-function ReplyCommentItem({
-  comment,
-  onReply,
-  onDelete,
-  identity,
-}: {
-  comment: Comment
-  onReply: (comment: Comment) => void
-  onDelete: (id: string) => void
-  identity: string
-}) {
+function ReplyCommentItem({ comment }: { comment: Comment }) {
   return (
     <div className="ml-6">
-      <CommentCard
-        comment={comment}
-        onReply={onReply}
-        onDelete={onDelete}
-        identity={identity}
-      />
+      <CommentCard comment={comment} />
     </div>
   )
 }
 
-function TopLevelCommentItem({
-  comment,
-  replies,
-  onReply,
-  onDelete,
-  identity,
-}: {
-  comment: Comment
-  replies: Comment[]
-  onReply: (comment: Comment) => void
-  onDelete: (id: string) => void
-  identity: string
-}) {
+function TopLevelCommentItem({ comment, replies }: { comment: Comment; replies: Comment[] }) {
   return (
     <div>
-      <CommentCard
-        comment={comment}
-        onReply={onReply}
-        onDelete={onDelete}
-        identity={identity}
-      />
+      <CommentCard comment={comment} />
       {replies.length > 0 && (
         <div className="mt-2 space-y-2 border-l border-border/30 pl-1">
           {replies.map((reply) => (
-            <ReplyCommentItem
-              key={reply.id}
-              comment={reply}
-              onReply={onReply}
-              onDelete={onDelete}
-              identity={identity}
-            />
+            <ReplyCommentItem key={reply.id} comment={reply} />
           ))}
         </div>
       )}
@@ -179,59 +146,58 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
   }
 
   return (
-    <div>
-      <h3 className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 mb-4 px-1">
-        评论 {comments.length > 0 && `(${comments.length})`}
-      </h3>
+    <CommentTreeContext value={{ identity: identity ?? '', onReply: handleReply, onDelete: handleDelete }}>
+      <div>
+        <h3 className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 mb-4 px-1">
+          评论 {comments.length > 0 && `(${comments.length})`}
+        </h3>
 
-      {topLevel.length > 0 && (
-        <div className="space-y-4 mb-6">
-          {topLevel.map((c) => (
-            <TopLevelCommentItem
-              key={c.id}
-              comment={c}
-              replies={repliesMap[c.id] ?? []}
-              onReply={handleReply}
-              onDelete={handleDelete}
-              identity={identity}
-            />
-          ))}
-        </div>
-      )}
-
-      {identity ? (
-        <div className="space-y-3">
-          {replyTo && (
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/5 px-3 py-2 rounded-xl border border-primary/10">
-              <span className="opacity-60">回复</span>
-              <span className="bg-primary/20 px-1.5 py-0.5 rounded">@{replyTo.author}</span>
-              <button onClick={() => setReplyTo(null)} className="ml-auto text-muted-foreground/40 hover:text-foreground">取消</button>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <div className="flex-1 flex items-center border border-border rounded-2xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 bg-muted/20 transition-all">
-              <input
-                ref={inputRef}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onFocus={() => updatePresenceActivity('正在评论')}
-                placeholder={replyTo ? `回复 @${replyTo.author}…` : '写点什么…'}
-                className="flex-1 px-4 py-2 text-sm focus:outline-none bg-transparent placeholder:text-muted-foreground/30"
+        {topLevel.length > 0 && (
+          <div className="space-y-4 mb-6">
+            {topLevel.map((c) => (
+              <TopLevelCommentItem
+                key={c.id}
+                comment={c}
+                replies={repliesMap[c.id] ?? []}
               />
-            </div>
-            <button
-              type="submit"
-              disabled={submitting || !text.trim()}
-              className="px-5 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider rounded-2xl disabled:opacity-30 hover:opacity-90 transition-all active:scale-95 shadow-sm"
-            >
-              发送
-            </button>
-          </form>
-        </div>
-      ) : (
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/30 text-center py-4 italic animate-pulse">加载身份中…</p>
-      )}
-    </div>
+            ))}
+          </div>
+        )}
+
+        {identity ? (
+          <div className="space-y-3">
+            {replyTo && (
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/5 px-3 py-2 rounded-xl border border-primary/10">
+                <span className="opacity-60">回复</span>
+                <span className="bg-primary/20 px-1.5 py-0.5 rounded">@{replyTo.author}</span>
+                <button onClick={() => setReplyTo(null)} className="ml-auto text-muted-foreground/40 hover:text-foreground">取消</button>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="flex gap-2">
+              <div className="flex-1 flex items-center border border-border rounded-2xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 bg-muted/20 transition-all">
+                <input
+                  ref={inputRef}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onFocus={() => updatePresenceActivity('正在评论')}
+                  placeholder={replyTo ? `回复 @${replyTo.author}…` : '写点什么…'}
+                  className="flex-1 px-4 py-2 text-sm focus:outline-none bg-transparent placeholder:text-muted-foreground/30"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={submitting || !text.trim()}
+                className="px-5 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider rounded-2xl disabled:opacity-30 hover:opacity-90 transition-all active:scale-95 shadow-sm"
+              >
+                发送
+              </button>
+            </form>
+          </div>
+        ) : (
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/30 text-center py-4 italic animate-pulse">加载身份中…</p>
+        )}
+      </div>
+    </CommentTreeContext>
   )
 }
