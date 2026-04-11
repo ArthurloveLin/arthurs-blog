@@ -11,7 +11,7 @@ import ArchiveCard from '@/components/ArchiveCard'
 import ToolsCard from '@/components/ToolsCard'
 import DirectionalTransition from '@/components/DirectionalTransition'
 import ScrollRestorer from '@/components/ScrollRestorer'
-import { ScrollStateWrapper } from '@/components/ScrollHideWrapper'
+import { useScrollTriggered } from '@/components/ScrollHideWrapper'
 import BlogHero from '@/components/BlogHero'
 import BlogFeedSection from '@/components/BlogFeedSection'
 import { BLOG_RETURN_PATHNAME_KEY, BLOG_RETURN_POST_SLUG_KEY } from '@/lib/blog-return'
@@ -36,6 +36,15 @@ function getInitialReturningPostSlug() {
   }
 
   return storedPostSlug
+}
+
+function SidebarAuthorCard() {
+  const isTriggered = useScrollTriggered(300)
+  return (
+    <ViewTransition name="sidebar-author-card">
+      <AuthorProfileCardContent id="sidebar" variant={isTriggered ? 'compact' : 'full'} />
+    </ViewTransition>
+  )
 }
 
 function useReturningPost() {
@@ -102,13 +111,7 @@ export default function BlogPage({
               ref={leftSidebarRef}
               className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none overscroll-contain pb-12 space-y-4"
             >
-              <ScrollStateWrapper threshold={300}>
-                {(isTriggered) => (
-                  <ViewTransition name="sidebar-author-card">
-                    <AuthorProfileCardContent id="sidebar" variant={isTriggered ? 'compact' : 'full'} />
-                  </ViewTransition>
-                )}
-              </ScrollStateWrapper>
+              <SidebarAuthorCard />
               <CategoriesCard activeCategory={activeCategory} />
               <TagsCloudCard activeTags={activeTags} />
             </div>

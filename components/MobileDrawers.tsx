@@ -51,37 +51,13 @@ interface DrawerDefinition {
   Component: ComponentType<DrawerComponentProps>
 }
 
-function AuthorDrawerPanel() {
-  return <AuthorProfileCard id="mobile" />
-}
-
-function CategoriesDrawerPanel({ routeContext }: DrawerComponentProps) {
-  return <CategoriesCard activeCategory={routeContext.activeCategory} />
-}
-
-function TagsDrawerPanel({ routeContext }: DrawerComponentProps) {
-  return <TagsCloudCard activeTags={routeContext.activeTags} />
-}
-
-function RecentDrawerPanel() {
-  return <RecentPostsCard />
-}
-
-function ArchiveDrawerPanel({ routeContext }: DrawerComponentProps) {
-  return <ArchiveCard activeYear={routeContext.activeYear} />
-}
-
-function ToolsDrawerPanel() {
-  return <ToolsCard id="mobile" />
-}
-
 const DRAWERS: Record<DrawerKey, DrawerDefinition> = {
-  author: { title: '关于作者', Component: AuthorDrawerPanel },
-  categories: { title: '文章分类', Component: CategoriesDrawerPanel },
-  tags: { title: '标签云', Component: TagsDrawerPanel },
-  recent: { title: '最新推文', Component: RecentDrawerPanel },
-  archive: { title: '归档文章', Component: ArchiveDrawerPanel },
-  tools: { title: '实用工具', Component: ToolsDrawerPanel },
+  author: { title: '关于作者', Component: ({ routeContext: _ }) => <AuthorProfileCard id="mobile" /> },
+  categories: { title: '文章分类', Component: ({ routeContext }) => <CategoriesCard activeCategory={routeContext.activeCategory} /> },
+  tags: { title: '标签云', Component: ({ routeContext }) => <TagsCloudCard activeTags={routeContext.activeTags} /> },
+  recent: { title: '最新推文', Component: () => <RecentPostsCard /> },
+  archive: { title: '归档文章', Component: ({ routeContext }) => <ArchiveCard activeYear={routeContext.activeYear} /> },
+  tools: { title: '实用工具', Component: () => <ToolsCard id="mobile" /> },
 }
 
 function getDrawerRouteContext(pathname: string): DrawerRouteContext {
