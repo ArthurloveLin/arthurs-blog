@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 
-function useScrollTriggered(threshold: number) {
+export function useScrollTriggered(threshold: number) {
   const [isTriggered, setIsTriggered] = useState(() =>
     typeof window !== 'undefined' && window.scrollY > threshold
   )
@@ -46,18 +46,4 @@ export default function ScrollCollapseWrapper({
   )
 }
 
-/**
- * ScrollStateWrapper
- * Exposes the scroll-triggered boolean to children via render prop.
- * Does not apply any visual changes itself.
- */
-export function ScrollStateWrapper({
-  children,
-  threshold = 300,
-}: {
-  children: (isTriggered: boolean) => ReactNode
-  threshold?: number
-}) {
-  const isTriggered = useScrollTriggered(threshold)
-  return <>{children(isTriggered)}</>
-}
+
