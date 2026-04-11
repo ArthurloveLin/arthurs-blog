@@ -11,21 +11,22 @@ declare global {
 export default function Live2D() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const defaultPosition = { left: 72, top: 6 }
   const [pos, setPos] = useState(() => {
     if (typeof window === 'undefined') {
-      return { left: 80, top: 40 }
+      return defaultPosition
     }
 
     const savedPos = window.localStorage.getItem('tororo-pos')
     if (!savedPos) {
-      return { left: 80, top: 40 }
+      return defaultPosition
     }
 
     try {
       return JSON.parse(savedPos)
     } catch (error) {
       console.error('Failed to parse saved position', error)
-      return { left: 80, top: 40 }
+      return defaultPosition
     }
   })
   const [isDragging, setIsDragging] = useState(false)

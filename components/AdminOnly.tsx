@@ -4,7 +4,7 @@ import { useAuth } from './AuthProvider'
 import { ReactNode } from 'react'
 
 export default function AdminOnly({ children }: { children: ReactNode }) {
-  const { permissions: { isAdmin } } = useAuth()
+  const { isAdmin } = useAuth()
   if (!isAdmin) return null
   return <>{children}</>
 }

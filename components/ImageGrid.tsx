@@ -238,33 +238,11 @@ function ImageGridSections({ sections }: { sections: ImageGridSection[] }) {
 }
 
 function ImageGridCard({ item }: { item: Item }) {
-  const { controller, sessionToken, templateConfig } = useImageGridCtx()
-  const scoreDiff = item.arthurScore !== null && item.graceScore !== null
-    ? Math.abs(item.arthurScore - item.graceScore)
-    : null
-  const hasConflict = scoreDiff !== null && scoreDiff >= 2
+  const { controller } = useImageGridCtx()
 
-  return (
-    <div className="relative group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all active:scale-[0.98]">
-      {controller.mode === 'select' ? (
-        <SelectableItemCard
-          item={item}
-          selected={controller.selectedIds.has(item.id)}
-          onToggleSelect={controller.toggleSelection}
-        />
-      ) : (
-        <ViewableItemCard
-          item={item}
-          sessionToken={sessionToken}
-          deleting={controller.deletingId}
-          onDelete={controller.deleteItem}
-          hasConflict={hasConflict}
-          scoreDiff={scoreDiff}
-          templateConfig={templateConfig}
-        />
-      )}
-    </div>
-  )
+  return controller.mode === 'select'
+    ? <SelectableImageGridCard item={item} />
+    : <BrowseImageGridCard item={item} />
 }
 
 export default function ImageGrid({ items: initialItems, sessionToken, templateConfig }: ImageGridProps) {
@@ -324,6 +302,22 @@ const SelectableItemCard = memo(({
   )
 })
 SelectableItemCard.displayName = 'SelectableItemCard'
+
+const SelectableImageGridCard = memo(function SelectableImageGridCard({ item }: { item: Item }) {
+  const { controller } = useImageGridCtx()
+
+  return (
+    <div className="relative group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all active:scale-[0.98]">
+      <SelectableItemCard
+        item={item}
+        selected={controller.selectedIds.has(item.id)}
+        onToggleSelect={controller.toggleSelection}
+      />
+    </div>
+  )
+})
+
+SelectableImageGridCard.displayName = 'SelectableImageGridCard'
 
 const ViewableItemCard = memo(({
   item,
@@ -422,3 +416,27 @@ const ViewableItemCard = memo(({
 })
 
 ViewableItemCard.displayName = 'ViewableItemCard'
+
+const BrowseImageGridCard = memo(function BrowseImageGridCard({ item }: { item: Item }) {
+  const { controller, sessionToken, templateConfig } = useImageGridCtx()
+  const scoreDiff = item.arthurScore !== null && item.graceScore !== null
+    ? Math.abs(item.arthurScore - item.graceScore)
+    : null
+  const hasConflict = scoreDiff !== null && scoreDiff >= 2
+
+  return (
+    <div className="relative group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all active:scale-[0.98]">
+      <ViewableItemCard
+        item={item}
+        sessionToken={sessionToken}
+        deleting={controller.deletingId}
+        onDelete={controller.deleteItem}
+        hasConflict={hasConflict}
+        scoreDiff={scoreDiff}
+        templateConfig={templateConfig}
+      />
+    </div>
+  )
+})
+
+BrowseImageGridCard.displayName = 'BrowseImageGridCard'
