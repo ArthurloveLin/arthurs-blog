@@ -6,7 +6,7 @@ import { useSpotify } from './SpotifyProvider'
 import { Music2, ChevronDown } from 'lucide-react'
 
 export default function SpotifyNowPlaying() {
-  const { data, loading } = useSpotify()
+  const { state: { data, loading } } = useSpotify()
   const [isExpanded, setIsExpanded] = useState(false)
 
   const getTimeAgo = (dateStr: string) => {

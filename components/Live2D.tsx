@@ -11,22 +11,29 @@ declare global {
 export default function Live2D() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState({ left: 80, top: 40 }) // Default percentages
+  const [pos, setPos] = useState(() => {
+    if (typeof window === 'undefined') {
+      return { left: 80, top: 40 }
+    }
+
+    const savedPos = window.localStorage.getItem('tororo-pos')
+    if (!savedPos) {
+      return { left: 80, top: 40 }
+    }
+
+    try {
+      return JSON.parse(savedPos)
+    } catch (error) {
+      console.error('Failed to parse saved position', error)
+      return { left: 80, top: 40 }
+    }
+  })
   const [isDragging, setIsDragging] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
   const [opacity, setOpacity] = useState(0)
   const dragStartPos = useRef({ x: 0, y: 0, left: 0, top: 0 })
 
-  // Persistence: Load from localStorage
   useEffect(() => {
-    const savedPos = localStorage.getItem('tororo-pos')
-    if (savedPos) {
-      try {
-        setPos(JSON.parse(savedPos))
-      } catch (e) {
-        console.error('Failed to parse saved position', e)
-      }
-    }
     // Initial fade in
     setTimeout(() => setOpacity(1), 500)
   }, [])

@@ -19,10 +19,14 @@ export default async function CategoryPage({
 }) {
   const { slug } = await params
   const decodedSlug = decodeURIComponent(slug)
+  let posts: Post[] = []
   let fetchError = false
 
-  // async-parallel: single fetch needs no Promise.all wrapper
-  const posts = await getPostsByCategory(decodedSlug, 50, 0).catch(() => { fetchError = true; return [] as Post[] })
+  try {
+    posts = await getPostsByCategory(decodedSlug, 50, 0)
+  } catch {
+    fetchError = true
+  }
 
 
   return (

@@ -6,7 +6,7 @@ import ScrollRestorer from "@/components/ScrollRestorer";
 import ToolsCard from "@/components/ToolsCard";
 import RecentPostsCard from "@/components/RecentPostsCard";
 import ArchiveCard from "@/components/ArchiveCard";
-import AuthorProfileCard from "@/components/AuthorProfileCard";
+import { AuthorProfileCompactCard } from "@/components/AuthorProfileCard";
 import TrendRadarDisplay from "@/components/TrendRadarDisplay";
 
 export const revalidate = 3600; // 1 hour cache, reasonable for 3-times-daily crawls
@@ -97,7 +97,7 @@ export default function TrendRadarPage({
             {/* Left */}
             <aside className="hidden md:block md:col-span-4 lg:col-span-3">
               <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none space-y-4 pb-12">
-                <AuthorProfileCard id="trend-radar-author" compact={true} />
+                <AuthorProfileCompactCard id="trend-radar-author" />
                 <ToolsCard />
               </div>
             </aside>

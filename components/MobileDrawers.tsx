@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { ComponentType } from 'react'
 import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { X } from 'lucide-react'
@@ -36,13 +36,68 @@ export type DrawerType = 'author' | 'categories' | 'tags' | 'recent' | 'archive'
 
 type DrawerKey = Exclude<DrawerType, null>
 
-const DRAWER_TITLES: Record<DrawerKey, string> = {
-  author: '关于作者',
-  categories: '文章分类',
-  tags: '标签云',
-  recent: '最新推文',
-  archive: '归档文章',
-  tools: '实用工具',
+interface DrawerRouteContext {
+  activeCategory: string | null
+  activeTags: string[]
+  activeYear: number | null
+}
+
+interface DrawerComponentProps {
+  routeContext: DrawerRouteContext
+}
+
+interface DrawerDefinition {
+  title: string
+  Component: ComponentType<DrawerComponentProps>
+}
+
+function AuthorDrawerPanel() {
+  return <AuthorProfileCard id="mobile" />
+}
+
+function CategoriesDrawerPanel({ routeContext }: DrawerComponentProps) {
+  return <CategoriesCard activeCategory={routeContext.activeCategory} />
+}
+
+function TagsDrawerPanel({ routeContext }: DrawerComponentProps) {
+  return <TagsCloudCard activeTags={routeContext.activeTags} />
+}
+
+function RecentDrawerPanel() {
+  return <RecentPostsCard />
+}
+
+function ArchiveDrawerPanel({ routeContext }: DrawerComponentProps) {
+  return <ArchiveCard activeYear={routeContext.activeYear} />
+}
+
+function ToolsDrawerPanel() {
+  return <ToolsCard id="mobile" />
+}
+
+const DRAWERS: Record<DrawerKey, DrawerDefinition> = {
+  author: { title: '关于作者', Component: AuthorDrawerPanel },
+  categories: { title: '文章分类', Component: CategoriesDrawerPanel },
+  tags: { title: '标签云', Component: TagsDrawerPanel },
+  recent: { title: '最新推文', Component: RecentDrawerPanel },
+  archive: { title: '归档文章', Component: ArchiveDrawerPanel },
+  tools: { title: '实用工具', Component: ToolsDrawerPanel },
+}
+
+function getDrawerRouteContext(pathname: string): DrawerRouteContext {
+  let activeCategory: string | null = null
+  let activeYear: number | null = null
+  let activeTags: string[] = []
+
+  if (pathname.startsWith('/category/')) {
+    activeCategory = decodeURIComponent(pathname.replace('/category/', ''))
+  } else if (pathname.startsWith('/tag/')) {
+    activeTags = [decodeURIComponent(pathname.replace('/tag/', ''))]
+  } else if (pathname.startsWith('/archive/')) {
+    activeYear = parseInt(pathname.replace('/archive/', ''), 10)
+  }
+
+  return { activeCategory, activeTags, activeYear }
 }
 
 export default function MobileDrawers({
@@ -53,29 +108,10 @@ export default function MobileDrawers({
   setActiveDrawer: (drawer: DrawerType) => void
 }) {
   const pathname = usePathname()
-  const [mountedDrawers, setMountedDrawers] = useState<Partial<Record<DrawerKey, boolean>>>({})
-  let activeCategory = null
-  let activeYear: number | null = null
-  let activeTags: string[] = []
-
-  useEffect(() => {
-    if (!activeDrawer) return
-
-    setMountedDrawers((current) => {
-      if (current[activeDrawer]) return current
-      return { ...current, [activeDrawer]: true }
-    })
-  }, [activeDrawer])
-
-  if (pathname.startsWith('/category/')) {
-    activeCategory = decodeURIComponent(pathname.replace('/category/', ''))
-  } else if (pathname.startsWith('/tag/')) {
-    activeTags = [decodeURIComponent(pathname.replace('/tag/', ''))]
-  } else if (pathname.startsWith('/archive/')) {
-    activeYear = parseInt(pathname.replace('/archive/', ''), 10)
-  }
-
   const isOpen = activeDrawer !== null
+  const routeContext = getDrawerRouteContext(pathname)
+  const activeDefinition = activeDrawer ? DRAWERS[activeDrawer] : null
+  const ActiveDrawerPanel = activeDefinition?.Component
 
   return (
     <div className={`fixed inset-0 z-[999] md:hidden flex flex-col justify-end transition-[visibility] duration-200 ${isOpen ? 'visible' : 'invisible pointer-events-none'}`}>
@@ -94,7 +130,7 @@ export default function MobileDrawers({
         {/* Header with Title and close button */}
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-            {activeDrawer ? DRAWER_TITLES[activeDrawer] : ''}
+            {activeDefinition?.title ?? ''}
           </h3>
           <button
             onClick={() => setActiveDrawer(null)}
@@ -105,36 +141,7 @@ export default function MobileDrawers({
         </div>
 
         <div className="pb-8 text-foreground">
-          {mountedDrawers.author ? (
-            <div className={activeDrawer === 'author' ? 'block' : 'hidden'} aria-hidden={activeDrawer !== 'author'}>
-              <AuthorProfileCard id="mobile" />
-            </div>
-          ) : null}
-          {mountedDrawers.categories ? (
-            <div className={activeDrawer === 'categories' ? 'block' : 'hidden'} aria-hidden={activeDrawer !== 'categories'}>
-              <CategoriesCard activeCategory={activeCategory} />
-            </div>
-          ) : null}
-          {mountedDrawers.tags ? (
-            <div className={activeDrawer === 'tags' ? 'block' : 'hidden'} aria-hidden={activeDrawer !== 'tags'}>
-              <TagsCloudCard activeTags={activeTags} />
-            </div>
-          ) : null}
-          {mountedDrawers.recent ? (
-            <div className={activeDrawer === 'recent' ? 'block' : 'hidden'} aria-hidden={activeDrawer !== 'recent'}>
-              <RecentPostsCard />
-            </div>
-          ) : null}
-          {mountedDrawers.archive ? (
-            <div className={activeDrawer === 'archive' ? 'block' : 'hidden'} aria-hidden={activeDrawer !== 'archive'}>
-              <ArchiveCard activeYear={activeYear} />
-            </div>
-          ) : null}
-          {mountedDrawers.tools ? (
-            <div className={activeDrawer === 'tools' ? 'block' : 'hidden'} aria-hidden={activeDrawer !== 'tools'}>
-              <ToolsCard id="mobile" />
-            </div>
-          ) : null}
+          {ActiveDrawerPanel ? <ActiveDrawerPanel routeContext={routeContext} /> : null}
         </div>
       </div>
     </div>
