@@ -18,7 +18,7 @@ interface SessionHeaderProps {
 }
 
 export default function SessionHeader({ session, templateConfig }: SessionHeaderProps) {
-  const { permissions: { isAdmin } } = useAuth()
+  const { isAdmin } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(session.title || '')
   const [note, setNote] = useState(session.note || '')

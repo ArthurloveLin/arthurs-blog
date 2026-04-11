@@ -4,6 +4,7 @@ import { ComponentType } from 'react'
 import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { X } from 'lucide-react'
+import { useNavbarUiState, type DrawerType } from './NavbarUiState'
 
 const drawerModuleLoaders = {
   author: () => import('./AuthorProfileCard'),
@@ -32,8 +33,6 @@ const RecentPostsCard = dynamic(drawerModuleLoaders.recent, { ssr: false })
 const ArchiveCard = dynamic(drawerModuleLoaders.archive, { ssr: false })
 const ToolsCard = dynamic(drawerModuleLoaders.tools, { ssr: false })
 
-export type DrawerType = 'author' | 'categories' | 'tags' | 'recent' | 'archive' | 'tools' | null
-
 type DrawerKey = Exclude<DrawerType, null>
 
 interface DrawerRouteContext {
@@ -52,7 +51,7 @@ interface DrawerDefinition {
 }
 
 const DRAWERS: Record<DrawerKey, DrawerDefinition> = {
-  author: { title: '关于作者', Component: ({ routeContext: _ }) => <AuthorProfileCard id="mobile" /> },
+  author: { title: '关于作者', Component: () => <AuthorProfileCard id="mobile" /> },
   categories: { title: '文章分类', Component: ({ routeContext }) => <CategoriesCard activeCategory={routeContext.activeCategory} /> },
   tags: { title: '标签云', Component: ({ routeContext }) => <TagsCloudCard activeTags={routeContext.activeTags} /> },
   recent: { title: '最新推文', Component: () => <RecentPostsCard /> },
@@ -76,14 +75,9 @@ function getDrawerRouteContext(pathname: string): DrawerRouteContext {
   return { activeCategory, activeTags, activeYear }
 }
 
-export default function MobileDrawers({
-  activeDrawer,
-  setActiveDrawer,
-}: {
-  activeDrawer: DrawerType
-  setActiveDrawer: (drawer: DrawerType) => void
-}) {
+export default function MobileDrawers() {
   const pathname = usePathname()
+  const { activeDrawer, closeDrawer } = useNavbarUiState()
   const isOpen = activeDrawer !== null
   const routeContext = getDrawerRouteContext(pathname)
   const activeDefinition = activeDrawer ? DRAWERS[activeDrawer] : null
@@ -94,7 +88,7 @@ export default function MobileDrawers({
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/50 transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0'}`}
-        onClick={() => setActiveDrawer(null)}
+        onClick={closeDrawer}
       />
       {/* Drawer Content */}
       <div className={`relative w-full bg-background rounded-t-[2rem] shadow-[0_-8px_24px_rgba(0,0,0,0.22)] border-t border-border/40 p-5 pt-2 max-h-[85vh] overflow-y-auto transform-gpu will-change-transform [contain:layout_paint] transition-transform transition-opacity duration-200 ease-out ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
@@ -109,7 +103,7 @@ export default function MobileDrawers({
             {activeDefinition?.title ?? ''}
           </h3>
           <button
-            onClick={() => setActiveDrawer(null)}
+            onClick={closeDrawer}
             className="p-2 text-muted-foreground hover:text-foreground"
           >
             <X className="w-5 h-5" strokeWidth={2} />

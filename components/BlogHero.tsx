@@ -1,14 +1,22 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { StickyStackPreview } from '@/components/note-board/NoteBoardExperience'
 import { useSiteConfig } from '@/components/SiteDataProvider'
+import type { NoteBoardViewConfig } from '@/lib/note-board-config'
+import type { NoteMessage } from '@/lib/note-boards'
 
 const Live2D = dynamic(() => import('@/components/Live2D'), {
   ssr: false,
   loading: () => <div className="h-40 w-40" />,
 })
 
-export default function BlogHero() {
+interface BlogHeroProps {
+  guestbookBoard: NoteBoardViewConfig
+  initialGuestbookMessages: NoteMessage[]
+}
+
+export default function BlogHero({ guestbookBoard, initialGuestbookMessages }: BlogHeroProps) {
   const siteConfig = useSiteConfig()
 
   return (
@@ -17,26 +25,31 @@ export default function BlogHero() {
       <div className="absolute top-0 left-1/4 w-72 h-72 bg-blob-1 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob dark:mix-blend-screen pointer-events-none"></div>
       <div className="absolute -top-10 right-1/4 w-72 h-72 bg-blob-2 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000 dark:mix-blend-screen pointer-events-none"></div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-12 lg:pt-20 lg:pb-16 z-10">
-        <p className="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase mb-5">
-          {siteConfig.site_subtitle || "Arthur & Grace · Journal"}
-        </p>
-        <h1 className="text-[2rem] lg:text-[2.5rem] font-semibold tracking-tight leading-[1.2] text-foreground max-w-lg">
-          <span className="block sm:inline text-gradient-primary">{siteConfig.site_title_highlight || "技术、生活与创意"}</span>
-          {siteConfig.site_title_highlight_2 && (
-            <>
-              <br className="hidden sm:block" />
-              <span className="block sm:inline text-gradient-primary">{siteConfig.site_title_highlight_2}</span>
-            </>
-          )}
-          <br className="hidden sm:block" />
-          <span className="block sm:inline">{siteConfig.site_title_rest || "的记录与分享"}</span>
-        </h1>
-        <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-sm">
-          {siteConfig.site_description || "探索编程、设计、Life Lens 真实评价等领域的见解与思考。记录成长，分享知识，连接彼此。"}
-        </p>
+      <div className="relative z-10 mx-auto max-w-7xl px-4 pt-14 pb-12 sm:px-6 lg:px-8 lg:pt-20 lg:pb-16">
+        <div className="pointer-events-none absolute inset-0 z-20 hidden lg:block">
+          <StickyStackPreview board={guestbookBoard} messages={initialGuestbookMessages} />
+        </div>
 
-        <Live2D />
+        <div className="relative z-10">
+          <p className="mb-5 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            {siteConfig.site_subtitle || 'Arthur & Grace · Journal'}
+          </p>
+          <h1 className="max-w-lg text-[2rem] font-semibold leading-[1.2] tracking-tight text-foreground lg:text-[2.5rem]">
+            <span className="block sm:inline text-gradient-primary">{siteConfig.site_title_highlight || '技术、生活与创意'}</span>
+            {siteConfig.site_title_highlight_2 && (
+              <>
+                <br className="hidden sm:block" />
+                <span className="block sm:inline text-gradient-primary">{siteConfig.site_title_highlight_2}</span>
+              </>
+            )}
+            <br className="hidden sm:block" />
+            <span className="block sm:inline">{siteConfig.site_title_rest || '的记录与分享'}</span>
+          </h1>
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
+            {siteConfig.site_description || '探索编程、设计、Life Lens 真实评价等领域的见解与思考。记录成长，分享知识，连接彼此。'}
+          </p>
+          <Live2D />
+        </div>
       </div>
     </div>
   )
