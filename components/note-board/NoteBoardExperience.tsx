@@ -152,6 +152,10 @@ function getBoardHref(board: NoteBoardSlug) {
   return board === 'memo' ? '/memo' : '/guestbook'
 }
 
+function getResolvedCardZIndex(currentZIndex: number | undefined, fallbackZIndex: number) {
+  return currentZIndex ?? fallbackZIndex
+}
+
 function NoteListCard({
   message,
   showDelete,
@@ -437,7 +441,16 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
   )
 
   function bringCardToFront(id: string) {
-    setCardZIndices((current) => ({ ...current, [id]: zIndexCounterRef.current++ }))
+    setCardZIndices((current) => {
+      const nextZIndex = Math.max(
+        zIndexCounterRef.current,
+        ...Object.values(current),
+        visibleMessages.length + 6,
+      )
+
+      zIndexCounterRef.current = nextZIndex + 1
+      return { ...current, [id]: nextZIndex }
+    })
   }
 
   function handleCommit(index: number, message: NoteMessage, nextPosition: NotePosition, distance: number) {
@@ -495,7 +508,10 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
                 x={position.x}
                 y={position.y}
                 rotation={position.rotation}
-                zIndex={resolvedCardZIndices[message.id] ?? (placed ? visibleMessages.length + index + 4 : visibleMessages.length - index + 2)}
+                zIndex={getResolvedCardZIndex(
+                  resolvedCardZIndices[message.id],
+                  placed ? visibleMessages.length + index + 4 : visibleMessages.length - index + 2,
+                )}
                 width={cardWidth}
                 bounds={{ width: size.width, height: size.height }}
                 colorIndex={index}
@@ -630,7 +646,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   const canWrite = board.slug === 'guestbook' || isAdmin
   const { cardWidth, height, layouts } = useMemo(() => computeBoardLayout(messages, size.width), [messages, size.width])
   const hasMeasured = size.width > 0 && size.height > 0
-  const activeMobileIndex = clamp(mobileActiveIndex, 0, Math.max(messages.length - 1, 0))
+  const clampedMobileIndex = clamp(mobileActiveIndex, 0, Math.max(messages.length - 1, 0))
   const showStickyBoard = displayMode === 'sticky'
   const showListBoard = displayMode === 'list'
 
@@ -770,9 +786,9 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
           <MobileStickyDeck
             board={board}
             messages={messages}
-            activeIndex={activeMobileIndex}
-            canGoPrevious={activeMobileIndex > 0}
-            canGoNext={activeMobileIndex < messages.length - 1}
+            activeIndex={clampedMobileIndex}
+            canGoPrevious={clampedMobileIndex > 0}
+            canGoNext={clampedMobileIndex < messages.length - 1}
             onPrevious={() => setMobileActiveIndex((current) => Math.max(current - 1, 0))}
             onNext={() => setMobileActiveIndex((current) => Math.min(current + 1, Math.max(messages.length - 1, 0)))}
             canDeleteMessage={canDeleteMessage}
@@ -811,7 +827,10 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
                         x={position.x}
                         y={position.y}
                         rotation={position.rotation}
-                        zIndex={cardZIndices[message.id] ?? layout?.zIndex ?? messages.length - index}
+                        zIndex={getResolvedCardZIndex(
+                          cardZIndices[message.id],
+                          getResolvedCardZIndex(layout?.zIndex, messages.length - index),
+                        )}
                         width={cardWidth}
                         bounds={{ width: size.width, height: Math.max(height, 420) }}
                         colorIndex={layout?.colorIndex ?? index}
