@@ -19,10 +19,14 @@ export default async function ArchivePage({
 }) {
   const { year } = await params
   const parsedYear = parseInt(year, 10)
+  let posts: Post[] = []
   let fetchError = false
 
-  // async-parallel: single fetch needs no Promise.all wrapper
-  const posts = await getPostsByYear(parsedYear, 50, 0).catch(() => { fetchError = true; return [] as Post[] })
+  try {
+    posts = await getPostsByYear(parsedYear, 50, 0)
+  } catch {
+    fetchError = true
+  }
 
 
   return (

@@ -19,6 +19,13 @@ interface MultiDimRatingProps {
   onRate?: () => void
 }
 
+interface RatingEditorState {
+  scores: Record<string, number | null>
+  saving: boolean
+  allFilled: boolean
+  handleDimChange: (key: string, val: number) => Promise<void>
+}
+
 // 权重配置：Arthur / Grace 权重高，其余为游客权重
 const NAMED_AUTHORS = ['Arthur', 'Grace']
 const NAMED_WEIGHT = 2
@@ -207,15 +214,13 @@ function DimStars({
   )
 }
 
-// ── MultiDimRating ────────────────────────────────────────────────────────────
-export default function MultiDimRating({
+function useRatingEditor({
   itemId,
   author,
   myScores,
-  allRatings,
   dimensions,
   onRate,
-}: MultiDimRatingProps) {
+}: MultiDimRatingProps): RatingEditorState {
   const [scores, setScores] = useState<Record<string, number | null>>({ ...myScores })
   const [saving, setSaving] = useState(false)
 
@@ -225,8 +230,7 @@ export default function MultiDimRating({
     const newScores = { ...scores, [key]: val }
     setScores(newScores)
 
-    // 检查是否所有维度都已填满
-    const allFilled = dimensions.every((d) => newScores[d.key] != null)
+    const allFilled = dimensions.every((dimension) => newScores[dimension.key] != null)
     if (!allFilled) return
 
     setSaving(true)
@@ -243,26 +247,102 @@ export default function MultiDimRating({
       if (!res.ok) throw new Error('Failed')
       onRate?.()
     } catch {
-      setScores((prev) => ({ ...prev, [key]: myScores[key] }))
+      setScores((current) => ({ ...current, [key]: myScores[key] }))
     } finally {
       setSaving(false)
     }
   }
 
-  const allFilled = dimensions.every((d) => scores[d.key] != null)
+  return {
+    scores,
+    saving,
+    allFilled: dimensions.every((dimension) => scores[dimension.key] != null),
+    handleDimChange,
+  }
+}
 
-  // 合并本地状态到 allRatings
-  const displayRatings: RatingData[] = allRatings.map((r) =>
-    r.author === author ? { ...r, scores: { ...r.scores, ...scores } } : r
+function MultiDimRatingEditor({
+  author,
+  dimensions,
+  scores,
+  saving,
+  allFilled,
+  onChange,
+}: {
+  author: string
+  dimensions: Dimension[]
+  scores: Record<string, number | null>
+  saving: boolean
+  allFilled: boolean
+  onChange: (key: string, value: number) => void
+}) {
+  return (
+    <div className="bg-muted/30 rounded-xl p-3 border border-border/50">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">我的评分</span>
+        {saving && <span className="text-[10px] uppercase font-bold text-primary animate-pulse">保存中…</span>}
+        {!author && <span className="text-[10px] font-bold text-destructive/60">请先选择身份再评分</span>}
+      </div>
+      <div className="space-y-3">
+        {dimensions.map((dim) => (
+          <DimStars
+            key={dim.key}
+            label={dim.label}
+            color={dim.color}
+            value={scores[dim.key]}
+            onChange={(value) => onChange(dim.key, value)}
+            disabled={!author || saving}
+          />
+        ))}
+      </div>
+      {author && !allFilled && (
+        <p className="text-[10px] text-muted-foreground/40 mt-3 italic text-right">
+          完成 {dimensions.length} 项评分后自动保存
+        </p>
+      )}
+    </div>
   )
-  const hasMyRating = allRatings.some((r) => r.author === author)
+}
+
+function getDisplayRatings({
+  allRatings,
+  author,
+  scores,
+  allFilled,
+}: {
+  allRatings: RatingData[]
+  author: string
+  scores: Record<string, number | null>
+  allFilled: boolean
+}) {
+  const displayRatings: RatingData[] = allRatings.map((rating) =>
+    rating.author === author ? { ...rating, scores: { ...rating.scores, ...scores } } : rating
+  )
+
+  const hasMyRating = allRatings.some((rating) => rating.author === author)
   if (!hasMyRating && author && allFilled) {
     displayRatings.push({ author, score: null, scores })
   }
 
-  // ── 构建雷达图数据：Arthur / Grace / 加权均值 ──────────────────────────────
-  const arthurEntry = displayRatings.find((r) => r.author === 'Arthur')
-  const graceEntry = displayRatings.find((r) => r.author === 'Grace')
+  return displayRatings
+}
+
+function MultiDimRatingVisualization({
+  allRatings,
+  author,
+  dimensions,
+  scores,
+  allFilled,
+}: {
+  allRatings: RatingData[]
+  author: string
+  dimensions: Dimension[]
+  scores: Record<string, number | null>
+  allFilled: boolean
+}) {
+  const displayRatings = getDisplayRatings({ allRatings, author, scores, allFilled })
+  const arthurEntry = displayRatings.find((rating) => rating.author === 'Arthur')
+  const graceEntry = displayRatings.find((rating) => rating.author === 'Grace')
   const weightedAvg = computeWeightedAvg(displayRatings, dimensions)
 
   const radarEntries: RadarEntry[] = []
@@ -270,65 +350,68 @@ export default function MultiDimRating({
   if (graceEntry) radarEntries.push({ rating: graceEntry, color: AUTHOR_COLORS.Grace, label: 'Grace' })
   if (weightedAvg) radarEntries.push({ rating: weightedAvg, color: AVG_COLOR, label: '加权均值', dashed: true })
 
-  const hasRadarData = radarEntries.some((e) => dimensions.every((d) => e.rating.scores?.[d.key] != null))
+  const hasRadarData = radarEntries.some((entry) => dimensions.every((dimension) => entry.rating.scores?.[dimension.key] != null))
 
-  // 综合分计算（用于图例展示）
+  if (!hasRadarData) {
+    return null
+  }
+
   function avgScore(ratingScores: Record<string, number | null>) {
-    const vals = Object.values(ratingScores).filter((v) => v != null) as number[]
-    if (vals.length === 0) return null
-    return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)
+    const values = Object.values(ratingScores).filter((value) => value != null) as number[]
+    if (values.length === 0) return null
+    return (values.reduce((left, right) => left + right, 0) / values.length).toFixed(1)
   }
 
   return (
-    <div className="space-y-4">
-      {/* 我的多维打分 */}
-      <div className="bg-muted/30 rounded-xl p-3 border border-border/50">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">我的评分</span>
-          {saving && <span className="text-[10px] uppercase font-bold text-primary animate-pulse">保存中…</span>}
-          {!author && <span className="text-[10px] font-bold text-destructive/60">请先选择身份再评分</span>}
-        </div>
-        <div className="space-y-3">
-          {dimensions.map((dim) => (
-            <DimStars
-              key={dim.key}
-              label={dim.label}
-              color={dim.color}
-              value={scores[dim.key]}
-              onChange={(v) => handleDimChange(dim.key, v)}
-              disabled={!author || saving}
-            />
-          ))}
-        </div>
-        {author && !allFilled && (
-          <p className="text-[10px] text-muted-foreground/40 mt-3 italic text-right">
-            完成 {dimensions.length} 项评分后自动保存
-          </p>
-        )}
+    <div className="pt-2">
+      <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
+        {radarEntries.map((entry) => {
+          const avg = avgScore(entry.rating.scores)
+          return (
+            <div key={entry.label} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight">
+              <span
+                className="inline-block w-2 h-2 rounded-full shadow-sm"
+                style={{ background: entry.color }}
+              />
+              <span className="text-muted-foreground/80">{entry.label}</span>
+              {avg && <span className="text-foreground/40">{avg}分</span>}
+            </div>
+          )
+        })}
       </div>
+      <RadarChart entries={radarEntries} dimensions={dimensions} />
+    </div>
+  )
+}
 
-      {/* 雷达图 */}
-      {hasRadarData && (
-        <div className="pt-2">
-          {/* 图例 */}
-          <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
-            {radarEntries.map((e) => {
-              const avg = avgScore(e.rating.scores)
-              return (
-                <div key={e.label} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight">
-                  <span
-                    className="inline-block w-2 h-2 rounded-full shadow-sm"
-                    style={{ background: e.color }}
-                  />
-                  <span className="text-muted-foreground/80">{e.label}</span>
-                  {avg && <span className="text-foreground/40">{avg}分</span>}
-                </div>
-              )
-            })}
-          </div>
-          <RadarChart entries={radarEntries} dimensions={dimensions} />
-        </div>
-      )}
+// ── MultiDimRating ────────────────────────────────────────────────────────────
+export default function MultiDimRating({
+  itemId,
+  author,
+  myScores,
+  allRatings,
+  dimensions,
+  onRate,
+}: MultiDimRatingProps) {
+  const editor = useRatingEditor({ itemId, author, myScores, allRatings, dimensions, onRate })
+
+  return (
+    <div className="space-y-4">
+      <MultiDimRatingEditor
+        author={author}
+        dimensions={dimensions}
+        scores={editor.scores}
+        saving={editor.saving}
+        allFilled={editor.allFilled}
+        onChange={editor.handleDimChange}
+      />
+      <MultiDimRatingVisualization
+        allRatings={allRatings}
+        author={author}
+        dimensions={dimensions}
+        scores={editor.scores}
+        allFilled={editor.allFilled}
+      />
     </div>
   )
 }

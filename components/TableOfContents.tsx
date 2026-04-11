@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 
 interface TocItem {
   id: string
@@ -9,13 +9,10 @@ interface TocItem {
 }
 
 export default function TableOfContents({ content }: { content: string }) {
-  const [toc, setToc] = useState<TocItem[]>([])
   const [activeId, setActiveId] = useState<string>('')
   const observer = useRef<IntersectionObserver | null>(null)
 
-  useEffect(() => {
-    // 1. Parse headings from content
-    // We match ## and ### headers
+  const toc = useMemo(() => {
     const headingRegex = /^(#{2,3})\s+(.+)$/gm
     const headings: TocItem[] = []
     let match
@@ -34,7 +31,7 @@ export default function TableOfContents({ content }: { content: string }) {
 
       headings.push({ id, text, level })
     }
-    setToc(headings)
+    return headings
   }, [content])
 
   useEffect(() => {

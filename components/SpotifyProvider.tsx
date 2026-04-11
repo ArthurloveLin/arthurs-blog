@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import React, { createContext, use, useEffect, useState, ReactNode } from 'react'
 
 interface SpotifyData {
   isPlaying: boolean
@@ -25,13 +25,18 @@ interface SpotifyData {
   }>
 }
 
-interface SpotifyContextType {
-  data: SpotifyData | null
-  loading: boolean
-  refresh: () => Promise<void>
+interface SpotifyContextValue {
+  state: {
+    data: SpotifyData | null
+    loading: boolean
+    hasData: boolean
+  }
+  actions: {
+    refresh: () => Promise<void>
+  }
 }
 
-const SpotifyContext = createContext<SpotifyContextType | null>(null)
+const SpotifyContext = createContext<SpotifyContextValue | null>(null)
 
 export function SpotifyProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<SpotifyData | null>(null)
@@ -61,14 +66,23 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <SpotifyContext.Provider value={{ data, loading, refresh: fetchNowPlaying }}>
+    <SpotifyContext.Provider value={{
+      state: {
+        data,
+        loading,
+        hasData: data !== null,
+      },
+      actions: {
+        refresh: fetchNowPlaying,
+      },
+    }}>
       {children}
     </SpotifyContext.Provider>
   )
 }
 
 export function useSpotify() {
-  const context = useContext(SpotifyContext)
+  const context = use(SpotifyContext)
   if (!context) {
     throw new Error('useSpotify must be used within a SpotifyProvider')
   }

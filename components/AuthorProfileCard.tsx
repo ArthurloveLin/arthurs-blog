@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useMemo, memo, ViewTransition } from 'react'
+import { useState, useMemo, memo, ViewTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 
-import { useSiteData } from './SiteDataProvider'
+import { useSiteConfig, useSiteStats } from './SiteDataProvider'
 import { useAuth } from './AuthProvider'
 import { GitHubIcon, WeChatIcon, WeiboIcon } from './SocialIcons'
 
@@ -18,10 +18,21 @@ const STATUS_EMOJI_MAP: Record<string, string> = {
   '挂机中': '💤',
 }
 
-const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id }: { compact?: boolean; id?: string }) {
-  const { config, stats } = useSiteData()
-  const { role: userRole } = useAuth()
-  const isAdmin = userRole === 'admin'
+type AuthorProfileCardVariant = 'full' | 'compact'
+
+interface AuthorProfileCardProps {
+  id?: string
+}
+
+interface AuthorProfileCardContentProps extends AuthorProfileCardProps {
+  variant: AuthorProfileCardVariant
+}
+
+const AuthorProfileCardContent = memo(function AuthorProfileCardContent({ variant, id }: AuthorProfileCardContentProps) {
+  const config = useSiteConfig()
+  const stats = useSiteStats()
+  const { permissions: { isAdmin } } = useAuth()
+  const isCompact = variant === 'compact'
 
   const {
     author_name: name = 'Arthur & Grace',
@@ -44,10 +55,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
     skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : []
   , [skills])
   const statusEmoji = status ? STATUS_EMOJI_MAP[status] || '✨' : null
-  const [mounted, setMounted] = useState(false)
   const [copiedText, setCopiedText] = useState<string | null>(null)
-
-  useEffect(() => { setMounted(true) }, [])
 
   const copyToClipboard = async (text: string, type: string) => {
     try {
@@ -61,12 +69,12 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
 
   return (
     <div
-      className={`bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative group border border-border/50 dark:border-white/10 z-10 hover:z-30 ${compact ? 'p-5' : 'p-6'}`}
+      className={`bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative group border border-border/50 dark:border-white/10 z-10 hover:z-30 ${isCompact ? 'p-5' : 'p-6'}`}
       style={{ overflowAnchor: 'none' }}
     >
 
       {/* Admin Settings Button (Top-Right) */}
-      {mounted && isAdmin && (
+      {isAdmin && (
         <Link
           href="/admin/settings"
           className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-xl transition duration-200 z-20"
@@ -124,7 +132,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
             {name}
           </h2>
 
-        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${compact ? 'max-h-0 opacity-0' : 'max-h-20 opacity-100'}`}>
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isCompact ? 'max-h-0 opacity-0' : 'max-h-20 opacity-100'}`}>
             {(role || company) && (
               <div className="flex items-center justify-center gap-1.5 mt-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-widest bg-muted/30 dark:bg-white/5 py-1 px-3 rounded-full w-fit mx-auto border border-border/40 dark:border-white/10">
                 {role && <span>{role}</span>}
@@ -151,7 +159,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
       </ViewTransition>
 
       {skillList.length > 0 && (
-        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${compact ? 'max-h-0 opacity-0' : 'max-h-40 opacity-100'}`}>
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isCompact ? 'max-h-0 opacity-0' : 'max-h-40 opacity-100'}`}>
           <div className="flex flex-wrap justify-center gap-1.5 mb-5 px-1">
             {skillList.map((skill) => (
               <span key={skill} className="px-2 py-0.5 rounded-md bg-muted/60 text-[10px] font-bold text-muted-foreground border border-border/50">
@@ -163,7 +171,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
       )}
 
       {/* Social Links (GitHub, Weibo, WeChat, Email) */}
-      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${compact ? 'max-h-0 opacity-0' : 'max-h-20 opacity-100'}`}>
+      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isCompact ? 'max-h-0 opacity-0' : 'max-h-20 opacity-100'}`}>
         <div className="flex justify-center gap-2 mb-6">
           {github && (
             <a
@@ -232,7 +240,7 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
       </div>
 
       {/* Stats Divider */}
-      <div className={`border-t border-border transition-all duration-300 ease-in-out ${compact ? 'mb-4 mt-2' : 'mb-6'}`} />
+      <div className={`border-t border-border transition-all duration-300 ease-in-out ${isCompact ? 'mb-4 mt-2' : 'mb-6'}`} />
 
       {/* Stats */}
       <ViewTransition name={id ? `${id}-author-stats` : "author-stats"} enter="fade-in" default="none">
@@ -256,6 +264,14 @@ const AuthorProfileCard = memo(function AuthorProfileCard({ compact = false, id 
 
     </div>
   )
+})
+
+const AuthorProfileCard = memo(function AuthorProfileCard(props: AuthorProfileCardProps) {
+  return <AuthorProfileCardContent {...props} variant="full" />
+})
+
+export const AuthorProfileCompactCard = memo(function AuthorProfileCompactCard(props: AuthorProfileCardProps) {
+  return <AuthorProfileCardContent {...props} variant="compact" />
 })
 
 export default AuthorProfileCard

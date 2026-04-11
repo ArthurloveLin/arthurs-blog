@@ -2,11 +2,11 @@
 
 import { memo } from 'react'
 import Link from 'next/link'
-import { useSiteData } from './SiteDataProvider'
+import { useRecentPosts } from './SiteDataProvider'
 import { formatShortDate } from '@/lib/date-format'
 
 const RecentPostsCard = memo(function RecentPostsCard() {
-  const { sidebarData: { recentPosts: posts } } = useSiteData()
+  const posts = useRecentPosts()
   const recent = posts.slice(0, 5)
   if (recent.length === 0) return null
 

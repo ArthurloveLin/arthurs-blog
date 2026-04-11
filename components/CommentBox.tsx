@@ -13,57 +13,96 @@ interface Comment {
   parent_id: string | null
 }
 
-function CommentItem({
+function CommentCard({
   comment,
-  isReply = false,
-  repliesMap,
   onReply,
   onDelete,
   identity,
 }: {
   comment: Comment
-  isReply?: boolean
-  repliesMap: Record<string, Comment[]>
   onReply: (comment: Comment) => void
   onDelete: (id: string) => void
   identity: string
 }) {
-  const replies = repliesMap[comment.id] ?? []
   return (
-    <div className={isReply ? 'ml-6' : ''}>
-      <div className="flex gap-2 items-start">
-        <div className="flex-1 bg-muted/30 border border-border/50 rounded-2xl px-3 py-2 hover:bg-muted/50 transition-colors">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-tight text-primary/80">{comment.author}</span>
-            <span className="text-[10px] font-medium text-muted-foreground/50">{formatCommentTimestamp(comment.created_at)}</span>
-          </div>
-          <p className="text-sm text-foreground/90 break-words leading-relaxed">{comment.content}</p>
-          <div className="flex items-center justify-end">
-            <button
-              onClick={() => onReply(comment)}
-              className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 hover:text-primary mt-1.5 transition-all"
-            >
-              回复
-            </button>
-          </div>
+    <div className="flex gap-2 items-start">
+      <div className="flex-1 bg-muted/30 border border-border/50 rounded-2xl px-3 py-2 hover:bg-muted/50 transition-colors">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] font-bold uppercase tracking-tight text-primary/80">{comment.author}</span>
+          <span className="text-[10px] font-medium text-muted-foreground/50">{formatCommentTimestamp(comment.created_at)}</span>
         </div>
-        {comment.author === identity && (
+        <p className="text-sm text-foreground/90 break-words leading-relaxed">{comment.content}</p>
+        <div className="flex items-center justify-end">
           <button
-            onClick={() => onDelete(comment.id)}
-            className="text-muted-foreground/20 hover:text-destructive text-xl leading-none mt-2 shrink-0 transition-colors px-1"
+            onClick={() => onReply(comment)}
+            className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 hover:text-primary mt-1.5 transition-all"
           >
-            ×
+            回复
           </button>
-        )}
+        </div>
       </div>
+      {comment.author === identity && (
+        <button
+          onClick={() => onDelete(comment.id)}
+          className="text-muted-foreground/20 hover:text-destructive text-xl leading-none mt-2 shrink-0 transition-colors px-1"
+        >
+          ×
+        </button>
+      )}
+    </div>
+  )
+}
+
+function ReplyCommentItem({
+  comment,
+  onReply,
+  onDelete,
+  identity,
+}: {
+  comment: Comment
+  onReply: (comment: Comment) => void
+  onDelete: (id: string) => void
+  identity: string
+}) {
+  return (
+    <div className="ml-6">
+      <CommentCard
+        comment={comment}
+        onReply={onReply}
+        onDelete={onDelete}
+        identity={identity}
+      />
+    </div>
+  )
+}
+
+function TopLevelCommentItem({
+  comment,
+  replies,
+  onReply,
+  onDelete,
+  identity,
+}: {
+  comment: Comment
+  replies: Comment[]
+  onReply: (comment: Comment) => void
+  onDelete: (id: string) => void
+  identity: string
+}) {
+  return (
+    <div>
+      <CommentCard
+        comment={comment}
+        onReply={onReply}
+        onDelete={onDelete}
+        identity={identity}
+      />
       {replies.length > 0 && (
         <div className="mt-2 space-y-2 border-l border-border/30 pl-1">
-          {replies.map((r) => (
-            <CommentItem
-              key={r.id}
-              comment={r}
-              isReply={false} // Already handled by ml-6 and parent
-              repliesMap={repliesMap}
+          {replies.map((reply) => (
+            <ReplyCommentItem
+              key={reply.id}
+              comment={reply}
               onReply={onReply}
               onDelete={onDelete}
               identity={identity}
@@ -82,8 +121,7 @@ interface CommentBoxProps {
 }
 
 export default function CommentBox({ targetType, targetId, initialComments }: CommentBoxProps) {
-  const { displayName, email, guestId } = useAuth()
-  const identity = displayName || email || guestId
+  const { state: { identity } } = useAuth()
 
   const [comments, setComments] = useState<Comment[]>(initialComments)
   const [text, setText] = useState('')
@@ -149,10 +187,10 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
       {topLevel.length > 0 && (
         <div className="space-y-4 mb-6">
           {topLevel.map((c) => (
-            <CommentItem
+            <TopLevelCommentItem
               key={c.id}
               comment={c}
-              repliesMap={repliesMap}
+              replies={repliesMap[c.id] ?? []}
               onReply={handleReply}
               onDelete={handleDelete}
               identity={identity}

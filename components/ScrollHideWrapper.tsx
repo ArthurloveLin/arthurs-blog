@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useLayoutEffect, ReactNode } from 'react'
+import { useState, useEffect, ReactNode } from 'react'
 
 interface ScrollHideWrapperProps {
   children: ReactNode | ((isTriggered: boolean) => ReactNode)
@@ -20,13 +20,9 @@ export default function ScrollHideWrapper({
   className = "",
   vanish = true,
 }: ScrollHideWrapperProps) {
-  const [isTriggered, setIsTriggered] = useState(false)
-
-  // 在首次绘制前同步校正初始状态，避免因页面带有滚动位置（如浏览器后退恢复）
-  // 导致卡片先显示再折叠的闪烁与跳动
-  useLayoutEffect(() => {
-    setIsTriggered(window.scrollY > threshold)
-  }, [threshold])
+  const [isTriggered, setIsTriggered] = useState(() =>
+    typeof window !== 'undefined' && window.scrollY > threshold
+  )
 
   useEffect(() => {
     // 不使用 startTransition：compact 切换不应触发 React ViewTransition，
