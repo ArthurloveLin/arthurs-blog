@@ -3,11 +3,12 @@
 import { useState, useEffect, type ReactNode } from 'react'
 
 export function useScrollTriggered(threshold: number) {
-  const [isTriggered, setIsTriggered] = useState(() =>
-    typeof window !== 'undefined' && window.scrollY > threshold
-  )
+  // 初始值始终为 false，与 SSR 保持一致，避免 hydration mismatch
+  const [isTriggered, setIsTriggered] = useState(false)
 
   useEffect(() => {
+    // mount 后同步当前滚动位置
+    setIsTriggered(window.scrollY > threshold)
     // 不使用 startTransition：compact 切换不应触发 React ViewTransition，
     // 否则会引发全页视觉冻结，导致中间列出现跳动
     const handleScroll = () => setIsTriggered(window.scrollY > threshold)
