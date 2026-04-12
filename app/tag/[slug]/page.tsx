@@ -2,6 +2,8 @@ import { getPostsByTags, getAllTags } from '@/lib/blog'
 import type { Post } from '@/lib/blog'
 import BlogPage from '@/components/BlogPage'
 import { getStableYear } from '@/lib/date-format'
+import { getNoteBoardConfig } from '@/lib/note-board-config'
+import { getBoardMessages, type NoteMessage } from '@/lib/note-boards'
 
 export const revalidate = 60
 
@@ -19,13 +21,24 @@ export default async function TagPage({
 }) {
   const { slug } = await params
   const decodedSlug = decodeURIComponent(slug)
+  const guestbookConfig = getNoteBoardConfig('guestbook')
   let posts: Post[] = []
+  let guestbookMessages: NoteMessage[] = []
   let fetchError = false
 
-  try {
-    posts = await getPostsByTags([decodedSlug], 50, 0)
-  } catch {
+  const [postsResult, guestbookResult] = await Promise.allSettled([
+    getPostsByTags([decodedSlug], 50, 0),
+    getBoardMessages('guestbook', guestbookConfig.previewLimit),
+  ])
+
+  if (postsResult.status === 'fulfilled') {
+    posts = postsResult.value
+  } else {
     fetchError = true
+  }
+
+  if (guestbookResult.status === 'fulfilled') {
+    guestbookMessages = guestbookResult.value
   }
 
 
@@ -35,6 +48,8 @@ export default async function TagPage({
       currentYear={getStableYear()}
       fetchError={fetchError}
       activeTags={[decodedSlug]}
+      initialGuestbookMessages={guestbookMessages}
+      guestbookBoard={guestbookConfig}
     />
   )
 }
