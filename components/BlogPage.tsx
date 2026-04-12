@@ -107,8 +107,8 @@ export default function BlogPage({
       <BlogHero guestbookBoard={guestbookBoard} initialGuestbookMessages={initialGuestbookMessages} />
 
       {/* ── 3-Column Body ────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+      <div className="site-container py-8">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-14 lg:gap-7">
 
           {/* ── Left Sidebar ─────────────────────────────────────────── */}
           {/* Desktop: col-span-3 | Tablet: col-span-4 | Mobile: hidden */}
@@ -152,7 +152,7 @@ export default function BlogPage({
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
       <footer className="border-t border-border mt-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="site-container py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="font-mono text-[11px] text-muted-foreground">
             © {currentYear} Arthur &amp; Grace
           </p>

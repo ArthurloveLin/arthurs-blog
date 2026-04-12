@@ -29,9 +29,9 @@ export default function BlogFeedSection({
   activeYear = null,
 }: BlogFeedSectionProps) {
   return (
-    <section className="md:col-span-8 lg:col-span-6">
+    <section className="md:col-span-8 lg:col-span-8">
       {/* Feed header / Category filter banner */}
-      <div className="flex items-center justify-between mb-5 px-4 py-3 rounded-xl bg-card border border-border shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+      <div className="apple-card apple-card-hover mb-5 flex items-center justify-between px-4 py-3">
         {activeCategory || activeTags.length > 0 || activeYear ? (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase">

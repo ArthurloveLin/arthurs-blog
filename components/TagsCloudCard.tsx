@@ -85,7 +85,7 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
   return (
     <div 
       ref={containerRef}
-      className="bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:border-white/20 p-5 overflow-hidden"
+      className="apple-card p-5 overflow-hidden text-card-foreground"
     >
 
       {/* Title */}

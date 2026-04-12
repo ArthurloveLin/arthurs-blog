@@ -134,8 +134,8 @@ export default async function BlogPostPage({
     <main className="min-h-screen bg-background">
       <CurrentArticleReturnTarget postId={post.id} postSlug={post.slug} />
       <ScrollToTop />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+      <div className="site-container py-8">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-14 lg:gap-7">
           {/* Left Sidebar Space - Matches Blog List Grid */}
           <aside className="hidden md:block md:col-span-4 lg:col-span-3 h-full">
             <div className="sticky top-24 space-y-4">
@@ -152,7 +152,7 @@ export default async function BlogPostPage({
           </aside>
 
           {/* Main Article Content - Perfectly aligned with PostCard width */}
-          <article className="md:col-span-8 lg:col-span-6 bg-card rounded-2xl md:rounded-3xl border border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none overflow-hidden h-fit">
+          <article className="apple-card md:col-span-8 lg:col-span-8 overflow-hidden h-fit">
             {/* ── Outer padding for the whole article card content ── */}
             <div>
               {/* Hero Header (Synced with PostCard) */}
