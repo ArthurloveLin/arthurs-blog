@@ -1,6 +1,26 @@
 import type { Metadata } from "next";
+import { Geist, Geist_Mono, Noto_Sans_SC } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const notoSansSC = Noto_Sans_SC({
+  variable: "--font-noto-sc",
+  weight: ["300", "400", "600", "700"],
+  preload: false,
+  display: "swap",
+});
 import AuthProvider from "@/components/AuthProvider";
 import { ThemeProvider } from "next-themes";
 import { getSiteConfig, getPostsCount, getCategories, getAllTags, getYearArchive, getRecentPostsMetadata } from "@/lib/blog";
@@ -28,13 +48,16 @@ export default async function RootLayout({
   ]);
 
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
+    <html lang="zh-CN"
+      className={`${geistSans.variable} ${geistMono.variable} ${notoSansSC.variable}`}
+      suppressHydrationWarning>
         <head>
           <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
           <link rel="preconnect" href="https://images.arthurlovegrace.top" />
           <link rel="dns-prefetch" href="https://obsidian.arthurlovegrace.top" />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          {/* LXGW WenKai TC: 仅用于便签组件的手写风格，不纳入全局字体系统 */}
           <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&display=swap" rel="stylesheet" />
         </head>
         <body className="bg-background antialiased pb-24 md:pb-0">
