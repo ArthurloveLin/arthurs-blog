@@ -1,0 +1,94 @@
+@function pxToRem($pixel) {
+  @return $pixel / 16 + rem;
+}
+
+@function fluid-value($min-size, $max-size, $min-vw, $max-vw) {
+  $slope: (($max-size - $min-size) / ($max-vw - $min-vw)) * 100;
+  $intercept: $min-size - ($slope * ($min-vw / 100));
+  $min-rem: ($min-size, 16);
+  $max-rem: ($max-size, 16);
+  $intercept-rem: ($intercept, 16);
+
+  @return unquote(
+    "clamp(#{$min-rem}rem, #{$slope}vw + #{$intercept-rem}rem, #{$max-rem}rem)"
+  );
+}
+
+@mixin fluid-type(
+  $viewportMin,
+  $viewportMax,
+  $fontSizeMin,
+  $fontSizeMax,
+  $lineHeightMin,
+  $lineHeightMax
+) {
+  font-size: fluid-value(
+    $fontSizeMin,
+    $fontSizeMax,
+    $viewportMin,
+    $viewportMax
+  );
+  line-height: fluid-value(
+    $fontSizeMin * $lineHeightMin,
+    $fontSizeMax * $lineHeightMax,
+    $viewportMin,
+    $viewportMax
+  );
+}
+
+:root {
+  --color-black: hsla(0, 0%, 12%, 100%);
+  --color-white: hsla(0, 0%, 100%, 100%);
+  --color-white-50: hsla(0, 0%, 50%, 100%);
+  --color-purple: hsla(278, 100%, 75%, 100%);
+}
+
+body {
+  background-color: var(--color-black);
+  color: var(--color-white);
+  font-family: "Open Sans", sans-serif;
+  font-optical-sizing: auto;
+}
+
+main {
+  margin: 0;
+}
+
+.col-scroll {
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100vw;
+}
+
+.col-scroll__box {
+  display: flex;
+  flex-direction: column;
+  padding: 5vh 0 15vh;
+
+  &:nth-child(odd) {
+    flex-direction: column-reverse;
+    height: 100vh;
+  }
+}
+
+.col-scroll__list {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+
+  .col-scroll__box:nth-child(odd) & {
+    flex-direction: column-reverse;
+  }
+}
+
+.col-scroll__img {
+  aspect-ratio: 6/7;
+  height: auto;
+  object-fit: cover;
+  width: 25vw;
+}
+
+.col-scroll__title {
+  margin: 12px 0 16px;
+}
