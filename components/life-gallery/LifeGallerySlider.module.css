@@ -112,7 +112,7 @@
 }
 
 .sliderTitle {
-  font-family: 'Instrument Sans', var(--font-sans), sans-serif;
+  font-family: var(--font-sans);
   font-size: clamp(52px, 11vw, 148px);
   font-weight: 700;
   color: #fff;
