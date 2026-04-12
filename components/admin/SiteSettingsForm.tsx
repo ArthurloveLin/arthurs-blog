@@ -6,6 +6,8 @@ import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
 import { Loader2 } from 'lucide-react'
 import 'react-image-crop/dist/ReactCrop.css'
 
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024
+
 interface ConfigData {
   author_avatar_url?: string
   author_name?: string
@@ -55,16 +57,39 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
     setData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
-  const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setCrop(undefined)
-      const reader = new FileReader()
-      reader.addEventListener('load', () => {
-        setImgSrc(reader.result?.toString() || '')
-        setShowCropModal(true)
-      })
-      reader.readAsDataURL(e.target.files[0])
+  const openFilePicker = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+      fileInputRef.current.click()
     }
+  }
+
+  const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setMessage('❌ 请选择图片文件')
+      e.target.value = ''
+      return
+    }
+
+    if (file.size > MAX_AVATAR_BYTES) {
+      setMessage('❌ 图片大小不能超过 5MB')
+      e.target.value = ''
+      return
+    }
+
+    setMessage('')
+    setCrop(undefined)
+    setCompletedCrop(undefined)
+
+    const reader = new FileReader()
+    reader.addEventListener('load', () => {
+      setImgSrc(reader.result?.toString() || '')
+      setShowCropModal(true)
+    })
+    reader.readAsDataURL(file)
   }
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -97,8 +122,8 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
       const scaleX = image.naturalWidth / image.width
       const scaleY = image.naturalHeight / image.height
 
-      canvas.width = completedCrop.width * scaleX
-      canvas.height = completedCrop.height * scaleY
+      canvas.width = Math.max(1, Math.round(completedCrop.width * scaleX))
+      canvas.height = Math.max(1, Math.round(completedCrop.height * scaleY))
 
       ctx.imageSmoothingQuality = 'high'
 
@@ -139,6 +164,9 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
       setMessage(`❌ ${msg}`)
     } finally {
       setUploading(false)
+      setImgSrc('')
+      setCompletedCrop(undefined)
+      setCrop(undefined)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -175,9 +203,12 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
           <div className="flex flex-col sm:flex-row gap-8 items-start">
             {/* Avatar Area */}
             <div className="flex flex-col items-center gap-3 w-32 shrink-0">
-              <div 
-                className="w-24 h-24 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary transition-colors relative group/avatar"
-                onClick={() => fileInputRef.current?.click()}
+              <button
+                type="button"
+                className="w-24 h-24 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary transition-colors relative group/avatar disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={openFilePicker}
+                disabled={uploading}
+                aria-label="上传头像"
               >
                 {data.author_avatar_url ? (
                   <>
@@ -189,7 +220,7 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
                 ) : (
                   <span className="text-xs text-muted-foreground font-medium">点击上传</span>
                 )}
-              </div>
+              </button>
               <input type="file" ref={fileInputRef} onChange={onSelectFile} accept="image/*" className="hidden" />
               
               {/* Status Picker Overlay Area? No, let's put it as a field below or beside */}
@@ -457,18 +488,11 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
                   aspect={1}
                   circularCrop
                 >
-                  <Image
+                  <img
+                    ref={imgRef}
                     alt="Crop me"
                     src={imgSrc}
-                    onLoadingComplete={(img) => {
-                       // Trigger onImageLoad using the underlying img element
-                       if (img) {
-                         onImageLoad({ currentTarget: img } as unknown as React.SyntheticEvent<HTMLImageElement>)
-                       }
-                    }}
-                    width={800}
-                    height={600}
-                    unoptimized
+                    onLoad={onImageLoad}
                     className="max-h-[50vh] w-auto object-contain"
                   />
                 </ReactCrop>

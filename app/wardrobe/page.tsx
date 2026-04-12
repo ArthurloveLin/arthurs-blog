@@ -20,7 +20,7 @@ export default async function WardrobePage() {
         <div className="absolute top-0 left-1/4 w-72 h-72 bg-blob-1 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob dark:mix-blend-screen pointer-events-none"></div>
         <div className="absolute -top-10 right-1/4 w-72 h-72 bg-blob-2 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000 dark:mix-blend-screen pointer-events-none"></div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8 lg:pt-14 lg:pb-12 z-10 flex flex-col items-center text-center">
+        <div className="site-shell relative pt-10 pb-8 lg:pt-14 lg:pb-12 z-10 flex flex-col items-center text-center">
           <Link href="/" className="self-start text-[11px] font-mono tracking-widest text-muted-foreground hover:text-foreground transition-colors mb-6 flex items-center gap-2 uppercase">
             ← Home
           </Link>

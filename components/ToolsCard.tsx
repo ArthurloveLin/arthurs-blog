@@ -46,7 +46,7 @@ const tools = [
   {
     href: '/guestbook',
     label: 'Message',
-    description: '留下一张你的便签吧。',
+    description: '留下一张你的便签吧',
     icon: <MessageSquareText className="w-4 h-4" strokeWidth={1.75} />,
     external: false,
   },
@@ -140,7 +140,7 @@ const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
   }
 
   return (
-    <div className="bg-card text-card-foreground rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:border-white/20 p-5">
+    <div className="bg-card text-card-foreground rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.08)] dark:hover:border-white/20 p-5">
 
       {/* Title */}
       <h3 className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase mb-3">
