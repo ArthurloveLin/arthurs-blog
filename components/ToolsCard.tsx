@@ -4,7 +4,7 @@ import { memo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import SpotifyNowPlaying from './SpotifyNowPlaying'
-import { ShoppingBag, Newspaper, BarChart2, ExternalLink, Camera, NotebookText, MessageSquareText } from 'lucide-react'
+import { ShoppingBag, Newspaper, BarChart2, ExternalLink, Camera, NotebookText, MessageSquareText, Clapperboard } from 'lucide-react'
 
 const AnalyticsDashboard = dynamic(() => import('./AnalyticsDashboard'), { ssr: false })
 
@@ -55,6 +55,13 @@ const tools = [
     label: 'Memo',
     description: '记录每日灵感',
     icon: <NotebookText className="w-4 h-4" strokeWidth={1.75} />,
+    external: false,
+  },
+  {
+    href: '/now-watching',
+    label: 'Now Watching',
+    description: '最近看过的电影海报流',
+    icon: <Clapperboard className="w-4 h-4" strokeWidth={1.75} />,
     external: false,
   },
 ]
