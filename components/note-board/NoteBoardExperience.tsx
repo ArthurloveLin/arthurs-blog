@@ -387,9 +387,12 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
   const boardHref = getBoardHref(board.slug)
   const hasMeasured = size.width > 0 && size.height > 0
 
-  if (hasMeasured && !hasSettledLayout) {
-    setHasSettledLayout(true)
-  }
+  useEffect(() => {
+    if (hasMeasured && !hasSettledLayout) {
+      const timer = setTimeout(() => setHasSettledLayout(true), 300)
+      return () => clearTimeout(timer)
+    }
+  }, [hasMeasured, hasSettledLayout])
 
   function handleCommit(index: number, message: NoteMessage, nextPosition: NotePosition, distance: number) {
 
@@ -416,7 +419,7 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
   }
 
   return (
-    <div ref={containerRef} className="note-board-preview">
+    <div ref={containerRef} className={`note-board-preview transition-opacity duration-700 ease-out ${hasSettledLayout ? 'opacity-100' : 'opacity-0'}`}>
       {visibleMessages.length === 0 ? (
         <div className="note-board-preview__empty">
           <div className="note-board-preview__empty-content">

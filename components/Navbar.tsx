@@ -35,6 +35,7 @@ const navLinks = [
   { href: '/life-gallery', label: 'Life Gallery', tooltip: '生活画廊 - 我的生活图像轮播', external: false },
   { href: '/wardrobe', label: 'Life Lens', tooltip: 'Life Lens - 记录真实评价的决策系统', external: false },
   { href: '/trend-radar', label: 'News', tooltip: '趋势雷达 - 获取最新的趋势资讯', external: false },
+  { href: '/guestbook', label: 'Message', tooltip: '留言板 - 留下你的印记', external: false },
 ]
 
 const mobileDrawerItems: DrawerToggleItem[] = [
