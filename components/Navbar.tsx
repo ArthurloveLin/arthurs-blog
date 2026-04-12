@@ -339,7 +339,7 @@ function NavbarContent() {
         "dark:bg-black dark:backdrop-blur-none dark:border-white/10"
       }
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="site-shell">
         <div className="h-16 flex items-center justify-between gap-4">
 
           {/* ── Left: Logo / Title ─────────────────────────────────── */}

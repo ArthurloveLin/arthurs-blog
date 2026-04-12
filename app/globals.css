@@ -13,6 +13,10 @@
 :root, .light {
   --background: #fcfcfc;
   --foreground: #1D1D1F;
+  --site-shell-max: 90rem;
+  --site-shell-triad-max: 77rem;
+  --site-shell-narrow-max: 72rem;
+  --site-shell-form-max: 72rem;
   --card: #ffffff;
   --card-foreground: #171717;
   --popover: #ffffff;
@@ -160,12 +164,67 @@
   --color-blob-2: var(--blob-color-2);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Border Radius Scale */
+  --radius-sm: 5px;   /* Micro: small containers, link tags */
+  --radius-md: 5px;   /* Micro: link tags */
+  --radius-lg: 8px;   /* Standard: buttons, product cards */
+  --radius-xl: 12px;  /* Large: feature panels, image containers */
+  --radius-2xl: 12px; /* Large (normalized from 16px) */
+  --radius-3xl: 12px; /* Large (normalized from 24px) */
 }
 
 @utility scrollbar-none {
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* Comfortable (11px) — search inputs, filter buttons */
+@utility rounded-comfortable {
+  border-radius: 11px;
+}
+
+.site-shell,
+.site-shell-triad,
+.site-shell-narrow,
+.site-shell-form {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+.site-shell {
+  max-width: var(--site-shell-max);
+}
+
+.site-shell-triad {
+  max-width: var(--site-shell-triad-max);
+}
+
+.site-shell-narrow {
+  max-width: var(--site-shell-narrow-max);
+}
+
+.site-shell-form {
+  max-width: var(--site-shell-form-max);
+}
+
+@media (min-width: 640px) {
+  .site-shell,
+  .site-shell-triad,
+  .site-shell-narrow,
+  .site-shell-form {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .site-shell,
+  .site-shell-triad,
+  .site-shell-narrow,
+  .site-shell-form {
+    padding-inline: 2rem;
   }
 }
 
@@ -583,7 +642,7 @@ html:active-view-transition-type(nav-back) {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  font-family: 'LXGW WenKai TC', serif;
   transform-origin: center center;
   will-change: transform, box-shadow;
   backface-visibility: hidden;
@@ -627,15 +686,16 @@ html:active-view-transition-type(nav-back) {
 
 .note-board-sticky__text {
   color: #172033;
-  font-weight: 400;
-  line-height: 1.55;
+  font-weight: 500;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
   flex: 0 0 auto;
-  font-family: inherit;
-  text-rendering: optimizeLegibility;
+  font-family: 'LXGW WenKai TC', serif;
+  text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
   margin-top: auto;
   margin-bottom: auto;
   display: flex;
@@ -646,7 +706,7 @@ html:active-view-transition-type(nav-back) {
 }
 
 .note-board-sticky__text--preview {
-  font-size: 0.875rem; /* 14px, match hero meta */
+  font-size: 1.05rem;
   align-items: center;
   justify-content: center;
   text-align: center;
@@ -654,7 +714,7 @@ html:active-view-transition-type(nav-back) {
 
 .note-board-sticky__text--board {
   margin-top: 0;
-  font-size: 0.875rem; /* 14px, match hero meta */
+  font-size: 1.05rem;
   align-items: center;
   justify-content: center;
   text-align: center;
