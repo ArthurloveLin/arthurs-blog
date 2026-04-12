@@ -235,6 +235,8 @@ function NavbarContent() {
     toggleDrawer: toggleDrawerInternal,
   } = useNavbarUiState()
 
+  const isNowWatchingPage = pathname === '/now-watching'
+
   const isOnArticle = pathname.startsWith('/blog/') && pathname !== '/blog'
 
   const articleHomeHref = useSyncExternalStore(
@@ -327,6 +329,10 @@ function NavbarContent() {
   const closeMobileNavigation = useCallback(() => {
     closeMobileMenu()
   }, [closeMobileMenu])
+
+  if (isNowWatchingPage) {
+    return null
+  }
 
   return (
     <>
