@@ -162,8 +162,8 @@
   --color-ring: var(--ring);
   --color-blob-1: var(--blob-color-1);
   --color-blob-2: var(--blob-color-2);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans), var(--font-noto-sc), sans-serif;
+  --font-mono: var(--font-geist-mono), var(--font-noto-sc), monospace;
   /* Border Radius Scale */
   --radius-sm: 5px;   /* Micro: small containers, link tags */
   --radius-md: 5px;   /* Micro: link tags */
@@ -284,7 +284,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
   transition: background-color 0.3s, color 0.3s;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -791,5 +791,130 @@ html:active-view-transition-type(nav-back) {
   .note-board-preview__empty-link {
     transition-duration: 0.01ms !important;
   }
+}
+
+/* =============================================================================
+   Typography Role Utilities
+   统一排版角色系统：Geist Sans + 思源黑体，18 种语义角色
+   不包含 font-size（各组件自行保持原有字号）
+   ============================================================================= */
+
+@utility typo-display-hero {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1.07;
+  letter-spacing: -0.28px;
+}
+
+@utility typo-section-heading {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1.10;
+  letter-spacing: normal;
+}
+
+@utility typo-tile-heading {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.14;
+  letter-spacing: 0.196px;
+}
+
+@utility typo-card-title {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  line-height: 1.19;
+  letter-spacing: 0.231px;
+}
+
+@utility typo-sub-heading {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.19;
+  letter-spacing: 0.231px;
+}
+
+@utility typo-nav-heading {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+}
+
+@utility typo-sub-nav {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  line-height: 1.50;
+  letter-spacing: normal;
+}
+
+@utility typo-body {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+}
+
+@utility typo-body-emphasis {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1.24;
+  letter-spacing: -0.374px;
+}
+
+@utility typo-button-large {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  line-height: 1.00;
+  letter-spacing: normal;
+}
+
+@utility typo-button {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 2.41;
+  letter-spacing: normal;
+}
+
+@utility typo-link {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.43;
+  letter-spacing: -0.224px;
+}
+
+@utility typo-caption {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+}
+
+@utility typo-caption-bold {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+}
+
+@utility typo-micro {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  line-height: 1.33;
+  letter-spacing: -0.12px;
+}
+
+@utility typo-micro-bold {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  line-height: 1.33;
+  letter-spacing: -0.12px;
+}
+
+@utility typo-nano {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.08px;
 }
 
