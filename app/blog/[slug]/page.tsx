@@ -135,9 +135,9 @@ export default async function BlogPostPage({
       <CurrentArticleReturnTarget postId={post.id} postSlug={post.slug} />
       <ScrollToTop />
       <div className="site-container py-8">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-14 lg:gap-7">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)_minmax(15rem,18rem)] lg:gap-7">
           {/* Left Sidebar Space - Matches Blog List Grid */}
-          <aside className="hidden md:block md:col-span-4 lg:col-span-3 h-full">
+          <aside className="hidden md:block md:col-span-4 lg:col-span-1 h-full">
             <div className="sticky top-24 space-y-4">
               <ScrollCollapseWrapper threshold={300}>
                 <ViewTransition name="sidebar-author-card">
@@ -152,7 +152,7 @@ export default async function BlogPostPage({
           </aside>
 
           {/* Main Article Content - Perfectly aligned with PostCard width */}
-          <article className="apple-card md:col-span-8 lg:col-span-8 overflow-hidden h-fit">
+          <article className="apple-card md:col-span-8 lg:col-span-1 overflow-hidden h-fit">
             {/* ── Outer padding for the whole article card content ── */}
             <div>
               {/* Hero Header (Synced with PostCard) */}
@@ -232,7 +232,7 @@ export default async function BlogPostPage({
           </article>
 
           {/* Right Sidebar Space */}
-          <aside className="hidden lg:block lg:col-span-3">
+          <aside className="hidden lg:block lg:col-span-1">
             <div className="sticky top-24 space-y-4">
               <RecentPostsCard />
               <ToolsCard />

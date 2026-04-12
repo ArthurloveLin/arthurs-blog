@@ -108,11 +108,11 @@ export default function BlogPage({
 
       {/* ── 3-Column Body ────────────────────────────────────────────── */}
       <div className="site-container py-8">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-14 lg:gap-7">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)_minmax(15rem,18rem)] lg:gap-7">
 
           {/* ── Left Sidebar ─────────────────────────────────────────── */}
           {/* Desktop: col-span-3 | Tablet: col-span-4 | Mobile: hidden */}
-          <aside className="hidden md:block md:col-span-4 lg:col-span-3">
+          <aside className="hidden md:block md:col-span-4 lg:col-span-1">
             <div 
               ref={leftSidebarRef}
               className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none overscroll-contain pb-12 space-y-4"
@@ -136,7 +136,7 @@ export default function BlogPage({
 
           {/* ── Right Sidebar ─────────────────────────────────────────── */}
           {/* Desktop only: col-span-3 | Tablet + Mobile: hidden */}
-          <aside className="hidden lg:block lg:col-span-3">
+          <aside className="hidden lg:block lg:col-span-1">
             <div 
               ref={rightSidebarRef}
               className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none overscroll-contain pb-12 space-y-4"

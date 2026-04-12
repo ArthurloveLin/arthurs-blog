@@ -29,7 +29,7 @@ export default function BlogFeedSection({
   activeYear = null,
 }: BlogFeedSectionProps) {
   return (
-    <section className="md:col-span-8 lg:col-span-8">
+    <section className="md:col-span-8 lg:col-span-1">
       {/* Feed header / Category filter banner */}
       <div className="apple-card apple-card-hover mb-5 flex items-center justify-between px-4 py-3">
         {activeCategory || activeTags.length > 0 || activeYear ? (
