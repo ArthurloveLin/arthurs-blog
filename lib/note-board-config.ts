@@ -18,9 +18,9 @@ export interface NoteBoardViewConfig {
 const NOTE_BOARD_CONFIGS: Record<NoteBoardSlug, NoteBoardViewConfig> = {
   guestbook: {
     slug: 'guestbook',
-    title: 'Guestbook',
+    title: 'Message',
     subtitle: '一张张贴在主页上的留言便签。',
-    intro: '按时间倒序散开排列的公开留言板。拖开一张，就会露出下一张。',
+    intro: '按时间倒序散开排列的公开留言板，拖开一张查看下一张',
     heroHint: '拖拽顶上的便签到主页区域任意位置，继续翻看下一张留言。',
     ctaLabel: '进入留言板',
     emptyLabel: '还没有留言，留下第一张便签吧。',
@@ -34,7 +34,7 @@ const NOTE_BOARD_CONFIGS: Record<NoteBoardSlug, NoteBoardViewConfig> = {
     slug: 'memo',
     title: 'Memo',
     subtitle: '记录每日灵感。',
-    intro: '以便签墙整理每日灵感，仅 admin 可以维护内容。',
+    intro: '以便签墙整理每日灵感',
     heroHint: 'Memo 仅在独立页面展开。',
     ctaLabel: '进入 Memo',
     emptyLabel: '暂时没有备忘录便签。',

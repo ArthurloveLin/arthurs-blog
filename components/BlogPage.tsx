@@ -107,12 +107,12 @@ export default function BlogPage({
       <BlogHero guestbookBoard={guestbookBoard} initialGuestbookMessages={initialGuestbookMessages} />
 
       {/* ── 3-Column Body ────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+      <div className="site-shell-triad py-8">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,45rem)_minmax(15rem,16rem)] lg:justify-center">
 
           {/* ── Left Sidebar ─────────────────────────────────────────── */}
           {/* Desktop: col-span-3 | Tablet: col-span-4 | Mobile: hidden */}
-          <aside className="hidden md:block md:col-span-4 lg:col-span-3">
+          <aside className="hidden md:block md:col-span-4 lg:col-span-1">
             <div 
               ref={leftSidebarRef}
               className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none overscroll-contain pb-12 space-y-4"
@@ -136,7 +136,7 @@ export default function BlogPage({
 
           {/* ── Right Sidebar ─────────────────────────────────────────── */}
           {/* Desktop only: col-span-3 | Tablet + Mobile: hidden */}
-          <aside className="hidden lg:block lg:col-span-3">
+          <aside className="hidden lg:block lg:col-span-1">
             <div 
               ref={rightSidebarRef}
               className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none overscroll-contain pb-12 space-y-4"
@@ -152,7 +152,7 @@ export default function BlogPage({
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
       <footer className="border-t border-border mt-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="site-shell-triad py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="font-mono text-[11px] text-muted-foreground">
             © {currentYear} Arthur &amp; Grace
           </p>

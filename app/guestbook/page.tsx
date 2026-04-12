@@ -3,7 +3,7 @@ import { NoteBoardPage } from '@/components/note-board/NoteBoardExperience'
 import { getNoteBoardConfig } from '@/lib/note-board-config'
 import { getBoardMessages } from '@/lib/note-boards'
 
-export const metadata = { title: 'Guestbook' }
+export const metadata = { title: 'Message' }
 export const revalidate = 60
 
 export default async function GuestbookPage() {
@@ -13,7 +13,7 @@ export default async function GuestbookPage() {
   return (
     <DirectionalTransition>
       <main className="min-h-screen bg-background pt-12 pb-24">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="site-shell">
           <div className="mb-10 max-w-2xl">
             <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               {config?.title}
