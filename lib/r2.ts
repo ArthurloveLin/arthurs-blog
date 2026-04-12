@@ -34,9 +34,18 @@ export async function putR2Object(
   bucket: string,
   key: string,
   body: Buffer | Uint8Array | string,
-  contentType: string
+  contentType: string,
+  options?: {
+    cacheControl?: string
+  }
 ): Promise<void> {
-  const command = new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType })
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Body: body,
+    ContentType: contentType,
+    CacheControl: options?.cacheControl,
+  })
   await r2Client.send(command)
 }
 

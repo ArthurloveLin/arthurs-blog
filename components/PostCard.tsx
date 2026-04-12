@@ -34,7 +34,7 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
     <PrefetchOnHover
       href={`/blog/${post.slug}`}
       id={`post-${post.id}`}
-      className="bg-card text-card-foreground border border-border/50 dark:border-white/10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:border-white/20 overflow-hidden group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="bg-card text-card-foreground border border-border/50 dark:border-white/10 rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.22)] dark:shadow-none transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.28)] dark:hover:border-white/20 overflow-hidden group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       style={{
         contentVisibility: isEager ? 'visible' : 'auto',
         containIntrinsicSize: isEager ? undefined : '0 400px',

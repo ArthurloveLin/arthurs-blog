@@ -77,7 +77,7 @@ export default function TrendRadarPage({
           <div className="absolute top-0 left-1/4 w-72 h-72 bg-red-400/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob pointer-events-none"></div>
           <div className="absolute -top-10 right-1/4 w-72 h-72 bg-blue-400/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000 pointer-events-none"></div>
 
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-12 lg:pt-20 lg:pb-16 z-10">
+          <div className="site-shell-triad relative pt-14 pb-12 lg:pt-20 lg:pb-16 z-10">
             <p className="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase mb-5">
               News / Trend Radar
             </p>
@@ -92,10 +92,10 @@ export default function TrendRadarPage({
         </div>
 
         {/* ── Body ── */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div className="site-shell-triad py-8">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,45rem)_minmax(15rem,16rem)] lg:justify-center">
             {/* Left */}
-            <aside className="hidden md:block md:col-span-4 lg:col-span-3">
+            <aside className="hidden md:block md:col-span-4 lg:col-span-1">
               <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none space-y-4 pb-12">
                 <AuthorProfileCompactCard id="trend-radar-author" />
                 <ToolsCard />
@@ -103,7 +103,7 @@ export default function TrendRadarPage({
             </aside>
 
             {/* Main */}
-            <section className="md:col-span-8 lg:col-span-6 min-h-[500px]">
+            <section className="min-w-0 md:col-span-8 lg:col-span-1 min-h-[500px]">
               <Suspense
                 fallback={
                   <div className="py-24 flex flex-col items-center gap-4">
@@ -117,7 +117,7 @@ export default function TrendRadarPage({
             </section>
 
             {/* Right */}
-            <aside className="hidden lg:block lg:col-span-3">
+            <aside className="hidden lg:block lg:col-span-1">
               <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none space-y-4 pb-12">
                 <RecentPostsCard />
                 <ArchiveCard />
@@ -128,7 +128,7 @@ export default function TrendRadarPage({
 
         {/* Footer */}
         <footer className="border-t border-border mt-6">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7">
+          <div className="site-shell-triad py-7">
             <p className="font-mono text-[11px] text-muted-foreground text-center sm:text-left">
               © {new Date().getFullYear()} Arthur & Grace · TrendRadar Module
             </p>
