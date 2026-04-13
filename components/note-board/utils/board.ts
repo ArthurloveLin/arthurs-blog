@@ -128,9 +128,9 @@ export function computeBoardLayout(
 
   const layouts: BoardLayoutCard[] = messages.map((message, index) => {
     let column = 0
-    for (let candidate = 1; candidate < columns; candidate += 1) {
-      if (columnBottoms[candidate] < columnBottoms[column]) {
-        column = candidate
+    for (let candidateColumn = 1; candidateColumn < columns; candidateColumn += 1) {
+      if (columnBottoms[candidateColumn] < columnBottoms[column]) {
+        column = candidateColumn
       }
     }
     const cardHeight = getBoardCardHeight(message.id, measuredHeights)
