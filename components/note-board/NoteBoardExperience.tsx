@@ -63,11 +63,17 @@ interface StickyNoteCardProps {
   ctaLabel?: string
   animatePosition?: boolean
   dragBoundsMode?: 'contained' | 'mobile-stack'
+  isInlineEditing?: boolean
+  inlineEditContent?: string
+  isSavingInline?: boolean
   onDelete?: () => void
   onEdit?: () => void
   onToggleArchive?: () => void
   onLift?: () => void
   onCommit?: (nextPosition: NotePosition, metrics: { distance: number }) => void
+  onInlineEditChange?: (value: string) => void
+  onInlineSave?: () => void
+  onInlineCancel?: () => void
 }
 
 interface TextSelectionRange {
@@ -94,6 +100,7 @@ interface NoteEditorProps {
   shellClassName?: string
   toolbarClassName?: string
   autoFocus?: boolean
+  buttonSize?: 'sm' | 'md'
 }
 
 interface ToastNotice {
@@ -261,20 +268,23 @@ function ToolbarIconButton({
   children,
   disabled = false,
   emphasize = false,
+  size = 'md',
 }: {
   onClick: () => void
   label: string
   children: ReactNode
   disabled?: boolean
   emphasize?: boolean
+  size?: 'sm' | 'md'
 }) {
+  const sizeClass = size === 'sm' ? 'h-6 w-6' : 'h-8 w-8'
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
       disabled={disabled}
-      className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition ${emphasize ? 'border-slate-900 bg-slate-900 text-white hover:opacity-90 disabled:border-slate-400 disabled:bg-slate-400' : 'border-black/10 bg-white/70 text-slate-700 hover:bg-white disabled:opacity-40'}`}
+      className={`inline-flex ${sizeClass} items-center justify-center rounded-full border transition ${emphasize ? 'border-slate-900 bg-slate-900 text-white hover:opacity-90 disabled:border-slate-400 disabled:bg-slate-400' : 'border-black/10 bg-white/70 text-slate-700 hover:bg-white disabled:opacity-40'}`}
       onClick={onClick}
     >
       {children}
@@ -296,6 +306,7 @@ function NoteEditor({
   shellClassName = 'overflow-hidden rounded-[18px] border border-black/10 bg-white/45',
   toolbarClassName = 'px-3 py-2 text-[11px] text-slate-700',
   autoFocus = false,
+  buttonSize = 'md',
 }: NoteEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pendingSelectionRef = useRef<TextSelectionRange | null>(null)
@@ -350,29 +361,29 @@ function NoteEditor({
           className={['border-t-0', toolbarClassName].join(' ')}
           leading={(
             <>
-              <ToolbarIconButton onClick={() => withSelection(insertChecklistSyntax)} label="插入 checklist">
-                <ListTodo size={12} strokeWidth={1.8} />
+              <ToolbarIconButton size={buttonSize} onClick={() => withSelection(insertChecklistSyntax)} label="插入 checklist">
+                <ListTodo size={buttonSize === 'sm' ? 10 : 12} strokeWidth={1.8} />
               </ToolbarIconButton>
-              <ToolbarIconButton onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '**'))} label="加粗">
-                <Bold size={12} strokeWidth={1.8} />
+              <ToolbarIconButton size={buttonSize} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '**'))} label="加粗">
+                <Bold size={buttonSize === 'sm' ? 10 : 12} strokeWidth={1.8} />
               </ToolbarIconButton>
-              <ToolbarIconButton onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '*'))} label="斜体">
-                <Italic size={12} strokeWidth={1.8} />
+              <ToolbarIconButton size={buttonSize} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '*'))} label="斜体">
+                <Italic size={buttonSize === 'sm' ? 10 : 12} strokeWidth={1.8} />
               </ToolbarIconButton>
-              <ToolbarIconButton onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '=='))} label="高亮">
-                <Highlighter size={12} strokeWidth={1.8} />
+              <ToolbarIconButton size={buttonSize} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '=='))} label="高亮">
+                <Highlighter size={buttonSize === 'sm' ? 10 : 12} strokeWidth={1.8} />
               </ToolbarIconButton>
             </>
           )}
           trailing={(
             <>
               {onCancel ? (
-                <ToolbarIconButton onClick={onCancel} label="取消编辑">
-                  <X size={12} strokeWidth={1.8} />
+                <ToolbarIconButton size={buttonSize} onClick={onCancel} label="取消编辑">
+                  <X size={buttonSize === 'sm' ? 10 : 12} strokeWidth={1.8} />
                 </ToolbarIconButton>
               ) : null}
-              <ToolbarIconButton onClick={onSave} label={isSaving ? '保存中' : saveLabel} disabled={isSaving || saveDisabled} emphasize>
-                <Check size={12} strokeWidth={2} />
+              <ToolbarIconButton size={buttonSize} onClick={onSave} label={isSaving ? '保存中' : saveLabel} disabled={isSaving || saveDisabled} emphasize>
+                <Check size={buttonSize === 'sm' ? 10 : 12} strokeWidth={2} />
               </ToolbarIconButton>
             </>
           )}
@@ -569,11 +580,17 @@ function StickyNoteCard({
   ctaLabel,
   animatePosition = true,
   dragBoundsMode = 'contained',
+  isInlineEditing = false,
+  inlineEditContent = '',
+  isSavingInline = false,
   onDelete,
   onEdit,
   onToggleArchive,
   onLift,
   onCommit,
+  onInlineEditChange,
+  onInlineSave,
+  onInlineCancel,
 }: StickyNoteCardProps) {
   const dragOriginRef = useRef<NotePosition | null>(null)
   const dragPointerRef = useRef<{ startClientX: number; startClientY: number } | null>(null)
@@ -760,19 +777,40 @@ function StickyNoteCard({
                 {message.archived ? <ArchiveRestore size={16} strokeWidth={1.9} /> : <Archive size={16} strokeWidth={1.9} />}
               </NoteIconAction>
             ) : null}
-            {showEdit && onEdit && !isPreview ? (
+            {showEdit && onEdit && !isPreview && !isInlineEditing ? (
               <NoteIconAction label="编辑便签" onClick={onEdit}>
                 <PencilLine size={16} strokeWidth={1.9} />
               </NoteIconAction>
             ) : null}
-            {showDelete && onDelete ? (
+            {showDelete && onDelete && !isInlineEditing ? (
               <NoteIconAction label="删除便签" onClick={onDelete}>
                 <Trash2 size={16} strokeWidth={1.85} />
               </NoteIconAction>
             ) : null}
           </div>
         </div>
-        {renderNoteContent(message.content, variant)}
+        {isInlineEditing ? (
+          <div onPointerDown={(e) => e.stopPropagation()}>
+            <NoteEditor
+              value={inlineEditContent}
+              onChange={onInlineEditChange ?? (() => {})}
+              placeholder="直接修改这张便签的原始文本，checklist 状态也在这里编辑。"
+              saveLabel="保存"
+              isSaving={isSavingInline}
+              onSave={onInlineSave ?? (() => {})}
+              onCancel={onInlineCancel}
+              saveDisabled={!inlineEditContent.trim()}
+              maxLength={180}
+              minHeightClassName="min-h-[80px]"
+              shellClassName="overflow-hidden rounded-[14px] border border-black/10 bg-white/30"
+              toolbarClassName="px-2 py-1.5 text-[10px] text-slate-700"
+              buttonSize="sm"
+              autoFocus
+            />
+          </div>
+        ) : (
+          renderNoteContent(message.content, variant)
+        )}
       </div>
     </article>
   )
@@ -1312,7 +1350,10 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
     setEditingNoteId(message.id)
     setEditContent(message.content)
     setError(null)
-    scrollToEditor()
+    // 仅移动端滚动到底部编辑区，PC 端使用卡片内嵌编辑
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      scrollToEditor()
+    }
   }
 
   function cancelEditingNote() {
@@ -1605,6 +1646,9 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
                       showDelete={getDeletePermission(board.slug, isAdmin, identity, message)}
                       showEdit={getEditPermission(isAdmin, identity, message)}
                       showArchive={getEditPermission(isAdmin, identity, message)}
+                      isInlineEditing={editingNoteId === message.id}
+                      inlineEditContent={editingNoteId === message.id ? editContent : ''}
+                      isSavingInline={isUpdatingNote}
                       onDelete={() => handleDelete(message.id)}
                       onEdit={() => startEditingNote(message)}
                       onToggleArchive={() => handleToggleArchive(message)}
@@ -1612,6 +1656,9 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
                       onCommit={(nextPosition) => {
                         setCustomPositions((current) => ({ ...current, [message.id]: nextPosition }))
                       }}
+                      onInlineEditChange={setEditContent}
+                      onInlineSave={() => void saveEditingNote()}
+                      onInlineCancel={cancelEditingNote}
                     />
                   )
                 })}
