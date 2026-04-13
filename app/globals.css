@@ -675,7 +675,7 @@ html:active-view-transition-type(nav-back) {
 .note-board-sticky__meta-copy .note-board-sticky__time {
   margin-top: 4px;
   text-align: left;
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .note-board-sticky__actions {
