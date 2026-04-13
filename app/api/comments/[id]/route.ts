@@ -23,8 +23,11 @@ async function canModifyComment(req: NextRequest, author: string) {
   }
 
   const body = await req.json().catch(() => ({}))
-  const requesterIdentity = body.identity as string | undefined
-  return !!requesterIdentity && requesterIdentity === author
+  const requesterIdentities = Array.isArray(body.identities)
+    ? body.identities.filter((value: unknown): value is string => typeof value === 'string')
+    : [body.identity].filter((value): value is string => typeof value === 'string')
+
+  return requesterIdentities.includes(author)
 }
 
 export async function DELETE(
@@ -60,14 +63,16 @@ export async function PATCH(
 
   const body = await req.json().catch(() => ({}))
   const content = typeof body.content === 'string' ? body.content.trim() : ''
-  const requesterIdentity = typeof body.identity === 'string' ? body.identity : undefined
+  const requesterIdentities = Array.isArray(body.identities)
+    ? body.identities.filter((value: unknown): value is string => typeof value === 'string')
+    : [body.identity].filter((value): value is string => typeof value === 'string')
 
   if (!content) {
     return NextResponse.json({ error: 'Missing content' }, { status: 400 })
   }
 
   const role = await getUserRole()
-  if (role !== 'admin' && (!requesterIdentity || requesterIdentity !== comment.author)) {
+  if (role !== 'admin' && !requesterIdentities.includes(comment.author)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

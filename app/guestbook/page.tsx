@@ -18,7 +18,7 @@ export default async function GuestbookPage() {
             <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               {config?.title}
             </p>
-            <h1 className="text-4xl font-semibold tracking-tight text-foreground">{config?.subtitle}</h1>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-[2.75rem]">{config?.subtitle}</h1>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{config?.intro}</p>
           </div>
           <NoteBoardPage board={config} initialMessages={messages} />

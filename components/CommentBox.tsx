@@ -16,7 +16,7 @@ interface Comment {
 }
 
 interface CommentTreeContextValue {
-  identity: string
+  identityAliases: string[]
   isAdmin: boolean
   onReply: (comment: Comment) => void
   onDelete: (id: string) => void
@@ -31,17 +31,17 @@ function useCommentTree() {
   return ctx
 }
 
-function canModifyComment(comment: Comment, identity: string, isAdmin: boolean) {
-  return isAdmin || (!!identity && comment.author === identity)
+function canModifyComment(comment: Comment, identityAliases: string[], isAdmin: boolean) {
+  return isAdmin || identityAliases.includes(comment.author)
 }
 
 function CommentCard({ comment }: { comment: Comment }) {
-  const { identity, isAdmin, onReply, onDelete, onUpdate } = useCommentTree()
+  const { identityAliases, isAdmin, onReply, onDelete, onUpdate } = useCommentTree()
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(comment.content)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const editable = canModifyComment(comment, identity, isAdmin)
+  const editable = canModifyComment(comment, identityAliases, isAdmin)
 
   useEffect(() => {
     setDraft(comment.content)
@@ -129,7 +129,7 @@ function CommentCard({ comment }: { comment: Comment }) {
           </button>
         </div>
       </div>
-      {canModifyComment(comment, identity, isAdmin) && (
+      {canModifyComment(comment, identityAliases, isAdmin) && (
         <button
           onClick={() => onDelete(comment.id)}
           className="text-muted-foreground/20 hover:text-destructive text-xl leading-none mt-2 shrink-0 transition-colors px-1"
@@ -171,7 +171,7 @@ interface CommentBoxProps {
 }
 
 export default function CommentBox({ targetType, targetId, initialComments }: CommentBoxProps) {
-  const { identity, isAdmin } = useAuth()
+  const { identity, identityAliases, isAdmin, publicIdentity } = useAuth()
 
   const [comments, setComments] = useState<Comment[]>(initialComments)
   const [text, setText] = useState('')
@@ -204,7 +204,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
         body: JSON.stringify({
           target_type: targetType,
           target_id: targetId,
-          author: identity,
+          author: publicIdentity,
           content: text.trim(),
           parent_id: replyTo?.id ?? null,
         }),
@@ -225,7 +225,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     const res = await fetch(`/api/comments/${id}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identity }),
+      body: JSON.stringify({ identity, identities: identityAliases }),
     })
     if (res.ok) {
       setComments((prev) => prev.filter((c) => c.id !== id && c.parent_id !== id))
@@ -240,7 +240,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     const res = await fetch(`/api/comments/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identity, content }),
+      body: JSON.stringify({ identity, identities: identityAliases, content }),
     })
 
     if (!res.ok) {
@@ -252,7 +252,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
   }
 
   return (
-    <CommentTreeContext value={{ identity: identity ?? '', isAdmin, onReply: handleReply, onDelete: handleDelete, onUpdate: handleUpdate }}>
+    <CommentTreeContext value={{ identityAliases, isAdmin, onReply: handleReply, onDelete: handleDelete, onUpdate: handleUpdate }}>
       <div>
         <h3 className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 mb-4 px-1">
           评论 {comments.length > 0 && `(${comments.length})`}

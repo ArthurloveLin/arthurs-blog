@@ -1,6 +1,7 @@
 'use client'
 
 import { ComponentType } from 'react'
+import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { X } from 'lucide-react'
@@ -82,6 +83,33 @@ export default function MobileDrawers() {
   const routeContext = getDrawerRouteContext(pathname)
   const activeDefinition = activeDrawer ? DRAWERS[activeDrawer] : null
   const ActiveDrawerPanel = activeDefinition?.Component
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const { body, documentElement } = document
+    const scrollY = window.scrollY
+    const previousBodyOverflow = body.style.overflow
+    const previousBodyPosition = body.style.position
+    const previousBodyTop = body.style.top
+    const previousBodyWidth = body.style.width
+    const previousHtmlOverflow = documentElement.style.overflow
+
+    body.style.overflow = 'hidden'
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.width = '100%'
+    documentElement.style.overflow = 'hidden'
+
+    return () => {
+      body.style.overflow = previousBodyOverflow
+      body.style.position = previousBodyPosition
+      body.style.top = previousBodyTop
+      body.style.width = previousBodyWidth
+      documentElement.style.overflow = previousHtmlOverflow
+      window.scrollTo({ top: scrollY, behavior: 'auto' })
+    }
+  }, [isOpen])
 
   return (
     <div className={`fixed inset-0 z-[999] md:hidden flex flex-col justify-end transition-[visibility] duration-200 ${isOpen ? 'visible' : 'invisible pointer-events-none'}`}>
