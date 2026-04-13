@@ -5,7 +5,6 @@ import type { NotePosition, Size } from '@/components/note-board/types'
 export const STICKY_COLORS = ['#f8ef9f', '#ffd0a8', '#f8bfd3', '#c9eff3', '#d9ccff']
 export const NOTE_CARD_WIDTH = 200
 export const MOBILE_VIEWPORT_MAX_WIDTH = 767
-const MAX_BOARD_CARD_WIDTH = 272
 export const PREVIEW_CARD_SIZE = 200
 export const PREVIEW_STACK_LIMIT = 6
 export const PREVIEW_REVEAL_THRESHOLD = 112
@@ -26,7 +25,7 @@ interface BoardLayoutCard {
 }
 
 function getBoardColumnCount(width: number) {
-  return width >= 1200 ? 4 : width >= 860 ? 3 : width >= 620 ? 2 : 1
+  return width >= 900 ? 4 : width >= 680 ? 3 : width >= 460 ? 2 : 1
 }
 
 function getBoardCardHeight(messageId: string, measuredHeights: Record<string, number>) {
@@ -100,30 +99,23 @@ export function getMobileSideParkPosition(
   }
 }
 
-function getCardWidth(width: number) {
-  if (width <= 0) return NOTE_CARD_WIDTH
-  return clamp(width, NOTE_CARD_WIDTH, MAX_BOARD_CARD_WIDTH)
-}
-
 export function computeBoardLayout(
   messages: NoteMessage[],
   width: number,
   measuredHeights: Record<string, number> = {},
 ) {
   const columns = getBoardColumnCount(width)
-  const gapX = columns > 1 ? 28 : 0
+  const cardWidth = NOTE_CARD_WIDTH // Fixed 200px — same as hero preview
   const gapY = 34
-  const usableWidth = Math.max(width, NOTE_CARD_WIDTH)
-  const availableCardWidth = width > 0
-    ? (usableWidth - Math.max(columns - 1, 0) * gapX) / columns
-    : NOTE_CARD_WIDTH
-  const cardWidth = getCardWidth(availableCardWidth)
-  const totalWidth = columns * cardWidth + Math.max(columns - 1, 0) * gapX
-  const leftInset = clamp((usableWidth - totalWidth) / 2, 0, Math.max(usableWidth - cardWidth, 0))
+
+  // Distribute columns with space-evenly: equal gaps between columns and on both sides
+  const availableSpacing = Math.max(width - columns * cardWidth, 0)
+  const gapX = columns > 0 ? availableSpacing / (columns + 1) : 0
+
   const maxX = Math.max(width - cardWidth, 0)
-  const columnX = Array.from({ length: columns }, (_, column) => (
-    clamp(leftInset + column * (cardWidth + gapX), 0, maxX)
-  ))
+  const columnX = Array.from({ length: columns }, (_, i) =>
+    clamp(gapX + i * (cardWidth + gapX), 0, maxX),
+  )
   const topInset = 10
   const columnBottoms = Array.from({ length: columns }, () => topInset)
 
