@@ -1,7 +1,7 @@
 'use client'
 
 import { Layers, LayoutList } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { StickyNoteCard } from '@/components/note-board/components/StickyNoteCard'
@@ -207,7 +207,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
     setCardZIndices((current) => ({ ...current, [id]: zIndexCounterRef.current++ }))
   }
 
-  function handleCardHeightChange(id: string, height: number) {
+  const handleCardHeightChange = useCallback((id: string, height: number) => {
     setMeasuredHeights((current) => {
       if (current[id] === height) {
         return current
@@ -215,7 +215,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
 
       return { ...current, [id]: height }
     })
-  }
+  }, [])
 
   function resetBoardSurface(nextMessages: NoteMessage[], archived: boolean) {
     setMessages(nextMessages)
@@ -408,14 +408,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   }
 
   const isMobileEditorMode = isMobileViewport && !!editingMessage
-  const isDesktopInlineEditing = !isMobileViewport && !!editingMessage
-  let editorSectionLabel = board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'
-  if (isDesktopInlineEditing) {
-    editorSectionLabel = '桌面端原地编辑'
-  }
-  if (isMobileEditorMode) {
-    editorSectionLabel = '便签编辑区'
-  }
+  const editorSectionLabel = isMobileEditorMode ? '便签编辑区' : (board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区')
   const defaultEditorPlaceholder = board.slug === 'guestbook'
     ? '写下想贴在主页上的留言，或直接插入 checklist。'
     : '写一条新的 Memo 便签，或直接插入 checklist。'
@@ -585,38 +578,32 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
           <div className="mt-4 rounded-[24px] border border-dashed border-border/70 bg-background/55 px-4 py-3 text-sm text-muted-foreground">
             正在编辑 {editingMessage.author} 的便签。保存后卡片时间会自动刷新。
           </div>
-        ) : isDesktopInlineEditing ? (
-          <div className="mt-4 rounded-[24px] border border-dashed border-border/70 bg-background/55 px-4 py-3 text-sm text-muted-foreground">
-            当前便签已切换为卡片原地编辑，桌面端请直接在便签内保存或取消。
-          </div>
         ) : null}
 
         {canWrite ? (
-          isDesktopInlineEditing ? null : (
-            <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
-              <NoteEditor
-                value={editorValue}
-                onChange={isMobileEditorMode ? setEditContent : setDraft}
-                placeholder={editorPlaceholder}
-                saveLabel={editorSaveLabel}
-                isSaving={editorSaving}
-                onSave={() => {
-                  if (isMobileEditorMode) {
-                    void saveEditingNote()
-                    return
-                  }
-                  void submitDraft()
-                }}
-                onCancel={isMobileEditorMode ? cancelEditingNote : undefined}
-                saveDisabled={!editorValue.trim()}
-                maxLength={180}
-                minHeightClassName="min-h-[140px]"
-                shellClassName="overflow-hidden rounded-[24px] border border-border/70 bg-background/55"
-                toolbarClassName="px-4 py-3 text-xs text-muted-foreground"
-                autoFocus={isMobileEditorMode}
-              />
-            </form>
-          )
+          <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
+            <NoteEditor
+              value={editorValue}
+              onChange={isMobileEditorMode ? setEditContent : setDraft}
+              placeholder={editorPlaceholder}
+              saveLabel={editorSaveLabel}
+              isSaving={editorSaving}
+              onSave={() => {
+                if (isMobileEditorMode) {
+                  void saveEditingNote()
+                  return
+                }
+                void submitDraft()
+              }}
+              onCancel={isMobileEditorMode ? cancelEditingNote : undefined}
+              saveDisabled={!editorValue.trim()}
+              maxLength={180}
+              minHeightClassName="min-h-[140px]"
+              shellClassName="overflow-hidden rounded-[24px] border border-border/70 bg-background/55"
+              toolbarClassName="px-4 py-3 text-xs text-muted-foreground"
+              autoFocus={isMobileEditorMode}
+            />
+          </form>
         ) : (
           <p className="mt-4 text-sm leading-7 text-muted-foreground">这里先开放浏览，Memo 暂时由 admin 维护与更新。</p>
         )}
