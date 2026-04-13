@@ -106,18 +106,18 @@
 
   .root :global(.col-scroll__item) {
     margin: 0 auto;
-    padding: 0 0.9rem;
-    width: 100%;
+    padding: 0;
+    width: min(calc(100% - 1.5rem), 21rem);
   }
 
   .root :global(.col-scroll__img) {
-    border-radius: 1rem;
+    border-radius: 0;
     width: 100%;
   }
 
   .root :global(.col-scroll__title) {
     margin: 0.75rem 0 0;
-    padding: 0 0.2rem;
+    padding: 0;
   }
 
   .root main {

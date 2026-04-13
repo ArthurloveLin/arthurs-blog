@@ -4,6 +4,8 @@ import type { NotePosition, Size } from '@/components/note-board/types'
 
 export const STICKY_COLORS = ['#f8ef9f', '#ffd0a8', '#f8bfd3', '#c9eff3', '#d9ccff']
 export const NOTE_CARD_WIDTH = 200
+export const MOBILE_VIEWPORT_MAX_WIDTH = 767
+const MAX_BOARD_CARD_WIDTH = 272
 export const PREVIEW_CARD_SIZE = 200
 export const PREVIEW_STACK_LIMIT = 6
 export const PREVIEW_REVEAL_THRESHOLD = 112
@@ -43,14 +45,6 @@ function getBoardRotation(messageId: string, index: number, column: number) {
   const magnitude = 1.6 + seededUnit(messageId, 3) * 5.4
 
   return sign * magnitude
-}
-
-function getBoardRowLift(row: number, column: number, messageId: string) {
-  const rowPattern = [0, 12, 4, 16]
-  const baseLift = rowPattern[(row + column) % rowPattern.length] ?? 0
-  const drift = seededUnit(messageId, 12) * 6
-
-  return baseLift + drift
 }
 
 export function clamp(value: number, min: number, max: number) {
@@ -108,7 +102,7 @@ export function getMobileSideParkPosition(
 
 function getCardWidth(width: number) {
   if (width <= 0) return NOTE_CARD_WIDTH
-  return clamp(width - 32, NOTE_CARD_WIDTH, NOTE_CARD_WIDTH)
+  return clamp(width, NOTE_CARD_WIDTH, MAX_BOARD_CARD_WIDTH)
 }
 
 export function computeBoardLayout(
@@ -117,10 +111,13 @@ export function computeBoardLayout(
   measuredHeights: Record<string, number> = {},
 ) {
   const columns = getBoardColumnCount(width)
-  const cardWidth = getCardWidth(width > 0 ? width / columns : NOTE_CARD_WIDTH)
-  const gapX = columns > 1 ? 36 : 0
+  const gapX = columns > 1 ? 28 : 0
   const gapY = 34
-  const usableWidth = Math.max(width, cardWidth)
+  const usableWidth = Math.max(width, NOTE_CARD_WIDTH)
+  const availableCardWidth = width > 0
+    ? (usableWidth - Math.max(columns - 1, 0) * gapX) / columns
+    : NOTE_CARD_WIDTH
+  const cardWidth = getCardWidth(availableCardWidth)
   const totalWidth = columns * cardWidth + Math.max(columns - 1, 0) * gapX
   const leftInset = clamp((usableWidth - totalWidth) / 2, 0, Math.max(usableWidth - cardWidth, 0))
   const maxX = Math.max(width - cardWidth, 0)
@@ -128,33 +125,21 @@ export function computeBoardLayout(
     clamp(leftInset + column * (cardWidth + gapX), 0, maxX)
   ))
   const topInset = 10
-  let nextRowTop = topInset
+  const columnBottoms = Array.from({ length: columns }, () => topInset)
 
   const layouts: BoardLayoutCard[] = messages.map((message, index) => {
-    const row = Math.floor(index / columns)
-    const column = index % columns
-
+    let targetColumn = 0
+    for (let candidateColumn = 1; candidateColumn < columns; candidateColumn += 1) {
+      if (columnBottoms[candidateColumn] < columnBottoms[targetColumn]) {
+        targetColumn = candidateColumn
+      }
+    }
     const cardHeight = getBoardCardHeight(message.id, measuredHeights)
     const xJitter = (seededUnit(message.id, 1) - 0.5) * 14
-    const y = nextRowTop + getBoardRowLift(row, column, message.id)
-    const x = clamp(columnX[column] + xJitter, 0, maxX)
-    const rotation = getBoardRotation(message.id, index, column)
-
-    if (column === columns - 1 || index === messages.length - 1) {
-      const rowStart = row * columns
-      const rowEnd = Math.min(rowStart + columns, messages.length)
-      let rowBottom = nextRowTop
-
-      for (let rowIndex = rowStart; rowIndex < rowEnd; rowIndex += 1) {
-        const rowMessage = messages[rowIndex]
-        const rowColumn = rowIndex % columns
-        const rowCardHeight = getBoardCardHeight(rowMessage.id, measuredHeights)
-        const rowY = nextRowTop + getBoardRowLift(row, rowColumn, rowMessage.id)
-        rowBottom = Math.max(rowBottom, rowY + rowCardHeight)
-      }
-
-      nextRowTop = rowBottom + gapY
-    }
+    const y = columnBottoms[targetColumn]
+    const x = clamp(columnX[targetColumn] + xJitter, 0, maxX)
+    const rotation = getBoardRotation(message.id, index, targetColumn)
+    columnBottoms[targetColumn] = y + cardHeight + gapY
 
     return {
       x,
@@ -165,11 +150,7 @@ export function computeBoardLayout(
     }
   })
 
-  const bottomEdge = layouts.length === 0
-    ? 0
-    : Math.max(
-        ...layouts.map((layout, index) => layout.y + getBoardCardHeight(messages[index].id, measuredHeights)),
-      )
+  const bottomEdge = layouts.length === 0 ? 0 : Math.max(...columnBottoms) - gapY
   const height = layouts.length === 0 ? 320 : Math.max(320, bottomEdge + 40)
 
   return { cardWidth, height, layouts }
