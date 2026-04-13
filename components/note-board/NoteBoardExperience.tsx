@@ -408,11 +408,13 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
 
   const isMobileEditorMode = isMobileViewport && !!editingMessage
   const isDesktopInlineEditing = !isMobileViewport && !!editingMessage
-  const editorSectionLabel = (() => {
+  function getEditorSectionLabel() {
     if (isMobileEditorMode) return '便签编辑区'
     if (isDesktopInlineEditing) return '桌面端原地编辑'
     return board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'
-  })()
+  }
+
+  const editorSectionLabel = getEditorSectionLabel()
   const defaultEditorPlaceholder = board.slug === 'guestbook'
     ? '写下想贴在主页上的留言，或直接插入 checklist。'
     : '写一条新的 Memo 便签，或直接插入 checklist。'
