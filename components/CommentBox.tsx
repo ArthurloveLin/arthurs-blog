@@ -1,22 +1,26 @@
 'use client'
 
-import { useState, useRef, useMemo, createContext, use } from 'react'
+import { useEffect, useState, useRef, useMemo, createContext, use } from 'react'
 import { updatePresenceActivity } from './ActivityBanner'
 import { useAuth } from './AuthProvider'
-import { formatCommentTimestamp } from '@/lib/date-format'
+import EditorActionBar from './EditorActionBar'
+import { formatCommentTimeLabel } from '@/lib/date-format'
 
 interface Comment {
   id: string
   author: string
   content: string
   created_at: string
+  updated_at: string | null
   parent_id: string | null
 }
 
 interface CommentTreeContextValue {
   identity: string
+  isAdmin: boolean
   onReply: (comment: Comment) => void
   onDelete: (id: string) => void
+  onUpdate: (id: string, content: string) => Promise<void>
 }
 
 const CommentTreeContext = createContext<CommentTreeContextValue | null>(null)
@@ -27,17 +31,96 @@ function useCommentTree() {
   return ctx
 }
 
+function canModifyComment(comment: Comment, identity: string, isAdmin: boolean) {
+  return isAdmin || (!!identity && comment.author === identity)
+}
+
 function CommentCard({ comment }: { comment: Comment }) {
-  const { identity, onReply, onDelete } = useCommentTree()
+  const { identity, isAdmin, onReply, onDelete, onUpdate } = useCommentTree()
+  const [isEditing, setIsEditing] = useState(false)
+  const [draft, setDraft] = useState(comment.content)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const editable = canModifyComment(comment, identity, isAdmin)
+
+  useEffect(() => {
+    setDraft(comment.content)
+  }, [comment.content])
+
+  async function handleSave() {
+    if (!draft.trim() || isSaving) return
+
+    setIsSaving(true)
+    setError(null)
+
+    try {
+      await onUpdate(comment.id, draft.trim())
+      setIsEditing(false)
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : '评论更新失败。')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div className="flex gap-2 items-start">
       <div className="flex-1 bg-muted/30 border border-border/50 rounded-2xl px-3 py-2 hover:bg-muted/50 transition-colors">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] font-bold uppercase tracking-tight text-primary/80">{comment.author}</span>
-          <span className="text-[10px] font-medium text-muted-foreground/50">{formatCommentTimestamp(comment.created_at)}</span>
+          <span className="text-[10px] font-medium text-muted-foreground/50">{formatCommentTimeLabel(comment.created_at, comment.updated_at)}</span>
         </div>
-        <p className="text-sm text-foreground/90 break-words leading-relaxed">{comment.content}</p>
-        <div className="flex items-center justify-end">
+        {isEditing ? (
+          <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/85">
+            <textarea
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              className="min-h-[96px] w-full resize-y bg-transparent px-3 py-3 text-sm leading-relaxed text-foreground outline-none transition"
+            />
+            <EditorActionBar
+              leading={<span>评论编辑栏</span>}
+              trailing={(
+                <>
+                  <button
+                    type="button"
+                    className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 transition hover:text-foreground"
+                    onClick={() => {
+                      setDraft(comment.content)
+                      setError(null)
+                      setIsEditing(false)
+                    }}
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground transition disabled:opacity-40"
+                    onClick={handleSave}
+                    disabled={isSaving || !draft.trim()}
+                  >
+                    {isSaving ? '保存中' : '保存'}
+                  </button>
+                </>
+              )}
+            />
+            {error ? <p className="text-xs text-rose-600">{error}</p> : null}
+          </div>
+        ) : (
+          <p className="text-sm text-foreground/90 break-words leading-relaxed whitespace-pre-wrap">{comment.content}</p>
+        )}
+        <div className="flex items-center justify-end gap-3">
+          {editable && !isEditing ? (
+            <button
+              onClick={() => {
+                setDraft(comment.content)
+                setError(null)
+                setIsEditing(true)
+              }}
+              className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 hover:text-primary mt-1.5 transition-all"
+            >
+              编辑
+            </button>
+          ) : null}
           <button
             onClick={() => onReply(comment)}
             className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 hover:text-primary mt-1.5 transition-all"
@@ -46,7 +129,7 @@ function CommentCard({ comment }: { comment: Comment }) {
           </button>
         </div>
       </div>
-      {comment.author === identity && (
+      {canModifyComment(comment, identity, isAdmin) && (
         <button
           onClick={() => onDelete(comment.id)}
           className="text-muted-foreground/20 hover:text-destructive text-xl leading-none mt-2 shrink-0 transition-colors px-1"
@@ -88,13 +171,14 @@ interface CommentBoxProps {
 }
 
 export default function CommentBox({ targetType, targetId, initialComments }: CommentBoxProps) {
-  const { identity } = useAuth()
+  const { identity, isAdmin } = useAuth()
 
   const [comments, setComments] = useState<Comment[]>(initialComments)
   const [text, setText] = useState('')
   const [replyTo, setReplyTo] = useState<{ id: string; author: string } | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // Build tree: top-level + replies map
   const topLevel = useMemo(() => comments.filter((c) => !c.parent_id), [comments])
@@ -112,6 +196,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     e.preventDefault()
     if (!text.trim() || !identity || submitting) return
     setSubmitting(true)
+    setError(null)
     try {
       const res = await fetch('/api/comments', {
         method: 'POST',
@@ -124,11 +209,13 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
           parent_id: replyTo?.id ?? null,
         }),
       })
-      if (!res.ok) throw new Error('Failed')
+      if (!res.ok) throw new Error('评论发送失败。')
       const newComment: Comment = await res.json()
       setComments((prev) => [...prev, newComment])
       setText('')
       setReplyTo(null)
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : '评论发送失败。')
     } finally {
       setSubmitting(false)
     }
@@ -142,11 +229,30 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     })
     if (res.ok) {
       setComments((prev) => prev.filter((c) => c.id !== id && c.parent_id !== id))
+      setError(null)
+      return
     }
+
+    setError(res.status === 403 ? '当前身份没有删除这条评论的权限。' : '删除评论失败。')
+  }
+
+  async function handleUpdate(id: string, content: string) {
+    const res = await fetch(`/api/comments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identity, content }),
+    })
+
+    if (!res.ok) {
+      throw new Error(res.status === 403 ? '当前身份没有编辑这条评论的权限。' : '评论更新失败。')
+    }
+
+    const updatedComment: Comment = await res.json()
+    setComments((prev) => prev.map((comment) => comment.id === id ? updatedComment : comment))
   }
 
   return (
-    <CommentTreeContext value={{ identity: identity ?? '', onReply: handleReply, onDelete: handleDelete }}>
+    <CommentTreeContext value={{ identity: identity ?? '', isAdmin, onReply: handleReply, onDelete: handleDelete, onUpdate: handleUpdate }}>
       <div>
         <h3 className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 mb-4 px-1">
           评论 {comments.length > 0 && `(${comments.length})`}
@@ -166,33 +272,40 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
 
         {identity ? (
           <div className="space-y-3">
-            {replyTo && (
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/5 px-3 py-2 rounded-xl border border-primary/10">
-                <span className="opacity-60">回复</span>
-                <span className="bg-primary/20 px-1.5 py-0.5 rounded">@{replyTo.author}</span>
-                <button onClick={() => setReplyTo(null)} className="ml-auto text-muted-foreground/40 hover:text-foreground">取消</button>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="flex gap-2">
-              <div className="flex-1 flex items-center border border-border rounded-2xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 bg-muted/20 transition-all">
-                <input
+            <form onSubmit={handleSubmit} className="overflow-hidden rounded-2xl border border-border bg-muted/20 transition-all focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20">
+              <div className="flex-1 flex items-center">
+                <textarea
                   ref={inputRef}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   onFocus={() => updatePresenceActivity('正在评论')}
                   placeholder={replyTo ? `回复 @${replyTo.author}…` : '写点什么…'}
-                  className="flex-1 px-4 py-2 text-sm focus:outline-none bg-transparent placeholder:text-muted-foreground/30"
+                  rows={replyTo ? 3 : 2}
+                  className="flex-1 resize-none px-4 py-3 text-sm leading-relaxed focus:outline-none bg-transparent placeholder:text-muted-foreground/30"
                 />
               </div>
-              <button
-                type="submit"
-                disabled={submitting || !text.trim()}
-                className="px-5 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider rounded-2xl disabled:opacity-30 hover:opacity-90 transition-all active:scale-95 shadow-sm"
-              >
-                发送
-              </button>
+              <EditorActionBar
+                leading={replyTo ? (
+                  <>
+                    <span>评论栏</span>
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">回复 @{replyTo.author}</span>
+                    <button type="button" className="text-muted-foreground/70 transition hover:text-foreground" onClick={() => setReplyTo(null)}>
+                      取消回复
+                    </button>
+                  </>
+                ) : <span>评论栏</span>}
+                trailing={(
+                  <button
+                    type="submit"
+                    disabled={submitting || !text.trim()}
+                    className="rounded-full bg-primary px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-primary-foreground transition-all hover:opacity-90 disabled:opacity-30"
+                  >
+                    {submitting ? '发送中' : '发送'}
+                  </button>
+                )}
+              />
             </form>
+            {error ? <p className="text-xs text-rose-600">{error}</p> : null}
           </div>
         ) : (
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/30 text-center py-4 italic animate-pulse">加载身份中…</p>

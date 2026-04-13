@@ -47,6 +47,24 @@ export function formatCommentTimestamp(value: string | number | Date) {
   })
 }
 
+export function hasEditedTimestamp(createdAt: string | number | Date, updatedAt?: string | number | Date | null) {
+  if (!updatedAt) return false
+
+  const createdDate = toValidDate(createdAt)
+  const updatedDate = toValidDate(updatedAt)
+  if (!createdDate || !updatedDate) return false
+
+  return updatedDate.getTime() - createdDate.getTime() > 1_000
+}
+
+export function formatCommentTimeLabel(createdAt: string | number | Date, updatedAt?: string | number | Date | null) {
+  if (hasEditedTimestamp(createdAt, updatedAt)) {
+    return `已编辑于 ${formatCommentTimestamp(updatedAt as string | number | Date)}`
+  }
+
+  return formatCommentTimestamp(createdAt)
+}
+
 export function getStableYear(value: string | number | Date = new Date()) {
   const year = formatStableDate(value, { year: 'numeric' })
   return Number.parseInt(year, 10)

@@ -33,7 +33,7 @@ function formatDate(dateStr: string | null) {
   return time === '00:00' ? date : `${date} ${time}`
 }
 
-type Comment = { id: string; author: string; content: string; created_at: string; parent_id: string | null }
+type Comment = { id: string; author: string; content: string; created_at: string; updated_at: string | null; parent_id: string | null }
 
 // async-suspense-boundaries: inner Server Component for TOC — shares contentPromise
 async function TableOfContentsSection({ contentPromise }: { contentPromise: Promise<string> }) {
@@ -122,7 +122,7 @@ export default async function BlogPostPage({
   const commentsPromise = Promise.resolve(
     supabaseAdmin
       .from('comments')
-      .select('id, author, content, created_at, parent_id')
+      .select('id, author, content, created_at, updated_at, parent_id')
       .eq('target_type', 'blog_post')
       .eq('target_id', post.id)
       .order('created_at', { ascending: true })
