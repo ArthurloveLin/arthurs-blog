@@ -11,9 +11,12 @@ export async function DELETE(
   }
 
   const body = await req.json().catch(() => ({}))
+  const identities = Array.isArray(body.identities)
+    ? body.identities.filter((value: unknown): value is string => typeof value === 'string')
+    : undefined
 
   try {
-    await deleteBoardMessage(board, id, body.identity as string | undefined)
+    await deleteBoardMessage(board, id, identities ?? (body.identity as string | undefined))
     return new NextResponse(null, { status: 204 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete note'
@@ -40,6 +43,9 @@ export async function PATCH(
   const hasContent = typeof body.content === 'string'
   const content = hasContent ? body.content.trim() : undefined
   const archived = typeof body.archived === 'boolean' ? body.archived : undefined
+  const identities = Array.isArray(body.identities)
+    ? body.identities.filter((value: unknown): value is string => typeof value === 'string')
+    : undefined
 
   if (content === '' || (content === undefined && archived === undefined)) {
     return NextResponse.json({ error: content === '' ? 'Missing content' : 'Missing patch' }, { status: 400 })
@@ -50,7 +56,7 @@ export async function PATCH(
       board,
       id,
       { content, archived },
-      body.identity as string | undefined,
+      identities ?? (body.identity as string | undefined),
     )
     return NextResponse.json(message)
   } catch (error) {

@@ -23,6 +23,10 @@ export default function NowWatchingColumns({ columns }: NowWatchingColumnsProps)
       return
     }
 
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      return
+    }
+
     gsap.registerPlugin(ScrollTrigger)
 
     const lenis = new Lenis()

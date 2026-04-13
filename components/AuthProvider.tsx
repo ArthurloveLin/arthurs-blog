@@ -2,7 +2,7 @@
 
 import { createContext, use, useState, ReactNode } from 'react'
 import useSWR from 'swr'
-import { getOrCreateGuestId } from '@/lib/guest'
+import { getGuestDisplayName, getGuestIdentityAliases, getOrCreateGuestId } from '@/lib/guest'
 
 export type UserRole = 'guest' | 'user' | 'admin'
 
@@ -17,7 +17,10 @@ interface AuthContextValue {
   email: string | null
   displayName: string | null
   guestId: string
+  guestDisplayName: string
+  identityAliases: string[]
   identity: string
+  publicIdentity: string
   loading: boolean
   isAuthenticated: boolean
   isAdmin: boolean
@@ -62,15 +65,21 @@ export default function AuthProvider({ children, initialData }: AuthProviderProp
   const role = (data?.role as UserRole) ?? 'guest'
   const displayName = data?.display_name ?? null
   const email = data?.email ?? null
+  const guestDisplayName = guestId ? getGuestDisplayName(guestId) : ''
+  const identityAliases = role === 'guest' ? getGuestIdentityAliases(guestId) : [displayName ?? email ?? ''].filter(Boolean)
   const user = role === 'guest' ? null : { email, displayName }
   const identity = displayName ?? email ?? guestId
+  const publicIdentity = displayName ?? email ?? guestDisplayName
   const value: AuthContextValue = {
     role,
     user,
     email,
     displayName,
     guestId,
+    guestDisplayName,
+    identityAliases,
     identity,
+    publicIdentity,
     loading: isLoading && !data,
     isAuthenticated: role !== 'guest',
     isAdmin: role === 'admin',
