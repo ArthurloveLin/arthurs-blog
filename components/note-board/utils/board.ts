@@ -9,6 +9,45 @@ export const PREVIEW_STACK_LIMIT = 6
 export const PREVIEW_REVEAL_THRESHOLD = 112
 export const MOBILE_SIDE_PEEK_RATIO = 0.22
 export const MOBILE_COLLECT_STAGGER_MS = 110
+const DEFAULT_BOARD_CARD_HEIGHT = 212
+
+interface BoardLayoutCard {
+  x: number
+  y: number
+  rotation: number
+  zIndex: number
+  colorIndex: number
+}
+
+function getBoardColumnCount(width: number) {
+  return width >= 1200 ? 4 : width >= 860 ? 3 : width >= 620 ? 2 : 1
+}
+
+function getBoardCardHeight(messageId: string, measuredHeights: Record<string, number>) {
+  const measuredHeight = measuredHeights[messageId]
+
+  if (!Number.isFinite(measuredHeight) || measuredHeight <= 0) {
+    return DEFAULT_BOARD_CARD_HEIGHT
+  }
+
+  return measuredHeight
+}
+
+function getBoardRotation(messageId: string, index: number, column: number) {
+  const baseSign = (index + column) % 2 === 0 ? -1 : 1
+  const sign = seededUnit(messageId, 4) > 0.82 ? baseSign * -1 : baseSign
+  const magnitude = 1.6 + seededUnit(messageId, 3) * 5.4
+
+  return sign * magnitude
+}
+
+function getBoardRowLift(row: number, column: number, messageId: string) {
+  const rowPattern = [0, 12, 4, 16]
+  const baseLift = rowPattern[(row + column) % rowPattern.length] ?? 0
+  const drift = seededUnit(messageId, 12) * 6
+
+  return baseLift + drift
+}
 
 export function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
@@ -68,27 +107,66 @@ function getCardWidth(width: number) {
   return clamp(width - 32, NOTE_CARD_WIDTH, NOTE_CARD_WIDTH)
 }
 
-export function computeBoardLayout(messages: NoteMessage[], width: number) {
-  const cardWidth = getCardWidth(width > 0 ? width / (width >= 1200 ? 4 : width >= 860 ? 3 : width >= 620 ? 2 : 1) : NOTE_CARD_WIDTH)
-  const columns = width >= 1200 ? 4 : width >= 860 ? 3 : width >= 620 ? 2 : 1
-  const gapX = 26
-  const gapY = 30
-  const columnWidth = columns === 1 ? cardWidth : Math.max((width - gapX * (columns - 1)) / columns, cardWidth)
+export function computeBoardLayout(
+  messages: NoteMessage[],
+  width: number,
+  measuredHeights: Record<string, number> = {},
+) {
+  const columns = getBoardColumnCount(width)
+  const cardWidth = getCardWidth(width > 0 ? width / columns : NOTE_CARD_WIDTH)
+  const gapX = columns > 1 ? 36 : 0
+  const gapY = 34
+  const usableWidth = Math.max(width, cardWidth)
+  const totalWidth = columns * cardWidth + Math.max(columns - 1, 0) * gapX
+  const leftInset = clamp((usableWidth - totalWidth) / 2, 0, Math.max(usableWidth - cardWidth, 0))
+  const maxX = Math.max(width - cardWidth, 0)
+  const columnX = Array.from({ length: columns }, (_, column) => (
+    clamp(leftInset + column * (cardWidth + gapX), 0, maxX)
+  ))
+  const topInset = 10
+  let nextRowTop = topInset
 
-  const layouts = messages.map((message, index) => {
+  const layouts: BoardLayoutCard[] = messages.map((message, index) => {
     const row = Math.floor(index / columns)
     const column = index % columns
-    const jitterX = (seededUnit(message.id, 1) - 0.5) * 34
-    const jitterY = (seededUnit(message.id, 2) - 0.5) * 24
-    const rotation = (seededUnit(message.id, 3) - 0.5) * 12
-    const x = clamp(column * (columnWidth + gapX) + jitterX, 0, Math.max(width - cardWidth, 0))
-    const y = row * (220 + gapY) + jitterY
-    return { x, y, rotation, zIndex: messages.length - index, colorIndex: getStickyColorIndex(message.id) }
+
+    const cardHeight = getBoardCardHeight(message.id, measuredHeights)
+    const xJitter = (seededUnit(message.id, 1) - 0.5) * 14
+    const y = nextRowTop + getBoardRowLift(row, column, message.id)
+    const x = clamp(columnX[column] + xJitter, 0, maxX)
+    const rotation = getBoardRotation(message.id, index, column)
+
+    if (column === columns - 1 || index === messages.length - 1) {
+      const rowStart = row * columns
+      const rowEnd = Math.min(rowStart + columns, messages.length)
+      let rowBottom = nextRowTop
+
+      for (let rowIndex = rowStart; rowIndex < rowEnd; rowIndex += 1) {
+        const rowMessage = messages[rowIndex]
+        const rowColumn = rowIndex % columns
+        const rowCardHeight = getBoardCardHeight(rowMessage.id, measuredHeights)
+        const rowY = nextRowTop + getBoardRowLift(row, rowColumn, rowMessage.id)
+        rowBottom = Math.max(rowBottom, rowY + rowCardHeight)
+      }
+
+      nextRowTop = rowBottom + gapY
+    }
+
+    return {
+      x,
+      y,
+      rotation,
+      zIndex: messages.length - index,
+      colorIndex: getStickyColorIndex(message.id),
+    }
   })
 
-  const height = layouts.length === 0
-    ? 320
-    : Math.max(...layouts.map((layout) => layout.y)) + 248
+  const bottomEdge = layouts.length === 0
+    ? 0
+    : Math.max(
+        ...layouts.map((layout, index) => layout.y + getBoardCardHeight(messages[index].id, measuredHeights)),
+      )
+  const height = layouts.length === 0 ? 320 : Math.max(320, bottomEdge + 40)
 
   return { cardWidth, height, layouts }
 }
