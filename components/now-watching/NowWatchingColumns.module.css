@@ -3,6 +3,7 @@
   color: var(--color-white);
   font-family: "Open Sans", sans-serif;
   font-optical-sizing: auto;
+  overflow-x: hidden;
 }
 
 .homeButton {
@@ -70,6 +71,58 @@
 
 .root :global(.col-scroll__title) {
   margin: 12px 0 16px;
+}
+
+@media (max-width: 767px) {
+  .homeButton {
+    left: 1rem;
+    top: 1rem;
+  }
+
+  .root :global(.col-scroll) {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-height: 100vh;
+    padding: 4.75rem 0 2rem;
+    width: 100%;
+  }
+
+  .root :global(.col-scroll__box),
+  .root :global(.col-scroll__box:nth-child(odd)) {
+    display: block;
+    height: auto;
+    padding: 0;
+  }
+
+  .root :global(.col-scroll__list),
+  .root :global(.col-scroll__box:nth-child(odd) .col-scroll__list) {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transform: none !important;
+    will-change: auto;
+  }
+
+  .root :global(.col-scroll__item) {
+    margin: 0 auto;
+    padding: 0 0.9rem;
+    width: 100%;
+  }
+
+  .root :global(.col-scroll__img) {
+    border-radius: 1rem;
+    width: 100%;
+  }
+
+  .root :global(.col-scroll__title) {
+    margin: 0.75rem 0 0;
+    padding: 0 0.2rem;
+  }
+
+  .root main {
+    width: 100%;
+  }
 }
 
 .emptyState {

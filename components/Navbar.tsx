@@ -59,20 +59,20 @@ function AdminRoleBadge() {
   )
 }
 
-function GuestIdentity({ guestId }: { guestId: string }) {
-  if (!guestId) return null
+function GuestIdentity({ guestDisplayName }: { guestDisplayName: string }) {
+  if (!guestDisplayName) return null
 
   return (
     <span className="text-xs text-muted-foreground font-mono">
-      游客&nbsp;{guestId.slice(0, 6)}
+      游客&nbsp;{guestDisplayName}
     </span>
   )
 }
 
-function DesktopGuestAuth({ guestId }: { guestId: string }) {
+function DesktopGuestAuth({ guestDisplayName }: { guestDisplayName: string }) {
   return (
     <>
-      <GuestIdentity guestId={guestId} />
+      <GuestIdentity guestDisplayName={guestDisplayName} />
       <Link
         href="/auth/login"
         className="px-3 py-1.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
@@ -110,14 +110,14 @@ function DesktopSignedInAuth({
   )
 }
 
-function MobileGuestAuth({ guestId, onClose }: { guestId: string; onClose: () => void }) {
+function MobileGuestAuth({ guestDisplayName, onClose }: { guestDisplayName: string; onClose: () => void }) {
   return (
     <Link
       href="/auth/login"
       className="block px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
       onClick={onClose}
     >
-      登录{guestId ? `（游客 ${guestId.slice(0, 6)}）` : ''}
+      登录{guestDisplayName ? `（游客 ${guestDisplayName}）` : ''}
     </Link>
   )
 }
@@ -161,28 +161,28 @@ function MobileSignedInAuth({
 }
 
 function NavDesktopAuthStatus() {
-  const { role, displayName, email, loading, guestId } = useAuth()
+  const { role, displayName, email, loading, guestDisplayName } = useAuth()
 
   if (loading) return null
 
   return (
     <div className="hidden sm:flex items-center gap-1.5 ml-1">
       {role === 'guest'
-        ? <DesktopGuestAuth guestId={guestId} />
+        ? <DesktopGuestAuth guestDisplayName={guestDisplayName} />
         : <DesktopSignedInAuth displayName={displayName} email={email} isAdmin={role === 'admin'} />}
     </div>
   )
 }
 
 function NavMobileAuthSection({ onClose }: { onClose: () => void }) {
-  const { role, displayName, email, loading, guestId } = useAuth()
+  const { role, displayName, email, loading, guestDisplayName } = useAuth()
 
   if (loading) return null
 
   return (
     <>
       {role === 'guest'
-        ? <MobileGuestAuth guestId={guestId} onClose={onClose} />
+        ? <MobileGuestAuth guestDisplayName={guestDisplayName} onClose={onClose} />
         : <MobileSignedInAuth displayName={displayName} email={email} isAdmin={role === 'admin'} onClose={onClose} />}
     </>
   )

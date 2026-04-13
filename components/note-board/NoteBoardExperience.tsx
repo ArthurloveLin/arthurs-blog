@@ -42,7 +42,7 @@ function buildOptimisticSnapshot(
 }
 
 export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
-  const { identity, isAdmin, loading } = useAuth()
+  const { identity, identityAliases, isAdmin, loading, publicIdentity } = useAuth()
   const [containerRef, size] = useElementSize<HTMLDivElement>()
   const [messages, setMessages] = useState(initialMessages)
   const [measuredHeights, setMeasuredHeights] = useState<Record<string, number>>({})
@@ -68,7 +68,8 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   const editorSectionRef = useRef<HTMLElement>(null)
   const toastTimerRef = useRef<number | null>(null)
   const pendingOptimisticIdsRef = useRef<Set<string>>(new Set())
-  const viewerIdentity = identity ?? ''
+  const viewerIdentity = publicIdentity ?? ''
+  const viewerIdentityAliases = identityAliases.length > 0 ? identityAliases : [identity].filter(Boolean)
   const canWrite = board.slug === 'guestbook' || isAdmin
   const { cardWidth, height, layouts } = useMemo(
     () => computeBoardLayout(messages, size.width, measuredHeights),
@@ -263,7 +264,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       const response = await fetch(`/api/note-boards/${board.slug}/${message.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity, archived: !message.archived }),
+        body: JSON.stringify({ identity, identities: viewerIdentityAliases, archived: !message.archived }),
       })
 
       if (!response.ok) {
@@ -295,7 +296,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       const response = await fetch(`/api/note-boards/${board.slug}/${editingMessage.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity, content: nextContent }),
+        body: JSON.stringify({ identity, identities: viewerIdentityAliases, content: nextContent }),
       })
 
       if (!response.ok) {
@@ -322,7 +323,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       const response = await fetch(`/api/note-boards/${board.slug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author: identity, content: draft.trim() }),
+        body: JSON.stringify({ author: publicIdentity, content: draft.trim() }),
       })
 
       if (!response.ok) {
@@ -354,7 +355,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       const response = await fetch(`/api/note-boards/${board.slug}/${id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity }),
+        body: JSON.stringify({ identity, identities: viewerIdentityAliases }),
       })
 
       if (!response.ok) {
@@ -449,8 +450,8 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
               onDelete={handleDelete}
               onEdit={startEditingNote}
               onToggleArchive={handleToggleArchive}
-              canDelete={(message) => getDeletePermission(board.slug, isAdmin, viewerIdentity, message)}
-              canEdit={(message) => getEditPermission(isAdmin, viewerIdentity, message)}
+              canDelete={(message) => getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)}
+              canEdit={(message) => getEditPermission(isAdmin, viewerIdentityAliases, message)}
             />
           ) : (
             <MobileNoteList
@@ -458,8 +459,8 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
               onDelete={handleDelete}
               onEdit={startEditingNote}
               onToggleArchive={handleToggleArchive}
-              canDelete={(message) => getDeletePermission(board.slug, isAdmin, viewerIdentity, message)}
-              canEdit={(message) => getEditPermission(isAdmin, viewerIdentity, message)}
+              canDelete={(message) => getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)}
+              canEdit={(message) => getEditPermission(isAdmin, viewerIdentityAliases, message)}
             />
           )}
         </div>
@@ -500,9 +501,9 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
                       colorIndex={layout?.colorIndex ?? getStickyColorIndex(message.id)}
                       draggable={isScattered && editingNoteId !== message.id}
                       variant="board"
-                      showDelete={getDeletePermission(board.slug, isAdmin, viewerIdentity, message)}
-                      showEdit={getEditPermission(isAdmin, viewerIdentity, message)}
-                      showArchive={getEditPermission(isAdmin, viewerIdentity, message)}
+                      showDelete={getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)}
+                      showEdit={getEditPermission(isAdmin, viewerIdentityAliases, message)}
+                      showArchive={getEditPermission(isAdmin, viewerIdentityAliases, message)}
                       isInlineEditing={editingNoteId === message.id}
                       inlineEditContent={editingNoteId === message.id ? editContent : ''}
                       isSavingInline={isUpdatingNote}

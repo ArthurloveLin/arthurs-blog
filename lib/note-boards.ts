@@ -17,16 +17,24 @@ function canWriteBoard(board: NoteBoardSlug, role: UserRole) {
   return board === 'guestbook' || role === 'admin'
 }
 
-function canDeleteBoardMessage(board: NoteBoardSlug, role: UserRole, noteAuthor: string, requesterIdentity?: string | null) {
+function normalizeRequesterIdentities(requesterIdentity?: string | string[] | null) {
+  return (Array.isArray(requesterIdentity) ? requesterIdentity : [requesterIdentity]).filter(
+    (value): value is string => typeof value === 'string' && value.length > 0,
+  )
+}
+
+function canDeleteBoardMessage(board: NoteBoardSlug, role: UserRole, noteAuthor: string, requesterIdentity?: string | string[] | null) {
   if (board === 'memo') {
     return role === 'admin'
   }
 
-  return role === 'admin' || (!!requesterIdentity && requesterIdentity === noteAuthor)
+  const requesterIdentities = normalizeRequesterIdentities(requesterIdentity)
+  return role === 'admin' || requesterIdentities.includes(noteAuthor)
 }
 
-function canEditBoardMessage(role: UserRole, noteAuthor: string, requesterIdentity?: string | null) {
-  return role === 'admin' || (!!requesterIdentity && requesterIdentity === noteAuthor)
+function canEditBoardMessage(role: UserRole, noteAuthor: string, requesterIdentity?: string | string[] | null) {
+  const requesterIdentities = normalizeRequesterIdentities(requesterIdentity)
+  return role === 'admin' || requesterIdentities.includes(noteAuthor)
 }
 
 interface BoardMessageQueryOptions {
@@ -96,7 +104,7 @@ export async function updateBoardMessage(
   board: NoteBoardSlug,
   id: string,
   input: UpdateBoardMessageInput,
-  requesterIdentity?: string | null,
+  requesterIdentity?: string | string[] | null,
 ) {
   const config = getNoteBoardConfig(board)
   const role = await getUserRole()
@@ -155,7 +163,7 @@ export async function updateBoardMessage(
 export async function deleteBoardMessage(
   board: NoteBoardSlug,
   id: string,
-  requesterIdentity?: string | null,
+  requesterIdentity?: string | string[] | null,
 ) {
   const config = getNoteBoardConfig(board)
   const role = await getUserRole()
@@ -185,13 +193,16 @@ export async function deleteBoardMessage(
   }
 }
 
-export async function getBoardViewerState(board: NoteBoardSlug, identity?: string | null) {
+export async function getBoardViewerState(board: NoteBoardSlug, identity?: string | string[] | null) {
   const role = await getUserRole()
+
+  const identities = normalizeRequesterIdentities(identity)
+  const primaryIdentity = identities[0] ?? ''
 
   return {
     role,
     canWrite: canWriteBoard(board, role),
-    canDeleteOwn: canDeleteBoardMessage(board, role, identity ?? '', identity),
-    canEditOwn: canEditBoardMessage(role, identity ?? '', identity),
+    canDeleteOwn: canDeleteBoardMessage(board, role, primaryIdentity, identities),
+    canEditOwn: canEditBoardMessage(role, primaryIdentity, identities),
   }
 }

@@ -11,6 +11,10 @@ export const MOBILE_SIDE_PEEK_RATIO = 0.22
 export const MOBILE_COLLECT_STAGGER_MS = 110
 const DEFAULT_BOARD_CARD_HEIGHT = 212
 
+function normalizeIdentities(identity: string | string[]) {
+  return (Array.isArray(identity) ? identity : [identity]).filter(Boolean)
+}
+
 interface BoardLayoutCard {
   x: number
   y: number
@@ -171,13 +175,16 @@ export function computeBoardLayout(
   return { cardWidth, height, layouts }
 }
 
-export function getDeletePermission(board: NoteBoardSlug, isAdmin: boolean, identity: string, message: NoteMessage) {
+export function getDeletePermission(board: NoteBoardSlug, isAdmin: boolean, identity: string | string[], message: NoteMessage) {
   if (board === 'memo') return isAdmin
-  return isAdmin || (!!identity && identity === message.author)
+
+  const identities = normalizeIdentities(identity)
+  return isAdmin || identities.includes(message.author)
 }
 
-export function getEditPermission(isAdmin: boolean, identity: string, message: NoteMessage) {
-  return isAdmin || (!!identity && identity === message.author)
+export function getEditPermission(isAdmin: boolean, identity: string | string[], message: NoteMessage) {
+  const identities = normalizeIdentities(identity)
+  return isAdmin || identities.includes(message.author)
 }
 
 export function getBoardHref(board: NoteBoardSlug) {
