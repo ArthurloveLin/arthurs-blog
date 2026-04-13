@@ -1,8 +1,8 @@
 'use client'
 
-import { Archive, ArchiveRestore, ArrowRight, Check, ChevronLeft, ChevronRight, Eye, Inbox, LayoutList, Layers, PencilLine, RotateCcw, Trash2, X } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowRight, Bold, Check, ChevronLeft, ChevronRight, Highlighter, Italic, LayoutList, Layers, ListTodo, PencilLine, RotateCcw, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { type ReactNode, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import EditorActionBar from '@/components/EditorActionBar'
 import { formatCommentTimeLabel } from '@/lib/date-format'
@@ -37,6 +37,7 @@ interface ChecklistItemDraft {
   id: string
   text: string
   checked: boolean
+  lineIndex?: number
 }
 
 interface StickyStackPreviewProps {
@@ -62,23 +63,49 @@ interface StickyNoteCardProps {
   ctaLabel?: string
   animatePosition?: boolean
   dragBoundsMode?: 'contained' | 'mobile-stack'
-  isEditing?: boolean
-  editBody?: string
-  editChecklistItems?: ChecklistItemDraft[]
-  isChecklistPanelOpen?: boolean
-  isSavingEdit?: boolean
   onDelete?: () => void
   onEdit?: () => void
   onToggleArchive?: () => void
-  onEditBodyChange?: (value: string) => void
-  onUpdateChecklistItem?: (id: string, patch: Partial<ChecklistItemDraft>) => void
-  onRemoveChecklistItem?: (id: string) => void
-  onAddChecklistItem?: () => void
-  onToggleChecklistPanel?: () => void
-  onCancelEdit?: () => void
-  onSaveEdit?: () => void
   onLift?: () => void
   onCommit?: (nextPosition: NotePosition, metrics: { distance: number }) => void
+}
+
+interface TextSelectionRange {
+  start: number
+  end: number
+}
+
+interface TextEditResult {
+  value: string
+  selection: TextSelectionRange
+}
+
+interface NoteEditorProps {
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+  saveLabel: string
+  isSaving: boolean
+  onSave: () => void
+  onCancel?: () => void
+  saveDisabled?: boolean
+  maxLength?: number
+  minHeightClassName?: string
+  shellClassName?: string
+  toolbarClassName?: string
+  autoFocus?: boolean
+}
+
+interface ToastNotice {
+  id: number
+  message: string
+}
+
+interface OptimisticMessageSnapshot {
+  message: NoteMessage
+  index: number
+  customPosition?: NotePosition
+  zIndex?: number
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -138,15 +165,235 @@ function buildChecklistItem(text = '', checked = false, id?: string): ChecklistI
   }
 }
 
+const CHECKLIST_PARSE_PATTERN = /^[-*]\s+\[( |x|X)\]\s+(.*)$/
+
+function getSelectionBlock(value: string, start: number, end: number) {
+  const safeStart = clamp(start, 0, value.length)
+  const safeEnd = clamp(end, 0, value.length)
+  const blockStart = value.lastIndexOf('\n', Math.max(safeStart - 1, 0)) + 1
+  const nextBreak = value.indexOf('\n', safeEnd)
+  const blockEnd = nextBreak === -1 ? value.length : nextBreak
+
+  return {
+    start: blockStart,
+    end: blockEnd,
+    text: value.slice(blockStart, blockEnd),
+  }
+}
+
+function replaceRange(value: string, start: number, end: number, insertion: string, selectionStart: number, selectionEnd = selectionStart): TextEditResult {
+  return {
+    value: `${value.slice(0, start)}${insertion}${value.slice(end)}`,
+    selection: { start: selectionStart, end: selectionEnd },
+  }
+}
+
+function wrapSelectionWithSyntax(value: string, start: number, end: number, prefix: string, suffix = prefix): TextEditResult {
+  const selectedText = value.slice(start, end)
+  const insertion = `${prefix}${selectedText}${suffix}`
+  const caretStart = start + prefix.length
+  const caretEnd = selectedText ? end + prefix.length : caretStart
+  return replaceRange(value, start, end, insertion, caretStart, caretEnd)
+}
+
+function insertChecklistSyntax(value: string, start: number, end: number): TextEditResult {
+  if (start !== end) {
+    const block = getSelectionBlock(value, start, end)
+    const converted = block.text
+      .split('\n')
+      .map((line) => {
+        const normalized = line.replace(/^[-*]\s+\[(?: |x|X)\]\s+/, '').trim()
+        return `- [ ] ${normalized}`
+      })
+      .join('\n')
+
+    return replaceRange(value, block.start, block.end, converted, block.start, block.start + converted.length)
+  }
+
+  const block = getSelectionBlock(value, start, end)
+  if (block.text.trim().length === 0) {
+    return replaceRange(value, block.start, block.end, '- [ ] ', block.start + 6)
+  }
+
+  const prefix = start > 0 && value[start - 1] !== '\n' ? '\n' : ''
+  const insertion = `${prefix}- [ ] `
+  return replaceRange(value, start, end, insertion, start + insertion.length)
+}
+
+function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[] {
+  const nodes: ReactNode[] = []
+  const pattern = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==)/g
+  let cursor = 0
+  let match = pattern.exec(text)
+  let index = 0
+
+  while (match) {
+    const [token] = match
+    const tokenStart = match.index
+
+    if (tokenStart > cursor) {
+      nodes.push(text.slice(cursor, tokenStart))
+    }
+
+    if (token.startsWith('**') && token.endsWith('**')) {
+      nodes.push(<strong key={`${keyPrefix}-strong-${index}`} className="font-semibold text-slate-900">{token.slice(2, -2)}</strong>)
+    } else if (token.startsWith('*') && token.endsWith('*')) {
+      nodes.push(<em key={`${keyPrefix}-em-${index}`} className="italic">{token.slice(1, -1)}</em>)
+    } else if (token.startsWith('==') && token.endsWith('==')) {
+      nodes.push(<mark key={`${keyPrefix}-mark-${index}`} className="rounded-[0.35em] bg-amber-200/85 px-1 py-[0.05em] text-slate-900">{token.slice(2, -2)}</mark>)
+    }
+
+    cursor = tokenStart + token.length
+    index += 1
+    match = pattern.exec(text)
+  }
+
+  if (cursor < text.length) {
+    nodes.push(text.slice(cursor))
+  }
+
+  return nodes.length > 0 ? nodes : [text]
+}
+
+function ToolbarIconButton({
+  onClick,
+  label,
+  children,
+  disabled = false,
+  emphasize = false,
+}: {
+  onClick: () => void
+  label: string
+  children: ReactNode
+  disabled?: boolean
+  emphasize?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition ${emphasize ? 'border-slate-900 bg-slate-900 text-white hover:opacity-90 disabled:border-slate-400 disabled:bg-slate-400' : 'border-black/10 bg-white/70 text-slate-700 hover:bg-white disabled:opacity-40'}`}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  )
+}
+
+function NoteEditor({
+  value,
+  onChange,
+  placeholder,
+  saveLabel,
+  isSaving,
+  onSave,
+  onCancel,
+  saveDisabled = false,
+  maxLength,
+  minHeightClassName = 'min-h-[108px]',
+  shellClassName = 'overflow-hidden rounded-[18px] border border-black/10 bg-white/45',
+  toolbarClassName = 'px-3 py-2 text-[11px] text-slate-700',
+  autoFocus = false,
+}: NoteEditorProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const pendingSelectionRef = useRef<TextSelectionRange | null>(null)
+
+  useEffect(() => {
+    if (!pendingSelectionRef.current || !textareaRef.current) return
+
+    const nextSelection = pendingSelectionRef.current
+    pendingSelectionRef.current = null
+    textareaRef.current.focus()
+    textareaRef.current.setSelectionRange(nextSelection.start, nextSelection.end)
+  }, [value])
+
+  useEffect(() => {
+    if (!autoFocus || !textareaRef.current) return
+
+    textareaRef.current.focus()
+    const caret = textareaRef.current.value.length
+    textareaRef.current.setSelectionRange(caret, caret)
+  }, [autoFocus])
+
+  function commitTextEdit(result: TextEditResult) {
+    const nextValue = typeof maxLength === 'number' ? result.value.slice(0, maxLength) : result.value
+    const nextSelection = {
+      start: clamp(result.selection.start, 0, nextValue.length),
+      end: clamp(result.selection.end, 0, nextValue.length),
+    }
+
+    pendingSelectionRef.current = nextSelection
+    onChange(nextValue)
+  }
+
+  function withSelection(transform: (text: string, start: number, end: number) => TextEditResult) {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    commitTextEdit(transform(value, textarea.selectionStart, textarea.selectionEnd))
+  }
+
+  return (
+    <div className="space-y-3">
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        maxLength={maxLength}
+        placeholder={placeholder}
+        className={`${minHeightClassName} w-full resize-none rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-black/20 focus:ring-2 focus:ring-black/10`}
+      />
+      <div className={shellClassName}>
+        <EditorActionBar
+          noWrap
+          className={['border-t-0', toolbarClassName].join(' ')}
+          leading={(
+            <>
+              <ToolbarIconButton onClick={() => withSelection(insertChecklistSyntax)} label="插入 checklist">
+                <ListTodo size={12} strokeWidth={1.8} />
+              </ToolbarIconButton>
+              <ToolbarIconButton onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '**'))} label="加粗">
+                <Bold size={12} strokeWidth={1.8} />
+              </ToolbarIconButton>
+              <ToolbarIconButton onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '*'))} label="斜体">
+                <Italic size={12} strokeWidth={1.8} />
+              </ToolbarIconButton>
+              <ToolbarIconButton onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '=='))} label="高亮">
+                <Highlighter size={12} strokeWidth={1.8} />
+              </ToolbarIconButton>
+            </>
+          )}
+          trailing={(
+            <>
+              {onCancel ? (
+                <ToolbarIconButton onClick={onCancel} label="取消编辑">
+                  <X size={12} strokeWidth={1.8} />
+                </ToolbarIconButton>
+              ) : null}
+              <ToolbarIconButton onClick={onSave} label={isSaving ? '保存中' : saveLabel} disabled={isSaving || saveDisabled} emphasize>
+                <Check size={12} strokeWidth={2} />
+              </ToolbarIconButton>
+            </>
+          )}
+        />
+      </div>
+    </div>
+  )
+}
+
 function parseNoteContent(content: string) {
   const lines = content.split('\n')
   const bodyLines: string[] = []
   const checklistItems: ChecklistItemDraft[] = []
 
   for (const [index, line] of lines.entries()) {
-    const match = line.match(/^[-*]\s+\[( |x|X)\]\s+(.*)$/)
+    const match = line.match(CHECKLIST_PARSE_PATTERN)
     if (match) {
-      checklistItems.push(buildChecklistItem(match[2], match[1].toLowerCase() === 'x', `parsed-${index}-${match[2]}`))
+      checklistItems.push({
+        ...buildChecklistItem(match[2], match[1].toLowerCase() === 'x', `parsed-${index}-${match[2]}`),
+        lineIndex: index,
+      })
       continue
     }
 
@@ -157,24 +404,6 @@ function parseNoteContent(content: string) {
     body: bodyLines.join('\n').trim(),
     checklistItems,
   }
-}
-
-function serializeNoteContent(body: string, checklistItems: ChecklistItemDraft[]) {
-  const sections: string[] = []
-  const trimmedBody = body.trim()
-  const validItems = checklistItems
-    .map((item) => ({ ...item, text: item.text.trim() }))
-    .filter((item) => item.text)
-
-  if (trimmedBody) {
-    sections.push(trimmedBody)
-  }
-
-  if (validItems.length > 0) {
-    sections.push(validItems.map((item) => `- [${item.checked ? 'x' : ' '}] ${item.text}`).join('\n'))
-  }
-
-  return sections.join('\n\n').trim()
 }
 
 function getMobileStackPosition(stackIndex: number, size: Size, cardWidth: number, messageId: string): NotePosition {
@@ -207,11 +436,19 @@ function getMobileSideParkPosition(
 function renderNoteContent(content: string, variant: 'preview' | 'board') {
   const parsed = parseNoteContent(content)
   const textClassName = `note-board-sticky__text ${variant === 'preview' ? 'note-board-sticky__text--preview' : 'note-board-sticky__text--board'}`
-  const hasBody = parsed.body.length > 0
+  const bodyLines = parsed.body.length > 0 ? parsed.body.split('\n') : []
 
   return (
     <div className="space-y-3">
-      {hasBody ? <p className={`${textClassName} whitespace-pre-wrap`}>{parsed.body}</p> : null}
+      {bodyLines.length > 0 ? (
+        <div className={textClassName}>
+          {bodyLines.map((line, index) => (
+            <p key={`${variant}-body-${index}`} className="w-full whitespace-pre-wrap break-words">
+              {line.length > 0 ? renderInlineFormattedText(line, `${variant}-${index}`) : <span>&nbsp;</span>}
+            </p>
+          ))}
+        </div>
+      ) : null}
       {parsed.checklistItems.length > 0 ? (
         <ul className="space-y-1.5 text-sm leading-relaxed text-slate-800/90">
           {parsed.checklistItems.map((item) => (
@@ -219,13 +456,30 @@ function renderNoteContent(content: string, variant: 'preview' | 'board') {
               <span className="mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-slate-700/35 text-[10px]">
                 {item.checked ? 'x' : ''}
               </span>
-              <span className={item.checked ? 'line-through text-slate-700/65' : ''}>{item.text}</span>
+              <span className={item.checked ? 'line-through text-slate-700/65' : ''}>{renderInlineFormattedText(item.text, `${variant}-check-${item.id}`)}</span>
             </li>
           ))}
         </ul>
       ) : null}
     </div>
   )
+}
+
+function buildOptimisticSnapshot(
+  id: string,
+  messages: NoteMessage[],
+  customPositions: Record<string, NotePosition>,
+  cardZIndices: Record<string, number>,
+): OptimisticMessageSnapshot | null {
+  const index = messages.findIndex((message) => message.id === id)
+  if (index === -1) return null
+
+  return {
+    message: messages[index],
+    index,
+    customPosition: customPositions[id],
+    zIndex: cardZIndices[id],
+  }
 }
 
 function NoteIconAction({
@@ -315,21 +569,9 @@ function StickyNoteCard({
   ctaLabel,
   animatePosition = true,
   dragBoundsMode = 'contained',
-  isEditing = false,
-  editBody = '',
-  editChecklistItems = [],
-  isChecklistPanelOpen = false,
-  isSavingEdit = false,
   onDelete,
   onEdit,
   onToggleArchive,
-  onEditBodyChange,
-  onUpdateChecklistItem,
-  onRemoveChecklistItem,
-  onAddChecklistItem,
-  onToggleChecklistPanel,
-  onCancelEdit,
-  onSaveEdit,
   onLift,
   onCommit,
 }: StickyNoteCardProps) {
@@ -496,9 +738,9 @@ function StickyNoteCard({
         <div className="note-board-sticky__meta">
           <div className="note-board-sticky__meta-copy">
             <p className="note-board-sticky__author">{message.author}</p>
-            {variant === 'board' ? (
-              <p className="note-board-sticky__time note-board-sticky__time--board">{formatCommentTimeLabel(message.created_at, message.updated_at)}</p>
-            ) : null}
+            <p className={`note-board-sticky__time ${variant === 'board' ? 'note-board-sticky__time--board' : 'note-board-sticky__time--preview'}`}>
+              {formatCommentTimeLabel(message.created_at, message.updated_at)}
+            </p>
           </div>
           <div className="note-board-sticky__actions">
             {ctaHref && ctaLabel ? (
@@ -518,7 +760,7 @@ function StickyNoteCard({
                 {message.archived ? <ArchiveRestore size={16} strokeWidth={1.9} /> : <Archive size={16} strokeWidth={1.9} />}
               </NoteIconAction>
             ) : null}
-            {showEdit && onEdit && !isEditing ? (
+            {showEdit && onEdit && !isPreview ? (
               <NoteIconAction label="编辑便签" onClick={onEdit}>
                 <PencilLine size={16} strokeWidth={1.9} />
               </NoteIconAction>
@@ -530,102 +772,7 @@ function StickyNoteCard({
             ) : null}
           </div>
         </div>
-        {isEditing && variant === 'board' ? (
-          <div className="mt-3 flex flex-1 flex-col gap-3">
-            <textarea
-              value={editBody}
-              onChange={(event) => onEditBodyChange?.(event.target.value)}
-              placeholder="写点内容，或只保留 checklist。"
-              className="min-h-[92px] w-full resize-none rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-black/20 focus:ring-2 focus:ring-black/10"
-              onPointerDown={(event) => event.stopPropagation()}
-            />
-            <div className="overflow-hidden rounded-[18px] border border-black/10 bg-white/45" onPointerDown={(event) => event.stopPropagation()}>
-              <EditorActionBar
-                className="border-t-0 px-3 py-2 text-[11px] text-slate-700"
-                leading={(
-                  <>
-                    <span>编辑栏</span>
-                    <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10px] text-slate-700">Checklist {editChecklistItems.length} 项</span>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 rounded-full border border-black/10 px-2 py-1 text-[10px] text-slate-700 transition hover:bg-black/6"
-                      onClick={onAddChecklistItem}
-                    >
-                      <Check size={12} strokeWidth={1.8} />
-                      添加项
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] text-slate-700 transition hover:bg-black/6"
-                      onClick={onToggleChecklistPanel}
-                    >
-                      {isChecklistPanelOpen ? <Eye size={12} strokeWidth={1.8} /> : <Inbox size={12} strokeWidth={1.8} />}
-                      {isChecklistPanelOpen ? '收起' : '展开'}
-                    </button>
-                  </>
-                )}
-                trailing={(
-                  <>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] text-slate-700 transition hover:bg-black/6"
-                      onClick={onCancelEdit}
-                    >
-                      <X size={12} strokeWidth={1.8} />
-                      取消
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1 text-[10px] font-medium text-white transition hover:opacity-90 disabled:opacity-40"
-                      onClick={onSaveEdit}
-                      disabled={isSavingEdit}
-                    >
-                      <Check size={12} strokeWidth={2} />
-                      {isSavingEdit ? '保存中' : '保存'}
-                    </button>
-                  </>
-                )}
-              />
-              {isChecklistPanelOpen ? (
-                <div className="space-y-2 border-t border-black/10 px-3 py-3">
-                  {editChecklistItems.length === 0 ? (
-                    <p className="rounded-2xl border border-dashed border-black/10 px-3 py-3 text-xs text-slate-600">还没有 checklist 项，点上面的按钮开始添加。</p>
-                  ) : (
-                    editChecklistItems.map((item) => (
-                      <div key={item.id} className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white/60 px-3 py-2">
-                        <button
-                          type="button"
-                          className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] transition ${item.checked ? 'border-slate-900 bg-slate-900 text-white' : 'border-black/20 text-transparent hover:text-slate-500'}`}
-                          onClick={() => onUpdateChecklistItem?.(item.id, { checked: !item.checked })}
-                        >
-                          <Check size={11} strokeWidth={2.4} />
-                        </button>
-                        <input
-                          value={item.text}
-                          onChange={(event) => onUpdateChecklistItem?.(item.id, { text: event.target.value })}
-                          placeholder="输入 checklist 内容"
-                          className={`flex-1 bg-transparent text-sm outline-none ${item.checked ? 'line-through text-slate-500' : 'text-slate-900'}`}
-                        />
-                        <button
-                          type="button"
-                          className="rounded-full px-2 py-1 text-[10px] text-rose-700 transition hover:bg-rose-100"
-                          onClick={() => onRemoveChecklistItem?.(item.id)}
-                        >
-                          删除
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              ) : null}
-            </div>
-          </div>
-        ) : (
-          renderNoteContent(message.content, variant)
-        )}
-        {variant === 'preview' ? (
-          <p className="note-board-sticky__time">{formatCommentTimeLabel(message.created_at, message.updated_at)}</p>
-        ) : null}
+        {renderNoteContent(message.content, variant)}
       </div>
     </article>
   )
@@ -973,18 +1120,6 @@ export function MobileNoteList({
   onEdit,
   canEdit,
   onToggleArchive,
-  editingNoteId,
-  editBody,
-  editChecklistItems,
-  isChecklistPanelOpen,
-  isUpdatingNote,
-  onEditBodyChange,
-  onUpdateChecklistItem,
-  onRemoveChecklistItem,
-  onAddChecklistItem,
-  onToggleChecklistPanel,
-  onCancelEdit,
-  onSaveEdit,
 }: {
   messages: NoteMessage[]
   onDelete: (id: string) => void
@@ -992,18 +1127,6 @@ export function MobileNoteList({
   onEdit: (message: NoteMessage) => void
   canEdit: (message: NoteMessage) => boolean
   onToggleArchive: (message: NoteMessage) => void
-  editingNoteId: string | null
-  editBody: string
-  editChecklistItems: ChecklistItemDraft[]
-  isChecklistPanelOpen: boolean
-  isUpdatingNote: boolean
-  onEditBodyChange: (value: string) => void
-  onUpdateChecklistItem: (id: string, patch: Partial<ChecklistItemDraft>) => void
-  onRemoveChecklistItem: (id: string) => void
-  onAddChecklistItem: () => void
-  onToggleChecklistPanel: () => void
-  onCancelEdit: () => void
-  onSaveEdit: () => void
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -1036,54 +1159,9 @@ export function MobileNoteList({
               )}
             </div>
           </div>
-          {editingNoteId === message.id ? (
-            <div className="space-y-3">
-              <textarea
-                value={editBody}
-                onChange={(event) => onEditBodyChange(event.target.value)}
-                placeholder="写点内容，或只保留 checklist。"
-                className="min-h-[108px] w-full resize-none rounded-[18px] border border-border/70 bg-background/70 px-4 py-3 text-sm leading-6 text-foreground outline-none"
-              />
-              <div className="overflow-hidden rounded-[18px] border border-border/70 bg-background/55">
-                <EditorActionBar
-                  className="border-t-0 px-3 py-2"
-                  leading={(
-                    <>
-                      <span>编辑栏</span>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground/75">Checklist {editChecklistItems.length} 项</span>
-                      <button type="button" className="rounded-full border border-border/70 px-2.5 py-1 text-[11px] text-foreground/80 transition hover:bg-accent" onClick={onAddChecklistItem}>添加项</button>
-                      <button type="button" className="rounded-full px-2.5 py-1 text-[11px] text-muted-foreground transition hover:bg-accent hover:text-foreground" onClick={onToggleChecklistPanel}>{isChecklistPanelOpen ? '收起 checklist' : '展开 checklist'}</button>
-                    </>
-                  )}
-                  trailing={(
-                    <>
-                      <button type="button" className="rounded-full px-3 py-1 text-xs text-muted-foreground transition hover:bg-accent hover:text-foreground" onClick={onCancelEdit}>取消</button>
-                      <button type="button" disabled={isUpdatingNote} className="rounded-full bg-foreground px-4 py-1.5 text-xs font-medium text-background transition hover:opacity-90 disabled:opacity-35" onClick={onSaveEdit}>{isUpdatingNote ? '保存中…' : '保存'}</button>
-                    </>
-                  )}
-                />
-                {isChecklistPanelOpen ? (
-                  <div className="space-y-2 border-t border-border/60 px-3 py-3">
-                    {editChecklistItems.length === 0 ? (
-                      <p className="rounded-2xl border border-dashed border-border/70 px-4 py-3 text-sm text-muted-foreground">还没有 checklist 项，点上方按钮开始。</p>
-                    ) : (
-                      editChecklistItems.map((item) => (
-                        <div key={item.id} className="flex items-center gap-2 rounded-2xl border border-border/60 bg-background/80 px-3 py-2">
-                          <button type="button" className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] transition ${item.checked ? 'border-slate-900 bg-slate-900 text-white' : 'border-border/80 text-transparent hover:text-slate-500'}`} onClick={() => onUpdateChecklistItem(item.id, { checked: !item.checked })}><Check size={11} strokeWidth={2.4} /></button>
-                          <input value={item.text} onChange={(event) => onUpdateChecklistItem(item.id, { text: event.target.value })} placeholder="输入 checklist 内容" className={`flex-1 bg-transparent text-sm outline-none ${item.checked ? 'line-through text-muted-foreground' : 'text-foreground'}`} />
-                          <button type="button" className="rounded-full px-2 py-1 text-xs text-rose-600/80 transition hover:bg-rose-50 hover:text-rose-700" onClick={() => onRemoveChecklistItem(item.id)}>删除</button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          ) : (
-            <div className="text-sm leading-relaxed text-foreground/90">
-              {renderNoteContent(message.content, 'board')}
-            </div>
-          )}
+          <div className="text-sm leading-relaxed text-foreground/90">
+            {renderNoteContent(message.content, 'board')}
+          </div>
         </div>
       ))}
     </div>
@@ -1107,13 +1185,15 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   const [isPending, startTransition] = useTransition()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
-  const [editBody, setEditBody] = useState('')
-  const [editChecklistItems, setEditChecklistItems] = useState<ChecklistItemDraft[]>([])
-  const [isChecklistPanelOpen, setIsChecklistPanelOpen] = useState(false)
+  const [editContent, setEditContent] = useState('')
   const [isUpdatingNote, setIsUpdatingNote] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
   const [isRefreshingBoard, setIsRefreshingBoard] = useState(false)
+  const [toastNotice, setToastNotice] = useState<ToastNotice | null>(null)
   const zIndexCounterRef = useRef(initialMessages.length + 2)
+  const editorSectionRef = useRef<HTMLElement>(null)
+  const toastTimerRef = useRef<number | null>(null)
+  const pendingOptimisticIdsRef = useRef<Set<string>>(new Set())
   const canWrite = board.slug === 'guestbook' || isAdmin
   const { cardWidth, height, layouts } = useMemo(() => computeBoardLayout(messages, size.width), [messages, size.width])
   const hasMeasured = size.width > 0 && size.height > 0
@@ -1142,11 +1222,77 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
     if (!editingNoteId) return
     if (!messages.some((message) => message.id === editingNoteId)) {
       setEditingNoteId(null)
-      setEditBody('')
-      setEditChecklistItems([])
-      setIsChecklistPanelOpen(false)
+      setEditContent('')
     }
   }, [editingNoteId, messages])
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current !== null) {
+        window.clearTimeout(toastTimerRef.current)
+      }
+    }
+  }, [])
+
+  function showToast(message: string) {
+    const nextNotice = { id: Date.now(), message }
+    setToastNotice(nextNotice)
+
+    if (toastTimerRef.current !== null) {
+      window.clearTimeout(toastTimerRef.current)
+    }
+
+    toastTimerRef.current = window.setTimeout(() => {
+      setToastNotice((current) => current?.id === nextNotice.id ? null : current)
+      toastTimerRef.current = null
+    }, 2800)
+  }
+
+  function scrollToEditor() {
+    window.requestAnimationFrame(() => {
+      editorSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
+  function removeMessageFromSurface(id: string) {
+    setMessages((current) => current.filter((message) => message.id !== id))
+    setCustomPositions((current) => {
+      const next = { ...current }
+      delete next[id]
+      return next
+    })
+    setCardZIndices((current) => {
+      const next = { ...current }
+      delete next[id]
+      return next
+    })
+    setNextOffset((current) => Math.max(current - 1, 0))
+
+    if (editingNoteId === id) {
+      cancelEditingNote()
+    }
+  }
+
+  function restoreMessageSnapshot(snapshot: OptimisticMessageSnapshot) {
+    setMessages((current) => {
+      const withoutTarget = current.filter((message) => message.id !== snapshot.message.id)
+      const next = [...withoutTarget]
+      next.splice(Math.min(snapshot.index, next.length), 0, snapshot.message)
+      return next
+    })
+
+    if (snapshot.customPosition) {
+      const customPosition = snapshot.customPosition
+      setCustomPositions((current) => ({ ...current, [snapshot.message.id]: customPosition }))
+    }
+
+    if (typeof snapshot.zIndex === 'number') {
+      const zIndex = snapshot.zIndex
+      setCardZIndices((current) => ({ ...current, [snapshot.message.id]: zIndex }))
+    }
+
+    setNextOffset((current) => current + 1)
+  }
 
   function bringCardToFront(id: string) {
     setCardZIndices((current) => ({ ...current, [id]: zIndexCounterRef.current++ }))
@@ -1163,33 +1309,16 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   }
 
   function startEditingNote(message: NoteMessage) {
-    const parsed = parseNoteContent(message.content)
     setEditingNoteId(message.id)
-    setEditBody(parsed.body)
-    setEditChecklistItems(parsed.checklistItems)
-    setIsChecklistPanelOpen(parsed.checklistItems.length > 0)
+    setEditContent(message.content)
     setError(null)
+    scrollToEditor()
   }
 
   function cancelEditingNote() {
     setEditingNoteId(null)
-    setEditBody('')
-    setEditChecklistItems([])
-    setIsChecklistPanelOpen(false)
+    setEditContent('')
     setError(null)
-  }
-
-  function updateChecklistItem(id: string, patch: Partial<ChecklistItemDraft>) {
-    setEditChecklistItems((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item))
-  }
-
-  function removeChecklistItem(id: string) {
-    setEditChecklistItems((current) => current.filter((item) => item.id !== id))
-  }
-
-  function addChecklistItem() {
-    setEditChecklistItems((current) => [...current, buildChecklistItem()])
-    setIsChecklistPanelOpen(true)
   }
 
   async function fetchBoardMessages(archived: boolean, offset = 0, limit = board.initialPageLimit) {
@@ -1222,7 +1351,12 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   }
 
   async function handleToggleArchive(message: NoteMessage) {
+    if (!identity || pendingOptimisticIdsRef.current.has(message.id)) return
+
     setError(null)
+    pendingOptimisticIdsRef.current.add(message.id)
+    const snapshot = buildOptimisticSnapshot(message.id, messages, customPositions, cardZIndices)
+    removeMessageFromSurface(message.id)
 
     try {
       const response = await fetch(`/api/note-boards/${board.slug}/${message.id}`, {
@@ -1234,22 +1368,21 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       if (!response.ok) {
         throw new Error(response.status === 403 ? '当前身份没有归档权限。' : '归档状态更新失败，请稍后再试。')
       }
-
-      const updatedMessage = (await response.json()) as NoteMessage
-      setMessages((current) => current.filter((item) => item.id !== updatedMessage.id))
-      if (editingNoteId === updatedMessage.id) {
-        cancelEditingNote()
-      }
     } catch (archiveError) {
-      setError(archiveError instanceof Error ? archiveError.message : '归档状态更新失败，请稍后再试。')
+      if (snapshot) {
+        restoreMessageSnapshot(snapshot)
+      }
+      showToast(archiveError instanceof Error ? archiveError.message : '归档状态更新失败，请稍后再试。')
+    } finally {
+      pendingOptimisticIdsRef.current.delete(message.id)
     }
   }
 
   async function saveEditingNote() {
     if (!editingMessage || !identity || isUpdatingNote) return
 
-    const serializedContent = serializeNoteContent(editBody, editChecklistItems)
-    if (!serializedContent) {
+    const nextContent = editContent.trim()
+    if (!nextContent) {
       setError('便签内容不能为空。')
       return
     }
@@ -1261,7 +1394,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       const response = await fetch(`/api/note-boards/${board.slug}/${editingMessage.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity, content: serializedContent }),
+        body: JSON.stringify({ identity, content: nextContent }),
       })
 
       if (!response.ok) {
@@ -1278,8 +1411,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
     }
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function submitDraft() {
     if (!draft.trim() || !identity || !canWrite || isSubmitting) return
 
     setIsSubmitting(true)
@@ -1307,29 +1439,43 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
     }
   }
 
-  async function handleDelete(id: string) {
-    const response = await fetch(`/api/note-boards/${board.slug}/${id}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identity }),
-    })
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (editingMessage) {
+      void saveEditingNote()
+      return
+    }
+    void submitDraft()
+  }
 
-    if (!response.ok) {
-      setError(response.status === 403 ? '当前身份没有删除权限。' : '删除失败，请稍后重试。')
+  async function handleDelete(id: string) {
+    if (!identity || pendingOptimisticIdsRef.current.has(id)) return
+
+    const snapshot = buildOptimisticSnapshot(id, messages, customPositions, cardZIndices)
+    if (!snapshot) {
       return
     }
 
-    setMessages((current) => current.filter((message) => message.id !== id))
-    setCustomPositions((current) => {
-      const next = { ...current }
-      delete next[id]
-      return next
-    })
-    setCardZIndices((current) => {
-      const next = { ...current }
-      delete next[id]
-      return next
-    })
+    setError(null)
+    pendingOptimisticIdsRef.current.add(id)
+    removeMessageFromSurface(id)
+
+    try {
+      const response = await fetch(`/api/note-boards/${board.slug}/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity }),
+      })
+
+      if (!response.ok) {
+        throw new Error(response.status === 403 ? '当前身份没有删除权限。' : '删除失败，请稍后重试。')
+      }
+    } catch (deleteError) {
+      restoreMessageSnapshot(snapshot)
+      showToast(deleteError instanceof Error ? deleteError.message : '删除失败，请稍后重试。')
+    } finally {
+      pendingOptimisticIdsRef.current.delete(id)
+    }
   }
 
   async function handleLoadMore() {
@@ -1416,20 +1562,6 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
               onToggleArchive={handleToggleArchive}
               canDelete={(m) => getDeletePermission(board.slug, isAdmin, identity, m)}
               canEdit={(m) => getEditPermission(isAdmin, identity, m)}
-              editingNoteId={editingNoteId}
-              editBody={editBody}
-              editChecklistItems={editChecklistItems}
-              isChecklistPanelOpen={isChecklistPanelOpen}
-              isUpdatingNote={isUpdatingNote}
-              onEditBodyChange={setEditBody}
-              onUpdateChecklistItem={updateChecklistItem}
-              onRemoveChecklistItem={removeChecklistItem}
-              onAddChecklistItem={addChecklistItem}
-              onToggleChecklistPanel={() => setIsChecklistPanelOpen((current) => !current)}
-              onCancelEdit={cancelEditingNote}
-              onSaveEdit={() => {
-                void saveEditingNote()
-              }}
             />
           )}
         </div>
@@ -1473,23 +1605,9 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
                       showDelete={getDeletePermission(board.slug, isAdmin, identity, message)}
                       showEdit={getEditPermission(isAdmin, identity, message)}
                       showArchive={getEditPermission(isAdmin, identity, message)}
-                      isEditing={editingNoteId === message.id}
-                      editBody={editingNoteId === message.id ? editBody : ''}
-                      editChecklistItems={editingNoteId === message.id ? editChecklistItems : []}
-                      isChecklistPanelOpen={editingNoteId === message.id ? isChecklistPanelOpen : false}
-                      isSavingEdit={editingNoteId === message.id ? isUpdatingNote : false}
                       onDelete={() => handleDelete(message.id)}
                       onEdit={() => startEditingNote(message)}
                       onToggleArchive={() => handleToggleArchive(message)}
-                      onEditBodyChange={setEditBody}
-                      onUpdateChecklistItem={updateChecklistItem}
-                      onRemoveChecklistItem={removeChecklistItem}
-                      onAddChecklistItem={addChecklistItem}
-                      onToggleChecklistPanel={() => setIsChecklistPanelOpen((current) => !current)}
-                      onCancelEdit={cancelEditingNote}
-                      onSaveEdit={() => {
-                        void saveEditingNote()
-                      }}
                       onLift={() => bringCardToFront(message.id)}
                       onCommit={(nextPosition) => {
                         setCustomPositions((current) => ({ ...current, [message.id]: nextPosition }))
@@ -1516,11 +1634,11 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
         </div>
       </section>
 
-      <section className="rounded-[28px] border border-border/60 bg-card/75 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)] backdrop-blur-sm">
+      <section ref={editorSectionRef} className="rounded-[28px] border border-border/60 bg-card/75 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)] backdrop-blur-sm">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              {board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'}
+              {editingMessage ? '便签编辑区' : board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'}
             </p>
           </div>
           <p className="text-xs text-muted-foreground">当前身份：{loading ? '加载中…' : identity}</p>
@@ -1528,40 +1646,47 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
 
         {editingMessage ? (
           <div className="mt-4 rounded-[24px] border border-dashed border-border/70 bg-background/55 px-4 py-3 text-sm text-muted-foreground">
-            正在直接编辑便签本体。保存后会在卡片上显示最新的“已编辑于”时间。
+            正在编辑 {editingMessage.author} 的便签。保存后卡片时间会自动刷新。
           </div>
         ) : null}
 
         {canWrite ? (
           <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
-            <textarea
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
+            <NoteEditor
+              value={editingMessage ? editContent : draft}
+              onChange={editingMessage ? setEditContent : setDraft}
+              placeholder={editingMessage ? '直接修改这张便签的原始文本，checklist 状态也在这里编辑。' : board.slug === 'guestbook' ? '写下想贴在主页上的留言，或直接插入 checklist。' : '写一条新的 Memo 便签，或直接插入 checklist。'}
+              saveLabel={editingMessage ? '保存编辑' : '贴上便签'}
+              isSaving={editingMessage ? isUpdatingNote : isSubmitting}
+              onSave={() => {
+                if (editingMessage) {
+                  void saveEditingNote()
+                  return
+                }
+                void submitDraft()
+              }}
+              onCancel={editingMessage ? cancelEditingNote : undefined}
+              saveDisabled={!(editingMessage ? editContent : draft).trim()}
               maxLength={180}
-              placeholder={board.slug === 'guestbook' ? '写下想贴在主页上的留言。' : '写一条新的 Memo 便签。'}
-              className="min-h-[140px] w-full rounded-[24px] border border-border/70 bg-background/70 px-4 py-4 text-sm leading-7 text-foreground outline-none transition placeholder:text-muted-foreground/45 focus:border-foreground/15 focus:ring-2 focus:ring-primary/12"
+              minHeightClassName="min-h-[140px]"
+              shellClassName="overflow-hidden rounded-[24px] border border-border/70 bg-background/55"
+              toolbarClassName="px-4 py-3 text-xs text-muted-foreground"
+              autoFocus={!!editingMessage}
             />
-            <div className="overflow-hidden rounded-[24px] border border-border/70 bg-background/55">
-              <EditorActionBar
-                className="border-t-0 px-4 py-3"
-                leading={<span>{board.slug === 'guestbook' ? '留言栏' : 'Memo 编辑栏'}</span>}
-                trailing={(
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !draft.trim()}
-                    className="rounded-full bg-foreground px-4 py-1.5 text-xs font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-35"
-                  >
-                    {isSubmitting ? '保存中…' : '贴上便签'}
-                  </button>
-                )}
-              />
-            </div>
           </form>
         ) : (
           <p className="mt-4 text-sm leading-7 text-muted-foreground">这个页面当前为只读模式，只有 admin 可以维护 Memo 内容。</p>
         )}
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
       </section>
+
+      {toastNotice ? (
+        <div className="pointer-events-none fixed inset-x-4 bottom-5 z-50 flex justify-center sm:justify-end">
+          <div className="rounded-full bg-slate-950 px-4 py-2 text-sm text-white shadow-[0_18px_50px_rgba(15,23,42,0.28)]">
+            {toastNotice.message}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
