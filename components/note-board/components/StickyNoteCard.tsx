@@ -108,7 +108,7 @@ export function StickyNoteCard({
     if (!element) return
 
     const emitHeight = () => {
-      const nextHeight = Math.ceil(element.getBoundingClientRect().height)
+      const nextHeight = Math.ceil(element.offsetHeight)
 
       if (nextHeight <= 0 || nextHeight === measuredHeightRef.current) {
         return
