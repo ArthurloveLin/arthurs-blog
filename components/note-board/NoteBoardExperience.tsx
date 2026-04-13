@@ -45,6 +45,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   const { identity, isAdmin, loading } = useAuth()
   const [containerRef, size] = useElementSize<HTMLDivElement>()
   const [messages, setMessages] = useState(initialMessages)
+  const [measuredHeights, setMeasuredHeights] = useState<Record<string, number>>({})
   const [customPositions, setCustomPositions] = useState<Record<string, NotePosition>>({})
   const [cardZIndices, setCardZIndices] = useState<Record<string, number>>(() =>
     Object.fromEntries(initialMessages.map((message, index) => [message.id, initialMessages.length - index + 1])),
@@ -69,9 +70,24 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   const pendingOptimisticIdsRef = useRef<Set<string>>(new Set())
   const viewerIdentity = identity ?? ''
   const canWrite = board.slug === 'guestbook' || isAdmin
-  const { cardWidth, height, layouts } = useMemo(() => computeBoardLayout(messages, size.width), [messages, size.width])
+  const { cardWidth, height, layouts } = useMemo(
+    () => computeBoardLayout(messages, size.width, measuredHeights),
+    [measuredHeights, messages, size.width],
+  )
   const hasMeasured = size.width > 0 && size.height > 0
   const editingMessage = useMemo(() => messages.find((message) => message.id === editingNoteId) ?? null, [messages, editingNoteId])
+
+  useEffect(() => {
+    setMeasuredHeights((current) => {
+      const nextEntries = Object.entries(current).filter(([id]) => messages.some((message) => message.id === id))
+
+      if (nextEntries.length === Object.keys(current).length) {
+        return current
+      }
+
+      return Object.fromEntries(nextEntries)
+    })
+  }, [messages])
 
   useEffect(() => {
     if (!hasMeasured) return
@@ -174,6 +190,16 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
 
   function bringCardToFront(id: string) {
     setCardZIndices((current) => ({ ...current, [id]: zIndexCounterRef.current++ }))
+  }
+
+  function handleCardHeightChange(id: string, height: number) {
+    setMeasuredHeights((current) => {
+      if (current[id] === height) {
+        return current
+      }
+
+      return { ...current, [id]: height }
+    })
   }
 
   function resetBoardSurface(nextMessages: NoteMessage[], archived: boolean) {
@@ -487,6 +513,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
                       onCommit={(nextPosition) => {
                         setCustomPositions((current) => ({ ...current, [message.id]: nextPosition }))
                       }}
+                      onHeightChange={(nextHeight) => handleCardHeightChange(message.id, nextHeight)}
                       onInlineEditChange={setEditContent}
                       onInlineSave={() => void saveEditingNote()}
                       onInlineCancel={cancelEditingNote}
@@ -553,7 +580,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
             />
           </form>
         ) : (
-          <p className="mt-4 text-sm leading-7 text-muted-foreground">这个页面当前为只读模式，只有 admin 可以维护 Memo 内容。</p>
+          <p className="mt-4 text-sm leading-7 text-muted-foreground">这里先开放浏览，Memo 暂时由 admin 维护与更新。</p>
         )}
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
       </section>
