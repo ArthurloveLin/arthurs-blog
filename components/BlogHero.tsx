@@ -34,7 +34,7 @@ export default function BlogHero({ guestbookBoard, initialGuestbookMessages }: B
           <p className="mb-5 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             {siteConfig.site_subtitle || 'Arthur & Grace · Journal'}
           </p>
-          <h1 className="max-w-lg text-[2rem] font-semibold leading-[1.2] tracking-tight text-foreground lg:text-[2.5rem]">
+          <h1 className="max-w-lg text-[2rem] font-bold leading-[1.2] tracking-tight text-foreground lg:text-[2.5rem]">
             <span className="block sm:inline text-gradient-primary">{siteConfig.site_title_highlight || '技术、生活与创意'}</span>
             {siteConfig.site_title_highlight_2 && (
               <>
