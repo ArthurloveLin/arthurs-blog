@@ -44,6 +44,7 @@ export interface StickyNoteCardProps {
   onToggleArchive?: () => void
   onLift?: () => void
   onCommit?: (nextPosition: NotePosition, metrics: { distance: number }) => void
+  onHeightChange?: (height: number) => void
   onInlineEditChange?: (value: string) => void
   onInlineSave?: () => void
   onInlineCancel?: () => void
@@ -75,16 +76,19 @@ export function StickyNoteCard({
   onToggleArchive,
   onLift,
   onCommit,
+  onHeightChange,
   onInlineEditChange,
   onInlineSave,
   onInlineCancel,
 }: StickyNoteCardProps) {
+  const articleRef = useRef<HTMLElement>(null)
   const dragOriginRef = useRef<NotePosition | null>(null)
   const dragPointerRef = useRef<{ startClientX: number; startClientY: number } | null>(null)
   const velocityRef = useRef({ lastClientX: 0, lastClientY: 0, lastTime: 0, velocityX: 0, velocityY: 0 })
   const frameRef = useRef<number | null>(null)
   const queuedDragPositionRef = useRef<NotePosition | null>(null)
   const latestDragPositionRef = useRef<NotePosition | null>(null)
+  const measuredHeightRef = useRef(0)
   const [dragPosition, setDragPosition] = useState<NotePosition | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const isPreview = variant === 'preview'
@@ -96,6 +100,33 @@ export function StickyNoteCard({
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (!onHeightChange || typeof ResizeObserver === 'undefined') return
+
+    const element = articleRef.current
+    if (!element) return
+
+    const emitHeight = () => {
+      const nextHeight = Math.ceil(element.getBoundingClientRect().height)
+
+      if (nextHeight <= 0 || nextHeight === measuredHeightRef.current) {
+        return
+      }
+
+      measuredHeightRef.current = nextHeight
+      onHeightChange(nextHeight)
+    }
+
+    emitHeight()
+
+    const observer = new ResizeObserver(() => emitHeight())
+    observer.observe(element)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [inlineEditContent, isInlineEditing, onHeightChange])
 
   function scheduleDragPosition(nextPosition: NotePosition) {
     latestDragPositionRef.current = nextPosition
@@ -211,6 +242,7 @@ export function StickyNoteCard({
 
   return (
     <article
+      ref={articleRef}
       className={[
         'absolute touch-none select-none',
         styles.sticky,
@@ -238,10 +270,10 @@ export function StickyNoteCard({
         className={[styles.paper, isPreview ? styles.previewPaper : styles.boardPaper].join(' ')}
         style={{
           backgroundColor: STICKY_COLORS[colorIndex % STICKY_COLORS.length],
-          transform: `rotateX(${isDragging ? 24 : 5}deg) scale(${isDragging ? 1.08 : 1})`,
+          transform: `translate3d(0, ${isDragging ? -6 : 0}px, 0) scale(${isDragging ? 1.03 : 1})`,
           boxShadow: isDragging
-            ? '-1px 14px 40px -4px rgba(0, 0, 0, 0.16), inset 0 18px 24px -12px rgba(0, 0, 0, 0.28)'
-            : '-1px 10px 5px -4px rgba(0, 0, 0, 0.12), inset 0 24px 30px -12px rgba(0, 0, 0, 0.3)',
+            ? '0 22px 42px -16px rgba(15, 23, 42, 0.28), inset 0 18px 24px -12px rgba(0, 0, 0, 0.22)'
+            : '0 12px 18px -14px rgba(15, 23, 42, 0.22), inset 0 24px 30px -12px rgba(0, 0, 0, 0.26)',
         }}
       >
         <div className={styles.meta}>
