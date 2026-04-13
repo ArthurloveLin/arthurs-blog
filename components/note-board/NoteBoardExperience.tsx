@@ -408,6 +408,20 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
 
   const isMobileEditorMode = isMobileViewport && !!editingMessage
   const isDesktopInlineEditing = !isMobileViewport && !!editingMessage
+  const editorSectionLabel = (() => {
+    if (isMobileEditorMode) return '便签编辑区'
+    if (isDesktopInlineEditing) return '桌面端原地编辑'
+    return board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'
+  })()
+  const defaultEditorPlaceholder = board.slug === 'guestbook'
+    ? '写下想贴在主页上的留言，或直接插入 checklist。'
+    : '写一条新的 Memo 便签，或直接插入 checklist。'
+  const editorPlaceholder = isMobileEditorMode
+    ? '直接修改这张便签的原始文本，checklist 状态也在这里编辑。'
+    : defaultEditorPlaceholder
+  const editorSaveLabel = isMobileEditorMode ? '保存编辑' : '贴上便签'
+  const editorValue = isMobileEditorMode ? editContent : draft
+  const editorSaving = isMobileEditorMode ? isUpdatingNote : isSubmitting
 
   return (
     <div className="space-y-6">
@@ -559,15 +573,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       <section ref={editorSectionRef} className="rounded-[28px] border border-border/60 bg-card/75 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)] backdrop-blur-sm">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              {isMobileEditorMode
-                ? '便签编辑区'
-                : isDesktopInlineEditing
-                  ? '桌面端原地编辑'
-                  : board.slug === 'guestbook'
-                    ? '留言区'
-                    : 'Memo 编辑区'}
-            </p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{editorSectionLabel}</p>
           </div>
           <p className="text-xs text-muted-foreground">当前身份：{loading ? '加载中…' : viewerIdentity}</p>
         </div>
@@ -586,11 +592,11 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
           isDesktopInlineEditing ? null : (
             <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
               <NoteEditor
-                value={isMobileEditorMode ? editContent : draft}
+                value={editorValue}
                 onChange={isMobileEditorMode ? setEditContent : setDraft}
-                placeholder={isMobileEditorMode ? '直接修改这张便签的原始文本，checklist 状态也在这里编辑。' : board.slug === 'guestbook' ? '写下想贴在主页上的留言，或直接插入 checklist。' : '写一条新的 Memo 便签，或直接插入 checklist。'}
-                saveLabel={isMobileEditorMode ? '保存编辑' : '贴上便签'}
-                isSaving={isMobileEditorMode ? isUpdatingNote : isSubmitting}
+                placeholder={editorPlaceholder}
+                saveLabel={editorSaveLabel}
+                isSaving={editorSaving}
                 onSave={() => {
                   if (isMobileEditorMode) {
                     void saveEditingNote()
@@ -599,7 +605,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
                   void submitDraft()
                 }}
                 onCancel={isMobileEditorMode ? cancelEditingNote : undefined}
-                saveDisabled={!(isMobileEditorMode ? editContent : draft).trim()}
+                saveDisabled={!editorValue.trim()}
                 maxLength={180}
                 minHeightClassName="min-h-[140px]"
                 shellClassName="overflow-hidden rounded-[24px] border border-border/70 bg-background/55"
