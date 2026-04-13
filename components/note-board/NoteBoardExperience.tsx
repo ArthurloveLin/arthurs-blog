@@ -8,6 +8,7 @@ import { StickyNoteCard } from '@/components/note-board/components/StickyNoteCar
 import { useElementSize } from '@/components/note-board/hooks/useElementSize'
 import type { NotePosition, OptimisticMessageSnapshot, ToastNotice } from '@/components/note-board/types'
 import {
+  MOBILE_VIEWPORT_MAX_WIDTH,
   computeBoardLayout,
   getDeletePermission,
   getEditPermission,
@@ -92,7 +93,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   }, [messages])
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 767px)')
+    const mediaQuery = window.matchMedia(`(max-width: ${MOBILE_VIEWPORT_MAX_WIDTH}px)`)
     const syncViewport = () => setIsMobileViewport(mediaQuery.matches)
 
     syncViewport()
@@ -408,13 +409,13 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
 
   const isMobileEditorMode = isMobileViewport && !!editingMessage
   const isDesktopInlineEditing = !isMobileViewport && !!editingMessage
-  function getEditorSectionLabel() {
-    if (isMobileEditorMode) return '便签编辑区'
-    if (isDesktopInlineEditing) return '桌面端原地编辑'
-    return board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'
+  let editorSectionLabel = board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'
+  if (isDesktopInlineEditing) {
+    editorSectionLabel = '桌面端原地编辑'
   }
-
-  const editorSectionLabel = getEditorSectionLabel()
+  if (isMobileEditorMode) {
+    editorSectionLabel = '便签编辑区'
+  }
   const defaultEditorPlaceholder = board.slug === 'guestbook'
     ? '写下想贴在主页上的留言，或直接插入 checklist。'
     : '写一条新的 Memo 便签，或直接插入 checklist。'

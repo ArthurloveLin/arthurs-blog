@@ -4,6 +4,7 @@ import type { NotePosition, Size } from '@/components/note-board/types'
 
 export const STICKY_COLORS = ['#f8ef9f', '#ffd0a8', '#f8bfd3', '#c9eff3', '#d9ccff']
 export const NOTE_CARD_WIDTH = 200
+export const MOBILE_VIEWPORT_MAX_WIDTH = 767
 const MAX_BOARD_CARD_WIDTH = 272
 export const PREVIEW_CARD_SIZE = 200
 export const PREVIEW_STACK_LIMIT = 6
@@ -127,18 +128,18 @@ export function computeBoardLayout(
   const columnBottoms = Array.from({ length: columns }, () => topInset)
 
   const layouts: BoardLayoutCard[] = messages.map((message, index) => {
-    let column = 0
+    let targetColumn = 0
     for (let candidateColumn = 1; candidateColumn < columns; candidateColumn += 1) {
-      if (columnBottoms[candidateColumn] < columnBottoms[column]) {
-        column = candidateColumn
+      if (columnBottoms[candidateColumn] < columnBottoms[targetColumn]) {
+        targetColumn = candidateColumn
       }
     }
     const cardHeight = getBoardCardHeight(message.id, measuredHeights)
     const xJitter = (seededUnit(message.id, 1) - 0.5) * 14
-    const y = columnBottoms[column]
-    const x = clamp(columnX[column] + xJitter, 0, maxX)
-    const rotation = getBoardRotation(message.id, index, column)
-    columnBottoms[column] = y + cardHeight + gapY
+    const y = columnBottoms[targetColumn]
+    const x = clamp(columnX[targetColumn] + xJitter, 0, maxX)
+    const rotation = getBoardRotation(message.id, index, targetColumn)
+    columnBottoms[targetColumn] = y + cardHeight + gapY
 
     return {
       x,
