@@ -667,6 +667,10 @@ html:active-view-transition-type(nav-back) {
   gap: 12px;
 }
 
+.note-board-sticky__meta-copy {
+  min-width: 0;
+}
+
 .note-board-sticky__actions {
   display: inline-flex;
   align-items: center;
@@ -721,10 +725,12 @@ html:active-view-transition-type(nav-back) {
 }
 
 .note-board-sticky__time {
+  display: inline-block;
   color: rgba(42, 49, 64, 0.78);
   font-size: 12px;
   font-weight: 500;
   text-align: right;
+  white-space: nowrap;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -735,7 +741,8 @@ html:active-view-transition-type(nav-back) {
   text-align: left;
 }
 
-.note-board-sticky__icon-link {
+.note-board-sticky__icon-link,
+.note-board-sticky__icon-button {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -747,11 +754,14 @@ html:active-view-transition-type(nav-back) {
   background: transparent;
   color: #0f172a;
   text-decoration: none;
+  cursor: pointer;
   transition: color 180ms ease, transform 180ms ease;
 }
 
 .note-board-sticky__icon-link:hover,
-.note-board-sticky__icon-link:focus-visible {
+.note-board-sticky__icon-link:focus-visible,
+.note-board-sticky__icon-button:hover,
+.note-board-sticky__icon-button:focus-visible {
   color: rgba(15, 23, 42, 0.72);
   transform: translateY(-1px);
 }
@@ -776,7 +786,9 @@ html:active-view-transition-type(nav-back) {
 }
 
 .note-board-sticky__icon-link:hover .note-board-sticky__icon-tooltip,
-.note-board-sticky__icon-link:focus-visible .note-board-sticky__icon-tooltip {
+.note-board-sticky__icon-link:focus-visible .note-board-sticky__icon-tooltip,
+.note-board-sticky__icon-button:hover .note-board-sticky__icon-tooltip,
+.note-board-sticky__icon-button:focus-visible .note-board-sticky__icon-tooltip {
   opacity: 1;
   transform: translate3d(0, 0, 0);
 }

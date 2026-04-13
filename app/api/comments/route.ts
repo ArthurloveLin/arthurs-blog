@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('comments')
-    .select('id, author, content, created_at, parent_id')
+    .select('id, author, content, created_at, updated_at, parent_id')
     .eq('target_type', target_type)
     .eq('target_id', target_id)
     .order('created_at', { ascending: true })
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       content: content.trim(),
       parent_id: parent_id ?? null,
     })
-    .select('id, author, content, created_at, parent_id')
+    .select('id, author, content, created_at, updated_at, parent_id')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

@@ -20,7 +20,7 @@ export default async function ItemPage({
       *,
       sessions(template_config),
       ratings(score, author, scores, appearance_score, practicality_score, value_score),
-      comments(id, author, content, created_at, parent_id)
+      comments(id, author, content, created_at, updated_at, parent_id)
     `)
     .eq('id', id)
     .single()
