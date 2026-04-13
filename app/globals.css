@@ -641,7 +641,8 @@ html:active-view-transition-type(nav-back) {
   padding: 16px 15px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 12px;
   font-family: 'LXGW WenKai TC', serif;
   transform-origin: center center;
   will-change: transform, box-shadow;
@@ -671,6 +672,12 @@ html:active-view-transition-type(nav-back) {
   min-width: 0;
 }
 
+.note-board-sticky__meta-copy .note-board-sticky__time {
+  margin-top: 4px;
+  text-align: left;
+  white-space: normal;
+}
+
 .note-board-sticky__actions {
   display: inline-flex;
   align-items: center;
@@ -694,19 +701,18 @@ html:active-view-transition-type(nav-back) {
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   font-family: 'LXGW WenKai TC', serif;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-synthesis: none;
-  margin-top: auto;
-  margin-bottom: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
+  min-height: 0;
 }
 
 .note-board-sticky__text--preview {
@@ -717,7 +723,6 @@ html:active-view-transition-type(nav-back) {
 }
 
 .note-board-sticky__text--board {
-  margin-top: 0;
   font-size: 1.05rem;
   align-items: center;
   justify-content: center;
@@ -738,6 +743,10 @@ html:active-view-transition-type(nav-back) {
 
 .note-board-sticky__time--board {
   margin-top: 4px;
+  text-align: left;
+}
+
+.note-board-sticky__time--preview {
   text-align: left;
 }
 
