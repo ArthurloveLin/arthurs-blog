@@ -19,11 +19,12 @@ export async function GET(
   const { searchParams } = new URL(req.url)
   const rawLimit = Number.parseInt(searchParams.get('limit') ?? '', 10)
   const rawOffset = Number.parseInt(searchParams.get('offset') ?? '', 10)
+  const archived = searchParams.get('archived') === '1'
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), config?.pageSize ?? 24) : config?.initialPageLimit ?? 48
   const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0
 
   try {
-    const messages = await getBoardMessages(board, limit, offset)
+    const messages = await getBoardMessages(board, limit, offset, { archived })
     return NextResponse.json({ messages, nextOffset: offset + messages.length, hasMore: messages.length === limit })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to load board' }, { status: 500 })
