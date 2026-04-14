@@ -21,7 +21,7 @@ export function MobileNoteList({ items }: MobileNoteListProps) {
             <div className="flex items-center gap-3">
               <span className="whitespace-nowrap text-xs text-muted-foreground">{formatCommentTimeLabel(message.created_at, message.updated_at)}</span>
               {priorityControl ? (
-                <PriorityPicker
+                <PriorityPicker.Dot
                   value={priorityControl.value}
                   onChange={priorityControl.onChange}
                   disabled={isPriorityUpdating || priorityControl.disabled}
