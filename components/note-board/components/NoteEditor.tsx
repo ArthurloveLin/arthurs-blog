@@ -117,7 +117,7 @@ export function NoteEditor({
         onChange={(event) => onChange(event.target.value)}
         maxLength={maxLength}
         placeholder={placeholder}
-        className={`${minHeightClassName} w-full resize-none rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-black/20 focus:ring-2 focus:ring-black/10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
+        className={`${minHeightClassName} w-full resize-none rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-primary/30 focus:ring-2 focus:ring-primary/20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
       />
       <div className={shellClassName}>
         <EditorActionBar

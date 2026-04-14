@@ -47,6 +47,41 @@ function canModifyComment(comment: Comment, identityAliases: string[], isAdmin: 
   return isAdmin || identityAliases.includes(comment.author)
 }
 
+function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[] {
+  const nodes: ReactNode[] = []
+  const pattern = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==)/g
+  let cursor = 0
+  let match = pattern.exec(text)
+  let index = 0
+
+  while (match) {
+    const [token] = match
+    const tokenStart = match.index
+
+    if (tokenStart > cursor) {
+      nodes.push(text.slice(cursor, tokenStart))
+    }
+
+    if (token.startsWith('**') && token.endsWith('**')) {
+      nodes.push(<strong key={`${keyPrefix}-strong-${index}`} className="font-semibold text-slate-900">{token.slice(2, -2)}</strong>)
+    } else if (token.startsWith('*') && token.endsWith('*')) {
+      nodes.push(<em key={`${keyPrefix}-em-${index}`} className="italic">{token.slice(1, -1)}</em>)
+    } else if (token.startsWith('==') && token.endsWith('==')) {
+      nodes.push(<mark key={`${keyPrefix}-mark-${index}`} className="rounded-[0.35em] bg-amber-200/85 px-1 py-[0.05em] text-slate-900">{token.slice(2, -2)}</mark>)
+    }
+
+    cursor = tokenStart + token.length
+    index += 1
+    match = pattern.exec(text)
+  }
+
+  if (cursor < text.length) {
+    nodes.push(text.slice(cursor))
+  }
+
+  return nodes.length > 0 ? nodes : [text]
+}
+
 function CommentComposerShell({
   children,
   actionBar,
@@ -56,7 +91,7 @@ function CommentComposerShell({
   actionBar: ReactNode
   onSubmit?: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
-  const className = 'overflow-hidden rounded-2xl border border-border bg-muted/20 transition-all focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20'
+  const className = 'overflow-hidden rounded-[18px] border border-black/10 bg-white/45 transition-all focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20'
 
   if (onSubmit) {
     return (
@@ -106,7 +141,7 @@ function CommentEditorForm({
               </button>
               <button
                 type="button"
-                className="rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground transition disabled:opacity-40"
+                className="rounded-full bg-slate-900 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white transition hover:opacity-90 disabled:bg-slate-300"
                 onClick={onSave}
                 disabled={isSaving || !value.trim()}
               >
@@ -120,7 +155,7 @@ function CommentEditorForm({
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-[96px] w-full resize-y bg-transparent px-3 py-3 text-sm leading-relaxed text-foreground outline-none transition"
+        className="min-h-[96px] w-full resize-y bg-transparent px-3 py-3 text-sm leading-relaxed text-foreground outline-none transition focus:ring-0 focus:shadow-none"
       />
       {error ? <p className="px-3 pb-3 text-xs text-rose-600">{error}</p> : null}
     </CommentComposerShell>
@@ -167,10 +202,10 @@ function CommentCard({ comment }: { comment: Comment }) {
 
   return (
     <div className="flex gap-2 items-start">
-      <div className="flex-1 bg-muted/30 border border-border/50 rounded-2xl px-3 py-2 hover:bg-muted/50 transition-colors">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-bold uppercase tracking-tight text-primary/80">{comment.author}</span>
-          <span className="text-[10px] font-medium text-muted-foreground/50">{formatCommentTimeLabel(comment.created_at, comment.updated_at)}</span>
+      <div className="flex-1 bg-white/35 border border-black/5 rounded-[18px] px-3.5 py-3 hover:bg-white/50 transition-all shadow-[0_4px_12px_-6px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-tight text-slate-800">{comment.author}</span>
+          <span className="text-[10px] font-medium text-slate-400">{formatCommentTimeLabel(comment.created_at, comment.updated_at)}</span>
         </div>
         {isEditing ? (
           <CommentEditorForm
@@ -186,7 +221,13 @@ function CommentCard({ comment }: { comment: Comment }) {
             error={error}
           />
         ) : (
-          <p className="text-sm text-foreground/90 break-words leading-relaxed whitespace-pre-wrap">{comment.content}</p>
+          <div className="text-sm text-slate-800 w-full whitespace-pre-wrap break-words leading-relaxed">
+            {comment.content.split('\n').map((line, index) => (
+              <p key={`${comment.id}-l-${index}`}>
+                {line.length > 0 ? renderInlineFormattedText(line, `${comment.id}-${index}`) : <span>&nbsp;</span>}
+              </p>
+            ))}
+          </div>
         )}
         <div className="flex items-center justify-end gap-3">
           {editable && !isEditing ? (
@@ -203,7 +244,7 @@ function CommentCard({ comment }: { comment: Comment }) {
           ) : null}
           <button
             onClick={() => onReply(comment)}
-            className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 hover:text-primary mt-1.5 transition-all"
+            className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-900 mt-2 transition-all"
           >
             回复
           </button>
@@ -301,7 +342,7 @@ function CommentThreadComposer() {
               <button
                 type="submit"
                 disabled={submitting || !draft.trim()}
-                className="rounded-full bg-primary px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-primary-foreground transition-all hover:opacity-90 disabled:opacity-30"
+                className="rounded-full bg-slate-900 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white transition-all hover:opacity-90 disabled:opacity-30 disabled:bg-slate-400"
               >
                 {submitting ? '发送中' : '发送'}
               </button>
@@ -317,7 +358,7 @@ function CommentThreadComposer() {
             onFocus={() => updatePresenceActivity('正在评论')}
             placeholder={replyTo ? `回复 @${replyTo.author}…` : '写点什么…'}
             rows={replyTo ? 3 : 2}
-            className="flex-1 resize-none bg-transparent px-4 py-3 text-sm leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none"
+            className="flex-1 resize-none bg-transparent px-4 py-3 text-sm leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none focus:ring-0 focus:shadow-none"
           />
         </div>
       </CommentComposerShell>
@@ -351,7 +392,12 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
   const [replyTo, setReplyTo] = useState<{ id: string; author: string } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const topLevelComments = useMemo(() => comments.filter((comment) => !comment.parent_id), [comments])
   const repliesByParentId = useMemo(() => comments.reduce<Record<string, Comment[]>>((accumulator, comment) => {
@@ -436,7 +482,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     draft,
     submitting,
     error,
-    identityReady: Boolean(identity),
+    identityReady: mounted && Boolean(identity),
     identityAliases,
     isAdmin,
     composerRef: inputRef,

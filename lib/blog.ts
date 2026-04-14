@@ -136,7 +136,7 @@ export async function getPostContent(post: Post): Promise<string> {
   
   return unstable_cache(
     async () => {
-      const content = await getCachedPostContent(post.r2_key)
+      const content = (await getCachedPostContent(post.r2_key)).replace('<!-- more -->', '')
 
       // 将 Obsidian 附件引用替换为 R2 公开域名 URL
       const noteDir = post.r2_key.includes('/')
