@@ -176,6 +176,41 @@ function createBoardPayload(
   }
 }
 
+function isSameBoardSurfacePayload(
+  payload: NoteBoardListPayload,
+  messages: NoteMessage[],
+  nextOffset: number,
+  hasMore: boolean,
+) {
+  if (payload.nextOffset !== nextOffset || payload.hasMore !== hasMore) {
+    return false
+  }
+
+  if (payload.messages.length !== messages.length) {
+    return false
+  }
+
+  for (let index = 0; index < payload.messages.length; index += 1) {
+    const left = payload.messages[index]
+    const right = messages[index]
+
+    if (
+      left.id !== right.id ||
+      left.author !== right.author ||
+      left.content !== right.content ||
+      left.created_at !== right.created_at ||
+      left.updated_at !== right.updated_at ||
+      left.priority !== right.priority ||
+      left.archived !== right.archived ||
+      left.parent_id !== right.parent_id
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
 function useRequiredContext<T>(context: React.Context<T | null>, name: string) {
   const value = use(context)
   if (!value) {
@@ -843,13 +878,17 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       return
     }
 
+    if (isSameBoardSurfacePayload(boardPayload, messages, nextOffset, hasMore)) {
+      return
+    }
+
     startTransition(() => {
       resetBoardSurface(boardPayload.messages, {
         nextOffset: boardPayload.nextOffset,
         hasMore: boardPayload.hasMore,
       })
     })
-  }, [boardPayload, resetBoardSurface, showArchived, sortMode])
+  }, [boardPayload, hasMore, messages, nextOffset, resetBoardSurface, showArchived, sortMode])
 
   useEffect(() => {
     const element = containerElement
