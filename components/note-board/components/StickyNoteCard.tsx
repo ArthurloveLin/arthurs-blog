@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
 import { NoteContent } from '@/components/note-board/components/NoteContent'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
+import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
 import type { NotePosition, Size } from '@/components/note-board/types'
 import {
@@ -16,6 +17,7 @@ import {
   STICKY_COLORS,
 } from '@/components/note-board/utils/board'
 import { formatCommentTimeLabel } from '@/lib/date-format'
+import { DEFAULT_NOTE_PRIORITY, NOTE_PRIORITY_META, type NotePriority } from '@/lib/note-priority'
 import type { NoteMessage } from '@/lib/note-boards'
 
 export interface StickyNoteCardProps {
@@ -32,6 +34,8 @@ export interface StickyNoteCardProps {
   showDelete?: boolean
   showEdit?: boolean
   showArchive?: boolean
+  showPriority?: boolean
+  priorityDisabled?: boolean
   ctaHref?: string
   ctaLabel?: string
   animatePosition?: boolean
@@ -42,6 +46,7 @@ export interface StickyNoteCardProps {
   onDelete?: () => void
   onEdit?: () => void
   onToggleArchive?: () => void
+  onPriorityChange?: (value: NotePriority) => void
   onLift?: () => void
   onCommit?: (nextPosition: NotePosition, metrics: { distance: number }) => void
   onHeightChange?: (height: number) => void
@@ -64,6 +69,8 @@ export function StickyNoteCard({
   showDelete = false,
   showEdit = false,
   showArchive = false,
+  showPriority = false,
+  priorityDisabled = false,
   ctaHref,
   ctaLabel,
   animatePosition = true,
@@ -74,6 +81,7 @@ export function StickyNoteCard({
   onDelete,
   onEdit,
   onToggleArchive,
+  onPriorityChange,
   onLift,
   onCommit,
   onHeightChange,
@@ -266,6 +274,25 @@ export function StickyNoteCard({
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
     >
+      {showPriority && !isPreview ? (
+        onPriorityChange ? (
+          <PriorityPicker
+            value={message.priority ?? DEFAULT_NOTE_PRIORITY}
+            onChange={onPriorityChange}
+            disabled={priorityDisabled}
+            triggerVariant="tape"
+            rootClassName={styles.tapeAnchor}
+            buttonClassName={[styles.tapeButton, isDragging ? styles.tapeButtonDragging : ''].filter(Boolean).join(' ')}
+            menuAlign="start"
+            menuDirection="down"
+          />
+        ) : (
+          <div
+            className={[styles.tape, isDragging ? styles.tapeDragging : ''].join(' ')}
+            style={{ backgroundColor: NOTE_PRIORITY_META[message.priority ?? DEFAULT_NOTE_PRIORITY].color }}
+          />
+        )
+      ) : null}
       <div
         className={[styles.paper, isPreview ? styles.previewPaper : styles.boardPaper].join(' ')}
         style={{
@@ -296,6 +323,7 @@ export function StickyNoteCard({
                 <span className={styles.iconTooltip}>{ctaLabel}</span>
               </Link>
             ) : null}
+
             {showArchive && onToggleArchive ? (
               <NoteActionButton label={message.archived ? '取消归档' : '归档便签'} onClick={onToggleArchive}>
                 {message.archived ? <ArchiveRestore size={16} strokeWidth={1.9} /> : <Archive size={16} strokeWidth={1.9} />}

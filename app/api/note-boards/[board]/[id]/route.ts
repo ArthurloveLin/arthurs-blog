@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isNotePriority, normalizeNotePriority } from '@/lib/note-priority'
 import { deleteBoardMessage, isNoteBoardSlug, updateBoardMessage } from '@/lib/note-boards'
 
 export async function DELETE(
@@ -43,19 +44,28 @@ export async function PATCH(
   const hasContent = typeof body.content === 'string'
   const content = hasContent ? body.content.trim() : undefined
   const archived = typeof body.archived === 'boolean' ? body.archived : undefined
+  const hasPriority = typeof body.priority !== 'undefined'
+  const rawPriority = hasPriority
+    ? (typeof body.priority === 'string' ? Number.parseInt(body.priority, 10) : body.priority)
+    : undefined
+  const priority = hasPriority && isNotePriority(rawPriority) ? normalizeNotePriority(rawPriority) : undefined
   const identities = Array.isArray(body.identities)
     ? body.identities.filter((value: unknown): value is string => typeof value === 'string')
     : undefined
 
-  if (content === '' || (content === undefined && archived === undefined)) {
+  if (content === '' || (content === undefined && archived === undefined && priority === undefined)) {
     return NextResponse.json({ error: content === '' ? 'Missing content' : 'Missing patch' }, { status: 400 })
+  }
+
+  if (hasPriority && !isNotePriority(priority)) {
+    return NextResponse.json({ error: 'Invalid priority' }, { status: 400 })
   }
 
   try {
     const message = await updateBoardMessage(
       board,
       id,
-      { content, archived },
+      { content, archived, priority },
       identities ?? (body.identity as string | undefined),
     )
     return NextResponse.json(message)
@@ -66,6 +76,9 @@ export async function PATCH(
     }
     if (message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    if (message === 'INVALID_PRIORITY') {
+      return NextResponse.json({ error: 'Invalid priority' }, { status: 400 })
     }
     if (message === 'MISSING_CONTENT' || message === 'MISSING_PATCH') {
       return NextResponse.json({ error: 'Missing patch' }, { status: 400 })
