@@ -8,7 +8,13 @@ import { NoteContent } from '@/components/note-board/components/NoteContent'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
-import type { NotePosition, Size } from '@/components/note-board/types'
+import type {
+  NotePosition,
+  Size,
+  StickyNoteCardActions,
+  StickyNoteCardInlineEditor,
+  StickyNoteCardPriorityControl,
+} from '@/components/note-board/types'
 import {
   clamp,
   MOBILE_SIDE_PEEK_RATIO,
@@ -17,7 +23,7 @@ import {
   STICKY_COLORS,
 } from '@/components/note-board/utils/board'
 import { formatCommentTimeLabel } from '@/lib/date-format'
-import { DEFAULT_NOTE_PRIORITY, NOTE_PRIORITY_META, type NotePriority } from '@/lib/note-priority'
+import { NOTE_PRIORITY_META } from '@/lib/note-priority'
 import type { NoteMessage } from '@/lib/note-boards'
 
 export interface StickyNoteCardProps {
@@ -31,28 +37,14 @@ export interface StickyNoteCardProps {
   colorIndex: number
   draggable: boolean
   variant: 'preview' | 'board'
-  showDelete?: boolean
-  showEdit?: boolean
-  showArchive?: boolean
-  showPriority?: boolean
-  priorityDisabled?: boolean
-  ctaHref?: string
-  ctaLabel?: string
+  actions?: StickyNoteCardActions
+  priorityControl?: StickyNoteCardPriorityControl
   animatePosition?: boolean
   dragBoundsMode?: 'contained' | 'mobile-stack'
-  isInlineEditing?: boolean
-  inlineEditContent?: string
-  isSavingInline?: boolean
-  onDelete?: () => void
-  onEdit?: () => void
-  onToggleArchive?: () => void
-  onPriorityChange?: (value: NotePriority) => void
+  inlineEditor?: StickyNoteCardInlineEditor
   onLift?: () => void
   onCommit?: (nextPosition: NotePosition, metrics: { distance: number }) => void
   onHeightChange?: (height: number) => void
-  onInlineEditChange?: (value: string) => void
-  onInlineSave?: () => void
-  onInlineCancel?: () => void
 }
 
 export function StickyNoteCard({
@@ -66,28 +58,14 @@ export function StickyNoteCard({
   colorIndex,
   draggable,
   variant,
-  showDelete = false,
-  showEdit = false,
-  showArchive = false,
-  showPriority = false,
-  priorityDisabled = false,
-  ctaHref,
-  ctaLabel,
+  actions,
+  priorityControl,
   animatePosition = true,
   dragBoundsMode = 'contained',
-  isInlineEditing = false,
-  inlineEditContent = '',
-  isSavingInline = false,
-  onDelete,
-  onEdit,
-  onToggleArchive,
-  onPriorityChange,
+  inlineEditor,
   onLift,
   onCommit,
   onHeightChange,
-  onInlineEditChange,
-  onInlineSave,
-  onInlineCancel,
 }: StickyNoteCardProps) {
   const articleRef = useRef<HTMLElement>(null)
   const dragOriginRef = useRef<NotePosition | null>(null)
@@ -100,6 +78,7 @@ export function StickyNoteCard({
   const [dragPosition, setDragPosition] = useState<NotePosition | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const isPreview = variant === 'preview'
+  const isInlineEditing = Boolean(inlineEditor)
 
   useEffect(() => {
     return () => {
@@ -134,7 +113,7 @@ export function StickyNoteCard({
     return () => {
       observer.disconnect()
     }
-  }, [inlineEditContent, isInlineEditing, onHeightChange])
+  }, [inlineEditor?.value, isInlineEditing, onHeightChange])
 
   function scheduleDragPosition(nextPosition: NotePosition) {
     latestDragPositionRef.current = nextPosition
@@ -274,12 +253,12 @@ export function StickyNoteCard({
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
     >
-      {showPriority && !isPreview ? (
-        onPriorityChange ? (
+      {priorityControl && !isPreview ? (
+        priorityControl.onChange ? (
           <PriorityPicker
-            value={message.priority ?? DEFAULT_NOTE_PRIORITY}
-            onChange={onPriorityChange}
-            disabled={priorityDisabled}
+            value={priorityControl.value}
+            onChange={priorityControl.onChange}
+            disabled={priorityControl.disabled}
             triggerVariant="tape"
             rootClassName={styles.tapeAnchor}
             buttonClassName={[styles.tapeButton, isDragging ? styles.tapeButtonDragging : ''].filter(Boolean).join(' ')}
@@ -289,7 +268,7 @@ export function StickyNoteCard({
         ) : (
           <div
             className={[styles.tape, isDragging ? styles.tapeDragging : ''].join(' ')}
-            style={{ backgroundColor: NOTE_PRIORITY_META[message.priority ?? DEFAULT_NOTE_PRIORITY].color }}
+            style={{ backgroundColor: NOTE_PRIORITY_META[priorityControl.value].color }}
           />
         )
       ) : null}
@@ -311,31 +290,31 @@ export function StickyNoteCard({
             </p>
           </div>
           <div className={styles.actions}>
-            {ctaHref && ctaLabel ? (
+            {actions?.cta ? (
               <Link
-                href={ctaHref}
-                aria-label={ctaLabel}
+                href={actions.cta.href}
+                aria-label={actions.cta.label}
                 className={styles.iconLink}
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={(event) => event.stopPropagation()}
               >
                 <ArrowRight size={18} strokeWidth={1.85} />
-                <span className={styles.iconTooltip}>{ctaLabel}</span>
+                <span className={styles.iconTooltip}>{actions.cta.label}</span>
               </Link>
             ) : null}
 
-            {showArchive && onToggleArchive ? (
-              <NoteActionButton label={message.archived ? '取消归档' : '归档便签'} onClick={onToggleArchive}>
-                {message.archived ? <ArchiveRestore size={16} strokeWidth={1.9} /> : <Archive size={16} strokeWidth={1.9} />}
+            {actions?.archive ? (
+              <NoteActionButton label={actions.archive.archived ? '取消归档' : '归档便签'} onClick={actions.archive.onToggle}>
+                {actions.archive.archived ? <ArchiveRestore size={16} strokeWidth={1.9} /> : <Archive size={16} strokeWidth={1.9} />}
               </NoteActionButton>
             ) : null}
-            {showEdit && onEdit && !isPreview && !isInlineEditing ? (
-              <NoteActionButton label="编辑便签" onClick={onEdit}>
+            {actions?.edit && !isPreview && !isInlineEditing ? (
+              <NoteActionButton label="编辑便签" onClick={actions.edit.onClick}>
                 <PencilLine size={16} strokeWidth={1.9} />
               </NoteActionButton>
             ) : null}
-            {showDelete && onDelete && !isInlineEditing ? (
-              <NoteActionButton label="删除便签" onClick={onDelete}>
+            {actions?.delete && !isInlineEditing ? (
+              <NoteActionButton label="删除便签" onClick={actions.delete.onClick}>
                 <Trash2 size={16} strokeWidth={1.85} />
               </NoteActionButton>
             ) : null}
@@ -344,14 +323,14 @@ export function StickyNoteCard({
         {isInlineEditing ? (
           <div onPointerDown={(event) => event.stopPropagation()}>
             <NoteEditor
-              value={inlineEditContent}
-              onChange={onInlineEditChange ?? (() => {})}
+              value={inlineEditor.value}
+              onChange={inlineEditor.onChange}
               placeholder="直接修改这张便签的原始文本，checklist 状态也在这里编辑。"
               saveLabel="保存"
-              isSaving={isSavingInline}
-              onSave={onInlineSave ?? (() => {})}
-              onCancel={onInlineCancel}
-              saveDisabled={!inlineEditContent.trim()}
+              isSaving={inlineEditor.isSaving}
+              onSave={inlineEditor.onSave}
+              onCancel={inlineEditor.onCancel}
+              saveDisabled={!inlineEditor.value.trim()}
               maxLength={180}
               minHeightClassName="min-h-[80px]"
               shellClassName="overflow-hidden rounded-[14px] border border-black/10 bg-white/30"
