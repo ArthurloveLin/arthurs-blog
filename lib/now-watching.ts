@@ -228,7 +228,7 @@ const getCachedAllNowWatchingPosters = unstable_cache(
       .filter((poster): poster is NowWatchingPoster => poster !== null)
   },
   ['now-watching-all-posters'],
-  { revalidate: 60, tags: ['now-watching'] }
+  { revalidate: 3600, tags: ['now-watching'] }
 )
 
 export async function getPagedNowWatchingPosters(
