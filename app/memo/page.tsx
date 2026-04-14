@@ -8,7 +8,7 @@ export const revalidate = 60
 
 export default async function MemoPage() {
   const config = getNoteBoardConfig('memo')
-  const messages = await getBoardMessages('memo', config.initialPageLimit)
+  const messages = await getBoardMessages('memo', config.initialPageLimit, 0, false, 'time')
 
   return (
     <DirectionalTransition>

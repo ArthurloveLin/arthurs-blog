@@ -1,6 +1,7 @@
 import type { NoteBoardSlug } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
 import type { NotePosition, Size } from '@/components/note-board/types'
+import { type NoteSortMode } from '@/lib/note-priority'
 
 export const STICKY_COLORS = ['#f8ef9f', '#ffd0a8', '#f8bfd3', '#c9eff3', '#d9ccff']
 export const NOTE_CARD_WIDTH = 200
@@ -117,35 +118,64 @@ export function computeBoardLayout(
     clamp(gapX + i * (cardWidth + gapX), 0, maxX),
   )
   const topInset = 10
-  const columnBottoms = Array.from({ length: columns }, () => topInset)
 
-  const layouts: BoardLayoutCard[] = messages.map((message, index) => {
-    let targetColumn = 0
-    for (let candidateColumn = 1; candidateColumn < columns; candidateColumn += 1) {
-      if (columnBottoms[candidateColumn] < columnBottoms[targetColumn]) {
-        targetColumn = candidateColumn
-      }
-    }
+  // Masonry: track each column's current bottom Y independently
+  const columnHeights = Array.from({ length: columns }, () => topInset)
+
+  const layouts: BoardLayoutCard[] = []
+
+  messages.forEach((message, absoluteIndex) => {
+    // Place card in the shortest column to fill gaps
+    const col = columnHeights.indexOf(Math.min(...columnHeights))
     const cardHeight = getBoardCardHeight(message.id, measuredHeights)
-    const xJitter = (seededUnit(message.id, 1) - 0.5) * 14
-    const y = columnBottoms[targetColumn]
-    const x = clamp(columnX[targetColumn] + xJitter, 0, maxX)
-    const rotation = getBoardRotation(message.id, index, targetColumn)
-    columnBottoms[targetColumn] = y + cardHeight + gapY
+    const xJitter = (seededUnit(message.id, 1) - 0.5) * 8
+    const x = clamp(columnX[col] + xJitter, 0, maxX)
 
-    return {
+    layouts.push({
       x,
-      y,
-      rotation,
-      zIndex: messages.length - index,
+      y: columnHeights[col],
+      rotation: getBoardRotation(message.id, absoluteIndex, col),
+      zIndex: messages.length - absoluteIndex,
       colorIndex: getStickyColorIndex(message.id),
-    }
+    })
+
+    columnHeights[col] += cardHeight + gapY
   })
 
-  const bottomEdge = layouts.length === 0 ? 0 : Math.max(...columnBottoms) - gapY
+  const bottomEdge = columns > 0 ? Math.max(...columnHeights) - gapY : 0
   const height = layouts.length === 0 ? 320 : Math.max(320, bottomEdge + 40)
 
   return { cardWidth, height, layouts }
+}
+
+function getMessageSortTimestamp(message: NoteMessage) {
+  const parsed = Date.parse(message.updated_at ?? message.created_at)
+
+  if (Number.isFinite(parsed)) {
+    return parsed
+  }
+
+  const fallback = Date.parse(message.created_at)
+  return Number.isFinite(fallback) ? fallback : 0
+}
+
+export function sortBoardMessages(messages: NoteMessage[], sortMode: NoteSortMode) {
+  return [...messages].sort((left, right) => {
+    if (sortMode === 'priority' && right.priority !== left.priority) {
+      return right.priority - left.priority
+    }
+
+    const timeDifference = getMessageSortTimestamp(right) - getMessageSortTimestamp(left)
+    if (timeDifference !== 0) {
+      return timeDifference
+    }
+
+    if (right.created_at !== left.created_at) {
+      return right.created_at.localeCompare(left.created_at)
+    }
+
+    return right.id.localeCompare(left.id)
+  })
 }
 
 export function getDeletePermission(board: NoteBoardSlug, isAdmin: boolean, identity: string | string[], message: NoteMessage) {

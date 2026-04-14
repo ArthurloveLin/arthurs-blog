@@ -13,6 +13,7 @@ import {
   NOTE_CARD_WIDTH,
   PREVIEW_REVEAL_THRESHOLD,
 } from '@/components/note-board/utils/board'
+import type { NotePriority } from '@/lib/note-priority'
 import type { NoteMessage } from '@/lib/note-boards'
 
 interface MobileStickyStackProps {
@@ -22,6 +23,9 @@ interface MobileStickyStackProps {
   onEdit: (message: NoteMessage) => void
   canEdit: (message: NoteMessage) => boolean
   onToggleArchive: (message: NoteMessage) => void
+  showPriority: boolean
+  onPriorityChange: (message: NoteMessage, priority: NotePriority) => void
+  isPriorityUpdating: (id: string) => boolean
 }
 
 export function MobileStickyStack({
@@ -31,6 +35,9 @@ export function MobileStickyStack({
   onEdit,
   canEdit,
   onToggleArchive,
+  showPriority,
+  onPriorityChange,
+  isPriorityUpdating,
 }: MobileStickyStackProps) {
   const [containerRef, size] = useElementSize<HTMLDivElement>()
   const [revealedCount, setRevealedCount] = useState(0)
@@ -185,9 +192,12 @@ export function MobileStickyStack({
                     showDelete={canDelete(message)}
                     showEdit={canEdit(message)}
                     showArchive={canEdit(message)}
+                    showPriority={showPriority}
+                    priorityDisabled={isPriorityUpdating(message.id) || !canEdit(message)}
                     onDelete={() => onDelete(message.id)}
                     onEdit={() => onEdit(message)}
                     onToggleArchive={() => onToggleArchive(message)}
+                    onPriorityChange={canEdit(message) ? (priority) => onPriorityChange(message, priority) : undefined}
                     onLift={() => {}}
                     onCommit={(nextPosition, metrics) => handleCommit(index, message, nextPosition, metrics.distance)}
                   />

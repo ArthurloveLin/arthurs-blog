@@ -22,6 +22,7 @@ export interface NoteEditorProps {
   toolbarClassName?: string
   autoFocus?: boolean
   buttonSize?: 'sm' | 'md'
+  toolbarLeadingAddon?: ReactNode
 }
 
 function ToolbarIconButton({
@@ -69,6 +70,7 @@ export function NoteEditor({
   toolbarClassName = 'px-3 py-2 text-[11px] text-slate-700',
   autoFocus = false,
   buttonSize = 'md',
+  toolbarLeadingAddon,
 }: NoteEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pendingSelectionRef = useRef<TextSelectionRange | null>(null)
@@ -123,6 +125,7 @@ export function NoteEditor({
           className={['border-t-0', toolbarClassName].join(' ')}
           leading={(
             <>
+              {toolbarLeadingAddon}
               <ToolbarIconButton size={buttonSize} onClick={() => withSelection(insertChecklistSyntax)} label="插入 checklist">
                 <ListTodo size={buttonSize === 'sm' ? 10 : 12} strokeWidth={1.8} />
               </ToolbarIconButton>
