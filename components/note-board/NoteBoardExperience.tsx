@@ -1,595 +1,108 @@
 'use client'
 
+import dynamic from 'next/dynamic'
+import { useCallback } from 'react'
 import { Layers, LayoutList } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
-import { useAuth } from '@/components/AuthProvider'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import { StickyNoteCard } from '@/components/note-board/components/StickyNoteCard'
-import { useElementSize } from '@/components/note-board/hooks/useElementSize'
-import type { NotePosition, OptimisticMessageSnapshot, ToastNotice } from '@/components/note-board/types'
 import {
-  MOBILE_VIEWPORT_MAX_WIDTH,
-  computeBoardLayout,
-  getDeletePermission,
-  getEditPermission,
-  getStickyColorIndex,
-  sortBoardMessages,
-} from '@/components/note-board/utils/board'
-import { MobileNoteList } from '@/components/note-board/views/MobileNoteList'
-import { MobileStickyStack } from '@/components/note-board/views/MobileStickyStack'
-export { StickyStackPreview } from '@/components/note-board/views/StickyStackPreview'
-import { DEFAULT_NOTE_PRIORITY, type NotePriority, type NoteSortMode } from '@/lib/note-priority'
+  NoteBoardProvider,
+  useNoteBoardActions,
+  useNoteBoardBindings,
+  useNoteBoardBoardState,
+  useNoteBoardEditorState,
+  useNoteBoardMeta,
+  useNoteBoardToast,
+} from '@/components/note-board/NoteBoardProvider'
+import { getStickyColorIndex } from '@/components/note-board/utils/board'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
+export { StickyStackPreview } from '@/components/note-board/views/StickyStackPreview'
+
+const MobileNoteList = dynamic(
+  () => import('@/components/note-board/views/MobileNoteList').then((module) => module.MobileNoteList),
+  { ssr: false },
+)
+
+const MobileStickyStack = dynamic(
+  () => import('@/components/note-board/views/MobileStickyStack').then((module) => module.MobileStickyStack),
+  { ssr: false },
+)
 
 interface NoteBoardPageProps {
   board: NoteBoardViewConfig
   initialMessages: NoteMessage[]
 }
 
-function buildOptimisticSnapshot(
-  id: string,
-  messages: NoteMessage[],
-  customPositions: Record<string, NotePosition>,
-  cardZIndices: Record<string, number>,
-): OptimisticMessageSnapshot | null {
-  const index = messages.findIndex((message) => message.id === id)
-  if (index === -1) return null
-
-  return {
-    message: messages[index],
-    index,
-    customPosition: customPositions[id],
-    zIndex: cardZIndices[id],
-  }
-}
-
-export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
-  const { identity, identityAliases, isAdmin, loading, publicIdentity } = useAuth()
-  const initialSortedMessages = useMemo(() => sortBoardMessages(initialMessages, 'time'), [initialMessages])
-  const [containerRef, size] = useElementSize<HTMLDivElement>()
-  const [messages, setMessages] = useState(initialSortedMessages)
-  const [measuredHeights, setMeasuredHeights] = useState<Record<string, number>>({})
-  const [customPositions, setCustomPositions] = useState<Record<string, NotePosition>>({})
-  const [cardZIndices, setCardZIndices] = useState<Record<string, number>>(() =>
-    Object.fromEntries(initialSortedMessages.map((message, index) => [message.id, initialSortedMessages.length - index + 1])),
-  )
-  const [draft, setDraft] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [isScattered, setIsScattered] = useState(false)
-  const [mobileView, setMobileView] = useState<'stack' | 'list'>('stack')
-  const [nextOffset, setNextOffset] = useState(initialMessages.length)
-  const [hasMore, setHasMore] = useState(initialMessages.length >= board.initialPageLimit)
-  const [isPending, startTransition] = useTransition()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
-  const [editContent, setEditContent] = useState('')
-  const [isUpdatingNote, setIsUpdatingNote] = useState(false)
-  const [showArchived, setShowArchived] = useState(false)
-  const [sortMode, setSortMode] = useState<NoteSortMode>('time')
-  const [draftPriority, setDraftPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
-  const [editPriority, setEditPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
-  const [priorityUpdatingIds, setPriorityUpdatingIds] = useState<Record<string, boolean>>({})
-  const [isRefreshingBoard, setIsRefreshingBoard] = useState(false)
-  const [toastNotice, setToastNotice] = useState<ToastNotice | null>(null)
-  const [isMobileViewport, setIsMobileViewport] = useState(false)
-  const zIndexCounterRef = useRef(initialSortedMessages.length + 2)
-  const editorSectionRef = useRef<HTMLElement>(null)
-  const toastTimerRef = useRef<number | null>(null)
-  const pendingOptimisticIdsRef = useRef<Set<string>>(new Set())
-  const viewerIdentity = publicIdentity ?? ''
-  const viewerIdentityAliases = identityAliases.length > 0 ? identityAliases : [identity].filter(Boolean)
-  const canWrite = board.slug === 'guestbook' || isAdmin
-  const priorityEnabled = board.slug === 'memo'
-  const { cardWidth, height, layouts } = useMemo(
-    () => computeBoardLayout(messages, size.width, measuredHeights),
-    [measuredHeights, messages, size.width],
-  )
-  const hasMeasured = size.width > 0 && size.height > 0
-  const canInitializeSurface = hasMeasured && (messages.length === 0 || messages.every((message) => measuredHeights[message.id] > 0))
-  const editingMessage = useMemo(() => messages.find((message) => message.id === editingNoteId) ?? null, [messages, editingNoteId])
-
-  const getTargetPosition = useCallback((index: number): NotePosition => {
-    const layout = layouts[index]
-    const fallbackX = Math.max((size.width - cardWidth) / 2, 0) + Math.min(index, 4) * 2
-    const fallbackY = 22 + Math.min(index, 4) * 4
-
-    return {
-      x: layout?.x ?? fallbackX,
-      y: layout?.y ?? fallbackY,
-      rotation: layout?.rotation ?? (index % 2 === 0 ? -2 : 2),
-    }
-  }, [cardWidth, layouts, size.width])
-
-  useEffect(() => {
-    setMeasuredHeights((current) => {
-      const nextEntries = Object.entries(current).filter(([id]) => messages.some((message) => message.id === id))
-
-      if (nextEntries.length === Object.keys(current).length) {
-        return current
-      }
-
-      return Object.fromEntries(nextEntries)
-    })
-  }, [messages])
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(`(max-width: ${MOBILE_VIEWPORT_MAX_WIDTH}px)`)
-    const syncViewport = () => setIsMobileViewport(mediaQuery.matches)
-
-    syncViewport()
-    mediaQuery.addEventListener('change', syncViewport)
-
-    return () => {
-      mediaQuery.removeEventListener('change', syncViewport)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!canInitializeSurface) return
-
-    const frame = window.requestAnimationFrame(() => setIsScattered(true))
-    return () => window.cancelAnimationFrame(frame)
-  }, [canInitializeSurface])
-
-  useEffect(() => {
-    if (!canInitializeSurface) return
-
-    setCustomPositions((current) => {
-      let changed = false
-      const next = { ...current }
-
-      messages.forEach((message, index) => {
-        if (next[message.id]) {
-          return
-        }
-
-        next[message.id] = getTargetPosition(index)
-        changed = true
-      })
-
-      return changed ? next : current
-    })
-  }, [canInitializeSurface, getTargetPosition, messages])
-
-  useEffect(() => {
-    setCardZIndices((current) => {
-      const next: Record<string, number> = {}
-
-      for (const message of messages) {
-        next[message.id] = current[message.id] ?? zIndexCounterRef.current++
-      }
-
-      return next
-    })
-  }, [messages])
-
-  useEffect(() => {
-    if (!editingNoteId) return
-    if (!messages.some((message) => message.id === editingNoteId)) {
-      setEditingNoteId(null)
-      setEditContent('')
-    }
-  }, [editingNoteId, messages])
-
-  useEffect(() => {
-    return () => {
-      if (toastTimerRef.current !== null) {
-        window.clearTimeout(toastTimerRef.current)
-      }
-    }
-  }, [])
-
-  function showToast(message: string) {
-    const nextNotice = { id: Date.now(), message }
-    setToastNotice(nextNotice)
-
-    if (toastTimerRef.current !== null) {
-      window.clearTimeout(toastTimerRef.current)
-    }
-
-    toastTimerRef.current = window.setTimeout(() => {
-      setToastNotice((current) => current?.id === nextNotice.id ? null : current)
-      toastTimerRef.current = null
-    }, 2800)
-  }
-
-  function scrollToEditor() {
-    window.requestAnimationFrame(() => {
-      editorSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
-  }
-
-  function cancelEditingNote() {
-    setEditingNoteId(null)
-    setEditContent('')
-    setEditPriority(DEFAULT_NOTE_PRIORITY)
-    setError(null)
-  }
-
-  function replaceMessages(nextMessages: NoteMessage[], options: { resetPositions?: boolean; sort?: boolean } = {}) {
-    const orderedMessages = options.sort ? sortBoardMessages(nextMessages, sortMode) : nextMessages
-
-    setMessages(orderedMessages)
-
-    if (options.resetPositions) {
-      setCustomPositions({})
-      setCardZIndices(Object.fromEntries(orderedMessages.map((message, index) => [message.id, orderedMessages.length - index + 1])))
-    }
-  }
-
-  function removeMessageFromSurface(id: string) {
-    setMessages((current) => current.filter((message) => message.id !== id))
-    setCustomPositions((current) => {
-      const next = { ...current }
-      delete next[id]
-      return next
-    })
-    setCardZIndices((current) => {
-      const next = { ...current }
-      delete next[id]
-      return next
-    })
-    setNextOffset((current) => Math.max(current - 1, 0))
-
-    if (editingNoteId === id) {
-      cancelEditingNote()
-    }
-  }
-
-  function restoreMessageSnapshot(snapshot: OptimisticMessageSnapshot) {
-    setMessages((current) => {
-      const withoutTarget = current.filter((message) => message.id !== snapshot.message.id)
-      const next = [...withoutTarget]
-      next.splice(Math.min(snapshot.index, next.length), 0, snapshot.message)
-      return next
-    })
-
-    if (snapshot.customPosition) {
-      setCustomPositions((current) => ({ ...current, [snapshot.message.id]: snapshot.customPosition! }))
-    }
-
-    if (typeof snapshot.zIndex === 'number') {
-      setCardZIndices((current) => ({ ...current, [snapshot.message.id]: snapshot.zIndex! }))
-    }
-
-    setNextOffset((current) => current + 1)
-  }
-
-  function bringCardToFront(id: string) {
-    setCardZIndices((current) => ({ ...current, [id]: zIndexCounterRef.current++ }))
-  }
-
-  const handleCardHeightChange = useCallback((id: string, height: number) => {
-    setMeasuredHeights((current) => {
-      if (current[id] === height) {
-        return current
-      }
-
-      return { ...current, [id]: height }
-    })
-  }, [])
-
-  function resetBoardSurface(nextMessages: NoteMessage[], archived: boolean, nextSortMode = sortMode) {
-    const sortedMessages = sortBoardMessages(nextMessages, nextSortMode)
-
-    setMessages(sortedMessages)
-    setShowArchived(archived)
-    setSortMode(nextSortMode)
-    setNextOffset(sortedMessages.length)
-    setHasMore(sortedMessages.length >= board.initialPageLimit)
-    setCustomPositions({})
-    setCardZIndices(Object.fromEntries(sortedMessages.map((message, index) => [message.id, sortedMessages.length - index + 1])))
-    cancelEditingNote()
-  }
-
-  function startEditingNote(message: NoteMessage) {
-    setEditingNoteId(message.id)
-    setEditContent(message.content)
-    setEditPriority(message.priority)
-    setError(null)
-
-    if (isMobileViewport) {
-      scrollToEditor()
-    }
-  }
-
-  async function fetchBoardMessages(archived: boolean, sort = sortMode, offset = 0, limit = board.initialPageLimit) {
-    const response = await fetch(`/api/note-boards/${board.slug}?offset=${offset}&limit=${limit}&archived=${archived ? '1' : '0'}&sort=${sort}`)
-    if (!response.ok) {
-      throw new Error('便签加载失败，请稍后重试。')
-    }
-
-    return await response.json() as { messages: NoteMessage[]; nextOffset: number; hasMore: boolean }
-  }
-
-  async function handleSwitchArchiveView(archived: boolean) {
-    if (archived === showArchived || isRefreshingBoard) return
-
-    setIsRefreshingBoard(true)
-    setError(null)
-
-    try {
-      const payload = await fetchBoardMessages(archived, sortMode)
-      startTransition(() => {
-        resetBoardSurface(payload.messages, archived, sortMode)
-        setNextOffset(payload.nextOffset)
-        setHasMore(payload.hasMore)
-      })
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : '便签加载失败，请稍后重试。')
-    } finally {
-      setIsRefreshingBoard(false)
-    }
-  }
-
-  async function handleToggleArchive(message: NoteMessage) {
-    if (!identity || pendingOptimisticIdsRef.current.has(message.id)) return
-
-    setError(null)
-    pendingOptimisticIdsRef.current.add(message.id)
-    const snapshot = buildOptimisticSnapshot(message.id, messages, customPositions, cardZIndices)
-    removeMessageFromSurface(message.id)
-
-    try {
-      const response = await fetch(`/api/note-boards/${board.slug}/${message.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity, identities: viewerIdentityAliases, archived: !message.archived }),
-      })
-
-      if (!response.ok) {
-        throw new Error(response.status === 403 ? '当前身份没有归档权限。' : '归档状态更新失败，请稍后再试。')
-      }
-    } catch (archiveError) {
-      if (snapshot) {
-        restoreMessageSnapshot(snapshot)
-      }
-      showToast(archiveError instanceof Error ? archiveError.message : '归档状态更新失败，请稍后再试。')
-    } finally {
-      pendingOptimisticIdsRef.current.delete(message.id)
-    }
-  }
-
-  async function handleSortModeChange(nextSortMode: NoteSortMode) {
-    if (nextSortMode === sortMode || isRefreshingBoard) return
-
-    setIsRefreshingBoard(true)
-    setError(null)
-
-    try {
-      const payload = await fetchBoardMessages(showArchived, nextSortMode)
-      startTransition(() => {
-        resetBoardSurface(payload.messages, showArchived, nextSortMode)
-        setNextOffset(payload.nextOffset)
-        setHasMore(payload.hasMore)
-      })
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : '便签加载失败，请稍后重试。')
-    } finally {
-      setIsRefreshingBoard(false)
-    }
-  }
-
-  async function handlePriorityChange(message: NoteMessage, priority: NotePriority) {
-    if (!identity || priority === message.priority || priorityUpdatingIds[message.id]) return
-
-    setPriorityUpdatingIds((current) => ({ ...current, [message.id]: true }))
-    setError(null)
-
-    try {
-      const response = await fetch(`/api/note-boards/${board.slug}/${message.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity, identities: viewerIdentityAliases, priority }),
-      })
-
-      if (!response.ok) {
-        throw new Error(response.status === 403 ? '当前身份没有编辑权限。' : '优先级更新失败，请稍后再试。')
-      }
-
-      const updatedMessage = (await response.json()) as NoteMessage
-      replaceMessages(messages.map((current) => current.id === updatedMessage.id ? updatedMessage : current))
-      if (editingNoteId === updatedMessage.id) {
-        setEditPriority(updatedMessage.priority)
-      }
-    } catch (updateError) {
-      showToast(updateError instanceof Error ? updateError.message : '优先级更新失败，请稍后再试。')
-    } finally {
-      setPriorityUpdatingIds((current) => {
-        const next = { ...current }
-        delete next[message.id]
-        return next
-      })
-    }
-  }
-
-  async function saveEditingNote() {
-    if (!editingMessage || !identity || isUpdatingNote) return
-
-    const nextContent = editContent.trim()
-    if (!nextContent) {
-      setError('便签内容不能为空。')
-      return
-    }
-
-    setIsUpdatingNote(true)
-    setError(null)
-
-    try {
-      const response = await fetch(`/api/note-boards/${board.slug}/${editingMessage.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity, identities: viewerIdentityAliases, content: nextContent, priority: editPriority }),
-      })
-
-      if (!response.ok) {
-        throw new Error(response.status === 403 ? '当前身份没有编辑权限。' : '便签更新失败，请稍后再试。')
-      }
-
-      const updatedMessage = (await response.json()) as NoteMessage
-      replaceMessages(messages.map((message) => message.id === updatedMessage.id ? updatedMessage : message))
-      cancelEditingNote()
-    } catch (updateError) {
-      setError(updateError instanceof Error ? updateError.message : '便签更新失败，请稍后再试。')
-    } finally {
-      setIsUpdatingNote(false)
-    }
-  }
-
-  async function submitDraft() {
-    if (!draft.trim() || !identity || !canWrite || isSubmitting) return
-
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
-      const response = await fetch(`/api/note-boards/${board.slug}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author: publicIdentity, content: draft.trim(), priority: draftPriority }),
-      })
-
-      if (!response.ok) {
-        throw new Error(response.status === 403 ? '当前身份没有写入权限。' : '便签保存失败，请稍后再试。')
-      }
-
-      const message = (await response.json()) as NoteMessage
-      replaceMessages([message, ...messages], { resetPositions: true })
-      setNextOffset((current) => current + 1)
-      setDraft('')
-      setDraftPriority(DEFAULT_NOTE_PRIORITY)
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : '便签保存失败，请稍后再试。')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  async function handleDelete(id: string) {
-    if (!identity || pendingOptimisticIdsRef.current.has(id)) return
-
-    const snapshot = buildOptimisticSnapshot(id, messages, customPositions, cardZIndices)
-    if (!snapshot) return
-
-    setError(null)
-    pendingOptimisticIdsRef.current.add(id)
-    removeMessageFromSurface(id)
-
-    try {
-      const response = await fetch(`/api/note-boards/${board.slug}/${id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity, identities: viewerIdentityAliases }),
-      })
-
-      if (!response.ok) {
-        throw new Error(response.status === 403 ? '当前身份没有删除权限。' : '删除失败，请稍后重试。')
-      }
-    } catch (deleteError) {
-      restoreMessageSnapshot(snapshot)
-      showToast(deleteError instanceof Error ? deleteError.message : '删除失败，请稍后重试。')
-    } finally {
-      pendingOptimisticIdsRef.current.delete(id)
-    }
-  }
-
-  async function handleLoadMore() {
-    const response = await fetch(`/api/note-boards/${board.slug}?offset=${nextOffset}&limit=${board.pageSize}&archived=${showArchived ? '1' : '0'}&sort=${sortMode}`)
-    if (!response.ok) {
-      setError('更多便签加载失败，请稍后重试。')
-      return
-    }
-
-    const payload = await response.json() as { messages: NoteMessage[]; nextOffset: number; hasMore: boolean }
-    startTransition(() => {
-      replaceMessages([...messages, ...payload.messages])
-      setNextOffset(payload.nextOffset)
-      setHasMore(payload.hasMore)
-    })
-  }
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (editingMessage && isMobileViewport) {
-      void saveEditingNote()
-      return
-    }
-    void submitDraft()
-  }
-
-  const isMobileEditorMode = isMobileViewport && !!editingMessage
-  const editorSectionLabel = isMobileEditorMode ? '便签编辑区' : (board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区')
-  const defaultEditorPlaceholder = board.slug === 'guestbook'
-    ? '写下想贴在主页上的留言，或直接插入 checklist。'
-    : '写一条新的 Memo 便签，或直接插入 checklist。'
-  const editorPlaceholder = isMobileEditorMode
-    ? '直接修改这张便签的原始文本，checklist 状态也在这里编辑。'
-    : defaultEditorPlaceholder
-  const editorSaveLabel = isMobileEditorMode ? '保存编辑' : '贴上便签'
-  const editorValue = isMobileEditorMode ? editContent : draft
-  const editorSaving = isMobileEditorMode ? isUpdatingNote : isSubmitting
-  const editorPriority = isMobileEditorMode ? editPriority : draftPriority
+function NoteBoardControls() {
+  const state = useNoteBoardBoardState()
+  const actions = useNoteBoardActions()
+  const meta = useNoteBoardMeta()
+  const bindings = useNoteBoardBindings()
+  const priorityEnabled = meta.board.slug === 'memo'
+  const bindContainer = useCallback((node: HTMLDivElement | null) => {
+    bindings.bindContainer(node)
+  }, [bindings])
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-[32px] border border-border/60 bg-card/75 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:p-6">
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{board.title}</p>
-          </div>
-          <p className="text-xs text-muted-foreground/80">当前已加载 {messages.length} 张便签</p>
+    <section className="rounded-[32px] border border-border/60 bg-card/75 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:p-6">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{meta.board.title}</p>
         </div>
+        <p className="text-xs text-muted-foreground/80">当前已加载 {state.totalLoaded} 张便签</p>
+      </div>
 
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-full border border-border/70 bg-background/70 p-1 text-xs text-muted-foreground shadow-sm">
+            <button
+              type="button"
+              className={`rounded-full px-3 py-1.5 transition ${!state.showArchived ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
+              onClick={() => void actions.handleSwitchArchiveView(false)}
+              disabled={state.isRefreshingBoard}
+            >
+              当前便签
+            </button>
+            <button
+              type="button"
+              className={`rounded-full px-3 py-1.5 transition ${state.showArchived ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
+              onClick={() => void actions.handleSwitchArchiveView(true)}
+              disabled={state.isRefreshingBoard}
+            >
+              已归档
+            </button>
+          </div>
+          {priorityEnabled ? (
             <div className="inline-flex rounded-full border border-border/70 bg-background/70 p-1 text-xs text-muted-foreground shadow-sm">
               <button
                 type="button"
-                className={`rounded-full px-3 py-1.5 transition ${!showArchived ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
-                onClick={() => handleSwitchArchiveView(false)}
-                disabled={isRefreshingBoard}
+                className={`rounded-full px-3 py-1.5 transition ${state.sortMode === 'time' ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
+                onClick={() => void actions.handleSortModeChange('time')}
+                disabled={state.isRefreshingBoard}
               >
-                当前便签
+                时间
               </button>
               <button
                 type="button"
-                className={`rounded-full px-3 py-1.5 transition ${showArchived ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
-                onClick={() => handleSwitchArchiveView(true)}
-                disabled={isRefreshingBoard}
+                className={`rounded-full px-3 py-1.5 transition ${state.sortMode === 'priority' ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
+                onClick={() => void actions.handleSortModeChange('priority')}
+                disabled={state.isRefreshingBoard}
               >
-                已归档
+                优先级
               </button>
             </div>
-            {priorityEnabled ? (
-              <div className="inline-flex rounded-full border border-border/70 bg-background/70 p-1 text-xs text-muted-foreground shadow-sm">
-                <button
-                  type="button"
-                  className={`rounded-full px-3 py-1.5 transition ${sortMode === 'time' ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
-                  onClick={() => void handleSortModeChange('time')}
-                  disabled={isRefreshingBoard}
-                >
-                  时间
-                </button>
-                <button
-                  type="button"
-                  className={`rounded-full px-3 py-1.5 transition ${sortMode === 'priority' ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
-                  onClick={() => void handleSortModeChange('priority')}
-                  disabled={isRefreshingBoard}
-                >
-                  优先级
-                </button>
-              </div>
-            ) : null}
-          </div>
-          <div className="flex justify-end md:hidden">
+          ) : null}
+        </div>
+        {state.viewportReady && state.isMobileViewport ? (
+          <div className="flex justify-end">
             <button
               type="button"
               className="flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent"
-              onClick={() => setMobileView((value) => value === 'stack' ? 'list' : 'stack')}
+              onClick={actions.toggleMobileView}
             >
-              {mobileView === 'stack' ? (
+              {state.mobileView === 'stack' ? (
                 <>
                   <LayoutList size={14} />
                   列表视图
@@ -602,94 +115,63 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
               )}
             </button>
           </div>
-        </div>
+        ) : null}
+      </div>
 
-        <div className="mb-12 md:hidden">
-          {mobileView === 'stack' ? (
-            <MobileStickyStack
-              messages={messages}
-              onDelete={handleDelete}
-              onEdit={startEditingNote}
-              onToggleArchive={handleToggleArchive}
-              showPriority={priorityEnabled}
-              onPriorityChange={handlePriorityChange}
-              isPriorityUpdating={(id) => Boolean(priorityUpdatingIds[id])}
-              canDelete={(message) => getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)}
-              canEdit={(message) => getEditPermission(isAdmin, viewerIdentityAliases, message)}
-            />
-          ) : (
-            <MobileNoteList
-              messages={messages}
-              onDelete={handleDelete}
-              onEdit={startEditingNote}
-              onToggleArchive={handleToggleArchive}
-              showPriority={priorityEnabled}
-              onPriorityChange={handlePriorityChange}
-              isPriorityUpdating={(id) => Boolean(priorityUpdatingIds[id])}
-              canDelete={(message) => getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)}
-              canEdit={(message) => getEditPermission(isAdmin, viewerIdentityAliases, message)}
-            />
-          )}
+      {!state.viewportReady ? (
+        <div
+          className="rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-6"
+          style={{ minHeight: 380 }}
+        >
+          <div className="h-full min-h-[280px] rounded-[24px] border border-dashed border-border/70 bg-white/55" />
         </div>
-
-        <div className="hidden md:block">
+      ) : state.isMobileViewport ? (
+        <div className="mb-12">
+          {state.mobileView === 'stack' ? <MobileStickyStack items={state.noteItems} /> : <MobileNoteList items={state.noteItems} />}
+        </div>
+      ) : (
+        <div>
           <div
-            ref={containerRef}
+            ref={bindContainer}
             className="note-board-canvas relative overflow-hidden rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-6"
-            style={{ minHeight: Math.max(height, 420) }}
+            style={{ minHeight: Math.max(meta.surface.height, 420) }}
           >
-            {messages.length === 0 ? (
+            {state.messages.length === 0 ? (
               <div className="flex min-h-[280px] items-center justify-center rounded-[24px] border border-dashed border-border/70 bg-white/55 text-center text-sm text-muted-foreground">
-                {showArchived ? '还没有已归档便签。' : board.emptyLabel}
+                {state.showArchived ? '还没有已归档便签。' : meta.board.emptyLabel}
               </div>
-            ) : !hasMeasured ? null : (
-              <div className="relative" style={{ minHeight: Math.max(height, 320) }}>
-                {messages.map((message, index) => {
-                  const layout = layouts[index]
-                  const targetPosition = getTargetPosition(index)
+            ) : !meta.surface.hasMeasured ? null : (
+              <div className="relative" style={{ minHeight: Math.max(meta.surface.height, 320) }}>
+                {state.noteItems.map((item, index) => {
+                  const { message, actions: cardActions, priorityControl, inlineEditor, isEditing } = item
+                  const layout = meta.surface.layouts[index]
+                  const targetPosition = meta.surface.getTargetPosition(index)
                   const collapsedPosition = {
-                    x: Math.max((size.width - cardWidth) / 2, 0) + Math.min(index, 4) * 2,
+                    x: Math.max((meta.surface.size.width - meta.surface.cardWidth) / 2, 0) + Math.min(index, 4) * 2,
                     y: 22 + Math.min(index, 4) * 4,
                     rotation: index % 2 === 0 ? -2 : 2,
                   }
-                  const custom = customPositions[message.id]
-                  const position = custom ?? (isScattered ? targetPosition : collapsedPosition)
+                  const custom = state.customPositions[message.id]
+                  const position = custom ?? (meta.surface.isScattered ? targetPosition : collapsedPosition)
 
                   return (
-                    <StickyNoteCard
+                    <StickyNoteCard.Board
                       key={message.id}
                       message={message}
                       x={position.x}
                       y={position.y}
                       rotation={position.rotation}
-                      zIndex={cardZIndices[message.id] ?? layout?.zIndex ?? messages.length - index}
-                      width={cardWidth}
-                      bounds={{ width: size.width, height: Math.max(height, 420) }}
+                      zIndex={state.cardZIndices[message.id] ?? layout?.zIndex ?? state.messages.length - index}
+                      width={meta.surface.cardWidth}
+                      bounds={{ width: meta.surface.size.width, height: Math.max(meta.surface.height, 420) }}
                       colorIndex={layout?.colorIndex ?? getStickyColorIndex(message.id)}
-                      draggable={isScattered && editingNoteId !== message.id}
-                      variant="board"
-                      showDelete={getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)}
-                      showEdit={getEditPermission(isAdmin, viewerIdentityAliases, message)}
-                      showArchive={getEditPermission(isAdmin, viewerIdentityAliases, message)}
-                      showPriority={priorityEnabled}
-                      priorityDisabled={Boolean(priorityUpdatingIds[message.id]) || !getEditPermission(isAdmin, viewerIdentityAliases, message)}
-                      isInlineEditing={editingNoteId === message.id}
-                      inlineEditContent={editingNoteId === message.id ? editContent : ''}
-                      isSavingInline={isUpdatingNote}
-                      onDelete={() => handleDelete(message.id)}
-                      onEdit={() => startEditingNote(message)}
-                      onToggleArchive={() => handleToggleArchive(message)}
-                      onPriorityChange={getEditPermission(isAdmin, viewerIdentityAliases, message)
-                        ? (priority) => void handlePriorityChange(message, priority)
-                        : undefined}
-                      onLift={() => bringCardToFront(message.id)}
-                      onCommit={(nextPosition) => {
-                        setCustomPositions((current) => ({ ...current, [message.id]: nextPosition }))
-                      }}
-                      onHeightChange={(nextHeight) => handleCardHeightChange(message.id, nextHeight)}
-                      onInlineEditChange={setEditContent}
-                      onInlineSave={() => void saveEditingNote()}
-                      onInlineCancel={cancelEditingNote}
+                      draggable={meta.surface.isScattered && !isEditing}
+                      actions={cardActions}
+                      priorityControl={priorityControl}
+                      inlineEditor={inlineEditor}
+                      onLift={() => actions.bringCardToFront(message.id)}
+                      onCommit={(nextPosition) => actions.setCardPosition(message.id, nextPosition)}
+                      onHeightChange={(nextHeight) => actions.handleCardHeightChange(message.id, nextHeight)}
                     />
                   )
                 })}
@@ -697,82 +179,114 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
             )}
           </div>
 
-          {hasMore ? (
+          {state.hasMore ? (
             <div className="mt-6 flex justify-center">
               <button
                 type="button"
                 className="rounded-full border border-border/70 bg-card px-5 py-2 text-sm text-foreground transition hover:border-foreground/20 hover:bg-accent"
-                onClick={handleLoadMore}
-                disabled={isPending}
+                onClick={() => void actions.handleLoadMore()}
+                disabled={state.isPending}
               >
-                {isPending ? '正在展开更多便签…' : '加载更多便签'}
+                {state.isPending ? '正在展开更多便签…' : '加载更多便签'}
               </button>
             </div>
           ) : null}
         </div>
-      </section>
+      )}
+    </section>
+  )
+}
 
-      <section ref={editorSectionRef} className="rounded-[28px] border border-border/60 bg-card/75 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)] backdrop-blur-sm">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{editorSectionLabel}</p>
-          </div>
-          <p className="text-xs text-muted-foreground">当前身份：{loading ? '加载中…' : viewerIdentity}</p>
+function NoteBoardEditorSection() {
+  const state = useNoteBoardEditorState()
+  const actions = useNoteBoardActions()
+  const bindings = useNoteBoardBindings()
+  const bindEditorSection = useCallback((node: HTMLElement | null) => {
+    bindings.bindEditorSection(node)
+  }, [bindings])
+
+  return (
+    <section ref={bindEditorSection} className="rounded-[28px] border border-border/60 bg-card/75 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)] backdrop-blur-sm">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{state.editorSectionLabel}</p>
         </div>
+        <p className="text-xs text-muted-foreground">当前身份：{state.loadingIdentity ? '加载中…' : state.viewerIdentity}</p>
+      </div>
 
-        {isMobileEditorMode ? (
-          <div className="mt-4 rounded-[24px] border border-dashed border-border/70 bg-background/55 px-4 py-3 text-sm text-muted-foreground">
-            正在编辑 {editingMessage.author} 的便签。保存后卡片时间会自动刷新。
-          </div>
-        ) : null}
-
-        {canWrite ? (
-          <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
-            <NoteEditor
-              value={editorValue}
-              onChange={isMobileEditorMode ? setEditContent : setDraft}
-              placeholder={editorPlaceholder}
-              saveLabel={editorSaveLabel}
-              isSaving={editorSaving}
-              onSave={() => {
-                if (isMobileEditorMode) {
-                  void saveEditingNote()
-                  return
-                }
-                void submitDraft()
-              }}
-              onCancel={isMobileEditorMode ? cancelEditingNote : undefined}
-              saveDisabled={!editorValue.trim()}
-              maxLength={180}
-              minHeightClassName="min-h-[140px]"
-              shellClassName="overflow-hidden rounded-[24px] border border-border/70 bg-background/55"
-              toolbarClassName="px-4 py-3 text-xs text-muted-foreground"
-              toolbarLeadingAddon={priorityEnabled ? (
-                <PriorityPicker
-                  value={editorPriority}
-                  onChange={isMobileEditorMode ? setEditPriority : setDraftPriority}
-                  buttonClassName="h-8 w-8"
-                  dotClassName="h-2.5 w-2.5"
-                  menuAlign="start"
-                  menuDirection="up"
-                />
-              ) : undefined}
-              autoFocus={isMobileEditorMode}
-            />
-          </form>
-        ) : (
-          <p className="mt-4 text-sm leading-7 text-muted-foreground">这里先开放浏览，Memo 暂时由 admin 维护与更新。</p>
-        )}
-        {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
-      </section>
-
-      {toastNotice ? (
-        <div className="pointer-events-none fixed inset-x-4 bottom-5 z-50 flex justify-center sm:justify-end">
-          <div className="rounded-full bg-slate-950 px-4 py-2 text-sm text-white shadow-[0_18px_50px_rgba(15,23,42,0.28)]">
-            {toastNotice.message}
-          </div>
+      {state.editorMode === 'edit' ? (
+        <div className="mt-4 rounded-[24px] border border-dashed border-border/70 bg-background/55 px-4 py-3 text-sm text-muted-foreground">
+          正在编辑 {state.editingMessage?.author} 的便签。保存后卡片时间会自动刷新。
         </div>
       ) : null}
+
+      {state.canWrite ? (
+        <form className="mt-4 space-y-3" onSubmit={actions.handleSubmit}>
+          <NoteEditor
+            value={state.editorValue}
+            onChange={actions.updateEditorValue}
+            placeholder={state.editorPlaceholder}
+            saveLabel={state.editorSaveLabel}
+            isSaving={state.editorSaving}
+            onSave={() => void actions.submitEditor()}
+            onCancel={state.editorMode === 'edit' ? actions.cancelEditingNote : undefined}
+            saveDisabled={!state.editorValue.trim()}
+            maxLength={180}
+            minHeightClassName="min-h-[140px]"
+            shellClassName="overflow-hidden rounded-[24px] border border-border/70 bg-background/55"
+            toolbarClassName="px-4 py-3 text-xs text-muted-foreground"
+            toolbarLeadingAddon={state.priorityEnabled ? (
+              <PriorityPicker.Dot
+                value={state.editorPriority}
+                onChange={actions.updateEditorPriority}
+                buttonClassName="h-8 w-8"
+                dotClassName="h-2.5 w-2.5"
+                menuAlign="start"
+                menuDirection="up"
+              />
+            ) : undefined}
+            autoFocus={state.editorMode === 'edit'}
+          />
+        </form>
+      ) : (
+        <p className="mt-4 text-sm leading-7 text-muted-foreground">这里先开放浏览，Memo 暂时由 admin 维护与更新。</p>
+      )}
+
+      {state.error ? <p className="mt-3 text-sm text-rose-600">{state.error}</p> : null}
+    </section>
+  )
+}
+
+function NoteBoardToast() {
+  const toastNotice = useNoteBoardToast()
+
+  if (!toastNotice) {
+    return null
+  }
+
+  return (
+    <div className="pointer-events-none fixed inset-x-4 bottom-5 z-50 flex justify-center sm:justify-end">
+      <div className="rounded-full bg-slate-950 px-4 py-2 text-sm text-white shadow-[0_18px_50px_rgba(15,23,42,0.28)]">
+        {toastNotice.message}
+      </div>
     </div>
+  )
+}
+
+function NoteBoardExperience() {
+  return (
+    <div className="space-y-6">
+      <NoteBoardControls />
+      <NoteBoardEditorSection />
+      <NoteBoardToast />
+    </div>
+  )
+}
+
+export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
+  return (
+    <NoteBoardProvider board={board} initialMessages={initialMessages}>
+      <NoteBoardExperience />
+    </NoteBoardProvider>
   )
 }
