@@ -351,7 +351,12 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
   const [replyTo, setReplyTo] = useState<{ id: string; author: string } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const topLevelComments = useMemo(() => comments.filter((comment) => !comment.parent_id), [comments])
   const repliesByParentId = useMemo(() => comments.reduce<Record<string, Comment[]>>((accumulator, comment) => {
@@ -436,7 +441,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     draft,
     submitting,
     error,
-    identityReady: Boolean(identity),
+    identityReady: mounted && Boolean(identity),
     identityAliases,
     isAdmin,
     composerRef: inputRef,
