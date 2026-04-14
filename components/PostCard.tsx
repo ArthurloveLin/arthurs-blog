@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { memo, ViewTransition } from 'react'
+import { Star } from 'lucide-react'
 import type { Post } from '@/lib/blog'
 import { formatBlogPublishedDate } from '@/lib/date-format'
 import PrefetchOnHover from './PrefetchOnHover'
@@ -40,6 +41,12 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
       {/* ── Cover Image (Hero: Cover) ────────────────────────────────── */}
       <ViewTransition name={`post-cover-${post.id}`} share="morph" default="none">
         <div className="relative aspect-[2.4/1] w-full overflow-hidden bg-muted rounded-t-2xl">
+          {post.sticky > 0 && (
+            <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 dark:bg-black/90 backdrop-blur-md dark:backdrop-blur-none border border-black/5 dark:border-white/10 shadow-sm text-[10px] font-bold tracking-[0.1em] text-foreground/90 uppercase animate-in fade-in slide-in-from-top-1 duration-500 fill-mode-both">
+              <Star className="w-3 h-3 fill-yellow-400 text-yellow-500" strokeWidth={2.5} />
+              <span>PINNED</span>
+            </div>
+          )}
           {coverSrc ? (
             <Image
               src={coverSrc}
