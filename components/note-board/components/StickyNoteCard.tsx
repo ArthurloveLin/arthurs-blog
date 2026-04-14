@@ -336,7 +336,7 @@ function StickyNoteCardFrame({
             ) : null}
           </div>
         </div>
-        {isInlineEditing ? (
+        {inlineEditor ? (
           <div onPointerDown={(event) => event.stopPropagation()}>
             <NoteEditor
               value={inlineEditor.value}
