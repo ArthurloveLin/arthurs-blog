@@ -30,6 +30,22 @@ export async function getR2ObjectBuffer(bucket: string, key: string): Promise<Bu
   return Buffer.from(bytes)
 }
 
+export async function getR2ObjectBufferRange(
+  bucket: string,
+  key: string,
+  start: number,
+  end: number
+): Promise<Buffer> {
+  const command = new GetObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Range: `bytes=${start}-${end}`,
+  })
+  const response = await r2Client.send(command)
+  const bytes = await response.Body!.transformToByteArray()
+  return Buffer.from(bytes)
+}
+
 export async function putR2Object(
   bucket: string,
   key: string,
