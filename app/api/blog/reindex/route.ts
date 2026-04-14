@@ -57,6 +57,7 @@ async function processFile(
     r2_key: key,
     published,
     published_at: parseBlogFrontmatterDate(fm.date),
+    sticky: typeof fm.sticky === 'number' ? fm.sticky : 0,
   })
 
   return { slug, status: 'ok' }
