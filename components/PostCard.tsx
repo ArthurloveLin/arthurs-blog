@@ -68,14 +68,14 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
         </ViewTransition>
 
         {/* Hero: Meta (Date · Category · Tags) */}
-        <ViewTransition name={`post-meta-${post.id}`} default="none">
+        <ViewTransition name={`post-meta-${post.id}`} share="morph" default="none">
           <div className="blog-hero-meta mb-4 flex items-center gap-x-1">
           <time dateTime={post.published_at ?? ''} className="tabular-nums whitespace-nowrap">{date}</time>
           {post.category && (
             <><span className="text-foreground/20 font-bold">·</span><Link href={`/blog/category/${encodeURIComponent(post.category)}`} className="relative z-10 hover:text-primary transition-colors whitespace-nowrap">{post.category}</Link></>
           )}
           {post.tags.length > 0 && (
-            <><span className="text-foreground/20 font-bold">·</span><div className="flex flex-wrap gap-1 items-center">{post.tags.slice(0, 2).map((tag) => (<Link key={tag} href={`/blog/tags/${encodeURIComponent(tag)}`} className="relative z-10 px-1.5 py-0.5 rounded-md bg-muted text-[10px] text-foreground/65 hover:bg-muted-foreground hover:text-background transition-all">#{tag}</Link>))}</div></>
+            <><span className="text-foreground/20 font-bold">·</span><div className="flex flex-wrap gap-1.5 items-center">{post.tags.map((tag, i) => (<Link key={tag} href={`/blog/tags/${encodeURIComponent(tag)}`} className={`relative z-10 px-2 py-0.5 rounded-md bg-muted text-[11px] text-foreground/65 hover:bg-muted-foreground hover:text-background transition-all ${i >= 2 ? 'hidden md:inline-block' : ''}`}>#{tag}</Link>))}</div></>
           )}
           </div>
         </ViewTransition>

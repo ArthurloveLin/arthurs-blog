@@ -22,9 +22,7 @@ import { getPostAnchorHref } from '@/lib/blog-return'
 function formatDate(dateStr: string | null | undefined) {
   if (!dateStr) return ''
   const d = new Date(dateStr)
-  const date = formatBlogPublishedDate(d)
-  const time = new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Shanghai' }).format(d)
-  return time === '00:00' ? date : `${date} ${time}`
+  return formatBlogPublishedDate(d)
 }
 
 export const revalidate = 60
@@ -193,14 +191,14 @@ export default async function BlogPostPage({
                   </ViewTransition>
 
                   {/* Hero: Meta (Date · Category · Tags) */}
-                  <ViewTransition name={`post-meta-${post.id}`} default="none">
-                    <div className="blog-hero-meta flex items-center gap-x-1">
+                  <ViewTransition name={`post-meta-${post.id}`} share="morph" default="none">
+                    <div className="blog-hero-meta mb-4 flex flex-wrap items-center gap-x-1.5 gap-y-2">
                       <time className="tabular-nums whitespace-nowrap">{formatDate(post.published_at)}</time>
                       {post.category && (
                         <><span className="text-foreground/20 font-bold">·</span><Link href={`/blog/category/${encodeURIComponent(post.category)}`} className="font-medium text-foreground/80 hover:text-primary transition-colors whitespace-nowrap">{post.category}</Link></>
                       )}
                       {post.tags.length > 0 && (
-                        <><span className="text-foreground/20 font-bold">·</span><div className="flex flex-wrap gap-1.5 items-center">{post.tags.map((tag) => (<Link key={tag} href={`/blog/tags/${encodeURIComponent(tag)}`} className="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground hover:bg-foreground hover:text-background transition-all">#{tag}</Link>))}</div></>
+                        <><span className="text-foreground/20 font-bold">·</span><div className="flex flex-wrap gap-1.5 items-center">{post.tags.map((tag) => (<Link key={tag} href={`/blog/tags/${encodeURIComponent(tag)}`} className="px-2 py-0.5 rounded-md bg-muted text-[11px] text-foreground/65 hover:bg-muted-foreground hover:text-background transition-all">#{tag}</Link>))}</div></>
                       )}
                     </div>
                   </ViewTransition>
