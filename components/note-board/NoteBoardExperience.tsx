@@ -7,7 +7,7 @@ import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import { StickyNoteCard } from '@/components/note-board/components/StickyNoteCard'
 import { useElementSize } from '@/components/note-board/hooks/useElementSize'
-import type { NotePosition, OptimisticMessageSnapshot, ToastNotice } from '@/components/note-board/types'
+import type { NoteCardViewModel, NotePosition, OptimisticMessageSnapshot, ToastNotice } from '@/components/note-board/types'
 import {
   MOBILE_VIEWPORT_MAX_WIDTH,
   computeBoardLayout,
@@ -89,6 +89,37 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   const hasMeasured = size.width > 0 && size.height > 0
   const canInitializeSurface = hasMeasured && (messages.length === 0 || messages.every((message) => measuredHeights[message.id] > 0))
   const editingMessage = useMemo(() => messages.find((message) => message.id === editingNoteId) ?? null, [messages, editingNoteId])
+  const noteItems: NoteCardViewModel[] = messages.map((message) => {
+    const canDelete = getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)
+    const canEdit = getEditPermission(isAdmin, viewerIdentityAliases, message)
+    const isEditing = editingNoteId === message.id
+    const isPriorityUpdating = Boolean(priorityUpdatingIds[message.id])
+
+    return {
+      message,
+      canDelete,
+      canEdit,
+      isEditing,
+      isPriorityUpdating,
+      actions: {
+        delete: canDelete ? { onClick: () => handleDelete(message.id) } : undefined,
+        edit: canEdit ? { onClick: () => startEditingNote(message) } : undefined,
+        archive: canEdit ? { archived: message.archived, onToggle: () => handleToggleArchive(message) } : undefined,
+      },
+      priorityControl: priorityEnabled ? {
+        value: message.priority ?? DEFAULT_NOTE_PRIORITY,
+        onChange: canEdit ? (priority) => void handlePriorityChange(message, priority) : undefined,
+        disabled: isPriorityUpdating || !canEdit,
+      } : undefined,
+      inlineEditor: isEditing ? {
+        value: editContent,
+        isSaving: isUpdatingNote,
+        onChange: setEditContent,
+        onSave: () => void saveEditingNote(),
+        onCancel: cancelEditingNote,
+      } : undefined,
+    }
+  })
 
   const getTargetPosition = useCallback((index: number): NotePosition => {
     const layout = layouts[index]
@@ -607,27 +638,11 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
         <div className="mb-12 md:hidden">
           {mobileView === 'stack' ? (
             <MobileStickyStack
-              messages={messages}
-              onDelete={handleDelete}
-              onEdit={startEditingNote}
-              onToggleArchive={handleToggleArchive}
-              showPriority={priorityEnabled}
-              onPriorityChange={handlePriorityChange}
-              isPriorityUpdating={(id) => Boolean(priorityUpdatingIds[id])}
-              canDelete={(message) => getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)}
-              canEdit={(message) => getEditPermission(isAdmin, viewerIdentityAliases, message)}
+              items={noteItems}
             />
           ) : (
             <MobileNoteList
-              messages={messages}
-              onDelete={handleDelete}
-              onEdit={startEditingNote}
-              onToggleArchive={handleToggleArchive}
-              showPriority={priorityEnabled}
-              onPriorityChange={handlePriorityChange}
-              isPriorityUpdating={(id) => Boolean(priorityUpdatingIds[id])}
-              canDelete={(message) => getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)}
-              canEdit={(message) => getEditPermission(isAdmin, viewerIdentityAliases, message)}
+              items={noteItems}
             />
           )}
         </div>
@@ -644,7 +659,8 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
               </div>
             ) : !hasMeasured ? null : (
               <div className="relative" style={{ minHeight: Math.max(height, 320) }}>
-                {messages.map((message, index) => {
+                {noteItems.map((item, index) => {
+                  const { message, actions, priorityControl, inlineEditor, isEditing } = item
                   const layout = layouts[index]
                   const targetPosition = getTargetPosition(index)
                   const collapsedPosition = {
@@ -666,30 +682,16 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
                       width={cardWidth}
                       bounds={{ width: size.width, height: Math.max(height, 420) }}
                       colorIndex={layout?.colorIndex ?? getStickyColorIndex(message.id)}
-                      draggable={isScattered && editingNoteId !== message.id}
+                      draggable={isScattered && !isEditing}
                       variant="board"
-                      showDelete={getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)}
-                      showEdit={getEditPermission(isAdmin, viewerIdentityAliases, message)}
-                      showArchive={getEditPermission(isAdmin, viewerIdentityAliases, message)}
-                      showPriority={priorityEnabled}
-                      priorityDisabled={Boolean(priorityUpdatingIds[message.id]) || !getEditPermission(isAdmin, viewerIdentityAliases, message)}
-                      isInlineEditing={editingNoteId === message.id}
-                      inlineEditContent={editingNoteId === message.id ? editContent : ''}
-                      isSavingInline={isUpdatingNote}
-                      onDelete={() => handleDelete(message.id)}
-                      onEdit={() => startEditingNote(message)}
-                      onToggleArchive={() => handleToggleArchive(message)}
-                      onPriorityChange={getEditPermission(isAdmin, viewerIdentityAliases, message)
-                        ? (priority) => void handlePriorityChange(message, priority)
-                        : undefined}
+                      actions={actions}
+                      priorityControl={priorityControl}
+                      inlineEditor={inlineEditor}
                       onLift={() => bringCardToFront(message.id)}
                       onCommit={(nextPosition) => {
                         setCustomPositions((current) => ({ ...current, [message.id]: nextPosition }))
                       }}
                       onHeightChange={(nextHeight) => handleCardHeightChange(message.id, nextHeight)}
-                      onInlineEditChange={setEditContent}
-                      onInlineSave={() => void saveEditingNote()}
-                      onInlineCancel={cancelEditingNote}
                     />
                   )
                 })}
