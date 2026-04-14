@@ -70,7 +70,24 @@
 }
 
 .root :global(.col-scroll__title) {
+  align-items: baseline;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
   margin: 12px 0 16px;
+}
+
+.root :global(.col-scroll__titleText) {
+  flex: 1;
+  min-width: 0;
+}
+
+.root :global(.col-scroll__meta) {
+  color: rgb(255 255 255 / 0.64);
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 @media (max-width: 767px) {
@@ -116,8 +133,15 @@
   }
 
   .root :global(.col-scroll__title) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.3rem;
     margin: 0.75rem 0 0;
     padding: 0;
+  }
+
+  .root :global(.col-scroll__meta) {
+    white-space: normal;
   }
 
   .root main {

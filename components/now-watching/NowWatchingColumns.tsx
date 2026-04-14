@@ -1,9 +1,8 @@
 'use client'
 
-/* eslint-disable @next/next/no-img-element */
-
 import { useEffect, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
@@ -13,6 +12,20 @@ import type { NowWatchingPoster } from '@/lib/now-watching'
 
 interface NowWatchingColumnsProps {
   columns: NowWatchingPoster[][]
+}
+
+function formatRating(rating: number | null) {
+  if (rating == null) return null
+  const clampedRating = Math.max(0, Math.min(5, Math.round(rating)))
+  return '★'.repeat(clampedRating)
+}
+
+function buildMetaLabel(poster: NowWatchingPoster) {
+  const parts = [poster.watchDate, formatRating(poster.rating)].filter(
+    (value): value is string => Boolean(value)
+  )
+
+  return parts.join(' · ')
 }
 
 export default function NowWatchingColumns({ columns }: NowWatchingColumnsProps) {
@@ -77,7 +90,7 @@ export default function NowWatchingColumns({ columns }: NowWatchingColumnsProps)
           <span>HOME</span>
         </Link>
         <div className={styles.emptyState}>
-          <p className={styles.emptyStateText}>No posters found in obsidian-vault/now-watching.</p>
+          <p className={styles.emptyStateText}>No portrait posters matched the now-watching metadata.</p>
         </div>
       </div>
     )
@@ -94,12 +107,30 @@ export default function NowWatchingColumns({ columns }: NowWatchingColumnsProps)
           {columns.map((column, columnIndex) => (
             <div key={`now-watching-column-${columnIndex}`} className="col-scroll__box">
               <div className="col-scroll__list">
-                {column.map((poster) => (
-                  <figure key={poster.id} className="col-scroll__item">
-                    <img className="col-scroll__img" src={poster.imageUrl} alt={poster.title} />
-                    <figcaption className="col-scroll__title">{poster.title}</figcaption>
-                  </figure>
-                ))}
+                {column.map((poster, posterIndex) => {
+                  const metaLabel = buildMetaLabel(poster)
+                  const shouldPrioritize = columnIndex === 0 && posterIndex < 2
+
+                  return (
+                    <figure key={poster.id} className="col-scroll__item">
+                      <Image
+                        className="col-scroll__img"
+                        src={poster.imageUrl}
+                        alt={poster.title}
+                        title={poster.title}
+                        width={poster.width}
+                        height={poster.height}
+                        sizes="(max-width: 767px) 100vw, 18vw"
+                        quality={72}
+                        priority={shouldPrioritize}
+                      />
+                      <figcaption className="col-scroll__title">
+                        <span className="col-scroll__titleText">{poster.displayTitle}</span>
+                        {metaLabel ? <span className="col-scroll__meta">{metaLabel}</span> : null}
+                      </figcaption>
+                    </figure>
+                  )
+                })}
               </div>
             </div>
           ))}
