@@ -113,7 +113,7 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
             const isDraggable = index <= actualRevealedCount
 
             return (
-              <StickyNoteCard
+              <StickyNoteCard.Preview
                 key={message.id}
                 message={message}
                 x={position.x}
@@ -124,9 +124,7 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
                 bounds={{ width: size.width, height: size.height }}
                 colorIndex={getStickyColorIndex(message.id)}
                 draggable={isDraggable}
-                variant="preview"
-                ctaHref={boardHref}
-                ctaLabel={board.ctaLabel}
+                cta={{ href: boardHref, label: board.ctaLabel }}
                 animatePosition={hasSettledLayout}
                 onLift={() => bringToFront(message.id)}
                 onCommit={(nextPosition, metrics) => handleCommit(index, message, nextPosition, metrics.distance)}

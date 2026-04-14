@@ -18,16 +18,14 @@ export const revalidate = 3600
 const INITIAL_PER_PAGE = 30
 
 export default async function NowWatchingPage() {
-  const { posters, totalCount, hasMore } = await getPagedNowWatchingPosters(1, INITIAL_PER_PAGE)
+  const { posters, hasMore } = await getPagedNowWatchingPosters(1, INITIAL_PER_PAGE)
 
   return (
     <section className={openSans.className}>
       <NowWatchingColumns
         initialPosters={posters}
         initialPage={1}
-        totalCount={totalCount}
         hasMore={hasMore}
-        perPage={INITIAL_PER_PAGE}
       />
     </section>
   )

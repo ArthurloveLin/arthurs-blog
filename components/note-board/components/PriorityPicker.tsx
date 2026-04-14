@@ -5,20 +5,32 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from 're
 import { createPortal } from 'react-dom'
 import { DEFAULT_NOTE_PRIORITY, NOTE_PRIORITY_META, NOTE_PRIORITY_VALUES, type NotePriority } from '@/lib/note-priority'
 
-interface PriorityPickerProps {
+interface PriorityPickerSharedProps {
   value?: NotePriority
   onChange?: (value: NotePriority) => void
   disabled?: boolean
   menuAlign?: 'start' | 'end'
   menuDirection?: 'up' | 'down'
-  buttonClassName?: string
   rootClassName?: string
   menuClassName?: string
-  dotClassName?: string
-  triggerVariant?: 'dot' | 'tape'
 }
 
-export function PriorityPicker({
+interface PriorityDotPickerProps extends PriorityPickerSharedProps {
+  buttonClassName?: string
+  dotClassName?: string
+}
+
+interface PriorityTapePickerProps extends PriorityPickerSharedProps {
+  buttonClassName?: string
+}
+
+interface PriorityPickerFrameProps extends PriorityPickerSharedProps {
+  buttonClassName?: string
+  dotClassName?: string
+  trigger: 'dot' | 'tape'
+}
+
+function PriorityPickerFrame({
   value = DEFAULT_NOTE_PRIORITY,
   onChange,
   disabled = false,
@@ -28,8 +40,8 @@ export function PriorityPicker({
   rootClassName,
   menuClassName,
   dotClassName,
-  triggerVariant = 'dot',
-}: PriorityPickerProps) {
+  trigger,
+}: PriorityPickerFrameProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -39,13 +51,13 @@ export function PriorityPicker({
   const currentMeta = NOTE_PRIORITY_META[value]
 
   const updateMenuPosition = useCallback(() => {
-    const trigger = triggerRef.current
-    const menu = menuRef.current
+    const triggerElement = triggerRef.current
+    const menuElement = menuRef.current
 
-    if (!trigger || !menu) return
+    if (!triggerElement || !menuElement) return
 
-    const triggerRect = trigger.getBoundingClientRect()
-    const menuRect = menu.getBoundingClientRect()
+    const triggerRect = triggerElement.getBoundingClientRect()
+    const menuRect = menuElement.getBoundingClientRect()
     const padding = 8
     let left = menuAlign === 'start' ? triggerRect.left : triggerRect.right - menuRect.width
     let top = menuDirection === 'up'
@@ -106,6 +118,10 @@ export function PriorityPicker({
     }
   }
 
+  const triggerClassName = trigger === 'tape'
+    ? 'inline-flex h-[26px] w-[52px] items-center justify-center rounded-[2px] border border-white/20 shadow-[0_1px_0_rgba(255,255,255,0.32)_inset,0_2px_5px_rgba(15,23,42,0.13)] disabled:cursor-default disabled:opacity-100'
+    : 'inline-flex h-6 w-6 items-center justify-center rounded-full border border-black/10 bg-white/42 transition hover:-translate-y-0.5 hover:bg-white/58 disabled:cursor-default disabled:opacity-100'
+
   return (
     <div
       ref={rootRef}
@@ -120,20 +136,15 @@ export function PriorityPicker({
         title={isInteractive ? `${currentMeta.label}，点击切换` : currentMeta.label}
         disabled={disabled}
         onClick={handleToggle}
-        className={[
-          triggerVariant === 'tape'
-            ? 'inline-flex h-[26px] w-[52px] items-center justify-center rounded-[2px] border border-white/20 shadow-[0_1px_0_rgba(255,255,255,0.32)_inset,0_2px_5px_rgba(15,23,42,0.13)] disabled:cursor-default disabled:opacity-100'
-            : 'inline-flex h-6 w-6 items-center justify-center rounded-full border border-black/10 bg-white/42 transition hover:-translate-y-0.5 hover:bg-white/58 disabled:cursor-default disabled:opacity-100',
-          buttonClassName,
-        ].filter(Boolean).join(' ')}
-        style={triggerVariant === 'tape'
+        className={[triggerClassName, buttonClassName].filter(Boolean).join(' ')}
+        style={trigger === 'tape'
           ? {
-            backgroundColor: currentMeta.color,
-            backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.10) 45%, rgba(0,0,0,0.05) 100%)',
-          }
+              backgroundColor: currentMeta.color,
+              backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.10) 45%, rgba(0,0,0,0.05) 100%)',
+            }
           : undefined}
       >
-        {triggerVariant === 'tape' ? <span className="sr-only">{currentMeta.label}</span> : (
+        {trigger === 'tape' ? <span className="sr-only">{currentMeta.label}</span> : (
           <span
             aria-hidden
             className={['h-2.5 w-2.5 rounded-full shadow-[0_0_0_1px_rgba(15,23,42,0.08)]', dotClassName].filter(Boolean).join(' ')}
@@ -189,4 +200,17 @@ export function PriorityPicker({
       ) : null}
     </div>
   )
+}
+
+export function PriorityDotPicker(props: PriorityDotPickerProps) {
+  return <PriorityPickerFrame {...props} trigger="dot" />
+}
+
+export function PriorityTapePicker(props: PriorityTapePickerProps) {
+  return <PriorityPickerFrame {...props} trigger="tape" />
+}
+
+export const PriorityPicker = {
+  Dot: PriorityDotPicker,
+  Tape: PriorityTapePicker,
 }

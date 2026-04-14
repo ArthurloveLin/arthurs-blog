@@ -13,6 +13,7 @@ import type {
   Size,
   StickyNoteCardActions,
   StickyNoteCardInlineEditor,
+  StickyNoteCardLinkAction,
   StickyNoteCardPriorityControl,
 } from '@/components/note-board/types'
 import {
@@ -26,7 +27,7 @@ import { formatCommentTimeLabel } from '@/lib/date-format'
 import { NOTE_PRIORITY_META } from '@/lib/note-priority'
 import type { NoteMessage } from '@/lib/note-boards'
 
-export interface StickyNoteCardProps {
+interface StickyNoteCardSharedProps {
   message: NoteMessage
   x: number
   y: number
@@ -36,18 +37,34 @@ export interface StickyNoteCardProps {
   bounds: Size
   colorIndex: number
   draggable: boolean
+  onLift?: () => void
+  onCommit?: (nextPosition: NotePosition, metrics: { distance: number }) => void
+}
+
+interface StickyNoteBoardCardProps extends StickyNoteCardSharedProps {
+  actions?: StickyNoteCardActions
+  priorityControl?: StickyNoteCardPriorityControl
+  inlineEditor?: StickyNoteCardInlineEditor
+  onHeightChange?: (height: number) => void
+  surface?: 'desktop' | 'mobile-stack'
+}
+
+interface StickyNotePreviewCardProps extends StickyNoteCardSharedProps {
+  cta?: StickyNoteCardLinkAction
+  animatePosition?: boolean
+}
+
+interface StickyNoteCardFrameProps extends StickyNoteCardSharedProps {
   variant: 'preview' | 'board'
   actions?: StickyNoteCardActions
   priorityControl?: StickyNoteCardPriorityControl
-  animatePosition?: boolean
-  dragBoundsMode?: 'contained' | 'mobile-stack'
   inlineEditor?: StickyNoteCardInlineEditor
-  onLift?: () => void
-  onCommit?: (nextPosition: NotePosition, metrics: { distance: number }) => void
   onHeightChange?: (height: number) => void
+  animatePosition: boolean
+  dragBoundsMode: 'contained' | 'mobile-stack'
 }
 
-export function StickyNoteCard({
+function StickyNoteCardFrame({
   message,
   x,
   y,
@@ -60,13 +77,13 @@ export function StickyNoteCard({
   variant,
   actions,
   priorityControl,
-  animatePosition = true,
-  dragBoundsMode = 'contained',
   inlineEditor,
   onLift,
   onCommit,
   onHeightChange,
-}: StickyNoteCardProps) {
+  animatePosition,
+  dragBoundsMode,
+}: StickyNoteCardFrameProps) {
   const articleRef = useRef<HTMLElement>(null)
   const dragOriginRef = useRef<NotePosition | null>(null)
   const dragPointerRef = useRef<{ startClientX: number; startClientY: number } | null>(null)
@@ -255,11 +272,10 @@ export function StickyNoteCard({
     >
       {priorityControl && !isPreview ? (
         priorityControl.onChange ? (
-          <PriorityPicker
+          <PriorityPicker.Tape
             value={priorityControl.value}
             onChange={priorityControl.onChange}
             disabled={priorityControl.disabled}
-            triggerVariant="tape"
             rootClassName={styles.tapeAnchor}
             buttonClassName={[styles.tapeButton, isDragging ? styles.tapeButtonDragging : ''].filter(Boolean).join(' ')}
             menuAlign="start"
@@ -345,4 +361,43 @@ export function StickyNoteCard({
       </div>
     </article>
   )
+}
+
+export function StickyNoteBoardCard({
+  actions,
+  priorityControl,
+  inlineEditor,
+  onHeightChange,
+  surface = 'desktop',
+  ...props
+}: StickyNoteBoardCardProps) {
+  return (
+    <StickyNoteCardFrame
+      {...props}
+      variant="board"
+      actions={actions}
+      priorityControl={priorityControl}
+      inlineEditor={inlineEditor}
+      onHeightChange={onHeightChange}
+      animatePosition
+      dragBoundsMode={surface === 'mobile-stack' ? 'mobile-stack' : 'contained'}
+    />
+  )
+}
+
+export function StickyNotePreviewCard({ cta, animatePosition = true, ...props }: StickyNotePreviewCardProps) {
+  return (
+    <StickyNoteCardFrame
+      {...props}
+      variant="preview"
+      actions={cta ? { cta } : undefined}
+      animatePosition={animatePosition}
+      dragBoundsMode="contained"
+    />
+  )
+}
+
+export const StickyNoteCard = {
+  Board: StickyNoteBoardCard,
+  Preview: StickyNotePreviewCard,
 }
