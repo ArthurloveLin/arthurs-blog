@@ -61,6 +61,22 @@ export default function NowWatchingColumns({
   const sentinelRef = useRef<HTMLDivElement>(null)
   const lenisRef = useRef<Lenis | null>(null)
   const isDesktop = useRef(false)
+  // 预取缓存：存储已提前拉取好的下一批数据
+  const prefetchedRef = useRef<{ page: number; data: PagedNowWatchingPosters } | null>(null)
+
+  /** 静默预取指定页，结果写入 ref，失败不影响正常加载 */
+  const prefetch = useCallback(async (pageToFetch: number) => {
+    try {
+      const res = await fetch(
+        `/api/now-watching/posters?page=${pageToFetch}&perPage=${LOAD_MORE_PER_PAGE}`
+      )
+      if (!res.ok) return
+      const data: PagedNowWatchingPosters = await res.json()
+      prefetchedRef.current = { page: pageToFetch, data }
+    } catch {
+      // 静默失败，不影响正常加载流程
+    }
+  }, [])
 
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return
@@ -69,12 +85,19 @@ export default function NowWatchingColumns({
     const nextPage = page + 1
 
     try {
-      const res = await fetch(
-        `/api/now-watching/posters?page=${nextPage}&perPage=${LOAD_MORE_PER_PAGE}`
-      )
-      if (!res.ok) return
+      let data: PagedNowWatchingPosters
 
-      const data: PagedNowWatchingPosters = await res.json()
+      // 命中预取缓存时直接使用，避免网络等待
+      if (prefetchedRef.current?.page === nextPage) {
+        data = prefetchedRef.current.data
+        prefetchedRef.current = null
+      } else {
+        const res = await fetch(
+          `/api/now-watching/posters?page=${nextPage}&perPage=${LOAD_MORE_PER_PAGE}`
+        )
+        if (!res.ok) return
+        data = await res.json()
+      }
 
       setColumns((prev) => {
         const next = prev.map((col) => [...col])
@@ -87,17 +110,27 @@ export default function NowWatchingColumns({
       setPage(nextPage)
       setHasMore(data.hasMore)
 
+      // 本批加载完毕后立即预取下一批
+      if (data.hasMore) {
+        prefetch(nextPage + 1)
+      }
+
       // 新内容追加后刷新 ScrollTrigger 计算
+      // 必须在下一帧内刷新，否则 lenis scroll update 使用旧边界会导致视差跳位
       if (isDesktop.current) {
-        // 等待 DOM 更新后再 refresh
-        requestAnimationFrame(() => {
-          ScrollTrigger.refresh()
-        })
+        requestAnimationFrame(() => ScrollTrigger.refresh())
       }
     } finally {
       setIsLoading(false)
     }
-  }, [isLoading, hasMore, page])
+  }, [isLoading, hasMore, page, prefetch])
+
+  // 挂载后立即预取第二批，使首次滚动触发时可直接命中缓存
+  useEffect(() => {
+    if (initialHasMore) {
+      prefetch(initialPage + 1)
+    }
+  }, [prefetch, initialHasMore, initialPage])
 
   // IntersectionObserver 监听 sentinel
   useEffect(() => {
@@ -194,7 +227,7 @@ export default function NowWatchingColumns({
               <div className="col-scroll__list">
                 {column.map((poster, posterIndex) => {
                   const metaLabel = buildMetaLabel(poster)
-                  const shouldPrioritize = columnIndex === 0 && posterIndex < 2
+                  const shouldPrioritize = columnIndex < 2 && posterIndex < 3
 
                   return (
                     <figure key={`${poster.id}-${columnIndex}-${posterIndex}`} className="col-scroll__item">
