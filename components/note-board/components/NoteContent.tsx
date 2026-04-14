@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { memo, useMemo, type ReactNode } from 'react'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
 import { parseNoteContent } from '@/components/note-board/utils/editor'
 
@@ -44,9 +44,9 @@ function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[]
   return nodes.length > 0 ? nodes : [text]
 }
 
-export function NoteContent({ content, variant }: NoteContentProps) {
-  const parsed = parseNoteContent(content)
-  const bodyLines = parsed.body.length > 0 ? parsed.body.split('\n') : []
+function NoteContentComponent({ content, variant }: NoteContentProps) {
+  const parsed = useMemo(() => parseNoteContent(content), [content])
+  const bodyLines = useMemo(() => parsed.body.length > 0 ? parsed.body.split('\n') : [], [parsed.body])
   const textClassName = [styles.text, variant === 'preview' ? styles.previewText : styles.boardText].join(' ')
 
   return (
@@ -75,3 +75,5 @@ export function NoteContent({ content, variant }: NoteContentProps) {
     </div>
   )
 }
+
+export const NoteContent = memo(NoteContentComponent)
