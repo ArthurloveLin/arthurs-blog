@@ -31,7 +31,7 @@ export default function BlogFeedSection({
   return (
     <section className="min-w-0 md:col-span-8 lg:col-span-1">
       {/* Feed header / Category filter banner */}
-      <div className="flex items-center justify-between mb-5 px-4 py-3 rounded-xl bg-card border border-border shadow-[3px_5px_30px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.28)]">
+      <div className="flex items-center justify-between mb-5 px-4 py-3 rounded-xl bg-card border border-border shadow-[3px_5px_30px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.12)]">
         {activeCategory || activeTags.length > 0 || activeYear ? (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase">
