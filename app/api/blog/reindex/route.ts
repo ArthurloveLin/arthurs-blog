@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import matter from 'gray-matter'
+import { parseBlogFrontmatterDate } from '@/lib/date-format'
 import { listR2ObjectsWithMeta, getR2Object } from '@/lib/r2'
-import { upsertPost, deletePostsNotIn, getPostsMetadata } from '@/lib/blog'
+import { upsertPost, deletePostsNotIn } from '@/lib/blog'
 
 const BLOG_BUCKET = process.env.R2_BLOG_BUCKET!
 const CONCURRENCY = 10
@@ -52,7 +53,7 @@ async function processFile(
     })(),
     r2_key: key,
     published,
-    published_at: fm.date ? new Date(fm.date).toISOString() : new Date().toISOString(),
+    published_at: parseBlogFrontmatterDate(fm.date),
   })
 
   return { slug, status: 'ok' }
@@ -61,25 +62,12 @@ async function processFile(
 export async function POST() {
   const domain = process.env.R2_BLOG_PUBLIC_DOMAIN
 
-  // P0+P1: 并行拉取 R2 列表和 DB 已有元数据
-  const [allObjects, existingPosts] = await Promise.all([
-    listR2ObjectsWithMeta(BLOG_BUCKET),
-    getPostsMetadata(),
-  ])
+  const allObjects = await listR2ObjectsWithMeta(BLOG_BUCKET)
 
   const mdObjects = allObjects.filter((o) => o.key.endsWith('.md'))
   const mdKeys = mdObjects.map((o) => o.key)
-
-  // P1: 建立 r2_key → DB updated_at 的映射，用于跳过未变更文件
-  const dbMap = new Map(existingPosts.map((p) => [p.r2_key, new Date(p.updated_at)]))
-
-  const toProcess = mdObjects.filter(({ key, lastModified }) => {
-    if (!dbMap.has(key)) return true       // 新文件
-    if (!lastModified) return true          // R2 无时间戳，保守处理
-    return lastModified > dbMap.get(key)!  // 文件在上次 reindex 后有修改
-  })
-
-  const unchangedCount = mdObjects.length - toProcess.length
+  const toProcess = mdObjects
+  const unchangedCount = 0
 
   type Result = { key: string; slug: string; status: 'ok' | 'skip' | 'error' | 'unchanged'; reason?: string }
   const results: Result[] = []
