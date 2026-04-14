@@ -46,11 +46,13 @@ async function ArticleBody({
   adjacentPromise,
   commentsPromise,
   postId,
+  skipFirstParagraph,
 }: {
   contentPromise: Promise<string>
   adjacentPromise: Promise<{ prev: Post | null; next: Post | null }>
   commentsPromise: Promise<Comment[] | null>
   postId: string
+  skipFirstParagraph?: boolean
 }) {
   const [content, { prev, next }, initialComments] = await Promise.all([
     contentPromise,
@@ -62,7 +64,7 @@ async function ArticleBody({
     <>
       {/* Content Body - Expanded padding for premium feel */}
       <div className="mt-10 px-6 md:px-10">
-        <MarkdownRenderer content={content} />
+        <MarkdownRenderer content={content} postId={postId} skipFirstParagraph={skipFirstParagraph} />
       </div>
 
       {/* Comments */}
@@ -164,7 +166,7 @@ export default async function BlogPostPage({
                 {/* Hero: Cover - No rounded-2xl md:rounded-3xl here because it's at the top of an overflow-hidden card */}
                 <ViewTransition name={`post-cover-${post.id}`} share="morph" default="none">
                 <div
-                  className="relative aspect-video w-full overflow-hidden bg-muted border-b border-border/50 rounded-t-2xl md:rounded-t-3xl"
+                  className="relative aspect-[2.4/1] w-full overflow-hidden bg-muted border-b border-border/50 rounded-t-2xl md:rounded-t-3xl"
                 >
                   {post.cover_image ? (
                     <Image
@@ -192,7 +194,7 @@ export default async function BlogPostPage({
 
                   {/* Hero: Meta (Date · Category · Tags) */}
                   <ViewTransition name={`post-meta-${post.id}`} share="morph" default="none">
-                    <div className="blog-hero-meta mb-4 flex flex-wrap items-center gap-x-1.5 gap-y-2">
+                    <div className="blog-hero-meta flex flex-wrap items-center gap-x-1.5 gap-y-2">
                       <time className="tabular-nums whitespace-nowrap">{formatDate(post.published_at)}</time>
                       {post.category && (
                         <><span className="text-foreground/20 font-bold">·</span><Link href={`/blog/category/${encodeURIComponent(post.category)}`} className="font-medium text-foreground/80 hover:text-primary transition-colors whitespace-nowrap">{post.category}</Link></>
@@ -202,6 +204,15 @@ export default async function BlogPostPage({
                       )}
                     </div>
                   </ViewTransition>
+
+                  {/* Hero: Immediate First Paragraph (Transition Target) */}
+                  {post.summary && (
+                    <div className="mt-6 prose prose-gray dark:prose-invert max-w-none">
+                      <ViewTransition name={`post-first-p-${post.id}`} share="morph" default="none">
+                        <p>{post.summary}</p>
+                      </ViewTransition>
+                    </div>
+                  )}
                 </div>
               </header>
 
@@ -224,6 +235,7 @@ export default async function BlogPostPage({
                     adjacentPromise={adjacentPromise}
                     commentsPromise={commentsPromise}
                     postId={post.id}
+                    skipFirstParagraph={true}
                   />
                 </Suspense>
               </ViewTransition>
