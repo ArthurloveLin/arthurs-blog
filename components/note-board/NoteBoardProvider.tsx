@@ -95,7 +95,7 @@ interface NoteBoardActions {
   handleLoadMore: () => Promise<void>
   handleSubmit: (event: React.FormEvent<HTMLFormElement>) => void
   handleSwitchArchiveView: (archived: boolean) => void
-  handleSortModeChange: (nextSortMode: NoteSortMode) => Promise<void>
+  handleSortModeChange: (nextSortMode: NoteSortMode) => void
   updateEditorValue: (value: string) => void
   updateEditorPriority: (value: NotePriority) => void
   submitEditor: () => Promise<void>
