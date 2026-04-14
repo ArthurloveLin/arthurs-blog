@@ -239,7 +239,8 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     })
 
     if (snapshot.customPosition) {
-      setCustomPositions((current) => ({ ...current, [snapshot.message.id]: snapshot.customPosition }))
+      const position = snapshot.customPosition
+      setCustomPositions((current) => ({ ...current, [snapshot.message.id]: position }))
     }
 
     if (typeof snapshot.zIndex === 'number') {
