@@ -59,18 +59,42 @@
 
 .root :global(.col-scroll__item) {
   margin: 0;
-}
-
-.root :global(.col-scroll__img) {
-  aspect-ratio: 6 / 7;
-  display: block;
-  height: auto;
-  object-fit: cover;
   width: 18vw;
 }
 
+.root :global(.col-scroll__imgWrapper) {
+  aspect-ratio: 6 / 7;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.root :global(.col-scroll__img) {
+  display: block;
+  height: auto;
+  object-fit: cover;
+  width: 100%;
+}
+
 .root :global(.col-scroll__title) {
+  align-items: baseline;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
   margin: 12px 0 16px;
+}
+
+.root :global(.col-scroll__titleText) {
+  flex: 1;
+  min-width: 0;
+}
+
+.root :global(.col-scroll__meta) {
+  color: rgb(255 255 255 / 0.64);
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 @media (max-width: 767px) {
@@ -110,14 +134,24 @@
     width: min(calc(100% - 1.5rem), 21rem);
   }
 
-  .root :global(.col-scroll__img) {
-    border-radius: 0;
+  .root :global(.col-scroll__imgWrapper) {
     width: 100%;
   }
 
+  .root :global(.col-scroll__img) {
+    border-radius: 0;
+  }
+
   .root :global(.col-scroll__title) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.3rem;
     margin: 0.75rem 0 0;
     padding: 0;
+  }
+
+  .root :global(.col-scroll__meta) {
+    white-space: normal;
   }
 
   .root main {
@@ -138,4 +172,24 @@
   font-size: 0.95rem;
   letter-spacing: 0.04em;
   margin: 0;
+}
+
+.sentinel {
+  height: 1px;
+  pointer-events: none;
+  width: 100%;
+}
+
+.loadingIndicator {
+  animation: spin 0.9s linear infinite;
+  border: 2px solid rgb(255 255 255 / 0.2);
+  border-top-color: rgb(255 255 255 / 0.7);
+  border-radius: 50%;
+  height: 1.5rem;
+  margin: 1.5rem auto;
+  width: 1.5rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
