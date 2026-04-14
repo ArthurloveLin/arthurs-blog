@@ -22,15 +22,19 @@ interface AuthorProfileCardProps {
   id?: string
 }
 
-interface AuthorProfileCardBodyProps extends AuthorProfileCardProps {
-  compact?: boolean
+interface SidebarAuthorProfileCardProps extends AuthorProfileCardProps {
+  collapsed?: boolean
 }
 
-const AuthorProfileCardBody = memo(function AuthorProfileCardBody({ compact = false, id }: AuthorProfileCardBodyProps) {
+interface AuthorProfileCardBodyProps extends AuthorProfileCardProps {
+  variant?: 'default' | 'compact'
+}
+
+const AuthorProfileCardBody = memo(function AuthorProfileCardBody({ variant = 'default', id }: AuthorProfileCardBodyProps) {
   const config = useSiteConfig()
   const stats = useSiteStats()
   const { isAdmin } = useAuth()
-  const isCompact = compact
+  const isCompact = variant === 'compact'
 
   const {
     author_name: name = 'Arthur & Grace',
@@ -269,11 +273,11 @@ const AuthorProfileCard = memo(function AuthorProfileCard(props: AuthorProfileCa
 })
 
 export const AuthorProfileCompactCard = memo(function AuthorProfileCompactCard(props: AuthorProfileCardProps) {
-  return <AuthorProfileCardBody {...props} compact />
+  return <AuthorProfileCardBody {...props} variant="compact" />
 })
 
-export const SidebarAuthorProfileCard = memo(function SidebarAuthorProfileCard(props: AuthorProfileCardBodyProps) {
-  return <AuthorProfileCardBody {...props} />
+export const SidebarAuthorProfileCard = memo(function SidebarAuthorProfileCard({ collapsed = false, ...props }: SidebarAuthorProfileCardProps) {
+  return <AuthorProfileCardBody {...props} variant={collapsed ? 'compact' : 'default'} />
 })
 
 export default AuthorProfileCard

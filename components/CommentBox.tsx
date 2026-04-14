@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useMemo, createContext, use } from 'react'
+import { createContext, use, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { updatePresenceActivity } from './ActivityBanner'
 import { useAuth } from './AuthProvider'
 import EditorActionBar from './EditorActionBar'
@@ -16,9 +16,21 @@ interface Comment {
 }
 
 interface CommentTreeContextValue {
+  comments: Comment[]
+  topLevelComments: Comment[]
+  repliesByParentId: Record<string, Comment[]>
+  replyTo: { id: string; author: string } | null
+  draft: string
+  submitting: boolean
+  error: string | null
+  identityReady: boolean
   identityAliases: string[]
   isAdmin: boolean
+  composerRef: React.RefObject<HTMLTextAreaElement | null>
+  onDraftChange: (value: string) => void
   onReply: (comment: Comment) => void
+  onCancelReply: () => void
+  onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
   onDelete: (id: string) => void
   onUpdate: (id: string, content: string) => Promise<void>
 }
@@ -33,6 +45,96 @@ function useCommentTree() {
 
 function canModifyComment(comment: Comment, identityAliases: string[], isAdmin: boolean) {
   return isAdmin || identityAliases.includes(comment.author)
+}
+
+function CommentComposerShell({
+  children,
+  actionBar,
+  onSubmit,
+}: {
+  children: ReactNode
+  actionBar: ReactNode
+  onSubmit?: (event: FormEvent<HTMLFormElement>) => Promise<void>
+}) {
+  const className = 'overflow-hidden rounded-2xl border border-border bg-muted/20 transition-all focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20'
+
+  if (onSubmit) {
+    return (
+      <form onSubmit={onSubmit} className={className}>
+        {children}
+        {actionBar}
+      </form>
+    )
+  }
+
+  return (
+    <div className={className}>
+      {children}
+      {actionBar}
+    </div>
+  )
+}
+
+function CommentEditorForm({
+  value,
+  onChange,
+  onCancel,
+  onSave,
+  isSaving,
+  error,
+}: {
+  value: string
+  onChange: (value: string) => void
+  onCancel: () => void
+  onSave: () => void
+  isSaving: boolean
+  error: string | null
+}) {
+  return (
+    <CommentComposerShell
+      actionBar={(
+        <EditorActionBar
+          leading={<span>评论编辑栏</span>}
+          trailing={(
+            <>
+              <button
+                type="button"
+                className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 transition hover:text-foreground"
+                onClick={onCancel}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground transition disabled:opacity-40"
+                onClick={onSave}
+                disabled={isSaving || !value.trim()}
+              >
+                {isSaving ? '保存中' : '保存'}
+              </button>
+            </>
+          )}
+        />
+      )}
+    >
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-h-[96px] w-full resize-y bg-transparent px-3 py-3 text-sm leading-relaxed text-foreground outline-none transition"
+      />
+      {error ? <p className="px-3 pb-3 text-xs text-rose-600">{error}</p> : null}
+    </CommentComposerShell>
+  )
+}
+
+function CommentThreadHeader() {
+  const { comments } = useCommentTree()
+
+  return (
+    <h3 className="mb-4 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+      评论 {comments.length > 0 && `(${comments.length})`}
+    </h3>
+  )
 }
 
 function CommentCard({ comment }: { comment: Comment }) {
@@ -71,40 +173,18 @@ function CommentCard({ comment }: { comment: Comment }) {
           <span className="text-[10px] font-medium text-muted-foreground/50">{formatCommentTimeLabel(comment.created_at, comment.updated_at)}</span>
         </div>
         {isEditing ? (
-          <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/85">
-            <textarea
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              className="min-h-[96px] w-full resize-y bg-transparent px-3 py-3 text-sm leading-relaxed text-foreground outline-none transition"
-            />
-            <EditorActionBar
-              leading={<span>评论编辑栏</span>}
-              trailing={(
-                <>
-                  <button
-                    type="button"
-                    className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 transition hover:text-foreground"
-                    onClick={() => {
-                      setDraft(comment.content)
-                      setError(null)
-                      setIsEditing(false)
-                    }}
-                  >
-                    取消
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground transition disabled:opacity-40"
-                    onClick={handleSave}
-                    disabled={isSaving || !draft.trim()}
-                  >
-                    {isSaving ? '保存中' : '保存'}
-                  </button>
-                </>
-              )}
-            />
-            {error ? <p className="text-xs text-rose-600">{error}</p> : null}
-          </div>
+          <CommentEditorForm
+            value={draft}
+            onChange={setDraft}
+            onCancel={() => {
+              setDraft(comment.content)
+              setError(null)
+              setIsEditing(false)
+            }}
+            onSave={handleSave}
+            isSaving={isSaving}
+            error={error}
+          />
         ) : (
           <p className="text-sm text-foreground/90 break-words leading-relaxed whitespace-pre-wrap">{comment.content}</p>
         )}
@@ -141,27 +221,120 @@ function CommentCard({ comment }: { comment: Comment }) {
   )
 }
 
-function ReplyCommentItem({ comment }: { comment: Comment }) {
+function CommentReplyList({ parentId }: { parentId: string }) {
+  const { repliesByParentId } = useCommentTree()
+  const replies = repliesByParentId[parentId] ?? []
+
+  if (replies.length === 0) {
+    return null
+  }
+
   return (
-    <div className="ml-6">
-      <CommentCard comment={comment} />
+    <div className="mt-2 space-y-2 border-l border-border/30 pl-1">
+      {replies.map((reply) => (
+        <div key={reply.id} className="ml-6">
+          <CommentCard comment={reply} />
+        </div>
+      ))}
     </div>
   )
 }
 
-function TopLevelCommentItem({ comment, replies }: { comment: Comment; replies: Comment[] }) {
+function CommentThreadItem({ comment }: { comment: Comment }) {
   return (
     <div>
       <CommentCard comment={comment} />
-      {replies.length > 0 && (
-        <div className="mt-2 space-y-2 border-l border-border/30 pl-1">
-          {replies.map((reply) => (
-            <ReplyCommentItem key={reply.id} comment={reply} />
-          ))}
-        </div>
-      )}
+      <CommentReplyList parentId={comment.id} />
     </div>
   )
+}
+
+function CommentThreadList() {
+  const { topLevelComments } = useCommentTree()
+
+  if (topLevelComments.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="mb-6 space-y-4">
+      {topLevelComments.map((comment) => (
+        <CommentThreadItem key={comment.id} comment={comment} />
+      ))}
+    </div>
+  )
+}
+
+function CommentThreadComposer() {
+  const {
+    draft,
+    error,
+    identityReady,
+    replyTo,
+    submitting,
+    composerRef,
+    onCancelReply,
+    onDraftChange,
+    onSubmit,
+  } = useCommentTree()
+
+  if (!identityReady) {
+    return <p className="py-4 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/30 italic animate-pulse">加载身份中…</p>
+  }
+
+  return (
+    <div className="space-y-3">
+      <CommentComposerShell
+        onSubmit={onSubmit}
+        actionBar={(
+          <EditorActionBar
+            leading={replyTo ? (
+              <>
+                <span>评论栏</span>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">回复 @{replyTo.author}</span>
+                <button type="button" className="text-muted-foreground/70 transition hover:text-foreground" onClick={onCancelReply}>
+                  取消回复
+                </button>
+              </>
+            ) : <span>评论栏</span>}
+            trailing={(
+              <button
+                type="submit"
+                disabled={submitting || !draft.trim()}
+                className="rounded-full bg-primary px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-primary-foreground transition-all hover:opacity-90 disabled:opacity-30"
+              >
+                {submitting ? '发送中' : '发送'}
+              </button>
+            )}
+          />
+        )}
+      >
+        <div className="flex flex-1 items-center">
+          <textarea
+            ref={composerRef}
+            value={draft}
+            onChange={(event) => onDraftChange(event.target.value)}
+            onFocus={() => updatePresenceActivity('正在评论')}
+            placeholder={replyTo ? `回复 @${replyTo.author}…` : '写点什么…'}
+            rows={replyTo ? 3 : 2}
+            className="flex-1 resize-none bg-transparent px-4 py-3 text-sm leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none"
+          />
+        </div>
+      </CommentComposerShell>
+      {error ? <p className="text-xs text-rose-600">{error}</p> : null}
+    </div>
+  )
+}
+
+function CommentThreadRoot({ children, value }: { children: ReactNode; value: CommentTreeContextValue }) {
+  return <CommentTreeContext value={value}>{children}</CommentTreeContext>
+}
+
+const CommentThread = {
+  Root: CommentThreadRoot,
+  Header: CommentThreadHeader,
+  List: CommentThreadList,
+  Composer: CommentThreadComposer,
 }
 
 interface CommentBoxProps {
@@ -174,17 +347,19 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
   const { identity, identityAliases, isAdmin, publicIdentity } = useAuth()
 
   const [comments, setComments] = useState<Comment[]>(initialComments)
-  const [text, setText] = useState('')
+  const [draft, setDraft] = useState('')
   const [replyTo, setReplyTo] = useState<{ id: string; author: string } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Build tree: top-level + replies map
-  const topLevel = useMemo(() => comments.filter((c) => !c.parent_id), [comments])
-  const repliesMap = useMemo(() => comments.reduce<Record<string, Comment[]>>((acc, c) => {
-    if (c.parent_id) acc[c.parent_id] = [...(acc[c.parent_id] ?? []), c]
-    return acc
+  const topLevelComments = useMemo(() => comments.filter((comment) => !comment.parent_id), [comments])
+  const repliesByParentId = useMemo(() => comments.reduce<Record<string, Comment[]>>((accumulator, comment) => {
+    if (comment.parent_id) {
+      accumulator[comment.parent_id] = [...(accumulator[comment.parent_id] ?? []), comment]
+    }
+
+    return accumulator
   }, {}), [comments])
 
   function handleReply(comment: Comment) {
@@ -192,11 +367,13 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     inputRef.current?.focus()
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!text.trim() || !identity || submitting) return
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!draft.trim() || !identity || submitting) return
+
     setSubmitting(true)
     setError(null)
+
     try {
       const res = await fetch('/api/comments', {
         method: 'POST',
@@ -205,14 +382,14 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
           target_type: targetType,
           target_id: targetId,
           author: publicIdentity,
-          content: text.trim(),
+          content: draft.trim(),
           parent_id: replyTo?.id ?? null,
         }),
       })
       if (!res.ok) throw new Error('评论发送失败。')
       const newComment: Comment = await res.json()
       setComments((prev) => [...prev, newComment])
-      setText('')
+      setDraft('')
       setReplyTo(null)
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : '评论发送失败。')
@@ -251,66 +428,33 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     setComments((prev) => prev.map((comment) => comment.id === id ? updatedComment : comment))
   }
 
+  const contextValue: CommentTreeContextValue = {
+    comments,
+    topLevelComments,
+    repliesByParentId,
+    replyTo,
+    draft,
+    submitting,
+    error,
+    identityReady: Boolean(identity),
+    identityAliases,
+    isAdmin,
+    composerRef: inputRef,
+    onDraftChange: setDraft,
+    onReply: handleReply,
+    onCancelReply: () => setReplyTo(null),
+    onSubmit: handleSubmit,
+    onDelete: handleDelete,
+    onUpdate: handleUpdate,
+  }
+
   return (
-    <CommentTreeContext value={{ identityAliases, isAdmin, onReply: handleReply, onDelete: handleDelete, onUpdate: handleUpdate }}>
+    <CommentThread.Root value={contextValue}>
       <div>
-        <h3 className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 mb-4 px-1">
-          评论 {comments.length > 0 && `(${comments.length})`}
-        </h3>
-
-        {topLevel.length > 0 && (
-          <div className="space-y-4 mb-6">
-            {topLevel.map((c) => (
-              <TopLevelCommentItem
-                key={c.id}
-                comment={c}
-                replies={repliesMap[c.id] ?? []}
-              />
-            ))}
-          </div>
-        )}
-
-        {identity ? (
-          <div className="space-y-3">
-            <form onSubmit={handleSubmit} className="overflow-hidden rounded-2xl border border-border bg-muted/20 transition-all focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20">
-              <div className="flex-1 flex items-center">
-                <textarea
-                  ref={inputRef}
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  onFocus={() => updatePresenceActivity('正在评论')}
-                  placeholder={replyTo ? `回复 @${replyTo.author}…` : '写点什么…'}
-                  rows={replyTo ? 3 : 2}
-                  className="flex-1 resize-none px-4 py-3 text-sm leading-relaxed focus:outline-none bg-transparent placeholder:text-muted-foreground/30"
-                />
-              </div>
-              <EditorActionBar
-                leading={replyTo ? (
-                  <>
-                    <span>评论栏</span>
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">回复 @{replyTo.author}</span>
-                    <button type="button" className="text-muted-foreground/70 transition hover:text-foreground" onClick={() => setReplyTo(null)}>
-                      取消回复
-                    </button>
-                  </>
-                ) : <span>评论栏</span>}
-                trailing={(
-                  <button
-                    type="submit"
-                    disabled={submitting || !text.trim()}
-                    className="rounded-full bg-primary px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-primary-foreground transition-all hover:opacity-90 disabled:opacity-30"
-                  >
-                    {submitting ? '发送中' : '发送'}
-                  </button>
-                )}
-              />
-            </form>
-            {error ? <p className="text-xs text-rose-600">{error}</p> : null}
-          </div>
-        ) : (
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/30 text-center py-4 italic animate-pulse">加载身份中…</p>
-        )}
+        <CommentThread.Header />
+        <CommentThread.List />
+        <CommentThread.Composer />
       </div>
-    </CommentTreeContext>
+    </CommentThread.Root>
   )
 }
