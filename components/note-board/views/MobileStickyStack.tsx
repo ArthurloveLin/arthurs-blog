@@ -158,7 +158,7 @@ export function MobileStickyStack({ items }: MobileStickyStackProps) {
                     zIndex: placed ? 30 + index : visibleItems.length - index + 2,
                   }}
                 >
-                  <StickyNoteCard
+                  <StickyNoteCard.Board
                     message={message}
                     x={position.x}
                     y={position.y}
@@ -168,8 +168,7 @@ export function MobileStickyStack({ items }: MobileStickyStackProps) {
                     bounds={{ width: size.width, height: size.height }}
                     colorIndex={getStickyColorIndex(message.id)}
                     draggable={isDraggable}
-                    variant="board"
-                    dragBoundsMode="mobile-stack"
+                    surface="mobile-stack"
                     actions={actions}
                     priorityControl={priorityControl ? {
                       ...priorityControl,
