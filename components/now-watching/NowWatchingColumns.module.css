@@ -59,14 +59,21 @@
 
 .root :global(.col-scroll__item) {
   margin: 0;
+  width: 18vw;
+}
+
+.root :global(.col-scroll__imgWrapper) {
+  aspect-ratio: 6 / 7;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
 }
 
 .root :global(.col-scroll__img) {
-  aspect-ratio: 6 / 7;
   display: block;
   height: auto;
   object-fit: cover;
-  width: 18vw;
+  width: 100%;
 }
 
 .root :global(.col-scroll__title) {
@@ -127,9 +134,12 @@
     width: min(calc(100% - 1.5rem), 21rem);
   }
 
+  .root :global(.col-scroll__imgWrapper) {
+    width: 100%;
+  }
+
   .root :global(.col-scroll__img) {
     border-radius: 0;
-    width: 100%;
   }
 
   .root :global(.col-scroll__title) {
@@ -162,4 +172,24 @@
   font-size: 0.95rem;
   letter-spacing: 0.04em;
   margin: 0;
+}
+
+.sentinel {
+  height: 1px;
+  pointer-events: none;
+  width: 100%;
+}
+
+.loadingIndicator {
+  animation: spin 0.9s linear infinite;
+  border: 2px solid rgb(255 255 255 / 0.2);
+  border-top-color: rgb(255 255 255 / 0.7);
+  border-radius: 50%;
+  height: 1.5rem;
+  margin: 1.5rem auto;
+  width: 1.5rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

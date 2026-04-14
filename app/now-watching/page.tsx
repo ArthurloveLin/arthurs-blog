@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Open_Sans } from 'next/font/google'
 import NowWatchingColumns from '@/components/now-watching/NowWatchingColumns'
-import { getNowWatchingColumns } from '@/lib/now-watching'
+import { getPagedNowWatchingPosters } from '@/lib/now-watching'
 
 const openSans = Open_Sans({
   subsets: ['latin'],
@@ -15,12 +15,20 @@ export const metadata: Metadata = {
 
 export const revalidate = 60
 
+const INITIAL_PER_PAGE = 30
+
 export default async function NowWatchingPage() {
-  const columns = await getNowWatchingColumns()
+  const { posters, totalCount, hasMore } = await getPagedNowWatchingPosters(1, INITIAL_PER_PAGE)
 
   return (
     <section className={openSans.className}>
-      <NowWatchingColumns columns={columns} />
+      <NowWatchingColumns
+        initialPosters={posters}
+        initialPage={1}
+        totalCount={totalCount}
+        hasMore={hasMore}
+        perPage={INITIAL_PER_PAGE}
+      />
     </section>
   )
 }
