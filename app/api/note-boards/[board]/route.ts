@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { isNoteSortMode } from '@/lib/note-priority'
+import { isNotePriority, isNoteSortMode } from '@/lib/note-priority'
 import {
   createBoardMessage,
   getBoardMessages,
@@ -50,7 +50,7 @@ export async function POST(
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
-  if (priority !== undefined && !Number.isInteger(priority)) {
+  if (priority !== undefined && !isNotePriority(priority)) {
     return NextResponse.json({ error: 'Invalid priority' }, { status: 400 })
   }
 
