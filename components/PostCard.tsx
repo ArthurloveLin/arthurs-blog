@@ -39,7 +39,7 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
 
       {/* ── Cover Image (Hero: Cover) ────────────────────────────────── */}
       <ViewTransition name={`post-cover-${post.id}`} share="morph" default="none">
-        <div className="relative aspect-video w-full overflow-hidden bg-muted rounded-t-2xl">
+        <div className="relative aspect-[2.4/1] w-full overflow-hidden bg-muted rounded-t-2xl">
           {coverSrc ? (
             <Image
               src={coverSrc}
@@ -67,9 +67,18 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
           </h2>
         </ViewTransition>
 
+        {/* Excerpt */}
+        {post.summary && (
+          <ViewTransition name={`post-first-p-${post.id}`} share="morph" default="none">
+            <p className="text-foreground/80 dark:text-foreground/75 text-base line-clamp-3 leading-relaxed mb-5 font-normal">
+              {post.summary}
+            </p>
+          </ViewTransition>
+        )}
+
         {/* Hero: Meta (Date · Category · Tags) */}
         <ViewTransition name={`post-meta-${post.id}`} share="morph" default="none">
-          <div className="blog-hero-meta mb-4 flex items-center gap-x-1">
+          <div className="blog-hero-meta flex items-center gap-x-1">
           <time dateTime={post.published_at ?? ''} className="tabular-nums whitespace-nowrap">{date}</time>
           {post.category && (
             <><span className="text-foreground/20 font-bold">·</span><Link href={`/blog/category/${encodeURIComponent(post.category)}`} className="relative z-10 hover:text-primary transition-colors whitespace-nowrap">{post.category}</Link></>
@@ -79,13 +88,6 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
           )}
           </div>
         </ViewTransition>
-
-        {/* Excerpt */}
-        {post.summary && (
-          <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed opacity-70">
-            {post.summary}
-          </p>
-        )}
       </div>
 
     </PrefetchOnHover>
