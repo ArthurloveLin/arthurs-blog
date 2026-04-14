@@ -153,7 +153,7 @@ export default async function BlogPostPage({
           </aside>
 
           {/* Main Article Content - Perfectly aligned with PostCard width */}
-          <article className="min-w-0 md:col-span-8 lg:col-span-1 bg-card rounded-2xl md:rounded-3xl border border-border/50 shadow-[3px_5px_30px_rgba(0,0,0,0.22)] dark:shadow-none overflow-hidden h-fit">
+          <article className="min-w-0 md:col-span-8 lg:col-span-1 bg-card rounded-2xl md:rounded-3xl border border-border/50 shadow-[3px_5px_30px_rgba(0,0,0,0.08)] dark:shadow-none overflow-hidden h-fit">
             {/* ── Outer padding for the whole article card content ── */}
             <div>
               {/* Hero Header (Synced with PostCard) */}
