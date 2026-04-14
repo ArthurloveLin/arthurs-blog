@@ -29,7 +29,10 @@ async function processFile(
   
   const published = fm.published === true
   const slug = generateSlug(key, fm.slug)
-  const summary = fm.summary ?? fm.excerpt ?? (excerpt?.trim().slice(0, 200)) ?? null
+  
+  // 提取摘要逻辑：优先 fm.summary，其次 <!-- more --> (fm.excerpt)，最后尝试提取正文第一段
+  const firstParagraph = mdContent.split(/\n\s*\n/).find(p => p.trim() && !p.trim().startsWith('#'))?.trim()
+  const summary = fm.summary ?? fm.excerpt ?? (excerpt?.trim()) ?? firstParagraph ?? null
 
   await upsertPost({
     slug,
