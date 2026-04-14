@@ -2,15 +2,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { memo, ViewTransition } from 'react'
 import type { Post } from '@/lib/blog'
+import { formatBlogPublishedDate } from '@/lib/date-format'
 import PrefetchOnHover from './PrefetchOnHover'
 
 // Removed hardcoded gradient array as we now use the theme's primary gradient
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
-}
 
 interface PostCardProps {
   post: Post
@@ -24,7 +19,7 @@ interface PostCardContentProps extends PostCardProps {
 }
 
 const PostCardContent = memo(function PostCardContent({ post, index = 0, renderMode }: PostCardContentProps) {
-  const date = formatDate(post.published_at)
+  const date = post.published_at ? formatBlogPublishedDate(post.published_at) : ''
   const isEager = renderMode === 'eager'
 
   // 解码一次，避免 DB 中已编码的 URL（如 %7B）被 next/image 二次编码成 %257B
@@ -34,7 +29,7 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
     <PrefetchOnHover
       href={`/blog/${post.slug}`}
       id={`post-${post.id}`}
-      className="bg-card text-card-foreground border border-border/50 dark:border-white/10 rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.22)] dark:shadow-none transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.28)] dark:hover:border-white/20 overflow-hidden group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="bg-card text-card-foreground border border-border/50 dark:border-white/10 rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.08)] dark:shadow-none transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.12)] dark:hover:border-white/20 overflow-hidden group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       style={{
         contentVisibility: isEager ? 'visible' : 'auto',
         containIntrinsicSize: isEager ? undefined : '0 400px',
@@ -44,7 +39,7 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
 
       {/* ── Cover Image (Hero: Cover) ────────────────────────────────── */}
       <ViewTransition name={`post-cover-${post.id}`} share="morph" default="none">
-        <div className="relative aspect-video w-full overflow-hidden bg-muted rounded-t-2xl">
+        <div className="relative aspect-[2.4/1] w-full overflow-hidden bg-muted rounded-t-2xl">
           {coverSrc ? (
             <Image
               src={coverSrc}
@@ -72,25 +67,27 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
           </h2>
         </ViewTransition>
 
+        {/* Excerpt */}
+        {post.summary && (
+          <ViewTransition name={`post-first-p-${post.id}`} share="morph" default="none">
+            <p className="text-foreground/80 dark:text-foreground/75 text-base line-clamp-3 leading-relaxed mb-5 font-normal">
+              {post.summary}
+            </p>
+          </ViewTransition>
+        )}
+
         {/* Hero: Meta (Date · Category · Tags) */}
-        <ViewTransition name={`post-meta-${post.id}`} default="none">
-          <div className="blog-hero-meta mb-4 flex items-center gap-x-1">
+        <ViewTransition name={`post-meta-${post.id}`} share="morph" default="none">
+          <div className="blog-hero-meta flex items-center gap-x-1">
           <time dateTime={post.published_at ?? ''} className="tabular-nums whitespace-nowrap">{date}</time>
           {post.category && (
             <><span className="text-foreground/20 font-bold">·</span><Link href={`/blog/category/${encodeURIComponent(post.category)}`} className="relative z-10 hover:text-primary transition-colors whitespace-nowrap">{post.category}</Link></>
           )}
           {post.tags.length > 0 && (
-            <><span className="text-foreground/20 font-bold">·</span><div className="flex flex-wrap gap-1 items-center">{post.tags.slice(0, 2).map((tag) => (<Link key={tag} href={`/blog/tags/${encodeURIComponent(tag)}`} className="relative z-10 px-1.5 py-0.5 rounded-md bg-muted text-[10px] text-foreground/65 hover:bg-muted-foreground hover:text-background transition-all">#{tag}</Link>))}</div></>
+            <><span className="text-foreground/20 font-bold">·</span><div className="flex flex-wrap gap-1.5 items-center">{post.tags.map((tag, i) => (<Link key={tag} href={`/blog/tags/${encodeURIComponent(tag)}`} className={`relative z-10 px-2 py-0.5 rounded-md bg-muted text-[11px] text-foreground/65 hover:bg-muted-foreground hover:text-background transition-all ${i >= 2 ? 'hidden md:inline-block' : ''}`}>#{tag}</Link>))}</div></>
           )}
           </div>
         </ViewTransition>
-
-        {/* Excerpt */}
-        {post.summary && (
-          <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed opacity-70">
-            {post.summary}
-          </p>
-        )}
       </div>
 
     </PrefetchOnHover>
