@@ -2,15 +2,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { memo, ViewTransition } from 'react'
 import type { Post } from '@/lib/blog'
+import { formatBlogPublishedDate } from '@/lib/date-format'
 import PrefetchOnHover from './PrefetchOnHover'
 
 // Removed hardcoded gradient array as we now use the theme's primary gradient
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
-}
 
 interface PostCardProps {
   post: Post
@@ -24,7 +19,7 @@ interface PostCardContentProps extends PostCardProps {
 }
 
 const PostCardContent = memo(function PostCardContent({ post, index = 0, renderMode }: PostCardContentProps) {
-  const date = formatDate(post.published_at)
+  const date = post.published_at ? formatBlogPublishedDate(post.published_at) : ''
   const isEager = renderMode === 'eager'
 
   // 解码一次，避免 DB 中已编码的 URL（如 %7B）被 next/image 二次编码成 %257B

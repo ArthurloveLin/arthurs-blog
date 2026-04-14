@@ -14,23 +14,24 @@ import CategoriesCard from '@/components/CategoriesCard'
 import RecentPostsCard from '@/components/RecentPostsCard'
 import ToolsCard from '@/components/ToolsCard'
 import ScrollCollapseWrapper from '@/components/ScrollHideWrapper'
+import { formatBlogPublishedDate } from '@/lib/date-format'
 import { supabaseAdmin } from '@/lib/supabase'
 import ScrollToTop from '@/components/ScrollToTop'
 import { getPostAnchorHref } from '@/lib/blog-return'
+
+function formatDate(dateStr: string | null | undefined) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const date = formatBlogPublishedDate(d)
+  const time = new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Shanghai' }).format(d)
+  return time === '00:00' ? date : `${date} ${time}`
+}
 
 export const revalidate = 60
 
 export async function generateStaticParams() {
   const posts = await getPosts(1000, 0)
   return posts.map((p) => ({ slug: p.slug }))
-}
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  const date = d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
-  const time = d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
-  return time === '00:00' ? date : `${date} ${time}`
 }
 
 type Comment = { id: string; author: string; content: string; created_at: string; updated_at: string | null; parent_id: string | null }
