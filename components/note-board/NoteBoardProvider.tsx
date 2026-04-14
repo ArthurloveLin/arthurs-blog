@@ -244,7 +244,8 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     }
 
     if (typeof snapshot.zIndex === 'number') {
-      setCardZIndices((current) => ({ ...current, [snapshot.message.id]: snapshot.zIndex }))
+      const zIndex = snapshot.zIndex
+      setCardZIndices((current) => ({ ...current, [snapshot.message.id]: zIndex }))
     }
 
     setNextOffset((current) => current + 1)
