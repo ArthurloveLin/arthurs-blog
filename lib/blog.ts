@@ -19,6 +19,7 @@ export interface Post {
   published: boolean
   published_at: string | null
   updated_at: string
+  sticky: number
 }
 
 export async function getPosts(limit = 20, offset = 0): Promise<Post[]> {
@@ -26,6 +27,7 @@ export async function getPosts(limit = 20, offset = 0): Promise<Post[]> {
     .from('posts')
     .select('*')
     .eq('published', true)
+    .order('sticky', { ascending: false })
     .order('published_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
@@ -37,8 +39,9 @@ export async function getPosts(limit = 20, offset = 0): Promise<Post[]> {
 export async function getRecentPostsMetadata(limit = 10): Promise<Post[]> {
   const { data, error } = await supabase
     .from('posts')
-    .select('id, slug, title, published_at')
+    .select('id, slug, title, published_at, sticky')
     .eq('published', true)
+    .order('sticky', { ascending: false })
     .order('published_at', { ascending: false })
     .limit(limit)
 
@@ -70,6 +73,7 @@ export async function getPostsByTag(tag: string, limit = 20, offset = 0): Promis
     .select('*')
     .eq('published', true)
     .contains('tags', [tag])
+    .order('sticky', { ascending: false })
     .order('published_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
@@ -84,6 +88,7 @@ export const getPostsByTags = unstable_cache(
       .select('*')
       .eq('published', true)
       .contains('tags', tags)
+      .order('sticky', { ascending: false })
       .order('published_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -219,6 +224,7 @@ export const getPostsByCategory = unstable_cache(
       .select('*')
       .eq('published', true)
       .eq('category', category)
+      .order('sticky', { ascending: false })
       .order('published_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -268,6 +274,7 @@ export const getPostsByYear = unstable_cache(
       .eq('published', true)
       .gte('published_at', start)
       .lt('published_at', end)
+      .order('sticky', { ascending: false })
       .order('published_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -418,6 +425,7 @@ export async function upsertPost(post: {
   r2_key: string
   published: boolean
   published_at?: string
+  sticky?: number
 }): Promise<void> {
   const { error } = await supabaseAdmin
     .from('posts')
