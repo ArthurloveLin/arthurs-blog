@@ -136,7 +136,7 @@ export default async function BlogPostPage({
       <CurrentArticleReturnTarget postId={post.id} postSlug={post.slug} />
       <ScrollToTop />
       <div className="site-shell-triad py-8">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,52rem)_minmax(15rem,16rem)] lg:justify-center">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,48rem)_minmax(15rem,16rem)] lg:justify-center">
           {/* Left Sidebar Space - Matches Blog List Grid */}
           <aside className="hidden h-full md:block md:col-span-4 lg:col-span-1">
             <div className="sticky top-24 space-y-4">

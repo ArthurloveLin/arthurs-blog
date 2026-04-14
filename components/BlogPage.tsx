@@ -109,7 +109,7 @@ export default function BlogPage({
 
       {/* ── 3-Column Body ────────────────────────────────────────────── */}
       <div className="site-shell-triad py-8">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,52rem)_minmax(15rem,16rem)] lg:justify-center">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,48rem)_minmax(15rem,16rem)] lg:justify-center">
 
           {/* ── Left Sidebar ─────────────────────────────────────────── */}
           {/* Desktop: col-span-3 | Tablet: col-span-4 | Mobile: hidden */}
