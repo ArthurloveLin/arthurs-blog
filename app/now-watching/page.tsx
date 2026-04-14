@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: 'Arthur & Grace 最近看过的电影海报流',
 }
 
-export const revalidate = 60
+export const revalidate = 3600
 
 const INITIAL_PER_PAGE = 30
 
