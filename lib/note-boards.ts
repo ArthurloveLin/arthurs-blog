@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import { DEFAULT_NOTE_PRIORITY, isNotePriority, type NotePriority, type NoteSortMode } from '@/lib/note-priority'
 import { getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
 import { supabaseAdmin } from '@/lib/supabase'
@@ -9,6 +10,7 @@ export interface NoteMessage {
   content: string
   created_at: string
   updated_at: string | null
+  priority: NotePriority
   archived: boolean
   parent_id: string | null
 }
@@ -37,13 +39,10 @@ function canEditBoardMessage(role: UserRole, noteAuthor: string, requesterIdenti
   return role === 'admin' || requesterIdentities.includes(noteAuthor)
 }
 
-interface BoardMessageQueryOptions {
-  archived?: boolean
-}
-
 interface UpdateBoardMessageInput {
   content?: string
   archived?: boolean
+  priority?: NotePriority
 }
 
 export { getNoteBoardConfig, isNoteBoardSlug }
@@ -52,19 +51,26 @@ export const getBoardMessages = cache(async (
   board: NoteBoardSlug,
   limit = getNoteBoardConfig(board).initialPageLimit,
   offset = 0,
-  options: BoardMessageQueryOptions = {},
+  archived = false,
+  sort: NoteSortMode = 'time',
 ) => {
   const config = getNoteBoardConfig(board)
-  const archived = options.archived ?? false
-  const { data, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from('comments')
-    .select('id, author, content, created_at, updated_at, archived, parent_id')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id')
     .eq('target_type', config.targetType)
     .eq('target_id', config.targetId)
     .eq('archived', archived)
     .is('parent_id', null)
-    .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
+
+  if (sort === 'priority') {
+    query = query.order('priority', { ascending: false })
+  }
+
+  const { data, error } = await query
+    .order('updated_at', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if (error) {
     throw new Error(error.message)
@@ -73,12 +79,18 @@ export const getBoardMessages = cache(async (
   return (data ?? []) as NoteMessage[]
 })
 
-export async function createBoardMessage(board: NoteBoardSlug, author: string, content: string) {
+export async function createBoardMessage(board: NoteBoardSlug, author: string, content: string, priority?: NotePriority) {
   const config = getNoteBoardConfig(board)
   const role = await getUserRole()
 
   if (!canWriteBoard(board, role)) {
     throw new Error('FORBIDDEN')
+  }
+
+  const nextPriority = priority ?? DEFAULT_NOTE_PRIORITY
+
+  if (!isNotePriority(nextPriority)) {
+    throw new Error('INVALID_PRIORITY')
   }
 
   const { data, error } = await supabaseAdmin
@@ -88,9 +100,10 @@ export async function createBoardMessage(board: NoteBoardSlug, author: string, c
       target_id: config.targetId,
       author: author.trim(),
       content: content.trim(),
+      priority: nextPriority,
       parent_id: null,
     })
-    .select('id, author, content, created_at, updated_at, archived, parent_id')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id')
     .single()
 
   if (error) {
@@ -142,6 +155,14 @@ export async function updateBoardMessage(
     patch.archived = input.archived
   }
 
+  if (typeof input.priority !== 'undefined') {
+    if (!isNotePriority(input.priority)) {
+      throw new Error('INVALID_PRIORITY')
+    }
+
+    patch.priority = input.priority
+  }
+
   if (Object.keys(patch).length === 0) {
     throw new Error('MISSING_PATCH')
   }
@@ -150,7 +171,7 @@ export async function updateBoardMessage(
     .from('comments')
     .update(patch)
     .eq('id', id)
-    .select('id, author, content, created_at, updated_at, archived, parent_id')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id')
     .single()
 
   if (error || !data) {

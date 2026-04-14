@@ -4,6 +4,7 @@ import { Layers, LayoutList } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
+import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import { StickyNoteCard } from '@/components/note-board/components/StickyNoteCard'
 import { useElementSize } from '@/components/note-board/hooks/useElementSize'
 import type { NotePosition, OptimisticMessageSnapshot, ToastNotice } from '@/components/note-board/types'
@@ -13,10 +14,12 @@ import {
   getDeletePermission,
   getEditPermission,
   getStickyColorIndex,
+  sortBoardMessages,
 } from '@/components/note-board/utils/board'
 import { MobileNoteList } from '@/components/note-board/views/MobileNoteList'
 import { MobileStickyStack } from '@/components/note-board/views/MobileStickyStack'
 export { StickyStackPreview } from '@/components/note-board/views/StickyStackPreview'
+import { DEFAULT_NOTE_PRIORITY, type NotePriority, type NoteSortMode } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
 
@@ -44,12 +47,13 @@ function buildOptimisticSnapshot(
 
 export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   const { identity, identityAliases, isAdmin, loading, publicIdentity } = useAuth()
+  const initialSortedMessages = useMemo(() => sortBoardMessages(initialMessages, 'time'), [initialMessages])
   const [containerRef, size] = useElementSize<HTMLDivElement>()
-  const [messages, setMessages] = useState(initialMessages)
+  const [messages, setMessages] = useState(initialSortedMessages)
   const [measuredHeights, setMeasuredHeights] = useState<Record<string, number>>({})
   const [customPositions, setCustomPositions] = useState<Record<string, NotePosition>>({})
   const [cardZIndices, setCardZIndices] = useState<Record<string, number>>(() =>
-    Object.fromEntries(initialMessages.map((message, index) => [message.id, initialMessages.length - index + 1])),
+    Object.fromEntries(initialSortedMessages.map((message, index) => [message.id, initialSortedMessages.length - index + 1])),
   )
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -63,22 +67,40 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   const [editContent, setEditContent] = useState('')
   const [isUpdatingNote, setIsUpdatingNote] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
+  const [sortMode, setSortMode] = useState<NoteSortMode>('time')
+  const [draftPriority, setDraftPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
+  const [editPriority, setEditPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
+  const [priorityUpdatingIds, setPriorityUpdatingIds] = useState<Record<string, boolean>>({})
   const [isRefreshingBoard, setIsRefreshingBoard] = useState(false)
   const [toastNotice, setToastNotice] = useState<ToastNotice | null>(null)
   const [isMobileViewport, setIsMobileViewport] = useState(false)
-  const zIndexCounterRef = useRef(initialMessages.length + 2)
+  const zIndexCounterRef = useRef(initialSortedMessages.length + 2)
   const editorSectionRef = useRef<HTMLElement>(null)
   const toastTimerRef = useRef<number | null>(null)
   const pendingOptimisticIdsRef = useRef<Set<string>>(new Set())
   const viewerIdentity = publicIdentity ?? ''
   const viewerIdentityAliases = identityAliases.length > 0 ? identityAliases : [identity].filter(Boolean)
   const canWrite = board.slug === 'guestbook' || isAdmin
+  const priorityEnabled = board.slug === 'memo'
   const { cardWidth, height, layouts } = useMemo(
     () => computeBoardLayout(messages, size.width, measuredHeights),
     [measuredHeights, messages, size.width],
   )
   const hasMeasured = size.width > 0 && size.height > 0
+  const canInitializeSurface = hasMeasured && (messages.length === 0 || messages.every((message) => measuredHeights[message.id] > 0))
   const editingMessage = useMemo(() => messages.find((message) => message.id === editingNoteId) ?? null, [messages, editingNoteId])
+
+  const getTargetPosition = useCallback((index: number): NotePosition => {
+    const layout = layouts[index]
+    const fallbackX = Math.max((size.width - cardWidth) / 2, 0) + Math.min(index, 4) * 2
+    const fallbackY = 22 + Math.min(index, 4) * 4
+
+    return {
+      x: layout?.x ?? fallbackX,
+      y: layout?.y ?? fallbackY,
+      rotation: layout?.rotation ?? (index % 2 === 0 ? -2 : 2),
+    }
+  }, [cardWidth, layouts, size.width])
 
   useEffect(() => {
     setMeasuredHeights((current) => {
@@ -105,11 +127,31 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   }, [])
 
   useEffect(() => {
-    if (!hasMeasured) return
+    if (!canInitializeSurface) return
 
     const frame = window.requestAnimationFrame(() => setIsScattered(true))
     return () => window.cancelAnimationFrame(frame)
-  }, [hasMeasured])
+  }, [canInitializeSurface])
+
+  useEffect(() => {
+    if (!canInitializeSurface) return
+
+    setCustomPositions((current) => {
+      let changed = false
+      const next = { ...current }
+
+      messages.forEach((message, index) => {
+        if (next[message.id]) {
+          return
+        }
+
+        next[message.id] = getTargetPosition(index)
+        changed = true
+      })
+
+      return changed ? next : current
+    })
+  }, [canInitializeSurface, getTargetPosition, messages])
 
   useEffect(() => {
     setCardZIndices((current) => {
@@ -162,7 +204,19 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   function cancelEditingNote() {
     setEditingNoteId(null)
     setEditContent('')
+    setEditPriority(DEFAULT_NOTE_PRIORITY)
     setError(null)
+  }
+
+  function replaceMessages(nextMessages: NoteMessage[], options: { resetPositions?: boolean; sort?: boolean } = {}) {
+    const orderedMessages = options.sort ? sortBoardMessages(nextMessages, sortMode) : nextMessages
+
+    setMessages(orderedMessages)
+
+    if (options.resetPositions) {
+      setCustomPositions({})
+      setCardZIndices(Object.fromEntries(orderedMessages.map((message, index) => [message.id, orderedMessages.length - index + 1])))
+    }
   }
 
   function removeMessageFromSurface(id: string) {
@@ -217,19 +271,23 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
     })
   }, [])
 
-  function resetBoardSurface(nextMessages: NoteMessage[], archived: boolean) {
-    setMessages(nextMessages)
+  function resetBoardSurface(nextMessages: NoteMessage[], archived: boolean, nextSortMode = sortMode) {
+    const sortedMessages = sortBoardMessages(nextMessages, nextSortMode)
+
+    setMessages(sortedMessages)
     setShowArchived(archived)
-    setNextOffset(nextMessages.length)
-    setHasMore(nextMessages.length >= board.initialPageLimit)
+    setSortMode(nextSortMode)
+    setNextOffset(sortedMessages.length)
+    setHasMore(sortedMessages.length >= board.initialPageLimit)
     setCustomPositions({})
-    setCardZIndices(Object.fromEntries(nextMessages.map((message, index) => [message.id, nextMessages.length - index + 1])))
+    setCardZIndices(Object.fromEntries(sortedMessages.map((message, index) => [message.id, sortedMessages.length - index + 1])))
     cancelEditingNote()
   }
 
   function startEditingNote(message: NoteMessage) {
     setEditingNoteId(message.id)
     setEditContent(message.content)
+    setEditPriority(message.priority)
     setError(null)
 
     if (isMobileViewport) {
@@ -237,8 +295,8 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
     }
   }
 
-  async function fetchBoardMessages(archived: boolean, offset = 0, limit = board.initialPageLimit) {
-    const response = await fetch(`/api/note-boards/${board.slug}?offset=${offset}&limit=${limit}&archived=${archived ? '1' : '0'}`)
+  async function fetchBoardMessages(archived: boolean, sort = sortMode, offset = 0, limit = board.initialPageLimit) {
+    const response = await fetch(`/api/note-boards/${board.slug}?offset=${offset}&limit=${limit}&archived=${archived ? '1' : '0'}&sort=${sort}`)
     if (!response.ok) {
       throw new Error('便签加载失败，请稍后重试。')
     }
@@ -253,9 +311,9 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
     setError(null)
 
     try {
-      const payload = await fetchBoardMessages(archived)
+      const payload = await fetchBoardMessages(archived, sortMode)
       startTransition(() => {
-        resetBoardSurface(payload.messages, archived)
+        resetBoardSurface(payload.messages, archived, sortMode)
         setNextOffset(payload.nextOffset)
         setHasMore(payload.hasMore)
       })
@@ -294,6 +352,59 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
     }
   }
 
+  async function handleSortModeChange(nextSortMode: NoteSortMode) {
+    if (nextSortMode === sortMode || isRefreshingBoard) return
+
+    setIsRefreshingBoard(true)
+    setError(null)
+
+    try {
+      const payload = await fetchBoardMessages(showArchived, nextSortMode)
+      startTransition(() => {
+        resetBoardSurface(payload.messages, showArchived, nextSortMode)
+        setNextOffset(payload.nextOffset)
+        setHasMore(payload.hasMore)
+      })
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : '便签加载失败，请稍后重试。')
+    } finally {
+      setIsRefreshingBoard(false)
+    }
+  }
+
+  async function handlePriorityChange(message: NoteMessage, priority: NotePriority) {
+    if (!identity || priority === message.priority || priorityUpdatingIds[message.id]) return
+
+    setPriorityUpdatingIds((current) => ({ ...current, [message.id]: true }))
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/note-boards/${board.slug}/${message.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity, identities: viewerIdentityAliases, priority }),
+      })
+
+      if (!response.ok) {
+        throw new Error(response.status === 403 ? '当前身份没有编辑权限。' : '优先级更新失败，请稍后再试。')
+      }
+
+      const updatedMessage = (await response.json()) as NoteMessage
+      replaceMessages(messages.map((current) => current.id === updatedMessage.id ? updatedMessage : current))
+      if (editingNoteId === updatedMessage.id) {
+        setEditPriority(updatedMessage.priority)
+      }
+    } catch (updateError) {
+      showToast(updateError instanceof Error ? updateError.message : '优先级更新失败，请稍后再试。')
+    } finally {
+      setPriorityUpdatingIds((current) => {
+        const next = { ...current }
+        delete next[message.id]
+        return next
+      })
+    }
+  }
+
   async function saveEditingNote() {
     if (!editingMessage || !identity || isUpdatingNote) return
 
@@ -310,7 +421,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       const response = await fetch(`/api/note-boards/${board.slug}/${editingMessage.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity, identities: viewerIdentityAliases, content: nextContent }),
+        body: JSON.stringify({ identity, identities: viewerIdentityAliases, content: nextContent, priority: editPriority }),
       })
 
       if (!response.ok) {
@@ -318,7 +429,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       }
 
       const updatedMessage = (await response.json()) as NoteMessage
-      setMessages((current) => current.map((message) => message.id === updatedMessage.id ? updatedMessage : message))
+      replaceMessages(messages.map((message) => message.id === updatedMessage.id ? updatedMessage : message))
       cancelEditingNote()
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : '便签更新失败，请稍后再试。')
@@ -337,7 +448,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       const response = await fetch(`/api/note-boards/${board.slug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author: publicIdentity, content: draft.trim() }),
+        body: JSON.stringify({ author: publicIdentity, content: draft.trim(), priority: draftPriority }),
       })
 
       if (!response.ok) {
@@ -345,9 +456,10 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
       }
 
       const message = (await response.json()) as NoteMessage
-      setMessages((current) => [message, ...current])
+      replaceMessages([message, ...messages], { resetPositions: true })
       setNextOffset((current) => current + 1)
       setDraft('')
+      setDraftPriority(DEFAULT_NOTE_PRIORITY)
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : '便签保存失败，请稍后再试。')
     } finally {
@@ -384,7 +496,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   }
 
   async function handleLoadMore() {
-    const response = await fetch(`/api/note-boards/${board.slug}?offset=${nextOffset}&limit=${board.pageSize}&archived=${showArchived ? '1' : '0'}`)
+    const response = await fetch(`/api/note-boards/${board.slug}?offset=${nextOffset}&limit=${board.pageSize}&archived=${showArchived ? '1' : '0'}&sort=${sortMode}`)
     if (!response.ok) {
       setError('更多便签加载失败，请稍后重试。')
       return
@@ -392,7 +504,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
 
     const payload = await response.json() as { messages: NoteMessage[]; nextOffset: number; hasMore: boolean }
     startTransition(() => {
-      setMessages((current) => [...current, ...payload.messages])
+      replaceMessages([...messages, ...payload.messages])
       setNextOffset(payload.nextOffset)
       setHasMore(payload.hasMore)
     })
@@ -418,6 +530,7 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
   const editorSaveLabel = isMobileEditorMode ? '保存编辑' : '贴上便签'
   const editorValue = isMobileEditorMode ? editContent : draft
   const editorSaving = isMobileEditorMode ? isUpdatingNote : isSubmitting
+  const editorPriority = isMobileEditorMode ? editPriority : draftPriority
 
   return (
     <div className="space-y-6">
@@ -430,23 +543,45 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
         </div>
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex rounded-full border border-border/70 bg-background/70 p-1 text-xs text-muted-foreground shadow-sm">
-            <button
-              type="button"
-              className={`rounded-full px-3 py-1.5 transition ${!showArchived ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
-              onClick={() => handleSwitchArchiveView(false)}
-              disabled={isRefreshingBoard}
-            >
-              当前便签
-            </button>
-            <button
-              type="button"
-              className={`rounded-full px-3 py-1.5 transition ${showArchived ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
-              onClick={() => handleSwitchArchiveView(true)}
-              disabled={isRefreshingBoard}
-            >
-              已归档
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-full border border-border/70 bg-background/70 p-1 text-xs text-muted-foreground shadow-sm">
+              <button
+                type="button"
+                className={`rounded-full px-3 py-1.5 transition ${!showArchived ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
+                onClick={() => handleSwitchArchiveView(false)}
+                disabled={isRefreshingBoard}
+              >
+                当前便签
+              </button>
+              <button
+                type="button"
+                className={`rounded-full px-3 py-1.5 transition ${showArchived ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
+                onClick={() => handleSwitchArchiveView(true)}
+                disabled={isRefreshingBoard}
+              >
+                已归档
+              </button>
+            </div>
+            {priorityEnabled ? (
+              <div className="inline-flex rounded-full border border-border/70 bg-background/70 p-1 text-xs text-muted-foreground shadow-sm">
+                <button
+                  type="button"
+                  className={`rounded-full px-3 py-1.5 transition ${sortMode === 'time' ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
+                  onClick={() => void handleSortModeChange('time')}
+                  disabled={isRefreshingBoard}
+                >
+                  时间
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-full px-3 py-1.5 transition ${sortMode === 'priority' ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
+                  onClick={() => void handleSortModeChange('priority')}
+                  disabled={isRefreshingBoard}
+                >
+                  优先级
+                </button>
+              </div>
+            ) : null}
           </div>
           <div className="flex justify-end md:hidden">
             <button
@@ -476,6 +611,9 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
               onDelete={handleDelete}
               onEdit={startEditingNote}
               onToggleArchive={handleToggleArchive}
+              showPriority={priorityEnabled}
+              onPriorityChange={handlePriorityChange}
+              isPriorityUpdating={(id) => Boolean(priorityUpdatingIds[id])}
               canDelete={(message) => getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)}
               canEdit={(message) => getEditPermission(isAdmin, viewerIdentityAliases, message)}
             />
@@ -485,6 +623,9 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
               onDelete={handleDelete}
               onEdit={startEditingNote}
               onToggleArchive={handleToggleArchive}
+              showPriority={priorityEnabled}
+              onPriorityChange={handlePriorityChange}
+              isPriorityUpdating={(id) => Boolean(priorityUpdatingIds[id])}
               canDelete={(message) => getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)}
               canEdit={(message) => getEditPermission(isAdmin, viewerIdentityAliases, message)}
             />
@@ -505,14 +646,14 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
               <div className="relative" style={{ minHeight: Math.max(height, 320) }}>
                 {messages.map((message, index) => {
                   const layout = layouts[index]
-                  const fallbackX = Math.max((size.width - cardWidth) / 2, 0) + Math.min(index, 4) * 2
-                  const fallbackY = 22 + Math.min(index, 4) * 4
-                  const custom = customPositions[message.id]
-                  const position = custom ?? {
-                    x: isScattered ? layout?.x ?? fallbackX : fallbackX,
-                    y: isScattered ? layout?.y ?? fallbackY : fallbackY,
-                    rotation: isScattered ? layout?.rotation ?? 0 : (index % 2 === 0 ? -2 : 2),
+                  const targetPosition = getTargetPosition(index)
+                  const collapsedPosition = {
+                    x: Math.max((size.width - cardWidth) / 2, 0) + Math.min(index, 4) * 2,
+                    y: 22 + Math.min(index, 4) * 4,
+                    rotation: index % 2 === 0 ? -2 : 2,
                   }
+                  const custom = customPositions[message.id]
+                  const position = custom ?? (isScattered ? targetPosition : collapsedPosition)
 
                   return (
                     <StickyNoteCard
@@ -530,12 +671,17 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
                       showDelete={getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)}
                       showEdit={getEditPermission(isAdmin, viewerIdentityAliases, message)}
                       showArchive={getEditPermission(isAdmin, viewerIdentityAliases, message)}
+                      showPriority={priorityEnabled}
+                      priorityDisabled={Boolean(priorityUpdatingIds[message.id]) || !getEditPermission(isAdmin, viewerIdentityAliases, message)}
                       isInlineEditing={editingNoteId === message.id}
                       inlineEditContent={editingNoteId === message.id ? editContent : ''}
                       isSavingInline={isUpdatingNote}
                       onDelete={() => handleDelete(message.id)}
                       onEdit={() => startEditingNote(message)}
                       onToggleArchive={() => handleToggleArchive(message)}
+                      onPriorityChange={getEditPermission(isAdmin, viewerIdentityAliases, message)
+                        ? (priority) => void handlePriorityChange(message, priority)
+                        : undefined}
                       onLift={() => bringCardToFront(message.id)}
                       onCommit={(nextPosition) => {
                         setCustomPositions((current) => ({ ...current, [message.id]: nextPosition }))
@@ -601,6 +747,16 @@ export function NoteBoardPage({ board, initialMessages }: NoteBoardPageProps) {
               minHeightClassName="min-h-[140px]"
               shellClassName="overflow-hidden rounded-[24px] border border-border/70 bg-background/55"
               toolbarClassName="px-4 py-3 text-xs text-muted-foreground"
+              toolbarLeadingAddon={priorityEnabled ? (
+                <PriorityPicker
+                  value={editorPriority}
+                  onChange={isMobileEditorMode ? setEditPriority : setDraftPriority}
+                  buttonClassName="h-8 w-8"
+                  dotClassName="h-2.5 w-2.5"
+                  menuAlign="start"
+                  menuDirection="up"
+                />
+              ) : undefined}
               autoFocus={isMobileEditorMode}
             />
           </form>
