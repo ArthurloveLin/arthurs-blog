@@ -1,15 +1,11 @@
 import { unstable_cache } from 'next/cache'
-import { imageSize } from 'image-size'
-import { getR2Object, getR2ObjectBufferRange } from '@/lib/r2'
+import { getR2Object } from '@/lib/r2'
 
 const NOW_WATCHING_PREFIXES = ['now-watching/', 'obsidian-vault/now-watching/']
 const NOW_WATCHING_METADATA_KEYS = ['now-watching/metadata.json', 'obsidian-vault/now-watching/metadata.json']
 const COLUMN_COUNT = 3
 const ITEMS_PER_COLUMN = 10
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif'])
-const IMAGE_HEADER_BYTES = 64 * 1024
-const METADATA_SCAN_BATCH_SIZE = 8
-const INITIAL_POSTER_TARGET = COLUMN_COUNT * ITEMS_PER_COLUMN
 
 type PosterKind = 'fanart' | 'poster'
 
@@ -28,14 +24,18 @@ export interface NowWatchingPoster {
   id: string
   title: string
   displayTitle: string
-  height: number
   imageUrl: string
   key: string
   posterKind: PosterKind
   rating: number | null
   subjectUrl: string
-  width: number
   watchDate: string | null
+}
+
+export interface PagedNowWatchingPosters {
+  posters: NowWatchingPoster[]
+  totalCount: number
+  hasMore: boolean
 }
 
 function getNowWatchingConfig() {
@@ -104,10 +104,6 @@ function parsePosterTitle(key: string) {
   }
 }
 
-function isPortraitImage(width: number, height: number) {
-  return height > width
-}
-
 function sortPosters(left: NowWatchingPoster, right: NowWatchingPoster) {
   const leftTime = left.watchDate ? Date.parse(left.watchDate) : Number.NEGATIVE_INFINITY
   const rightTime = right.watchDate ? Date.parse(right.watchDate) : Number.NEGATIVE_INFINITY
@@ -173,46 +169,6 @@ async function getFirstAvailableMetadataObject(bucket: string) {
   throw lastError ?? new Error('Now Watching metadata was not found.')
 }
 
-async function getImageDimensions(bucket: string, key: string) {
-  const buffer = await getR2ObjectBufferRange(bucket, key, 0, IMAGE_HEADER_BYTES - 1)
-  const dimensions = imageSize(buffer)
-
-  if (!dimensions.width || !dimensions.height) {
-    return null
-  }
-
-  return {
-    width: dimensions.width,
-    height: dimensions.height,
-  }
-}
-
-async function resolvePortraitCandidate(bucket: string, candidate: { key: string; kind: PosterKind }) {
-  for (const keyVariant of expandNowWatchingKeyVariants(candidate.key)) {
-    const normalized = normalizeNowWatchingKey(keyVariant)
-    if (!normalized || !isImageKey(normalized.normalizedKey)) {
-      continue
-    }
-
-    try {
-      const dimensions = await getImageDimensions(bucket, keyVariant)
-      if (!dimensions || !isPortraitImage(dimensions.width, dimensions.height)) {
-        continue
-      }
-
-      return {
-        key: keyVariant,
-        kind: candidate.kind,
-        dimensions,
-      }
-    } catch {
-      continue
-    }
-  }
-
-  return null
-}
-
 function buildPosterCandidates(entry: NowWatchingMetadataEntry) {
   return [
     { key: normalizeMetadataObjectKey(entry.fanart_key), kind: 'fanart' as const },
@@ -226,92 +182,71 @@ function selectDisplayTitle(entry: NowWatchingMetadataEntry, key: string) {
   return parsedTitle || entry.title?.trim() || 'Untitled'
 }
 
-async function resolvePosterEntry(
-  bucket: string,
+/**
+ * 同步解析海报条目，不做任何 R2 图片读取。
+ * 横屏图（fanart）由 CSS aspect-ratio + object-fit: cover 自动裁切为竖向展示。
+ */
+function resolvePosterEntrySync(
   publicDomain: string,
   subjectUrl: string,
   entry: NowWatchingMetadataEntry
-): Promise<NowWatchingPoster | null> {
-  const candidates = await Promise.all(
-    buildPosterCandidates(entry).map((candidate) => resolvePortraitCandidate(bucket, candidate))
-  )
+): NowWatchingPoster | null {
+  const candidates = buildPosterCandidates(entry)
 
-  const selectedCandidate = candidates
-    .filter(
-      (
-        candidate
-      ): candidate is {
-        dimensions: { height: number; width: number }
-        key: string
-        kind: PosterKind
-      } => candidate !== null
-    )
-    .sort((left, right) => {
-      if (left.kind === right.kind) {
-        return 0
+  for (const candidate of candidates) {
+    for (const keyVariant of expandNowWatchingKeyVariants(candidate.key)) {
+      const normalized = normalizeNowWatchingKey(keyVariant)
+      if (!normalized || !isImageKey(normalized.normalizedKey)) continue
+
+      const displayTitle = selectDisplayTitle(entry, keyVariant)
+      return {
+        id: subjectUrl,
+        key: keyVariant,
+        title: entry.title?.trim() || displayTitle,
+        displayTitle,
+        imageUrl: toPublicUrl(publicDomain, keyVariant),
+        posterKind: candidate.kind,
+        rating: entry.rating ?? null,
+        subjectUrl,
+        watchDate: entry.watch_date ?? null,
       }
-
-      return left.kind === 'fanart' ? -1 : 1
-    })[0]
-
-  if (!selectedCandidate) {
-    return null
+    }
   }
 
-  const displayTitle = selectDisplayTitle(entry, selectedCandidate.key)
-
-  return {
-    id: `${subjectUrl}:${selectedCandidate.key}`,
-    key: selectedCandidate.key,
-    title: entry.title?.trim() || displayTitle,
-    displayTitle,
-    width: selectedCandidate.dimensions.width,
-    height: selectedCandidate.dimensions.height,
-    imageUrl: toPublicUrl(publicDomain, selectedCandidate.key),
-    posterKind: selectedCandidate.kind,
-    rating: entry.rating ?? null,
-    subjectUrl,
-    watchDate: entry.watch_date ?? null,
-  }
+  return null
 }
 
-const getCachedNowWatchingPosters = unstable_cache(
+const getCachedAllNowWatchingPosters = unstable_cache(
   async (): Promise<NowWatchingPoster[]> => {
     const { bucket, publicDomain } = getNowWatchingConfig()
     const metadataRaw = await getFirstAvailableMetadataObject(bucket)
     const metadata = JSON.parse(metadataRaw) as NowWatchingMetadataIndex
 
-    const sortedEntries = Object.entries(metadata).sort(sortMetadataEntries)
-    const posters: NowWatchingPoster[] = []
-
-    for (let index = 0; index < sortedEntries.length && posters.length < INITIAL_POSTER_TARGET; index += METADATA_SCAN_BATCH_SIZE) {
-      const batch = sortedEntries.slice(index, index + METADATA_SCAN_BATCH_SIZE)
-      const resolvedBatch = await Promise.all(
-        batch.map(([subjectUrl, entry]) => resolvePosterEntry(bucket, publicDomain, subjectUrl, entry))
-      )
-
-      for (const poster of resolvedBatch) {
-        if (!poster) continue
-        posters.push(poster)
-
-        if (posters.length >= INITIAL_POSTER_TARGET) {
-          break
-        }
-      }
-    }
-
-    return posters.sort(sortPosters)
+    return Object.entries(metadata)
+      .sort(sortMetadataEntries)
+      .map(([subjectUrl, entry]) => resolvePosterEntrySync(publicDomain, subjectUrl, entry))
+      .filter((poster): poster is NowWatchingPoster => poster !== null)
   },
-  ['now-watching-posters'],
+  ['now-watching-all-posters'],
   { revalidate: 60, tags: ['now-watching'] }
 )
 
-export async function getNowWatchingPosters() {
-  return getCachedNowWatchingPosters()
+export async function getPagedNowWatchingPosters(
+  page: number,
+  perPage: number
+): Promise<PagedNowWatchingPosters> {
+  const all = await getCachedAllNowWatchingPosters()
+  const start = (page - 1) * perPage
+
+  return {
+    posters: all.slice(start, start + perPage),
+    totalCount: all.length,
+    hasMore: start + perPage < all.length,
+  }
 }
 
 export async function getNowWatchingColumns(): Promise<NowWatchingPoster[][]> {
-  const posters = await getNowWatchingPosters()
+  const { posters } = await getPagedNowWatchingPosters(1, COLUMN_COUNT * ITEMS_PER_COLUMN)
   const repeated = repeatPosters(posters, COLUMN_COUNT * ITEMS_PER_COLUMN)
 
   return Array.from({ length: COLUMN_COUNT }, (_, columnIndex) => {
