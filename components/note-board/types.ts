@@ -1,4 +1,5 @@
 import type { NoteMessage } from '@/lib/note-boards'
+import type { NotePriority } from '@/lib/note-priority'
 
 export interface Size {
   width: number
@@ -38,4 +39,50 @@ export interface OptimisticMessageSnapshot {
   index: number
   customPosition?: NotePosition
   zIndex?: number
+}
+
+export interface StickyNoteCardLinkAction {
+  href: string
+  label: string
+}
+
+export interface StickyNoteCardToggleAction {
+  onToggle: () => void
+  archived?: boolean
+}
+
+export interface StickyNoteCardButtonAction {
+  onClick: () => void
+}
+
+export interface StickyNoteCardActions {
+  cta?: StickyNoteCardLinkAction
+  archive?: StickyNoteCardToggleAction
+  edit?: StickyNoteCardButtonAction
+  delete?: StickyNoteCardButtonAction
+}
+
+export interface StickyNoteCardPriorityControl {
+  value: NotePriority
+  onChange?: (value: NotePriority) => void
+  disabled?: boolean
+}
+
+export interface StickyNoteCardInlineEditor {
+  value: string
+  isSaving: boolean
+  onChange: (value: string) => void
+  onSave: () => void
+  onCancel?: () => void
+}
+
+export interface NoteCardViewModel {
+  message: NoteMessage
+  canDelete: boolean
+  canEdit: boolean
+  actions: StickyNoteCardActions
+  priorityControl?: StickyNoteCardPriorityControl
+  inlineEditor?: StickyNoteCardInlineEditor
+  isEditing: boolean
+  isPriorityUpdating: boolean
 }

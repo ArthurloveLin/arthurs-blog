@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { StickyNoteCard } from '@/components/note-board/components/StickyNoteCard'
 import { useElementSize } from '@/components/note-board/hooks/useElementSize'
-import type { NotePosition } from '@/components/note-board/types'
+import type { NoteCardViewModel, NotePosition } from '@/components/note-board/types'
 import {
   getMobileSideParkPosition,
   getMobileStackPosition,
@@ -13,32 +13,12 @@ import {
   NOTE_CARD_WIDTH,
   PREVIEW_REVEAL_THRESHOLD,
 } from '@/components/note-board/utils/board'
-import type { NotePriority } from '@/lib/note-priority'
-import type { NoteMessage } from '@/lib/note-boards'
 
 interface MobileStickyStackProps {
-  messages: NoteMessage[]
-  onDelete: (id: string) => void
-  canDelete: (message: NoteMessage) => boolean
-  onEdit: (message: NoteMessage) => void
-  canEdit: (message: NoteMessage) => boolean
-  onToggleArchive: (message: NoteMessage) => void
-  showPriority: boolean
-  onPriorityChange: (message: NoteMessage, priority: NotePriority) => void
-  isPriorityUpdating: (id: string) => boolean
+  items: NoteCardViewModel[]
 }
 
-export function MobileStickyStack({
-  messages,
-  onDelete,
-  canDelete,
-  onEdit,
-  canEdit,
-  onToggleArchive,
-  showPriority,
-  onPriorityChange,
-  isPriorityUpdating,
-}: MobileStickyStackProps) {
+export function MobileStickyStack({ items }: MobileStickyStackProps) {
   const [containerRef, size] = useElementSize<HTMLDivElement>()
   const [revealedCount, setRevealedCount] = useState(0)
   const [placedNotesState, setPlacedNotes] = useState<Record<string, NotePosition>>({})
@@ -47,12 +27,12 @@ export function MobileStickyStack({
 
   const cardWidth = Math.min(NOTE_CARD_WIDTH, Math.max(0, size.width - 32))
   const hasMeasured = size.width > 0 && size.height > 0
-  const visibleMessages = useMemo(() => messages.map((message) => message), [messages])
+  const visibleItems = useMemo(() => items.map((item) => item), [items])
   const placedNotes = useMemo(() => {
-    const allowed = new Set(visibleMessages.map((message) => message.id))
+    const allowed = new Set(visibleItems.map((item) => item.message.id))
     return Object.fromEntries(Object.entries(placedNotesState).filter(([id]) => allowed.has(id)))
-  }, [placedNotesState, visibleMessages])
-  const activeRevealedCount = Math.min(revealedCount, visibleMessages.length)
+  }, [placedNotesState, visibleItems])
+  const activeRevealedCount = Math.min(revealedCount, visibleItems.length)
   const parkedCount = Object.keys(placedNotes).length
 
   useEffect(() => {
@@ -62,16 +42,16 @@ export function MobileStickyStack({
   }, [])
 
   function parkMessageAt(index: number) {
-    const message = visibleMessages[index]
-    if (!message) return
+    const item = visibleItems[index]
+    if (!item) return
 
     setPlacedNotes((current) => ({
       ...current,
-      [message.id]: getMobileSideParkPosition(index % 2 === 0 ? 'right' : 'left', 18 + (index % 4) * 34, index, size, cardWidth),
+      [item.message.id]: getMobileSideParkPosition(index % 2 === 0 ? 'right' : 'left', 18 + (index % 4) * 34, index, size, cardWidth),
     }))
   }
 
-  function handleCommit(index: number, message: NoteMessage, nextPosition: NotePosition, distance: number) {
+  function handleCommit(index: number, messageId: string, nextPosition: NotePosition, distance: number) {
     if (isCollecting || index !== activeRevealedCount) return
 
     if (distance >= PREVIEW_REVEAL_THRESHOLD) {
@@ -80,35 +60,35 @@ export function MobileStickyStack({
 
       setPlacedNotes((current) => ({
         ...current,
-        [message.id]: getMobileSideParkPosition(parkSide, nextPosition.y, index, size, cardWidth),
+        [messageId]: getMobileSideParkPosition(parkSide, nextPosition.y, index, size, cardWidth),
       }))
-      setRevealedCount((current) => Math.min(current + 1, visibleMessages.length))
+      setRevealedCount((current) => Math.min(current + 1, visibleItems.length))
       return
     }
 
     setPlacedNotes((current) => {
       const next = { ...current }
-      delete next[message.id]
+      delete next[messageId]
       return next
     })
   }
 
   function handleNext() {
-    if (isCollecting || activeRevealedCount >= visibleMessages.length) return
+    if (isCollecting || activeRevealedCount >= visibleItems.length) return
     parkMessageAt(activeRevealedCount)
-    setRevealedCount((current) => Math.min(current + 1, visibleMessages.length))
+    setRevealedCount((current) => Math.min(current + 1, visibleItems.length))
   }
 
   function handlePrev() {
     if (isCollecting || activeRevealedCount <= 0) return
 
     const previousIndex = activeRevealedCount - 1
-    const prevMessage = visibleMessages[previousIndex]
-    if (!prevMessage) return
+    const previousItem = visibleItems[previousIndex]
+    if (!previousItem) return
 
     setPlacedNotes((current) => {
       const next = { ...current }
-      delete next[prevMessage.id]
+      delete next[previousItem.message.id]
       return next
     })
     setRevealedCount(previousIndex)
@@ -122,8 +102,8 @@ export function MobileStickyStack({
     setIsCollecting(true)
     setRevealedCount(0)
 
-    const idsInOriginalOrder = visibleMessages
-      .map((message) => message.id)
+    const idsInOriginalOrder = visibleItems
+      .map((item) => item.message.id)
       .filter((id) => id in placedNotes)
 
     idsInOriginalOrder.forEach((id, index) => {
@@ -155,14 +135,15 @@ export function MobileStickyStack({
       >
         {!hasMeasured ? null : (
           <>
-            {visibleMessages.map((message, index) => {
+            {visibleItems.map((item, index) => {
+              const { message, actions, priorityControl, isPriorityUpdating, canEdit } = item
               const stackIndex = index - activeRevealedCount
               const placed = placedNotes[message.id]
               const position = placed
                 ? placed
                 : getMobileStackPosition(Math.max(stackIndex, 0), size, cardWidth, message.id)
 
-              const isDraggable = !isCollecting && index === activeRevealedCount && activeRevealedCount < visibleMessages.length
+              const isDraggable = !isCollecting && index === activeRevealedCount && activeRevealedCount < visibleItems.length
               const isPastWithoutPlacement = index < activeRevealedCount && !placed
               const isHiddenBehindStack = !placed && stackIndex >= 5
 
@@ -174,7 +155,7 @@ export function MobileStickyStack({
                     opacity: isPastWithoutPlacement || isHiddenBehindStack ? 0 : 1,
                     transition: 'opacity 300ms ease',
                     pointerEvents: isDraggable ? 'auto' : 'none',
-                    zIndex: placed ? 30 + index : visibleMessages.length - index + 2,
+                    zIndex: placed ? 30 + index : visibleItems.length - index + 2,
                   }}
                 >
                   <StickyNoteCard
@@ -182,24 +163,20 @@ export function MobileStickyStack({
                     x={position.x}
                     y={position.y}
                     rotation={position.rotation}
-                    zIndex={placed ? 30 + index : visibleMessages.length - index + 2}
+                    zIndex={placed ? 30 + index : visibleItems.length - index + 2}
                     width={cardWidth}
                     bounds={{ width: size.width, height: size.height }}
                     colorIndex={getStickyColorIndex(message.id)}
                     draggable={isDraggable}
                     variant="board"
                     dragBoundsMode="mobile-stack"
-                    showDelete={canDelete(message)}
-                    showEdit={canEdit(message)}
-                    showArchive={canEdit(message)}
-                    showPriority={showPriority}
-                    priorityDisabled={isPriorityUpdating(message.id) || !canEdit(message)}
-                    onDelete={() => onDelete(message.id)}
-                    onEdit={() => onEdit(message)}
-                    onToggleArchive={() => onToggleArchive(message)}
-                    onPriorityChange={canEdit(message) ? (priority) => onPriorityChange(message, priority) : undefined}
+                    actions={actions}
+                    priorityControl={priorityControl ? {
+                      ...priorityControl,
+                      disabled: isPriorityUpdating || priorityControl.disabled || !canEdit,
+                    } : undefined}
                     onLift={() => {}}
-                    onCommit={(nextPosition, metrics) => handleCommit(index, message, nextPosition, metrics.distance)}
+                    onCommit={(nextPosition, metrics) => handleCommit(index, message.id, nextPosition, metrics.distance)}
                   />
                 </div>
               )
@@ -209,7 +186,7 @@ export function MobileStickyStack({
       </div>
       <div className="flex flex-col items-center gap-3">
         <span className="text-sm font-mono text-muted-foreground">
-          {visibleMessages.length === 0 ? 0 : Math.min(activeRevealedCount + 1, visibleMessages.length)} / {visibleMessages.length}
+          {visibleItems.length === 0 ? 0 : Math.min(activeRevealedCount + 1, visibleItems.length)} / {visibleItems.length}
         </span>
         <div className="flex items-center justify-center gap-4">
           <button
@@ -232,7 +209,7 @@ export function MobileStickyStack({
           <button
             type="button"
             onClick={handleNext}
-            disabled={activeRevealedCount >= visibleMessages.length || isCollecting}
+            disabled={activeRevealedCount >= visibleItems.length || isCollecting}
             className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-card text-foreground transition hover:bg-accent disabled:opacity-50"
           >
             <ChevronRight size={20} />

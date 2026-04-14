@@ -44,9 +44,10 @@ function getInitialReturningPostSlug() {
 
 function SidebarAuthorCard() {
   const isTriggered = useScrollTriggered(300)
+
   return (
     <ViewTransition name="sidebar-author-card">
-      <SidebarAuthorProfileCard id="sidebar" compact={isTriggered} />
+      <SidebarAuthorProfileCard id="sidebar" collapsed={isTriggered} />
     </ViewTransition>
   )
 }
