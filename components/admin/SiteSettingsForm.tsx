@@ -488,6 +488,7 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
                   aspect={1}
                   circularCrop
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- react-image-crop 需要原生 img 元素 */}
                   <img
                     ref={imgRef}
                     alt="Crop me"

@@ -7,13 +7,16 @@ export function useScrollTriggered(threshold: number) {
   const [isTriggered, setIsTriggered] = useState(false)
 
   useEffect(() => {
-    // mount 后同步当前滚动位置
-    setIsTriggered(window.scrollY > threshold)
     // 不使用 startTransition：compact 切换不应触发 React ViewTransition，
     // 否则会引发全页视觉冻结，导致中间列出现跳动
     const handleScroll = () => setIsTriggered(window.scrollY > threshold)
     window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+    // 通过 rAF 回调初始化滚动状态，避免在 effect 内直接同步调用 setState
+    const raf = requestAnimationFrame(handleScroll)
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      cancelAnimationFrame(raf)
+    }
   }, [threshold])
 
   return isTriggered

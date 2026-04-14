@@ -140,7 +140,7 @@ export async function updateBoardMessage(
     throw new Error('FORBIDDEN')
   }
 
-  const patch: Record<string, string | boolean> = {}
+  const patch: Record<string, string | boolean | number> = {}
 
   if (typeof input.content === 'string') {
     const content = input.content.trim()

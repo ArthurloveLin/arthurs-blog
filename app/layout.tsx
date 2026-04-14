@@ -58,6 +58,7 @@ export default async function RootLayout({
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           {/* LXGW WenKai TC: 仅用于便签组件的手写风格，不纳入全局字体系统 */}
+          {/* eslint-disable-next-line @next/next/no-page-custom-font */}
           <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&display=swap" rel="stylesheet" />
         </head>
         <body className="bg-background antialiased pb-24 md:pb-0">
