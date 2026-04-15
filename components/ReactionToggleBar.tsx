@@ -1,7 +1,7 @@
 'use client'
 
-import { ThumbsDown, ThumbsUp } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { ThumbsDown } from 'lucide-react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactionValue } from '@/lib/comment-reactions'
 import { COMMON_REACTION_EMOJIS } from '@/lib/emoji'
 
@@ -16,7 +16,157 @@ interface ReactionToggleBarProps {
   emojiPending?: boolean
   compact?: boolean
   variant?: 'pill' | 'bare'
+  emphasis?: 'default' | 'hero'
   className?: string
+}
+
+type LikeAnimationMode = 'idle' | 'like' | 'unlike'
+type DislikeAnimationMode = 'idle' | 'impact' | 'release'
+
+function LikeReactionGlyph({
+  active,
+  compact,
+  emphasis,
+  mode,
+  animationKey,
+}: {
+  active: boolean
+  compact: boolean
+  emphasis: 'default' | 'hero'
+  mode: LikeAnimationMode
+  animationKey: number
+}) {
+  const maskId = useId()
+  const sparkleCount = 7
+  const showFilledHeart = active || mode === 'unlike'
+
+  return (
+    <span
+      key={`like-${mode}-${animationKey}-${active ? 'active' : 'idle'}`}
+      className={[
+        'reaction-glyph reaction-glyph--like',
+        compact ? 'reaction-glyph--compact' : '',
+        emphasis === 'hero' ? 'reaction-glyph--hero' : '',
+        active ? 'is-active' : '',
+        mode === 'like' ? 'reaction-glyph--anim-like' : '',
+        mode === 'unlike' ? 'reaction-glyph--anim-unlike' : '',
+      ].filter(Boolean).join(' ')}
+      aria-hidden="true"
+    >
+      <svg viewBox="236 234 128 132" className="reaction-glyph__svg">
+        <defs>
+          <mask id={maskId}>
+            <circle fill="#fff" cx="300" cy="300.5" r="66" />
+            <circle className="reaction-like__hole" cx="300" cy="300.5" r="0" fill="#000" />
+          </mask>
+        </defs>
+
+        <circle className="reaction-like__pulse" cx="300" cy="300.5" r="34" />
+
+        <g className="reaction-like__sparkles">
+          {[
+            { cx: 310.7, cy: 239 },
+            { cx: 235.7, cy: 305 },
+            { cx: 254.7, cy: 252 },
+            { cx: 359.7, cy: 322 },
+            { cx: 332.7, cy: 361 },
+            { cx: 357.7, cy: 267 },
+            { cx: 273.7, cy: 363 },
+          ].map((sparkle, index) => (
+            <circle
+              key={`${sparkle.cx}-${sparkle.cy}`}
+              className="reaction-like__sparkle"
+              cx={sparkle.cx}
+              cy={sparkle.cy}
+              r="5"
+              style={{ ['--spark-index' as string]: String(index % sparkleCount) }}
+            />
+          ))}
+        </g>
+
+        <g mask={`url(#${maskId})`}>
+          <circle className="reaction-like__dot" cx="300" cy="300.5" r="66" />
+        </g>
+
+        <path
+          className="reaction-like__heart-base"
+          d="M318.2,259.5c-7.5,0-14.2,3.7-18.2,9.5c-4-5.7-10.7-9.5-18.2-9.5c-12.3,0-22.3,10-22.3,22.3c0,30.4,31.6,58.7,40.5,58.7s40.5-28.4,40.5-58.7C340.5,269.5,330.5,259.5,318.2,259.5z"
+        />
+
+        <path
+          className={[
+            'reaction-like__heart-fill',
+            showFilledHeart ? 'reaction-like__heart-fill--visible' : '',
+          ].filter(Boolean).join(' ')}
+          d="M318.2,259.5c-7.5,0-14.2,3.7-18.2,9.5c-4-5.7-10.7-9.5-18.2-9.5c-12.3,0-22.3,10-22.3,22.3c0,30.4,31.6,58.7,40.5,58.7s40.5-28.4,40.5-58.7C340.5,269.5,330.5,259.5,318.2,259.5z"
+        />
+
+        <g className="reaction-like__broken-group">
+          <path
+            className="reaction-like__broken-left"
+            d="M300.1,269c-4-5.7-10.7-9.5-18.2-9.5c-12.3,0-22.3,10-22.3,22.3c0,30.4,31.6,58.7,40.5,58.7l-1-9l4-6.7l-7.3-9l7.8-12.8l-11.3-11.3l11.8-15.5L300,269z"
+          />
+          <path
+            className="reaction-like__broken-right"
+            d="M299.9,340.5c8.9,0,40.5-28.4,40.5-58.7c0-12.3-10-22.3-22.3-22.3c-7.5,0-14.2,3.7-18.2,9.5l4,7.3l-11.8,15.5l11.3,11.3l-7.8,12.8l7.3,9l-4,6.7L300,340.5z"
+          />
+          <path
+            className="reaction-like__crack"
+            d="M300,340.5l-1-9l4-6.7l-7.3-9l7.8-12.8l-11.3-11.3l11.8-15.5l-4-7.3"
+          />
+        </g>
+      </svg>
+    </span>
+  )
+}
+
+function DislikeReactionGlyph({
+  active,
+  compact,
+  emphasis,
+  mode,
+  animationKey,
+}: {
+  active: boolean
+  compact: boolean
+  emphasis: 'default' | 'hero'
+  mode: DislikeAnimationMode
+  animationKey: number
+}) {
+  return (
+    <span
+      key={`dislike-${mode}-${animationKey}-${active ? 'active' : 'idle'}`}
+      className={[
+        'reaction-glyph reaction-glyph--dislike',
+        compact ? 'reaction-glyph--compact' : '',
+        emphasis === 'hero' ? 'reaction-glyph--hero' : '',
+        active ? 'is-active' : '',
+        mode === 'impact' ? 'reaction-glyph--anim-impact' : '',
+        mode === 'release' ? 'reaction-glyph--anim-release' : '',
+      ].filter(Boolean).join(' ')}
+      aria-hidden="true"
+    >
+      <span className="reaction-dislike__ripple" />
+      <span className="reaction-dislike__dust reaction-dislike__dust--left" />
+      <span className="reaction-dislike__dust reaction-dislike__dust--center" />
+      <span className="reaction-dislike__dust reaction-dislike__dust--right" />
+      <span className="reaction-dislike__burst">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <span
+            key={`${animationKey}-${index}`}
+            className="reaction-dislike__shard"
+            style={{ ['--burst-index' as string]: String(index) }}
+          />
+        ))}
+      </span>
+      <ThumbsDown
+        className="reaction-dislike__icon"
+        size={compact ? 14 : emphasis === 'hero' ? 30 : 18}
+        strokeWidth={2}
+        fill={active || mode === 'impact' ? 'currentColor' : 'none'}
+      />
+    </span>
+  )
 }
 
 export default function ReactionToggleBar({
@@ -30,27 +180,80 @@ export default function ReactionToggleBar({
   emojiPending = false,
   compact = false,
   variant = 'pill',
+  emphasis = 'default',
   className = '',
 }: ReactionToggleBarProps) {
   const [wheelOpen, setWheelOpen] = useState(false)
+  const [likeAnimation, setLikeAnimation] = useState<LikeAnimationMode>('idle')
+  const [likeAnimationKey, setLikeAnimationKey] = useState(0)
+  const [dislikeAnimation, setDislikeAnimation] = useState<DislikeAnimationMode>('idle')
+  const [dislikeAnimationKey, setDislikeAnimationKey] = useState(0)
   const pressTimerRef = useRef<number | null>(null)
+  const likeAnimationTimerRef = useRef<number | null>(null)
+  const dislikeAnimationTimerRef = useRef<number | null>(null)
   const suppressLikeClickRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const likeButtonRef = useRef<HTMLButtonElement>(null)
-  const containerClassName = compact ? 'gap-1.5 text-[10px]' : 'gap-2 text-[11px]'
-  const buttonClassName = variant === 'bare'
-    ? compact
-      ? 'h-7 px-0.5'
-      : 'h-8 px-1'
-    : compact
-      ? 'h-7 rounded-full px-2.5'
-      : 'h-8 rounded-full px-3'
+  const isHero = emphasis === 'hero' && !compact
+  const containerClassName = compact
+    ? 'gap-1.5 text-[10px]'
+    : isHero
+      ? 'gap-4 text-[11px]'
+      : 'gap-2 text-[11px]'
+  const buttonClassName = isHero
+    ? 'min-h-[6.8rem] min-w-[7.8rem] rounded-[28px] px-5 py-3'
+    : variant === 'bare'
+      ? compact
+        ? 'h-7 px-0.5'
+        : 'h-8 px-1'
+      : compact
+        ? 'h-7 rounded-full px-2.5'
+        : 'h-8 rounded-full px-3'
+  const contentClassName = isHero ? 'flex-col gap-2.5' : 'flex-row gap-1.5'
+  const countClassName = isHero
+    ? 'text-[1.55rem] font-semibold leading-none tracking-[-0.03em]'
+    : 'tabular-nums transition-transform duration-200'
+  const glyphClassName = isHero ? 'h-10 w-10' : compact ? 'h-4 w-4' : 'h-[1.15rem] w-[1.15rem]'
 
   function clearLongPressTimer() {
     if (pressTimerRef.current !== null) {
       window.clearTimeout(pressTimerRef.current)
       pressTimerRef.current = null
     }
+  }
+
+  function clearLikeAnimationTimer() {
+    if (likeAnimationTimerRef.current !== null) {
+      window.clearTimeout(likeAnimationTimerRef.current)
+      likeAnimationTimerRef.current = null
+    }
+  }
+
+  function clearDislikeAnimationTimer() {
+    if (dislikeAnimationTimerRef.current !== null) {
+      window.clearTimeout(dislikeAnimationTimerRef.current)
+      dislikeAnimationTimerRef.current = null
+    }
+  }
+
+  function triggerLikeAnimation(mode: LikeAnimationMode) {
+    clearLikeAnimationTimer()
+    setLikeAnimationKey((value) => value + 1)
+    setLikeAnimation(mode)
+    likeAnimationTimerRef.current = window.setTimeout(() => {
+      setLikeAnimation('idle')
+      likeAnimationTimerRef.current = null
+    }, mode === 'unlike' ? 920 : 760)
+  }
+
+  function triggerDislikeAnimation(mode: DislikeAnimationMode) {
+    clearDislikeAnimationTimer()
+    setDislikeAnimationKey((value) => value + 1)
+    setDislikeAnimation(mode)
+    dislikeAnimationTimerRef.current = window.setTimeout(() => {
+      setDislikeAnimation('idle')
+      dislikeAnimationTimerRef.current = null
+    }, mode === 'impact' ? 760 : 520)
   }
 
   useEffect(() => {
@@ -79,7 +282,11 @@ export default function ReactionToggleBar({
     }
   }, [wheelOpen])
 
-  useEffect(() => () => clearLongPressTimer(), [])
+  useEffect(() => () => {
+    clearLongPressTimer()
+    clearLikeAnimationTimer()
+    clearDislikeAnimationTimer()
+  }, [])
 
   function startLongPress() {
     if (!onEmojiReact || pending || emojiPending) {
@@ -97,6 +304,15 @@ export default function ReactionToggleBar({
     if (suppressLikeClickRef.current) {
       suppressLikeClickRef.current = false
       return
+    }
+
+    if (viewerReaction === 1) {
+      triggerLikeAnimation('unlike')
+    } else {
+      triggerLikeAnimation('like')
+      if (viewerReaction === -1) {
+        triggerDislikeAnimation('release')
+      }
     }
 
     onReact(1)
@@ -126,21 +342,30 @@ export default function ReactionToggleBar({
           }}
           title={onEmojiReact ? '点赞，长按或右键可选择 emoji' : undefined}
           className={[
-            'inline-flex items-center gap-1.5 transition-all duration-200 ease-out',
+            'reaction-toggle-button reaction-toggle-button--like inline-flex items-center justify-center transition-all duration-200 ease-out',
+            contentClassName,
             buttonClassName,
             variant === 'bare'
               ? viewerReaction === 1
-                ? 'text-emerald-700'
-                : 'text-slate-500 hover:text-emerald-700'
+                ? 'text-rose-600'
+                : 'text-slate-500 hover:text-rose-600'
               : viewerReaction === 1
-                ? 'border border-emerald-300/70 bg-emerald-50 text-emerald-700 shadow-[0_8px_18px_-14px_rgba(16,185,129,0.8)]'
-                : 'border border-black/10 bg-white/55 text-slate-500 hover:border-emerald-200 hover:text-emerald-700',
+                ? 'border border-rose-300/60 bg-[linear-gradient(180deg,rgba(255,241,244,0.98),rgba(255,228,235,0.92))] text-rose-600 shadow-[0_16px_34px_-20px_rgba(244,63,94,0.55)]'
+                : 'border border-black/10 bg-white/70 text-slate-500 hover:border-rose-200 hover:text-rose-600',
             pending && viewerReaction === 1 ? 'scale-[1.04] -translate-y-px animate-pulse' : '',
             pending ? 'cursor-wait opacity-70' : '',
           ].filter(Boolean).join(' ')}
         >
-          <ThumbsUp size={compact ? 12 : 14} strokeWidth={1.9} />
-          <span className="tabular-nums transition-transform duration-200">{upvotes}</span>
+          <span className={glyphClassName}>
+            <LikeReactionGlyph
+              active={viewerReaction === 1}
+              compact={compact}
+              emphasis={emphasis}
+              mode={likeAnimation}
+              animationKey={likeAnimationKey}
+            />
+          </span>
+          <span className={countClassName}>{upvotes}</span>
         </button>
 
         {onEmojiReact ? (
@@ -171,24 +396,43 @@ export default function ReactionToggleBar({
         disabled={pending}
         onClick={() => {
           setWheelOpen(false)
+
+          if (viewerReaction === -1) {
+            triggerDislikeAnimation('release')
+          } else {
+            triggerDislikeAnimation('impact')
+            if (viewerReaction === 1) {
+              triggerLikeAnimation('unlike')
+            }
+          }
+
           onReact(-1)
         }}
         className={[
-          'inline-flex items-center gap-1.5 transition-all duration-200 ease-out',
+          'reaction-toggle-button reaction-toggle-button--dislike inline-flex items-center justify-center transition-all duration-200 ease-out',
+          contentClassName,
           buttonClassName,
           variant === 'bare'
             ? viewerReaction === -1
               ? 'text-amber-700'
               : 'text-slate-500 hover:text-amber-700'
             : viewerReaction === -1
-              ? 'border border-amber-300/70 bg-amber-50 text-amber-700 shadow-[0_8px_18px_-14px_rgba(245,158,11,0.8)]'
-              : 'border border-black/10 bg-white/55 text-slate-500 hover:border-amber-200 hover:text-amber-700',
+              ? 'border border-amber-300/70 bg-[linear-gradient(180deg,rgba(255,249,235,0.98),rgba(255,241,204,0.92))] text-amber-700 shadow-[0_16px_34px_-20px_rgba(245,158,11,0.52)]'
+              : 'border border-black/10 bg-white/70 text-slate-500 hover:border-amber-200 hover:text-amber-700',
           pending && viewerReaction === -1 ? 'scale-[1.04] -translate-y-px animate-pulse' : '',
           pending ? 'cursor-wait opacity-70' : '',
         ].filter(Boolean).join(' ')}
       >
-        <ThumbsDown size={compact ? 12 : 14} strokeWidth={1.9} />
-        <span className="tabular-nums transition-transform duration-200">{downvotes}</span>
+        <span className={glyphClassName}>
+          <DislikeReactionGlyph
+            active={viewerReaction === -1}
+            compact={compact}
+            emphasis={emphasis}
+            mode={dislikeAnimation}
+            animationKey={dislikeAnimationKey}
+          />
+        </span>
+        <span className={countClassName}>{downvotes}</span>
       </button>
     </div>
   )

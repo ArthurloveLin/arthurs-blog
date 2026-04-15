@@ -1,0 +1,62 @@
+
+<svg class="heartSVG" version="1.1"
+	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 600 600" >
+<defs>
+  <mask id="dotMask">
+
+<circle id="whiteDot" fill="#FFFFFF" cx="300" cy="300.5" r="66"/>
+<circle id="hole" cx="300" cy="300.5" r="0"/>    
+  </mask>
+<path id="heart"  d="M318.2,259.5c-7.5,0-14.2,3.7-18.2,9.5c-4-5.7-10.7-9.5-18.2-9.5
+	c-12.3,0-22.3,10-22.3,22.3c0,30.4,31.6,58.7,40.5,58.7s40.5-28.4,40.5-58.7C340.5,269.5,330.5,259.5,318.2,259.5z"/>  
+</defs>
+ <use id="greyHeart" xlink:href="#heart" fill="#AAB8C2"/> 
+ <use id="pinkHeart" xlink:href="#heart" fill="#E2264D"/> 
+
+
+  <g mask="url(#dotMask)">
+  <circle id="pinkDot" fill="#E52951" cx="300" cy="300.5" r="66"/>
+  </g>
+<g id="sparkleGrowGroup" opacity="0">
+	<circle fill="#91D1F9" cx="310.7" cy="239" r="5"/>
+	<circle fill="#91D1F9" cx="235.7" cy="305" r="5"/>
+	<circle fill="#8CE9C4" cx="254.7" cy="252" r="5"/>
+	<circle fill="#8CE9C4" cx="359.7" cy="322" r="5"/>
+	<circle fill="#F48DA6" cx="332.7" cy="361" r="5"/>
+	<circle fill="#CB8EF4" cx="357.7" cy="267" r="5"/>
+	<circle fill="#91D1F9" cx="273.7" cy="363" r="5"/>
+</g> 
+<g id="sparkleMoveGroup" opacity="0">
+	<circle fill="#91D1F9" cx="300.7" cy="229" r="5"/>
+	<circle fill="#91D1F9" cx="263.7" cy="353" r="5"/>
+	<circle fill="#8CE9C4" cx="243.7" cy="257" r="5"/>
+	<circle fill="#8CE9C4" cx="367.7" cy="312" r="5"/>
+	<circle fill="#F48DA6" cx="320.7" cy="353" r="5"/>
+	<circle fill="#CB8EF4" cx="233.7" cy="317" r="5"/>
+	<circle fill="#CB8EF4" cx="353.7" cy="255" r="5"/>
+</g> 
+  <g class="likePopup" opacity="0">
+	<path id="likePopup" fill="#30393D" stroke="#FFFFFF" stroke-miterlimit="10" d="M367.3,194.5h-49.5l-17.7,20l-19.3-20h-48
+		c-3.3,0-6-2.7-6-6V129c0-3.3,2.7-6,6-6h134.5c3.3,0,6,2.7,6,6v59.5C373.3,191.8,370.5,194.5,367.3,194.5z"/>
+	<text id="likeText" x="266.9794" y="170.75" fill="#FFFFFF" font-family="'Arial', sans-serif" font-size="36px">Like</text> 
+  </g>
+  <g class="undoLikePopup" opacity="0">
+	<path id="undoLikePopup" fill="#30393D" stroke="#FFFFFF" stroke-miterlimit="10" d="M387.3,194.5h-69.5l-17.7,20l-19.3-20h-68
+		c-3.3,0-6-2.7-6-6V129c0-3.3,2.7-6,6-6h174.5c3.3,0,6,2.7,6,6v59.5C393.3,191.8,390.5,194.5,387.3,194.5z"/>
+	<text id="undoLikeText" x="224.9589" y="170.75" fill="#FFFFFF" font-family="'Arial', sans-serif" font-size="36px">Undo like</text>    
+  </g>
+<!--BROKEN HEART--> 
+  <g class="brokenHeartGroup" opacity="0">
+<path id="brokenHeartR" fill="#E2264D" d="M299.9,340.5c8.9,0,40.5-28.4,40.5-58.7c0-12.3-10-22.3-22.3-22.3
+	c-7.5,0-14.2,3.7-18.2,9.5l4,7.3l-11.8,15.5l11.3,11.3l-7.8,12.8l7.3,9l-4,6.7L300,340.5z"/>
+<path id="brokenHeartL" fill="#E2264D" d="M300.1,269c-4-5.7-10.7-9.5-18.2-9.5c-12.3,0-22.3,10-22.3,22.3
+	c0,30.4,31.6,58.7,40.5,58.7l-1-9l4-6.7l-7.3-9l7.8-12.8l-11.3-11.3l11.8-15.5L300,269z"/>  
+<path id="breakLineL" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-miterlimit="10" d="M300,340.5l-1-9l4-6.7l-7.3-9
+	l7.8-12.8l-11.3-11.3l11.8-15.5l-4-7.3"/>
+<path id="breakLineR" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-miterlimit="10" d="M300,340.5l-1-9l4-6.7l-7.3-9
+	l7.8-12.8l-11.3-11.3l11.8-15.5l-4-7.3"/>
+  </g>  
+   <use id="hit" xlink:href="#heart" fill="red" opacity="0"/> 
+
+</svg>
+

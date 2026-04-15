@@ -19,6 +19,9 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import ScrollToTop from '@/components/ScrollToTop'
 import { getPostAnchorHref } from '@/lib/blog-return'
 import { attachViewerEmojiReactions } from '@/lib/comment-emojis'
+import ArticleMetaStats from '@/components/ArticleMetaStats'
+import ArticleEngagementPanel from '@/components/ArticleEngagementPanel'
+import { getPostReactionSummary } from '@/lib/post-reactions'
 
 function formatDate(dateStr: string | null | undefined) {
   if (!dateStr) return ''
@@ -27,6 +30,20 @@ function formatDate(dateStr: string | null | undefined) {
 }
 
 export const revalidate = 60
+
+function estimateReadingMinutes(content: string) {
+  const plainText = content
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`[^`]+`/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[[^\]]+\]\([^)]*\)/g, ' ')
+    .replace(/[#>*_~\-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const characterCount = plainText.replace(/\s/g, '').length
+  return Math.max(1, Math.ceil(characterCount / 320))
+}
 
 export async function generateStaticParams() {
   const posts = await getPosts(1000, 0)
@@ -58,19 +75,22 @@ async function ArticleBody({
   contentPromise,
   adjacentPromise,
   commentsPromise,
+  engagementSummaryPromise,
   postId,
   skipFirstParagraph,
 }: {
   contentPromise: Promise<string>
   adjacentPromise: Promise<{ prev: Post | null; next: Post | null }>
   commentsPromise: Promise<Comment[] | null>
+  engagementSummaryPromise: Promise<Awaited<ReturnType<typeof getPostReactionSummary>>>
   postId: string
   skipFirstParagraph?: boolean
 }) {
-  const [content, { prev, next }, initialComments] = await Promise.all([
+  const [content, { prev, next }, initialComments, initialEngagementSummary] = await Promise.all([
     contentPromise,
     adjacentPromise,
     commentsPromise,
+    engagementSummaryPromise,
   ])
 
   return (
@@ -80,8 +100,12 @@ async function ArticleBody({
         <MarkdownRenderer content={content} postId={postId} skipFirstParagraph={skipFirstParagraph} />
       </div>
 
+      <div className="mt-16 px-6 md:px-10">
+        <ArticleEngagementPanel postId={postId} initialSummary={initialEngagementSummary} />
+      </div>
+
       {/* Comments */}
-      <section className="mt-16 pt-10 border-t border-border px-6 md:px-10 pb-10">
+      <section className="mt-20 border-t border-border px-6 pt-10 pb-10 md:px-10">
         <CommentBox
           targetType="blog_post"
           targetId={postId}
@@ -118,6 +142,11 @@ async function ArticleBody({
   )
 }
 
+async function ArticleHeaderMetrics({ contentPromise }: { contentPromise: Promise<string> }) {
+  const content = await contentPromise
+  return <ArticleMetaStats readingMinutes={estimateReadingMinutes(content)} />
+}
+
 export default async function BlogPostPage({
   params,
 }: {
@@ -133,6 +162,7 @@ export default async function BlogPostPage({
   // async-suspense-boundaries: fire promises without blocking, share across Suspense children
   const contentPromise = getPostContent(post)
   const adjacentPromise = getAdjacentPosts(post.published_at!)
+  const engagementSummaryPromise = getPostReactionSummary(post.id)
   const commentsPromise = Promise.resolve(
     supabaseAdmin
       .from('comments')
@@ -202,14 +232,25 @@ export default async function BlogPostPage({
                 <div className="p-5 md:p-6">
                   {/* Hero: Title */}
                   <ViewTransition name={`post-title-${post.id}`} share="morph" default="none">
-                    <h1 className="blog-hero-title mb-3">
+                    <h1 className="blog-hero-title mb-2">
                       {post.title}
                     </h1>
                   </ViewTransition>
 
+                  <Suspense
+                    fallback={
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="h-8 w-36 animate-pulse rounded-full bg-muted" />
+                        <div className="h-8 w-28 animate-pulse rounded-full bg-muted" />
+                      </div>
+                    }
+                  >
+                    <ArticleHeaderMetrics contentPromise={contentPromise} />
+                  </Suspense>
+
                   {/* Hero: Meta (Date · Category · Tags) */}
                   <ViewTransition name={`post-meta-${post.id}`} share="morph" default="none">
-                    <div className="blog-hero-meta flex flex-wrap items-center gap-x-1.5 gap-y-2">
+                    <div className="blog-hero-meta mt-4 flex flex-wrap items-center gap-x-1.5 gap-y-2">
                       <time className="tabular-nums whitespace-nowrap">{formatDate(post.published_at)}</time>
                       {post.category && (
                         <><span className="text-foreground/20 font-bold">·</span><Link href={`/blog/category/${encodeURIComponent(post.category)}`} className="font-medium text-foreground/80 hover:text-primary transition-colors whitespace-nowrap">{post.category}</Link></>
@@ -249,6 +290,7 @@ export default async function BlogPostPage({
                     contentPromise={contentPromise}
                     adjacentPromise={adjacentPromise}
                     commentsPromise={commentsPromise}
+                    engagementSummaryPromise={engagementSummaryPromise}
                     postId={post.id}
                     skipFirstParagraph={true}
                   />
