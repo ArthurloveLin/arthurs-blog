@@ -60,7 +60,7 @@ function LikeReactionGlyph({
       .set(q('greyHeart'), { scale: 0, svgOrigin: '300 340.5' }, '-=0.99')
       .to(q('pinkDot'), { duration: 1, fill: '#CD8FF7' }, '-=1')
       .fromTo(q('hole'), { attr: { r: 0 } }, { duration: 1, attr: { r: 67 } }, '-=0.5')
-      .fromTo(q('pinkHeart'), { scale: 0, opacity: 0 }, { duration: 1.6, scale: 1, opacity: 1, svgOrigin: '300 300', ease: 'back.out(1.2)' }, '-=0.5')
+      .fromTo(q('pinkHeart'), { scale: 0, opacity: 1 }, { duration: 1.6, scale: 1, opacity: 1, svgOrigin: '300 300', ease: 'back.out(1.2)' }, '-=0.5')
       .set([q('sparkleGrowGroup'), q('sparkleMoveGroup')], { opacity: 1 }, '-=1.5')
       .to(q('sparkleGrowGroup'), { duration: 1, scale: 1.5, svgOrigin: '300 300' }, '-=1.5')
       .to(q('sparkleMoveGroup'), { duration: 1, scale: 1.2, svgOrigin: '300 300' }, '-=1.5')
@@ -70,9 +70,10 @@ function LikeReactionGlyph({
       // Midpoint pause — exactly like original's setUndoLike callback
       .addLabel('midpoint')
       .call(() => { tl.pause() })
-      .set(q('brokenHeartGroup'), { opacity: 1 })
-      .set(q('pinkHeart'), { opacity: 0 })
-      .to([q('breakLineL'), q('breakLineR')], { duration: 3, drawSVG: '0% 100%' })
+      // Offset zero-duration sets by a tiny fraction so they execute AFTER resuming, preventing them from firing during the pause
+      .set(q('brokenHeartGroup'), { opacity: 1 }, '+=0.01')
+      .set(q('pinkHeart'), { opacity: 0 }, '<')
+      .to([q('breakLineL'), q('breakLineR')], { duration: 3, drawSVG: '0% 100%' }, '<')
       .to(q('brokenHeartL'), { duration: 4, rotation: -90, svgOrigin: '300 340.5', ease: 'power2.in' }, '-=1.5')
       .to(q('brokenHeartR'), { duration: 4, rotation: 90, svgOrigin: '300 340.5', ease: 'power2.in' }, '-=4')
       .to(q('greyHeart'), { duration: 3, scale: 1, ease: 'power4.inOut' }, '-=1.6')
@@ -93,24 +94,33 @@ function LikeReactionGlyph({
     return tl
   }, [cssId])
 
-  // Single run to set initial visual properties
+  // Cleanup effect
   useEffect(() => {
+    return () => {
+      if (tlRef.current) tlRef.current.kill()
+    }
+  }, [])
+
+  // Static state synchronization to guarantee visual presentation outside of active animations
+  useEffect(() => {
+    // Only resolve static properties if NOT actively animating to avoid timeline conflicts
+    if (mode !== 'idle') return
+
     const q = (id: string) => `#${id}-${cssId}`
     if (active) {
       gsap.set(q('pinkHeart'), { opacity: 1, clearProps: 'transform' })
       gsap.set(q('greyHeart'), { scale: 0, svgOrigin: '300 340.5' })
+      gsap.set([q('sparkleGrowGroup'), q('sparkleMoveGroup')], { opacity: 0 })
+      gsap.set(q('brokenHeartGroup'), { opacity: 0 })
+      gsap.set([q('brokenHeartL'), q('brokenHeartR')], { opacity: 1, rotation: 0 })
     } else {
       gsap.set(q('pinkHeart'), { opacity: 0, scale: 0, svgOrigin: '300 300' })
       gsap.set(q('greyHeart'), { clearProps: 'transform' })
+      gsap.set([q('sparkleGrowGroup'), q('sparkleMoveGroup')], { opacity: 0 })
+      gsap.set(q('brokenHeartGroup'), { opacity: 0 })
+      gsap.set([q('brokenHeartL'), q('brokenHeartR')], { opacity: 1, rotation: 0 })
     }
-    gsap.set([q('sparkleGrowGroup'), q('sparkleMoveGroup')], { opacity: 0 })
-    gsap.set(q('brokenHeartGroup'), { opacity: 0 })
-    gsap.set([q('brokenHeartL'), q('brokenHeartR')], { opacity: 1, rotation: 0 })
-
-    return () => {
-      if (tlRef.current) tlRef.current.kill()
-    }
-  }, [cssId, active])
+  }, [cssId, active, mode])
 
   // Drive the timeline from explicit mode
   useEffect(() => {
@@ -317,7 +327,7 @@ export default function ReactionToggleBar({
     likeAnimationTimerRef.current = window.setTimeout(() => {
       setLikeAnimation('idle')
       likeAnimationTimerRef.current = null
-    }, mode === 'unlike' ? 920 : 760)
+    }, mode === 'unlike' ? 1750 : 950)
   }
 
   function triggerDislikeAnimation(mode: DislikeAnimationMode) {
