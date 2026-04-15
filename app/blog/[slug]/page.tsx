@@ -44,7 +44,7 @@ type Comment = {
   downvotes: number
   viewer_reaction: -1 | 0 | 1
   emoji_reactions: { emoji: string; count: number; viewer: boolean }[]
-  viewer_emoji: string | null
+  viewer_emojis: string[]
 }
 
 // async-suspense-boundaries: inner Server Component for TOC — shares contentPromise
@@ -141,7 +141,7 @@ export default async function BlogPostPage({
       .eq('target_id', post.id)
       .order('created_at', { ascending: true })
       .then(async (r) => attachViewerEmojiReactions(
-        (r.data ?? []).map((comment) => ({ ...comment, viewer_reaction: 0 })) as Array<Omit<Comment, 'emoji_reactions' | 'viewer_emoji'>>,
+        (r.data ?? []).map((comment) => ({ ...comment, viewer_reaction: 0 })) as Array<Omit<Comment, 'emoji_reactions' | 'viewer_emojis'>>,
       ) as Promise<Comment[]>)
   )
 

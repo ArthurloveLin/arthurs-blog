@@ -104,17 +104,6 @@ function parsePosterTitle(key: string) {
   }
 }
 
-function sortPosters(left: NowWatchingPoster, right: NowWatchingPoster) {
-  const leftTime = left.watchDate ? Date.parse(left.watchDate) : Number.NEGATIVE_INFINITY
-  const rightTime = right.watchDate ? Date.parse(right.watchDate) : Number.NEGATIVE_INFINITY
-
-  if (leftTime !== rightTime) {
-    return rightTime - leftTime
-  }
-
-  return left.displayTitle.localeCompare(right.displayTitle, 'zh-CN')
-}
-
 function sortMetadataEntries(
   left: [string, NowWatchingMetadataEntry],
   right: [string, NowWatchingMetadataEntry]

@@ -34,7 +34,7 @@ interface Comment {
   downvotes: number
   viewer_reaction: -1 | 0 | 1
   emoji_reactions: { emoji: string; count: number; viewer: boolean }[]
-  viewer_emoji: string | null
+  viewer_emojis: string[]
 }
 
 interface Item {

@@ -84,7 +84,7 @@ export interface StickyNoteCardReactionControl {
   downvotes: number
   viewerReaction: ReactionValue
   emojiReactions: EmojiReactionEntry[]
-  viewerEmoji: string | null
+  viewerEmojis: string[]
   pending?: boolean
   emojiPending?: boolean
   onReact: (value: 1 | -1) => void

@@ -19,7 +19,7 @@ export interface NoteMessage {
   downvotes: number
   viewer_reaction: ReactionValue
   emoji_reactions: EmojiReactionEntry[]
-  viewer_emoji: string | null
+  viewer_emojis: string[]
 }
 
 function canWriteBoard(board: NoteBoardSlug, role: UserRole) {
@@ -85,7 +85,7 @@ export const getBoardMessages = cache(async (
   }
 
   const withReactions = await attachViewerReactions(
-    (data ?? []) as Array<Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emoji'>>,
+    (data ?? []) as Array<Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emojis'>>,
     viewerIdentity,
   )
 
@@ -124,10 +124,10 @@ export async function createBoardMessage(board: NoteBoardSlug, author: string, c
   }
 
   return {
-    ...(data as Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emoji'>),
+    ...(data as Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emojis'>),
     viewer_reaction: 0,
     emoji_reactions: [],
-    viewer_emoji: null,
+    viewer_emojis: [],
   } as NoteMessage
 }
 
@@ -198,7 +198,7 @@ export async function updateBoardMessage(
 
   const [message] = await attachViewerEmojiReactions([
     {
-      ...(data as Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emoji'>),
+      ...(data as Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emojis'>),
       viewer_reaction: 0,
     },
   ])
