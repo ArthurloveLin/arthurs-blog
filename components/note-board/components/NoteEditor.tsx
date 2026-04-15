@@ -76,6 +76,14 @@ export function NoteEditor({
   const pendingSelectionRef = useRef<TextSelectionRange | null>(null)
 
   useEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    textarea.style.height = '0px'
+    textarea.style.height = `${textarea.scrollHeight}px`
+  }, [value])
+
+  useEffect(() => {
     if (!pendingSelectionRef.current || !textareaRef.current) return
 
     const nextSelection = pendingSelectionRef.current
@@ -117,7 +125,7 @@ export function NoteEditor({
         onChange={(event) => onChange(event.target.value)}
         maxLength={maxLength}
         placeholder={placeholder}
-        className={`${minHeightClassName} w-full resize-none rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-primary/30 focus:ring-2 focus:ring-primary/20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
+        className={`${minHeightClassName} w-full resize-none overflow-hidden rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-primary/30 focus:ring-2 focus:ring-primary/20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
       />
       <div className={shellClassName}>
         <EditorActionBar
