@@ -2,6 +2,7 @@
 
 import { Archive, ArchiveRestore, PencilLine } from 'lucide-react'
 import { useState } from 'react'
+import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
 import { NoteContent } from '@/components/note-board/components/NoteContent'
@@ -100,6 +101,12 @@ function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
       <div className="text-sm leading-relaxed text-foreground/90">
         <NoteContent content={message.content} variant="board" />
       </div>
+      <EmojiReactionSummary
+        entries={reactionControl.emojiReactions}
+        viewerEmoji={reactionControl.viewerEmoji}
+        onSelect={reactionControl.onEmojiReact}
+        className="mt-4"
+      />
       <ReactionToggleBar
         className="mt-4"
         compact
@@ -107,7 +114,10 @@ function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
         downvotes={reactionControl.downvotes}
         viewerReaction={reactionControl.viewerReaction}
         pending={reactionControl.pending}
+        emojiPending={reactionControl.emojiPending}
         onReact={reactionControl.onReact}
+        onEmojiReact={reactionControl.onEmojiReact}
+        viewerEmoji={reactionControl.viewerEmoji}
       />
     </div>
   )

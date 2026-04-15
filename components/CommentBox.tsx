@@ -4,10 +4,14 @@ import { createContext, use, useEffect, useMemo, useRef, useState, type FormEven
 import { Check, Clock3, MessageCircleReply, PencilLine, Trash2, X } from 'lucide-react'
 import { updatePresenceActivity } from './ActivityBanner'
 import { useAuth } from './AuthProvider'
+import EmojiPickerButton from './emoji/EmojiPickerButton'
+import EmojiReactionSummary from './emoji/EmojiReactionSummary'
 import EditorActionBar from './EditorActionBar'
 import ReactionToggleBar from './ReactionToggleBar'
+import type { EmojiReactionEntry } from '@/lib/comment-emojis'
 import { formatCommentTimeLabel } from '@/lib/date-format'
 import type { ReactionValue } from '@/lib/comment-reactions'
+import { insertTextAtSelection } from '@/lib/text-selection'
 
 interface Comment {
   id: string
@@ -19,6 +23,8 @@ interface Comment {
   upvotes: number
   downvotes: number
   viewer_reaction: ReactionValue
+  emoji_reactions: EmojiReactionEntry[]
+  viewer_emoji: string | null
   optimistic?: boolean
 }
 
@@ -34,6 +40,7 @@ interface CommentTreeContextValue {
   identityAliases: string[]
   isAdmin: boolean
   reactingIds: Record<string, boolean>
+  emojiReactingIds: Record<string, boolean>
   composerRef: React.RefObject<HTMLTextAreaElement | null>
   onDraftChange: (value: string) => void
   onReply: (comment: Comment) => void
@@ -42,6 +49,7 @@ interface CommentTreeContextValue {
   onDelete: (id: string) => void
   onUpdate: (id: string, content: string) => Promise<void>
   onReact: (id: string, reaction: 1 | -1) => Promise<void>
+  onEmojiReact: (id: string, emoji: string) => Promise<void>
 }
 
 const CommentTreeContext = createContext<CommentTreeContextValue | null>(null)
@@ -77,6 +85,48 @@ function applyOptimisticReactionToComment(comment: Comment, nextReaction: 1 | -1
     upvotes,
     downvotes,
     viewer_reaction: nextReaction,
+  }
+}
+
+function applyOptimisticEmojiToComment(comment: Comment, nextEmoji: string): Comment {
+  const activeEmoji = comment.viewer_emoji === nextEmoji ? null : nextEmoji
+  const summaryMap = new Map(comment.emoji_reactions.map((entry) => [entry.emoji, { ...entry }]))
+
+  if (comment.viewer_emoji) {
+    const previous = summaryMap.get(comment.viewer_emoji)
+    if (previous) {
+      const nextCount = previous.count - 1
+      if (nextCount > 0) {
+        summaryMap.set(comment.viewer_emoji, { ...previous, count: nextCount, viewer: false })
+      } else {
+        summaryMap.delete(comment.viewer_emoji)
+      }
+    }
+  }
+
+  if (activeEmoji) {
+    const current = summaryMap.get(activeEmoji)
+    summaryMap.set(activeEmoji, {
+      emoji: activeEmoji,
+      count: (current?.count ?? 0) + 1,
+      viewer: true,
+    })
+  }
+
+  return {
+    ...comment,
+    viewer_emoji: activeEmoji,
+    emoji_reactions: [...summaryMap.values()].sort((left, right) => {
+      if (right.count !== left.count) {
+        return right.count - left.count
+      }
+
+      if (left.viewer !== right.viewer) {
+        return Number(right.viewer) - Number(left.viewer)
+      }
+
+      return left.emoji.localeCompare(right.emoji)
+    }),
   }
 }
 
@@ -158,11 +208,34 @@ function CommentEditorForm({
   isSaving: boolean
   error: string | null
 }) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  function insertEmoji(emoji: string) {
+    const textarea = textareaRef.current
+    if (!textarea) {
+      onChange(`${value}${emoji}`)
+      return
+    }
+
+    const result = insertTextAtSelection(value, emoji, textarea.selectionStart, textarea.selectionEnd)
+    onChange(result.value)
+
+    window.requestAnimationFrame(() => {
+      textarea.focus()
+      textarea.setSelectionRange(result.selectionStart, result.selectionEnd)
+    })
+  }
+
   return (
     <CommentComposerShell
       actionBar={(
         <EditorActionBar
-          leading={<span>评论编辑栏</span>}
+          leading={(
+            <>
+              <span>评论编辑栏</span>
+              <EmojiPickerButton size="sm" panelAlign="start" onSelect={insertEmoji} />
+            </>
+          )}
           trailing={(
             <>
               <button
@@ -186,6 +259,7 @@ function CommentEditorForm({
       )}
     >
       <textarea
+        ref={textareaRef}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="min-h-[96px] w-full resize-y bg-transparent px-3 py-3 text-sm leading-relaxed text-foreground outline-none transition focus:ring-0 focus:shadow-none"
@@ -233,7 +307,7 @@ function CommentIconButton({
 }
 
 function CommentCard({ comment }: { comment: Comment }) {
-  const { identityAliases, isAdmin, reactingIds, onReply, onDelete, onUpdate, onReact } = useCommentTree()
+  const { identityAliases, isAdmin, reactingIds, emojiReactingIds, onReply, onDelete, onUpdate, onReact, onEmojiReact } = useCommentTree()
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(comment.content)
   const [isSaving, setIsSaving] = useState(false)
@@ -310,6 +384,14 @@ function CommentCard({ comment }: { comment: Comment }) {
             ))}
           </div>
         )}
+        {!isEditing ? (
+          <EmojiReactionSummary
+            entries={comment.emoji_reactions}
+            viewerEmoji={comment.viewer_emoji}
+            onSelect={(emoji) => void onEmojiReact(comment.id, emoji)}
+            className="mt-3"
+          />
+        ) : null}
         <div className="mt-3 flex items-end justify-between gap-3">
           <div className="inline-flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
             <Clock3 size={12} strokeWidth={1.9} />
@@ -322,7 +404,10 @@ function CommentCard({ comment }: { comment: Comment }) {
               downvotes={comment.downvotes}
               viewerReaction={comment.viewer_reaction}
               pending={Boolean(reactingIds[comment.id])}
+              viewerEmoji={comment.viewer_emoji}
+              emojiPending={Boolean(emojiReactingIds[comment.id])}
               onReact={(reaction) => void onReact(comment.id, reaction)}
+              onEmojiReact={(emoji) => void onEmojiReact(comment.id, emoji)}
             />
             <CommentIconButton label="回复评论" onClick={() => onReply(comment)}>
               <MessageCircleReply size={14} strokeWidth={1.9} />
@@ -401,6 +486,22 @@ function CommentThreadComposer() {
     onSubmit,
   } = useCommentTree()
 
+  function insertEmoji(emoji: string) {
+    const textarea = composerRef.current
+    if (!textarea) {
+      onDraftChange(`${draft}${emoji}`)
+      return
+    }
+
+    const result = insertTextAtSelection(draft, emoji, textarea.selectionStart, textarea.selectionEnd)
+    onDraftChange(result.value)
+
+    window.requestAnimationFrame(() => {
+      textarea.focus()
+      textarea.setSelectionRange(result.selectionStart, result.selectionEnd)
+    })
+  }
+
   if (!identityReady) {
     return <p className="py-4 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/30 italic animate-pulse">加载身份中…</p>
   }
@@ -414,12 +515,18 @@ function CommentThreadComposer() {
             leading={replyTo ? (
               <>
                 <span>评论栏</span>
+                <EmojiPickerButton size="sm" panelAlign="start" onSelect={insertEmoji} />
                 <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">回复 @{replyTo.author}</span>
                 <button type="button" className="text-muted-foreground/70 transition hover:text-foreground" onClick={onCancelReply}>
                   取消回复
                 </button>
               </>
-            ) : <span>评论栏</span>}
+            ) : (
+              <>
+                <span>评论栏</span>
+                <EmojiPickerButton size="sm" panelAlign="start" onSelect={insertEmoji} />
+              </>
+            )}
             trailing={(
               <button
                 type="submit"
@@ -476,6 +583,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const [reactingIds, setReactingIds] = useState<Record<string, boolean>>({})
+  const [emojiReactingIds, setEmojiReactingIds] = useState<Record<string, boolean>>({})
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const commentsRef = useRef(initialComments)
   const freshTimerRefs = useRef<Record<string, number>>({})
@@ -557,6 +665,8 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
       upvotes: 0,
       downvotes: 0,
       viewer_reaction: 0,
+      emoji_reactions: [],
+      viewer_emoji: null,
       optimistic: true,
     }
 
@@ -623,7 +733,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
 
     const updatedComment: Comment = await res.json()
     setComments((prev) => prev.map((comment) => comment.id === id
-      ? { ...updatedComment, viewer_reaction: comment.viewer_reaction }
+      ? { ...updatedComment, viewer_reaction: comment.viewer_reaction, viewer_emoji: comment.viewer_emoji }
       : comment))
   }
 
@@ -663,6 +773,40 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     }
   }
 
+  async function handleEmojiReaction(id: string, emoji: string) {
+    if (!identity || emojiReactingIds[id]) return
+
+    const snapshot = commentsRef.current.find((comment) => comment.id === id)
+    if (!snapshot) return
+
+    setEmojiReactingIds((current) => ({ ...current, [id]: true }))
+    setComments((prev) => prev.map((comment) => comment.id === id ? applyOptimisticEmojiToComment(comment, emoji) : comment))
+
+    try {
+      const res = await fetch(`/api/comments/${id}/emoji`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity, emoji }),
+      })
+
+      if (!res.ok) {
+        throw new Error('表情互动更新失败。')
+      }
+
+      const summary = await res.json() as Pick<Comment, 'emoji_reactions' | 'viewer_emoji'>
+      setComments((prev) => prev.map((comment) => comment.id === id ? { ...comment, ...summary } : comment))
+    } catch (emojiError) {
+      setComments((prev) => prev.map((comment) => comment.id === id ? snapshot : comment))
+      setError(emojiError instanceof Error ? emojiError.message : '表情互动更新失败。')
+    } finally {
+      setEmojiReactingIds((current) => {
+        const next = { ...current }
+        delete next[id]
+        return next
+      })
+    }
+  }
+
   const contextValue: CommentTreeContextValue = {
     comments,
     topLevelComments,
@@ -675,6 +819,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     identityAliases,
     isAdmin,
     reactingIds,
+    emojiReactingIds,
     composerRef: inputRef,
     onDraftChange: setDraft,
     onReply: handleReply,
@@ -683,6 +828,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     onDelete: handleDelete,
     onUpdate: handleUpdate,
     onReact: handleReaction,
+    onEmojiReact: handleEmojiReaction,
   }
 
   return (

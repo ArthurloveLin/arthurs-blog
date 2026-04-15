@@ -3,6 +3,7 @@
 import { Archive, ArchiveRestore, ArrowRight, PencilLine, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
 import { NoteContent } from '@/components/note-board/components/NoteContent'
@@ -432,13 +433,22 @@ function StickyNoteCardFrame({
         )}
         {!isPreview && reactionControl ? (
           <div className="mt-auto pt-1" onPointerDown={(event) => event.stopPropagation()}>
+            <EmojiReactionSummary
+              entries={reactionControl.emojiReactions}
+              viewerEmoji={reactionControl.viewerEmoji}
+              onSelect={reactionControl.onEmojiReact}
+              className="mb-2"
+            />
             <ReactionToggleBar
               compact
               upvotes={reactionControl.upvotes}
               downvotes={reactionControl.downvotes}
               viewerReaction={reactionControl.viewerReaction}
               pending={reactionControl.pending}
+              emojiPending={reactionControl.emojiPending}
               onReact={reactionControl.onReact}
+              onEmojiReact={reactionControl.onEmojiReact}
+              viewerEmoji={reactionControl.viewerEmoji}
             />
           </div>
         ) : null}
