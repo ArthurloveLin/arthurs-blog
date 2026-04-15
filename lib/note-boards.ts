@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import { attachViewerEmojiReactions, type EmojiReactionEntry } from '@/lib/comment-emojis'
 import { attachViewerReactions, type ReactionValue } from '@/lib/comment-reactions'
 import { DEFAULT_NOTE_PRIORITY, isNotePriority, type NotePriority, type NoteSortMode } from '@/lib/note-priority'
 import { getUserRole, type UserRole } from '@/lib/auth'
@@ -17,6 +18,8 @@ export interface NoteMessage {
   upvotes: number
   downvotes: number
   viewer_reaction: ReactionValue
+  emoji_reactions: EmojiReactionEntry[]
+  viewer_emoji: string | null
 }
 
 function canWriteBoard(board: NoteBoardSlug, role: UserRole) {
@@ -81,7 +84,12 @@ export const getBoardMessages = cache(async (
     throw new Error(error.message)
   }
 
-  return attachViewerReactions((data ?? []) as Array<Omit<NoteMessage, 'viewer_reaction'>>, viewerIdentity) as Promise<NoteMessage[]>
+  const withReactions = await attachViewerReactions(
+    (data ?? []) as Array<Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emoji'>>,
+    viewerIdentity,
+  )
+
+  return attachViewerEmojiReactions(withReactions, viewerIdentity) as Promise<NoteMessage[]>
 })
 
 export async function createBoardMessage(board: NoteBoardSlug, author: string, content: string, priority?: NotePriority) {
@@ -115,7 +123,12 @@ export async function createBoardMessage(board: NoteBoardSlug, author: string, c
     throw new Error(error.message)
   }
 
-  return { ...(data as Omit<NoteMessage, 'viewer_reaction'>), viewer_reaction: 0 } as NoteMessage
+  return {
+    ...(data as Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emoji'>),
+    viewer_reaction: 0,
+    emoji_reactions: [],
+    viewer_emoji: null,
+  } as NoteMessage
 }
 
 export async function updateBoardMessage(
@@ -183,7 +196,14 @@ export async function updateBoardMessage(
     throw new Error(error?.message ?? 'UPDATE_FAILED')
   }
 
-  return { ...(data as Omit<NoteMessage, 'viewer_reaction'>), viewer_reaction: 0 } as NoteMessage
+  const [message] = await attachViewerEmojiReactions([
+    {
+      ...(data as Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emoji'>),
+      viewer_reaction: 0,
+    },
+  ])
+
+  return message as NoteMessage
 }
 
 export async function deleteBoardMessage(

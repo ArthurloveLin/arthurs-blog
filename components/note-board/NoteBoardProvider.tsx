@@ -184,6 +184,48 @@ function applyOptimisticReactionToMessage(message: NoteMessage, nextReaction: 1 
   }
 }
 
+function applyOptimisticEmojiToMessage(message: NoteMessage, nextEmoji: string) {
+  const activeEmoji = message.viewer_emoji === nextEmoji ? null : nextEmoji
+  const summaryMap = new Map(message.emoji_reactions.map((entry) => [entry.emoji, { ...entry }]))
+
+  if (message.viewer_emoji) {
+    const previous = summaryMap.get(message.viewer_emoji)
+    if (previous) {
+      const nextCount = previous.count - 1
+      if (nextCount > 0) {
+        summaryMap.set(message.viewer_emoji, { ...previous, count: nextCount, viewer: false })
+      } else {
+        summaryMap.delete(message.viewer_emoji)
+      }
+    }
+  }
+
+  if (activeEmoji) {
+    const current = summaryMap.get(activeEmoji)
+    summaryMap.set(activeEmoji, {
+      emoji: activeEmoji,
+      count: (current?.count ?? 0) + 1,
+      viewer: true,
+    })
+  }
+
+  return {
+    ...message,
+    viewer_emoji: activeEmoji,
+    emoji_reactions: [...summaryMap.values()].sort((left, right) => {
+      if (right.count !== left.count) {
+        return right.count - left.count
+      }
+
+      if (left.viewer !== right.viewer) {
+        return Number(right.viewer) - Number(left.viewer)
+      }
+
+      return left.emoji.localeCompare(right.emoji)
+    }),
+  }
+}
+
 function createBoardPayload(
   messages: NoteMessage[],
   archived: boolean,
@@ -229,9 +271,24 @@ function isSameBoardSurfacePayload(
       left.parent_id !== right.parent_id ||
       left.upvotes !== right.upvotes ||
       left.downvotes !== right.downvotes ||
-      left.viewer_reaction !== right.viewer_reaction
+      left.viewer_reaction !== right.viewer_reaction ||
+      left.viewer_emoji !== right.viewer_emoji ||
+      left.emoji_reactions.length !== right.emoji_reactions.length
     ) {
       return false
+    }
+
+    for (let emojiIndex = 0; emojiIndex < left.emoji_reactions.length; emojiIndex += 1) {
+      const leftEmoji = left.emoji_reactions[emojiIndex]
+      const rightEmoji = right.emoji_reactions[emojiIndex]
+
+      if (
+        leftEmoji.emoji !== rightEmoji.emoji ||
+        leftEmoji.count !== rightEmoji.count ||
+        leftEmoji.viewer !== rightEmoji.viewer
+      ) {
+        return false
+      }
     }
   }
 
@@ -294,6 +351,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
   const [editPriority, setEditPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
   const [priorityUpdatingIds, setPriorityUpdatingIds] = useState<Record<string, boolean>>({})
   const [reactionUpdatingIds, setReactionUpdatingIds] = useState<Record<string, boolean>>({})
+  const [emojiUpdatingIds, setEmojiUpdatingIds] = useState<Record<string, boolean>>({})
   const [freshMessageIds, setFreshMessageIds] = useState<Record<string, boolean>>({})
   const [toastNotice, setToastNotice] = useState<ToastNotice | null>(null)
   const [isMobileViewport, setIsMobileViewport] = useState<boolean | null>(null)
@@ -624,7 +682,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
 
       const updatedMessage = (await response.json()) as NoteMessage
       replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedMessage.id
-        ? { ...updatedMessage, viewer_reaction: currentMessage.viewer_reaction }
+        ? { ...updatedMessage, viewer_reaction: currentMessage.viewer_reaction, viewer_emoji: currentMessage.viewer_emoji }
         : currentMessage))
       if (editingMessage?.id === updatedMessage.id) {
         setEditPriority(updatedMessage.priority)
@@ -665,7 +723,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
 
       const updatedMessage = (await response.json()) as NoteMessage
       replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedMessage.id
-        ? { ...updatedMessage, viewer_reaction: currentMessage.viewer_reaction }
+        ? { ...updatedMessage, viewer_reaction: currentMessage.viewer_reaction, viewer_emoji: currentMessage.viewer_emoji }
         : currentMessage))
       cancelEditingNote()
     } catch (updateError) {
@@ -693,6 +751,8 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       upvotes: 0,
       downvotes: 0,
       viewer_reaction: 0,
+      emoji_reactions: [],
+      viewer_emoji: null,
     }
 
     setIsSubmitting(true)
@@ -773,6 +833,46 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       showToast(reactionError instanceof Error ? reactionError.message : '互动更新失败，请稍后再试。')
     } finally {
       setReactionUpdatingIds((current) => {
+        const next = { ...current }
+        delete next[message.id]
+        return next
+      })
+    }
+  }
+
+  async function handleEmojiReaction(message: NoteMessage, emoji: string) {
+    if (!reactionIdentity || emojiUpdatingIds[message.id]) return
+
+    const snapshot = messagesRef.current.find((entry) => entry.id === message.id)
+    if (!snapshot) return
+
+    setEmojiUpdatingIds((current) => ({ ...current, [message.id]: true }))
+    replaceMessages((current) => current.map((entry) => entry.id === message.id ? applyOptimisticEmojiToMessage(entry, emoji) : entry), {
+      sort: false,
+    })
+
+    try {
+      const response = await fetch(`/api/comments/${message.id}/emoji`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity: reactionIdentity, emoji }),
+      })
+
+      if (!response.ok) {
+        throw new Error('表情互动更新失败，请稍后再试。')
+      }
+
+      const summary = await response.json() as Pick<NoteMessage, 'emoji_reactions' | 'viewer_emoji'>
+      replaceMessages((current) => current.map((entry) => entry.id === message.id ? { ...entry, ...summary } : entry), {
+        sort: false,
+      })
+    } catch (emojiError) {
+      replaceMessages((current) => current.map((entry) => entry.id === message.id ? snapshot : entry), {
+        sort: false,
+      })
+      showToast(emojiError instanceof Error ? emojiError.message : '表情互动更新失败，请稍后再试。')
+    } finally {
+      setEmojiUpdatingIds((current) => {
         const next = { ...current }
         delete next[message.id]
         return next
@@ -884,8 +984,12 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
         upvotes: message.upvotes,
         downvotes: message.downvotes,
         viewerReaction: message.viewer_reaction,
+        emojiReactions: message.emoji_reactions,
+        viewerEmoji: message.viewer_emoji,
         pending: Boolean(reactionUpdatingIds[message.id]),
+        emojiPending: Boolean(emojiUpdatingIds[message.id]),
         onReact: (value) => void handleReaction(message, value),
+        onEmojiReact: (emoji) => void handleEmojiReaction(message, emoji),
       },
       inlineEditor: isEditing ? {
         value: editContent,

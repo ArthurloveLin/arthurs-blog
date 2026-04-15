@@ -251,6 +251,61 @@
   transform: scale(1.1);
 }
 
+.emoji-radial-wheel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10.5rem;
+  height: 10.5rem;
+  translate: -50% -50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.emoji-radial-wheel--open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.emoji-radial-wheel__item {
+  position: absolute;
+  left: calc(50% - 1.4rem);
+  top: calc(50% - 1.4rem);
+  display: inline-flex;
+  height: 2.8rem;
+  width: 2.8rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 42px -24px rgba(15, 23, 42, 0.45);
+  font-size: 1.15rem;
+  transform:
+    rotate(calc(var(--emoji-index) * (320deg / var(--emoji-total))))
+    translate(0)
+    rotate(calc(var(--emoji-index) * (-320deg / var(--emoji-total))));
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), scale 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+
+.emoji-radial-wheel--open .emoji-radial-wheel__item {
+  transform:
+    rotate(calc((var(--emoji-index) * (320deg / var(--emoji-total))) - 140deg))
+    translate(4.1rem)
+    rotate(calc((var(--emoji-index) * (-320deg / var(--emoji-total))) + 140deg));
+}
+
+.emoji-radial-wheel__item:hover {
+  scale: 1.08;
+  background: rgba(248, 250, 252, 0.98);
+}
+
+.emoji-radial-wheel__item--active {
+  border-color: rgba(124, 58, 237, 0.24);
+  background: rgba(124, 58, 237, 0.08);
+}
+
 /* Blog Hero Sync Classes */
 .blog-hero-title {
   font-size: 1.5rem; /* text-2xl - 更紧凑且容易对位 */
