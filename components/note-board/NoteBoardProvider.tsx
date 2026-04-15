@@ -160,6 +160,30 @@ function getBoardQueryKey(boardSlug: string, archived: boolean, sort: NoteSortMo
   return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}`
 }
 
+function applyOptimisticReactionToMessage(message: NoteMessage, nextReaction: 1 | -1 | 0) {
+  let upvotes = message.upvotes
+  let downvotes = message.downvotes
+
+  if (message.viewer_reaction === 1) {
+    upvotes = Math.max(0, upvotes - 1)
+  } else if (message.viewer_reaction === -1) {
+    downvotes = Math.max(0, downvotes - 1)
+  }
+
+  if (nextReaction === 1) {
+    upvotes += 1
+  } else if (nextReaction === -1) {
+    downvotes += 1
+  }
+
+  return {
+    ...message,
+    upvotes,
+    downvotes,
+    viewer_reaction: nextReaction,
+  }
+}
+
 function createBoardPayload(
   messages: NoteMessage[],
   archived: boolean,
@@ -202,7 +226,10 @@ function isSameBoardSurfacePayload(
       left.updated_at !== right.updated_at ||
       left.priority !== right.priority ||
       left.archived !== right.archived ||
-      left.parent_id !== right.parent_id
+      left.parent_id !== right.parent_id ||
+      left.upvotes !== right.upvotes ||
+      left.downvotes !== right.downvotes ||
+      left.viewer_reaction !== right.viewer_reaction
     ) {
       return false
     }
@@ -266,10 +293,13 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
   const [draftPriority, setDraftPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
   const [editPriority, setEditPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
   const [priorityUpdatingIds, setPriorityUpdatingIds] = useState<Record<string, boolean>>({})
+  const [reactionUpdatingIds, setReactionUpdatingIds] = useState<Record<string, boolean>>({})
+  const [freshMessageIds, setFreshMessageIds] = useState<Record<string, boolean>>({})
   const [toastNotice, setToastNotice] = useState<ToastNotice | null>(null)
   const [isMobileViewport, setIsMobileViewport] = useState<boolean | null>(null)
   const zIndexCounterRef = useRef(initialSortedMessages.length + 2)
   const toastTimerRef = useRef<number | null>(null)
+  const freshTimerRefs = useRef<Record<string, number>>({})
   const pendingOptimisticIdsRef = useRef<Set<string>>(new Set())
   const messagesRef = useRef(initialSortedMessages)
   const customPositionsRef = useRef<Record<string, NotePosition>>({})
@@ -277,6 +307,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     Object.fromEntries(initialSortedMessages.map((message, index) => [message.id, initialSortedMessages.length - index + 1])),
   )
   const viewerIdentity = publicIdentity ?? ''
+  const reactionIdentity = identity?.trim() ?? ''
   const viewerIdentityAliases = identityAliases.length > 0 ? identityAliases : [identity].filter(Boolean)
   const canWrite = board.slug === 'guestbook' || isAdmin
   const priorityEnabled = board.slug === 'memo'
@@ -293,8 +324,8 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     [initialHasMore, initialSortedMessages],
   )
   const activeBoardQueryKey = useMemo(
-    () => getBoardQueryKey(board.slug, showArchived, sortMode),
-    [board.slug, showArchived, sortMode],
+    () => getBoardQueryKey(board.slug, showArchived, sortMode) + `:${reactionIdentity || 'anon'}`,
+    [board.slug, reactionIdentity, showArchived, sortMode],
   )
   const activeBoardQueryKeyRef = useRef(activeBoardQueryKey)
 
@@ -304,14 +335,25 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     offset = 0,
     limit = board.initialPageLimit,
   ) => {
-    const response = await fetch(`/api/note-boards/${board.slug}?offset=${offset}&limit=${limit}&archived=${archived ? '1' : '0'}&sort=${sort}`)
+    const searchParams = new URLSearchParams({
+      offset: String(offset),
+      limit: String(limit),
+      archived: archived ? '1' : '0',
+      sort,
+    })
+
+    if (reactionIdentity) {
+      searchParams.set('identity', reactionIdentity)
+    }
+
+    const response = await fetch(`/api/note-boards/${board.slug}?${searchParams.toString()}`)
     if (!response.ok) {
       throw new Error('便签加载失败，请稍后重试。')
     }
 
     const payload = await response.json() as { messages: NoteMessage[]; nextOffset: number; hasMore: boolean }
     return createBoardPayload(payload.messages, archived, sort, payload.nextOffset, payload.hasMore)
-  }, [board.initialPageLimit, board.slug, sortMode])
+  }, [board.initialPageLimit, board.slug, reactionIdentity, sortMode])
 
   const {
     data: boardPayload,
@@ -341,6 +383,23 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       toastTimerRef.current = null
     }, 2800)
   }
+
+  const markMessageFresh = useCallback((id: string) => {
+    setFreshMessageIds((current) => ({ ...current, [id]: true }))
+
+    if (freshTimerRefs.current[id]) {
+      window.clearTimeout(freshTimerRefs.current[id])
+    }
+
+    freshTimerRefs.current[id] = window.setTimeout(() => {
+      setFreshMessageIds((current) => {
+        const next = { ...current }
+        delete next[id]
+        return next
+      })
+      delete freshTimerRefs.current[id]
+    }, 900)
+  }, [])
 
   const scrollToEditor = useCallback(() => {
     window.requestAnimationFrame(() => {
@@ -564,7 +623,9 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       }
 
       const updatedMessage = (await response.json()) as NoteMessage
-      replaceMessages((current) => current.map((message) => message.id === updatedMessage.id ? updatedMessage : message))
+      replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedMessage.id
+        ? { ...updatedMessage, viewer_reaction: currentMessage.viewer_reaction }
+        : currentMessage))
       if (editingMessage?.id === updatedMessage.id) {
         setEditPriority(updatedMessage.priority)
       }
@@ -603,7 +664,9 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       }
 
       const updatedMessage = (await response.json()) as NoteMessage
-      replaceMessages((current) => current.map((message) => message.id === updatedMessage.id ? updatedMessage : message))
+      replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedMessage.id
+        ? { ...updatedMessage, viewer_reaction: currentMessage.viewer_reaction }
+        : currentMessage))
       cancelEditingNote()
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : '便签更新失败，请稍后再试。')
@@ -615,14 +678,39 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
   async function submitDraft() {
     if (!draft.trim() || !identity || !canWrite || isSubmitting) return
 
+    const draftValue = draft.trim()
+    const draftPriorityValue = draftPriority
+    const optimisticId = `optimistic-${crypto.randomUUID()}`
+    const optimisticMessage: NoteMessage = {
+      id: optimisticId,
+      author: publicIdentity,
+      content: draftValue,
+      created_at: new Date().toISOString(),
+      updated_at: null,
+      priority: draftPriorityValue,
+      archived: false,
+      parent_id: null,
+      upvotes: 0,
+      downvotes: 0,
+      viewer_reaction: 0,
+    }
+
     setIsSubmitting(true)
     setError(null)
+    setDraft('')
+    setDraftPriority(DEFAULT_NOTE_PRIORITY)
+    replaceMessages((current) => [optimisticMessage, ...current], {
+      resetPositions: true,
+      nextOffset: nextOffset + 1,
+      hasMore,
+    })
+    markMessageFresh(optimisticId)
 
     try {
       const response = await fetch(`/api/note-boards/${board.slug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author: publicIdentity, content: draft.trim(), priority: draftPriority }),
+        body: JSON.stringify({ author: publicIdentity, content: draftValue, priority: draftPriorityValue }),
       })
 
       if (!response.ok) {
@@ -630,17 +718,65 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       }
 
       const message = (await response.json()) as NoteMessage
-      replaceMessages((current) => [message, ...current], {
+      replaceMessages((current) => current.map((currentMessage) => currentMessage.id === optimisticId ? message : currentMessage), {
         resetPositions: true,
         nextOffset: nextOffset + 1,
         hasMore,
       })
-      setDraft('')
-      setDraftPriority(DEFAULT_NOTE_PRIORITY)
+      markMessageFresh(message.id)
     } catch (submitError) {
+      replaceMessages((current) => current.filter((message) => message.id !== optimisticId), {
+        resetPositions: true,
+        nextOffset: Math.max(nextOffset, 0),
+        hasMore,
+      })
+      setDraft(draftValue)
+      setDraftPriority(draftPriorityValue)
       setError(submitError instanceof Error ? submitError.message : '便签保存失败，请稍后再试。')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleReaction(message: NoteMessage, value: 1 | -1) {
+    if (!reactionIdentity || reactionUpdatingIds[message.id]) return
+
+    const snapshot = messagesRef.current.find((entry) => entry.id === message.id)
+    if (!snapshot) return
+
+    const nextReaction = message.viewer_reaction === value ? 0 : value
+
+    setReactionUpdatingIds((current) => ({ ...current, [message.id]: true }))
+    replaceMessages((current) => current.map((entry) => entry.id === message.id ? applyOptimisticReactionToMessage(entry, nextReaction) : entry), {
+      sort: false,
+    })
+
+    try {
+      const response = await fetch(`/api/comments/${message.id}/reaction`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity: reactionIdentity, reaction: nextReaction }),
+      })
+
+      if (!response.ok) {
+        throw new Error('互动更新失败，请稍后再试。')
+      }
+
+      const summary = await response.json() as Pick<NoteMessage, 'upvotes' | 'downvotes' | 'viewer_reaction'>
+      replaceMessages((current) => current.map((entry) => entry.id === message.id ? { ...entry, ...summary } : entry), {
+        sort: false,
+      })
+    } catch (reactionError) {
+      replaceMessages((current) => current.map((entry) => entry.id === message.id ? snapshot : entry), {
+        sort: false,
+      })
+      showToast(reactionError instanceof Error ? reactionError.message : '互动更新失败，请稍后再试。')
+    } finally {
+      setReactionUpdatingIds((current) => {
+        const next = { ...current }
+        delete next[message.id]
+        return next
+      })
     }
   }
 
@@ -732,6 +868,8 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       canEdit,
       isEditing,
       isPriorityUpdating,
+      isOptimistic: message.id.startsWith('optimistic-'),
+      isFresh: Boolean(freshMessageIds[message.id]),
       actions: {
         delete: canDelete ? { onClick: () => void handleDelete(message.id) } : undefined,
         edit: canEdit ? { onClick: () => startEditingNote(message) } : undefined,
@@ -742,12 +880,20 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
         onChange: canEdit ? (priority) => void handlePriorityChange(message, priority) : undefined,
         disabled: isPriorityUpdating || !canEdit,
       } : undefined,
+      reactionControl: {
+        upvotes: message.upvotes,
+        downvotes: message.downvotes,
+        viewerReaction: message.viewer_reaction,
+        pending: Boolean(reactionUpdatingIds[message.id]),
+        onReact: (value) => void handleReaction(message, value),
+      },
       inlineEditor: isEditing ? {
         value: editContent,
         isSaving: isUpdatingNote,
         onChange: setEditContent,
         onSave: () => void saveEditingNote(),
         onCancel: cancelEditingNote,
+        surfaceMinHeight: measuredHeights[message.id],
       } : undefined,
     }
   })
@@ -990,6 +1136,8 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     if (toastTimerRef.current !== null) {
       window.clearTimeout(toastTimerRef.current)
     }
+
+    Object.values(freshTimerRefs.current).forEach((timer) => window.clearTimeout(timer))
   }, [])
 
   return (

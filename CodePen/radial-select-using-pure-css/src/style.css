@@ -1,0 +1,112 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+@supports (appearance: base-select) {
+
+    select,
+    ::picker(select) {
+        appearance: base-select;
+    }
+
+    select {
+        width: 20rem;
+        height: 20rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: none;
+        overflow: visible;
+
+        &:hover,
+        &:focus,
+        &:active {
+            background-color: transparent;
+            outline: none;
+            border: none;
+        }
+
+        selectedcontent {
+            z-index: 2;
+            font-size: 6rem;
+            width: 8rem;
+            height: 8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4rem;
+            position: relative;
+        }
+
+        &::picker-icon {
+            display: none;
+        }
+
+        position: relative;
+
+        option {
+            cursor: pointer;
+            position: absolute;
+            left: calc(50% - 2.5rem);
+            top: calc(50% - 2.5rem);
+            font-size: 3rem;
+            width: 5rem;
+            height: 5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3rem;
+            transition: all 0.5s;
+
+            &:hover {
+                scale: 1.05;
+            }
+
+            &::checkmark {
+                display: none;
+            }
+        }
+
+        &:open option {
+            transform: rotate(calc(sibling-index() * 50deg)) translate(100px) rotate(calc(sibling-index() * -50deg));
+        }
+    }
+
+    ::picker(select):popover-open {
+        opacity: 1;
+
+        @starting-style {
+            display: block;
+        }
+
+        top: calc(anchor(center) - 10em);
+        left: calc(anchor(center) - 10em);
+    }
+
+    ::picker(select) {
+        z-index: 1;
+        outline: none;
+        border: none;
+        interpolate-size: allow-keywords;
+        border-radius: 10em;
+        background: transparent;
+        width: 20em;
+        height: 20em;
+        position: absolute;
+        top: calc(anchor(center) - 10em);
+        left: calc(anchor(center) - 10em);
+        transition: all 1s;
+        opacity: 0;
+        display: block;
+    }
+}
