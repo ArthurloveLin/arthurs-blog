@@ -36,7 +36,7 @@ export const TEMPLATES: Record<string, TemplateConfig> = {
     descLabels: { buy: '买', skip: '不买', pending: '待定' },
     titlePlaceholder: '例如：2025年5月选购',
     notePlaceholder: '可选，记录该次穿衣搭配的整体思路...',
-    itemNotePlaceholder: '品牌、尺码、颜色、面料等信息...',
+    itemNotePlaceholder: '品牌、尺码、颜色、面料、链接等商品信息...',
     priceLabel: '价格',
   },
   food: {
