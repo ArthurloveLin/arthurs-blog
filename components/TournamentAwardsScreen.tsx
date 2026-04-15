@@ -13,56 +13,74 @@ export interface AwardsResults {
   thirdPlace?: AwardsItem
 }
 
-function AwardCard({ item, rank, label, color }: { item: AwardsItem, rank: number, label: string, color: 'gold' | 'silver' | 'bronze' }) {
-  const configs = {
-    gold: {
-      border: 'border-yellow-500/50',
-      badge: 'bg-yellow-500 text-black',
-      glow: 'shadow-yellow-500/30',
-      gradient: 'from-yellow-400 to-orange-600',
-      icon: '🥇'
-    },
-    silver: {
-      border: 'border-slate-400/50',
-      badge: 'bg-slate-300 text-black',
-      glow: 'shadow-slate-400/20',
-      gradient: 'from-slate-300 to-slate-500',
-      icon: '🥈'
-    },
-    bronze: {
-      border: 'border-amber-700/50',
-      badge: 'bg-amber-700 text-white',
-      glow: 'shadow-amber-900/20',
-      gradient: 'from-amber-600 to-amber-900',
-      icon: '🥉'
-    }
-  }[color]
+type Rank = 'gold' | 'silver' | 'bronze'
+
+const RANK_CONFIG: Record<Rank, {
+  border: string
+  glow: string
+  badge: string
+  label: string
+  medal: string
+  podiumHeight: string
+}> = {
+  gold: {
+    border: 'border-yellow-400/60',
+    glow: 'shadow-[0_8px_40px_rgba(234,179,8,0.25)]',
+    badge: 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/30',
+    label: '冠军',
+    medal: '🥇',
+    podiumHeight: 'md:pt-0',
+  },
+  silver: {
+    border: 'border-slate-400/40',
+    glow: 'shadow-[0_8px_25px_rgba(148,163,184,0.15)]',
+    badge: 'bg-slate-400/15 text-slate-300 border border-slate-400/25',
+    label: '亚军',
+    medal: '🥈',
+    podiumHeight: 'md:pt-8',
+  },
+  bronze: {
+    border: 'border-amber-700/40',
+    glow: 'shadow-[0_8px_25px_rgba(180,83,9,0.12)]',
+    badge: 'bg-amber-700/15 text-amber-400 border border-amber-700/30',
+    label: '季军',
+    medal: '🥉',
+    podiumHeight: 'md:pt-12',
+  },
+}
+
+function AwardCard({ item, rank }: { item: AwardsItem; rank: Rank }) {
+  const cfg = RANK_CONFIG[rank]
 
   return (
-    <div className="flex flex-col items-center group">
-       <div className={`relative aspect-[3/4] w-full rounded-3xl overflow-hidden border-4 ${configs.border} shadow-2xl ${configs.glow} transition-transform duration-500 group-hover:-translate-y-4`}>
+    <div className={`flex flex-col items-center gap-3 ${cfg.podiumHeight}`}>
+      {/* Medal badge */}
+      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide ${cfg.badge}`}>
+        <span>{cfg.medal}</span>
+        {cfg.label}
+      </div>
+
+      {/* Image card */}
+      <div className={`relative w-full rounded-xl overflow-hidden border-2 ${cfg.border} ${cfg.glow} transition-transform duration-500 hover:-translate-y-1`}>
+        <div className="aspect-[3/4]">
           <Image
             src={item.image_url}
-            alt={label}
+            alt={cfg.label}
             fill
-            sizes="(max-width: 768px) 200px, 400px"
+            sizes="(max-width: 768px) 33vw, 240px"
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-          
-          {rank === 1 && <div className="absolute inset-0 animate-champion-shine opacity-60" />}
-          
-          <div className="absolute bottom-4 left-0 right-0 text-center">
-            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${configs.badge} text-[10px] font-black tracking-widest uppercase`}>
-              <span>{configs.icon}</span>
-              {label}
-            </div>
-          </div>
-       </div>
-       <div className="mt-4 text-center">
-          <p className="text-white/60 text-[10px] font-black tracking-[0.2em] uppercase">{color}</p>
-          {item.price && <p className="text-white font-mono font-bold">¥{item.price}</p>}
-       </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          {rank === 'gold' && (
+            <div className="absolute inset-0 animate-champion-shine opacity-40" />
+          )}
+        </div>
+      </div>
+
+      {/* Price */}
+      {item.price != null && (
+        <span className="font-mono text-sm text-white/60 font-medium">¥{item.price}</span>
+      )}
     </div>
   )
 }
@@ -78,50 +96,64 @@ export function TournamentAwardsScreen({
   saving: boolean
   templateConfig?: import('@/lib/templates').TemplateConfig
 }) {
+  const name = templateConfig?.name || '穿搭'
+
   return (
-    <div className="text-center w-full max-w-4xl animate-in fade-in zoom-in duration-1000">
-      <div className="mb-12 relative">
-        <div className="absolute inset-0 -top-20 flex justify-center pointer-events-none">
-           <div className="w-96 h-96 bg-violet-500/20 blur-[120px] rounded-full animate-pulse" />
+    <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-6 animate-in fade-in zoom-in-95 duration-700 overflow-hidden">
+      {/* Header */}
+      <div className="text-center space-y-2 relative">
+        {/* Glow blob */}
+        <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-64 h-32 rounded-full pointer-events-none"
+          style={{ background: 'var(--blob-color-1)', filter: 'blur(60px)' }} />
+
+        <div className="relative inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/50 text-[11px] font-medium tracking-wider">
+          🏆 锦标赛结果
         </div>
-        <span className="inline-block px-5 py-2 rounded-full bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-500 text-[10px] md:text-xs font-black tracking-[0.2em] uppercase mb-6 border border-yellow-500/20 shadow-[0_0_30px_rgba(234,179,8,0.1)]">
-          🏆 Tournament Finished
-        </span>
-        <h2 className="text-3xl md:text-6xl font-black text-white mb-4 tracking-tighter">Your {templateConfig?.name || 'Life Lens'} <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500">Elite</span></h2>
-        <p className="text-white/40 text-[10px] md:text-sm font-medium px-6">The results are in. These {templateConfig?.itemLabel || 'items'} represent your ultimate choice.</p>
+        <h2 className="relative text-2xl md:text-4xl font-black text-white tracking-tight leading-tight">
+          你的{' '}
+          <span className="inline-block px-1 text-gradient-primary">{name}</span>{' '}
+          排行榜
+        </h2>
+        <p className="relative text-white/35 text-xs md:text-sm">
+          {results.thirdPlace ? '三件' : '两件'}单品，已决出最终名次
+        </p>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-end px-4 max-h-[50vh] md:max-h-none overflow-y-auto md:overflow-visible pb-4">
-        {/* Runner Up */}
-        <div className="order-2 md:order-1 animate-in slide-in-from-bottom-8 duration-700 delay-200 w-full max-w-[160px] md:max-w-none mx-auto">
-          <AwardCard item={results.runnerUp} rank={2} label="Runner Up" color="silver" />
+
+      {/* Podium */}
+      <div className="w-full grid grid-cols-3 gap-3 md:gap-5 items-end px-2">
+        {/* 亚军 */}
+        <div className="animate-in slide-in-from-bottom-6 duration-700 delay-200">
+          <AwardCard item={results.runnerUp} rank="silver" />
         </div>
-        
-        {/* Champion */}
-        <div className="order-1 md:order-2 scale-100 md:scale-110 z-10 animate-in slide-in-from-bottom-12 duration-1000 w-full max-w-[200px] md:max-w-none mx-auto">
-          <AwardCard item={results.champion} rank={1} label="Champion" color="gold" />
+
+        {/* 冠军 — 中间，最高凸起 */}
+        <div className="animate-in slide-in-from-bottom-8 duration-700 scale-[1.04] origin-bottom z-10">
+          <AwardCard item={results.champion} rank="gold" />
         </div>
-        
-        {/* Third Place */}
-        {results.thirdPlace && (
-          <div className="order-3 animate-in slide-in-from-bottom-8 duration-700 delay-400 w-full max-w-[140px] md:max-w-none mx-auto">
-            <AwardCard item={results.thirdPlace} rank={3} label="Third Place" color="bronze" />
+
+        {/* 季军 */}
+        {results.thirdPlace ? (
+          <div className="animate-in slide-in-from-bottom-6 duration-700 delay-300">
+            <AwardCard item={results.thirdPlace} rank="bronze" />
           </div>
+        ) : (
+          <div /> /* 占位 */
         )}
       </div>
 
-      <div className="mt-8 md:mt-20 flex flex-col items-center gap-4">
+      {/* Actions */}
+      <div className="flex flex-col items-center gap-3 pt-2">
         {saving && (
-           <p className="text-yellow-500/60 text-xs animate-pulse font-mono">Saving ranks to database...</p>
+          <p className="text-white/40 text-xs font-mono animate-pulse">正在保存排名...</p>
         )}
         <button
           onClick={onClose}
-          className="px-12 py-4 bg-white text-black rounded-2xl font-black text-sm tracking-widest uppercase hover:bg-white/90 hover:scale-105 active:scale-95 transition-all shadow-[0_20px_50px_rgba(255,255,255,0.1)] group"
+          className="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm tracking-wide hover:opacity-90 active:scale-95 transition-all duration-200 shadow-lg"
         >
-          <span className="group-hover:animate-bounce inline-block mr-2">✦</span>
-          Return to Selection
+          返回衣橱
         </button>
       </div>
     </div>
   )
 }
+

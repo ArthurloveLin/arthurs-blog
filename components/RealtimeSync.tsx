@@ -2,13 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
-
-// 只用 NEXT_PUBLIC_ 变量，避免引入 lib/supabase.ts（含 service role key，浏览器端不可用）
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { supabase } from '@/lib/supabase'
 
 interface RealtimeSyncProps {
   sessionId: string

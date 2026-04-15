@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import ItemDetail from '@/components/ItemDetail'
 import ActivityBanner from '@/components/ActivityBanner'
 import RealtimeSync from '@/components/RealtimeSync'

@@ -360,15 +360,31 @@ const ViewableItemCard = memo(({
             </div>
           )}
 
-          {/* Rank Medal - Ribbon Style */}
+          {/* Rank ribbon - top-right corner diagonal */}
           {item.rank && item.rank <= 3 && (
             <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden z-20 pointer-events-none">
-              <div className={`absolute top-[18px] right-[-24px] w-[90px] rotate-45 text-white text-[9px] font-black py-0.5 shadow-xl border-y border-white/20 text-center uppercase tracking-tighter ${
-                item.rank === 1 ? 'bg-gradient-to-r from-yellow-400 to-orange-500 animate-champion-shine bg-[length:200%_100%]' : 
-                item.rank === 2 ? 'bg-gradient-to-r from-slate-300 to-slate-500' : 
-                'bg-gradient-to-r from-amber-600 to-amber-800'
-              }`}>
-                {item.rank === 1 ? '🥇 冠军' : item.rank === 2 ? '🥈 亚军' : '🥉 季军'}
+              <div
+                className="absolute top-[18px] right-[-22px] w-[90px] rotate-45 text-[8px] font-bold py-0.5 text-center leading-tight"
+                style={{
+                  background:
+                    item.rank === 1 ? 'rgba(216,180,72,0.68)' :
+                    item.rank === 2 ? 'rgba(192,198,208,0.68)' :
+                    'rgba(182,138,90,0.68)',
+                  backdropFilter: 'blur(4px)',
+                  WebkitBackdropFilter: 'blur(4px)',
+                  color:
+                    item.rank === 1 ? '#2a1800' :
+                    item.rank === 2 ? '#1a202c' :
+                    '#1f120a',
+                  borderTop: item.rank === 1 ? '1px solid rgba(255,225,100,0.35)' :
+                    item.rank === 2 ? '1px solid rgba(235,240,248,0.35)' :
+                    '1px solid rgba(220,180,130,0.35)',
+                  borderBottom: item.rank === 1 ? '1px solid rgba(255,225,100,0.35)' :
+                    item.rank === 2 ? '1px solid rgba(235,240,248,0.35)' :
+                    '1px solid rgba(220,180,130,0.35)',
+                }}
+              >
+                {item.rank === 1 ? '🥇冠军' : item.rank === 2 ? '🥈亚军' : '🥉季军'}
               </div>
             </div>
           )}

@@ -2,7 +2,7 @@ import { cache } from 'react'
 import { DEFAULT_NOTE_PRIORITY, isNotePriority, type NotePriority, type NoteSortMode } from '@/lib/note-priority'
 import { getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export interface NoteMessage {
   id: string
