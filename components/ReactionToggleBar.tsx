@@ -1,7 +1,7 @@
 'use client'
 
 import { ThumbsDown } from 'lucide-react'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, useCallback } from 'react'
 import type { ReactionValue } from '@/lib/comment-reactions'
 import { COMMON_REACTION_EMOJIS } from '@/lib/emoji'
 
@@ -45,53 +45,97 @@ function LikeReactionGlyph({
   animationKey: number
 }) {
   const cssId = useId().replace(/:/g, '')
+  const tlRef = useRef<gsap.core.Timeline | null>(null)
 
+  // Lazy timeline builder to ensure BBox is perfectly available
+  const buildTimeline = useCallback(() => {
+    const q = (id: string) => `#${id}-${cssId}`
+
+    gsap.set([q('breakLineL'), q('breakLineR')], { drawSVG: '100% 100%' })
+
+    const tl = gsap.timeline({ paused: true })
+    tl.timeScale(4)
+
+    tl.fromTo(q('pinkDot'), { attr: { r: 0 } }, { duration: 1, attr: { r: 66 } })
+      .set(q('greyHeart'), { scale: 0, svgOrigin: '300 340.5' }, '-=0.99')
+      .to(q('pinkDot'), { duration: 1, fill: '#CD8FF7' }, '-=1')
+      .fromTo(q('hole'), { attr: { r: 0 } }, { duration: 1, attr: { r: 67 } }, '-=0.5')
+      .fromTo(q('pinkHeart'), { scale: 0, opacity: 0 }, { duration: 1.6, scale: 1, opacity: 1, svgOrigin: '300 300', ease: 'back.out(1.2)' }, '-=0.5')
+      .set([q('sparkleGrowGroup'), q('sparkleMoveGroup')], { opacity: 1 }, '-=1.5')
+      .to(q('sparkleGrowGroup'), { duration: 1, scale: 1.5, svgOrigin: '300 300' }, '-=1.5')
+      .to(q('sparkleMoveGroup'), { duration: 1, scale: 1.2, svgOrigin: '300 300' }, '-=1.5')
+      .to(`${q('sparkleGrowGroup')} circle`, { duration: 2, attr: { r: 0 }, stagger: 0, fill: (i: number) => sparkleGrowColors[i] }, '-=0.9')
+      .to(`${q('sparkleMoveGroup')} circle`, { duration: 0.8, attr: { r: 0 }, stagger: 0, fill: (i: number) => sparkleMoveColors[i] }, '-=2')
+      .set(q('pinkHeart'), { clearProps: 'transform' })
+      // Midpoint pause — exactly like original's setUndoLike callback
+      .addLabel('midpoint')
+      .call(() => { tl.pause() })
+      .set(q('brokenHeartGroup'), { opacity: 1 })
+      .set(q('pinkHeart'), { opacity: 0 })
+      .to([q('breakLineL'), q('breakLineR')], { duration: 3, drawSVG: '0% 100%' })
+      .to(q('brokenHeartL'), { duration: 4, rotation: -90, svgOrigin: '300 340.5', ease: 'power2.in' }, '-=1.5')
+      .to(q('brokenHeartR'), { duration: 4, rotation: 90, svgOrigin: '300 340.5', ease: 'power2.in' }, '-=4')
+      .to(q('greyHeart'), { duration: 3, scale: 1, ease: 'power4.inOut' }, '-=1.6')
+      .set([q('breakLineL'), q('breakLineR')], { drawSVG: '0% 0%' }, '-=3')
+      .to([q('brokenHeartL'), q('brokenHeartR')], { duration: 0.3, opacity: 0 }, '-=2')
+      // Reset state at end so play(0) replays correctly next time
+      .call(() => {
+        gsap.set(q('hole'), { attr: { r: 0 } })
+        gsap.set(q('pinkDot'), { attr: { r: 0 }, fill: '#E52951' })
+        gsap.set([q('brokenHeartL'), q('brokenHeartR')], { opacity: 1, rotation: 0 })
+        gsap.set([q('sparkleGrowGroup'), q('sparkleMoveGroup')], { scale: 1, opacity: 0 })
+        gsap.set(`${q('sparkleGrowGroup')} circle`, { attr: { r: 5 } })
+        gsap.set(`${q('sparkleMoveGroup')} circle`, { attr: { r: 5 } })
+        gsap.set(q('brokenHeartGroup'), { opacity: 0 })
+        tl.pause(0)
+      })
+
+    return tl
+  }, [cssId])
+
+  // Single run to set initial visual properties
   useEffect(() => {
-    if (mode === 'like') {
-      const tl = gsap.timeline({ onComplete: () => { gsap.set(`#pinkHeart-${cssId}`, { clearProps: 'all' }) } });
-      tl.timeScale(4);
-      tl.fromTo(`#pinkDot-${cssId}`, { attr: { r: 0 } }, { duration: 1, attr: { r: 66 } })
-        .set(`#greyHeart-${cssId}`, { scale: 0, transformOrigin: '50% 100%' }, '-=0.99')
-        .to(`#pinkDot-${cssId}`, { duration: 1, fill: '#CD8FF7' }, '-=1')
-        .to(`#hole-${cssId}`, { duration: 1, attr: { r: 67 } }, '-=0.5')
-        .fromTo(`#pinkHeart-${cssId}`, { scale: 0 }, { duration: 1.6, scale: 1, transformOrigin: '50% 50%', ease: 'back.out(1.2)' }, '-=0.5')
-        .set([`#sparkleGrowGroup-${cssId}`, `#sparkleMoveGroup-${cssId}`], { opacity: 1 }, '-=1.5')
-        .to(`#sparkleGrowGroup-${cssId}`, { duration: 1, scale: 1.5, transformOrigin: '50% 50%' }, '-=1.5')
-        .to(`#sparkleMoveGroup-${cssId}`, { duration: 1, scale: 1.2, transformOrigin: '50% 50%' }, '-=1.5')
-        .to(`#sparkleGrowGroup-${cssId} circle`, { duration: 2, attr: { r: 0 }, stagger: 0, fill: i => sparkleGrowColors[i] }, '-=0.9')
-        .to(`#sparkleMoveGroup-${cssId} circle`, { duration: 0.8, attr: { r: 0 }, stagger: 0, fill: i => sparkleMoveColors[i] }, '-=2')
-    } else if (mode === 'unlike') {
-      const tl = gsap.timeline();
-      tl.timeScale(4);
-      tl.set(`#brokenHeartGroup-${cssId}`, { opacity: 1 })
-        .set(`#pinkHeart-${cssId}`, { opacity: 0 })
-        .set([`#breakLineL-${cssId}`, `#breakLineR-${cssId}`], { drawSVG: '100% 100%' })
-        .to([`#breakLineL-${cssId}`, `#breakLineR-${cssId}`], { duration: 3, drawSVG: '0% 100%' })
-        .to(`#brokenHeartL-${cssId}`, { duration: 4, rotation: -90, transformOrigin: '110% 100%', ease: 'power2.in' }, '-=1.5')
-        .to(`#brokenHeartR-${cssId}`, { duration: 4, rotation: 90, transformOrigin: '10% 100%', ease: 'power2.in' }, '-=4')
-        .to(`#greyHeart-${cssId}`, { duration: 3, scale: 1, ease: 'power4.inOut' }, '-=1.6')
-        .set([`#breakLineL-${cssId}`, `#breakLineR-${cssId}`], { opacity: 0 }, '-=3')
-        .to([`#brokenHeartL-${cssId}`, `#brokenHeartR-${cssId}`], { duration: 0.3, opacity: 0 }, '-=2')
+    const q = (id: string) => `#${id}-${cssId}`
+    if (active) {
+      gsap.set(q('pinkHeart'), { opacity: 1, clearProps: 'transform' })
+      gsap.set(q('greyHeart'), { scale: 0, svgOrigin: '300 340.5' })
     } else {
-      // Idle state
-      if (active) {
-        gsap.set(`#pinkHeart-${cssId}`, { scale: 1, opacity: 1 });
-        gsap.set(`#greyHeart-${cssId}`, { scale: 0 });
-      } else {
-        gsap.set(`#pinkHeart-${cssId}`, { scale: 0, opacity: 0 });
-        gsap.set(`#greyHeart-${cssId}`, { scale: 1, opacity: 1 });
-      }
-      gsap.set(`#brokenHeartGroup-${cssId}`, { opacity: 0 });
-      gsap.set([`#sparkleGrowGroup-${cssId}`, `#sparkleMoveGroup-${cssId}`], { opacity: 0 });
-      gsap.set(`#hole-${cssId}`, { attr: { r: 0 } });
-      gsap.set(`#pinkDot-${cssId}`, { attr: { r: 0 }, fill: '#E52951' });
-      gsap.set([`#breakLineL-${cssId}`, `#breakLineR-${cssId}`], { drawSVG: '100% 100%' });
+      gsap.set(q('pinkHeart'), { opacity: 0, scale: 0, svgOrigin: '300 300' })
+      gsap.set(q('greyHeart'), { clearProps: 'transform' })
     }
-  }, [mode, active, cssId, animationKey]);
+    gsap.set([q('sparkleGrowGroup'), q('sparkleMoveGroup')], { opacity: 0 })
+    gsap.set(q('brokenHeartGroup'), { opacity: 0 })
+    gsap.set([q('brokenHeartL'), q('brokenHeartR')], { opacity: 1, rotation: 0 })
+
+    return () => {
+      if (tlRef.current) tlRef.current.kill()
+    }
+  }, [cssId, active])
+
+  // Drive the timeline from explicit mode
+  useEffect(() => {
+    if (mode === 'idle') return
+    
+    // Lazy initialize to guarantee DOM is definitively loaded and BBox isn't 0
+    if (!tlRef.current) {
+      tlRef.current = buildTimeline()
+    }
+    const tl = tlRef.current
+
+    if (!tl) return
+
+    if (mode === 'like') {
+      tl.play(0)
+    } else if (mode === 'unlike') {
+      if (tl.time() > 0 && tl.time() < (tl.labels.midpoint || 0)) {
+        tl.pause('midpoint')
+      }
+      tl.play()
+    }
+  }, [mode, animationKey, buildTimeline])
 
   return (
     <span
-      key={`like-${mode}-${animationKey}-${active ? 'active' : 'idle'}`} /* keeping original key behavior so it runs correctly when replaced? Wait, if we keep key, the DOM destroys, which is exactly why the useEffect runs perfectly. */
       className={[
         'reaction-glyph reaction-glyph--like',
         compact ? 'reaction-glyph--compact' : '',
@@ -105,15 +149,17 @@ function LikeReactionGlyph({
             <circle id={`whiteDot-${cssId}`} fill="#FFFFFF" cx="300" cy="300.5" r="66"/>
             <circle id={`hole-${cssId}`} cx="300" cy="300.5" r="0"/>    
           </mask>
-          <path id={`heartDef-${cssId}`} d="M318.2,259.5c-7.5,0-14.2,3.7-18.2,9.5c-4-5.7-10.7-9.5-18.2-9.5
-          c-12.3,0-22.3,10-22.3,22.3c0,30.4,31.6,58.7,40.5,58.7s40.5-28.4,40.5-58.7C340.5,269.5,330.5,259.5,318.2,259.5z"/>  
         </defs>
         
-        <use id={`greyHeart-${cssId}`} href={`#heartDef-${cssId}`} fill="#AAB8C2"/> 
-        <use id={`pinkHeart-${cssId}`} href={`#heartDef-${cssId}`} fill="#E2264D" style={{ opacity: active ? 1 : 0, scale: active ? 1 : 0, transformOrigin: '50% 50%' }} /> 
+        <path id={`greyHeart-${cssId}`}
+          d="M318.2,259.5c-7.5,0-14.2,3.7-18.2,9.5c-4-5.7-10.7-9.5-18.2-9.5c-12.3,0-22.3,10-22.3,22.3c0,30.4,31.6,58.7,40.5,58.7s40.5-28.4,40.5-58.7C340.5,269.5,330.5,259.5,318.2,259.5z"
+          fill="#AAB8C2"/>
+        <path id={`pinkHeart-${cssId}`}
+          d="M318.2,259.5c-7.5,0-14.2,3.7-18.2,9.5c-4-5.7-10.7-9.5-18.2-9.5c-12.3,0-22.3,10-22.3,22.3c0,30.4,31.6,58.7,40.5,58.7s40.5-28.4,40.5-58.7C340.5,269.5,330.5,259.5,318.2,259.5z"
+          fill="#E2264D"/>
 
         <g mask={`url(#${cssId})`}>
-          <circle id={`pinkDot-${cssId}`} fill="#E52951" cx="300" cy="300.5" r="66" style={{ r: 0 }} />
+          <circle id={`pinkDot-${cssId}`} fill="#E52951" cx="300" cy="300.5" r="0"/>
         </g>
         <g id={`sparkleGrowGroup-${cssId}`} opacity="0">
           <circle fill="#91D1F9" cx="310.7" cy="239" r="5"/>
@@ -226,10 +272,10 @@ export default function ReactionToggleBar({
   const containerClassName = compact
     ? 'gap-1.5 text-[10px]'
     : isHero
-      ? 'gap-4 text-[11px]'
+      ? 'gap-3 text-[11px]'
       : 'gap-2 text-[11px]'
   const buttonClassName = isHero
-    ? 'min-h-[6.8rem] min-w-[7.8rem] rounded-[28px] px-5 py-3'
+    ? 'min-h-[4.8rem] min-w-[5.5rem] rounded-[20px] px-4 py-2.5'
     : variant === 'bare'
       ? compact
         ? 'h-7 px-0.5'
@@ -237,11 +283,11 @@ export default function ReactionToggleBar({
       : compact
         ? 'h-7 rounded-full px-2.5'
         : 'h-8 rounded-full px-3'
-  const contentClassName = isHero ? 'flex-col gap-2.5' : 'flex-row gap-1.5'
+  const contentClassName = isHero ? 'flex-col gap-2' : 'flex-row gap-1.5'
   const countClassName = isHero
-    ? 'text-[1.55rem] font-semibold leading-none tracking-[-0.03em]'
+    ? 'text-[1.2rem] font-semibold leading-none tracking-[-0.03em]'
     : 'tabular-nums transition-transform duration-200'
-  const glyphClassName = isHero ? 'h-10 w-10' : compact ? 'h-4 w-4' : 'h-[1.15rem] w-[1.15rem]'
+  const glyphClassName = isHero ? 'h-7 w-7' : compact ? 'h-4 w-4' : 'h-[1.15rem] w-[1.15rem]'
 
   function clearLongPressTimer() {
     if (pressTimerRef.current !== null) {
