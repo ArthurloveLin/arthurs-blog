@@ -185,25 +185,26 @@ function applyOptimisticReactionToMessage(message: NoteMessage, nextReaction: 1 
 }
 
 function applyOptimisticEmojiToMessage(message: NoteMessage, nextEmoji: string) {
-  const activeEmoji = message.viewer_emoji === nextEmoji ? null : nextEmoji
+  const viewerEmojiSet = new Set(message.viewer_emojis)
+  const removingEmoji = viewerEmojiSet.has(nextEmoji)
   const summaryMap = new Map(message.emoji_reactions.map((entry) => [entry.emoji, { ...entry }]))
 
-  if (message.viewer_emoji) {
-    const previous = summaryMap.get(message.viewer_emoji)
+  if (removingEmoji) {
+    viewerEmojiSet.delete(nextEmoji)
+    const previous = summaryMap.get(nextEmoji)
     if (previous) {
       const nextCount = previous.count - 1
       if (nextCount > 0) {
-        summaryMap.set(message.viewer_emoji, { ...previous, count: nextCount, viewer: false })
+        summaryMap.set(nextEmoji, { ...previous, count: nextCount, viewer: false })
       } else {
-        summaryMap.delete(message.viewer_emoji)
+        summaryMap.delete(nextEmoji)
       }
     }
-  }
-
-  if (activeEmoji) {
-    const current = summaryMap.get(activeEmoji)
-    summaryMap.set(activeEmoji, {
-      emoji: activeEmoji,
+  } else {
+    viewerEmojiSet.add(nextEmoji)
+    const current = summaryMap.get(nextEmoji)
+    summaryMap.set(nextEmoji, {
+      emoji: nextEmoji,
       count: (current?.count ?? 0) + 1,
       viewer: true,
     })
@@ -211,7 +212,7 @@ function applyOptimisticEmojiToMessage(message: NoteMessage, nextEmoji: string) 
 
   return {
     ...message,
-    viewer_emoji: activeEmoji,
+    viewer_emojis: [...viewerEmojiSet].sort((left, right) => left.localeCompare(right)),
     emoji_reactions: [...summaryMap.values()].sort((left, right) => {
       if (right.count !== left.count) {
         return right.count - left.count
@@ -272,10 +273,16 @@ function isSameBoardSurfacePayload(
       left.upvotes !== right.upvotes ||
       left.downvotes !== right.downvotes ||
       left.viewer_reaction !== right.viewer_reaction ||
-      left.viewer_emoji !== right.viewer_emoji ||
+      left.viewer_emojis.length !== right.viewer_emojis.length ||
       left.emoji_reactions.length !== right.emoji_reactions.length
     ) {
       return false
+    }
+
+    for (let viewerEmojiIndex = 0; viewerEmojiIndex < left.viewer_emojis.length; viewerEmojiIndex += 1) {
+      if (left.viewer_emojis[viewerEmojiIndex] !== right.viewer_emojis[viewerEmojiIndex]) {
+        return false
+      }
     }
 
     for (let emojiIndex = 0; emojiIndex < left.emoji_reactions.length; emojiIndex += 1) {
@@ -361,6 +368,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
   const pendingOptimisticIdsRef = useRef<Set<string>>(new Set())
   const messagesRef = useRef(initialSortedMessages)
   const customPositionsRef = useRef<Record<string, NotePosition>>({})
+  const getTargetPositionRef = useRef<(index: number) => NotePosition>(() => ({ x: 0, y: 0, rotation: 0 }))
   const cardZIndicesRef = useRef<Record<string, number>>(
     Object.fromEntries(initialSortedMessages.map((message, index) => [message.id, initialSortedMessages.length - index + 1])),
   )
@@ -682,7 +690,14 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
 
       const updatedMessage = (await response.json()) as NoteMessage
       replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedMessage.id
-        ? { ...updatedMessage, viewer_reaction: currentMessage.viewer_reaction, viewer_emoji: currentMessage.viewer_emoji }
+        ? {
+          ...updatedMessage,
+          upvotes: currentMessage.upvotes,
+          downvotes: currentMessage.downvotes,
+          viewer_reaction: currentMessage.viewer_reaction,
+          emoji_reactions: currentMessage.emoji_reactions,
+          viewer_emojis: currentMessage.viewer_emojis,
+        }
         : currentMessage))
       if (editingMessage?.id === updatedMessage.id) {
         setEditPriority(updatedMessage.priority)
@@ -723,7 +738,14 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
 
       const updatedMessage = (await response.json()) as NoteMessage
       replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedMessage.id
-        ? { ...updatedMessage, viewer_reaction: currentMessage.viewer_reaction, viewer_emoji: currentMessage.viewer_emoji }
+        ? {
+          ...updatedMessage,
+          upvotes: currentMessage.upvotes,
+          downvotes: currentMessage.downvotes,
+          viewer_reaction: currentMessage.viewer_reaction,
+          emoji_reactions: currentMessage.emoji_reactions,
+          viewer_emojis: currentMessage.viewer_emojis,
+        }
         : currentMessage))
       cancelEditingNote()
     } catch (updateError) {
@@ -752,7 +774,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       downvotes: 0,
       viewer_reaction: 0,
       emoji_reactions: [],
-      viewer_emoji: null,
+      viewer_emojis: [],
     }
 
     setIsSubmitting(true)
@@ -862,7 +884,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
         throw new Error('表情互动更新失败，请稍后再试。')
       }
 
-      const summary = await response.json() as Pick<NoteMessage, 'emoji_reactions' | 'viewer_emoji'>
+      const summary = await response.json() as Pick<NoteMessage, 'emoji_reactions' | 'viewer_emojis'>
       replaceMessages((current) => current.map((entry) => entry.id === message.id ? { ...entry, ...summary } : entry), {
         sort: false,
       })
@@ -955,6 +977,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       rotation: layout?.rotation ?? (index % 2 === 0 ? -2 : 2),
     }
   }, [cardWidth, layouts, size.width])
+  const messageIdsSignature = useMemo(() => messages.map((message) => message.id).join('|'), [messages])
 
   const noteItems: NoteCardViewModel[] = messages.map((message) => {
     const canDelete = getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)
@@ -985,7 +1008,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
         downvotes: message.downvotes,
         viewerReaction: message.viewer_reaction,
         emojiReactions: message.emoji_reactions,
-        viewerEmoji: message.viewer_emoji,
+        viewerEmojis: message.viewer_emojis,
         pending: Boolean(reactionUpdatingIds[message.id]),
         emojiPending: Boolean(emojiUpdatingIds[message.id]),
         onReact: (value) => void handleReaction(message, value),
@@ -1112,6 +1135,10 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
   }, [customPositions])
 
   useEffect(() => {
+    getTargetPositionRef.current = getTargetPosition
+  }, [getTargetPosition])
+
+  useEffect(() => {
     cardZIndicesRef.current = cardZIndices
   }, [cardZIndices])
 
@@ -1197,12 +1224,12 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       let changed = false
       const next = { ...current }
 
-      messages.forEach((message, index) => {
+      messagesRef.current.forEach((message, index) => {
         if (next[message.id]) {
           return
         }
 
-        next[message.id] = getTargetPosition(index)
+        next[message.id] = getTargetPositionRef.current(index)
         changed = true
       })
 
@@ -1212,7 +1239,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
 
       return changed ? next : current
     })
-  }, [canInitializeSurface, getTargetPosition, messages])
+  }, [canInitializeSurface, messageIdsSignature])
 
   useEffect(() => {
     setCardZIndices((current) => {

@@ -435,12 +435,13 @@ function StickyNoteCardFrame({
           <div className="mt-auto pt-1" onPointerDown={(event) => event.stopPropagation()}>
             <EmojiReactionSummary
               entries={reactionControl.emojiReactions}
-              viewerEmoji={reactionControl.viewerEmoji}
               onSelect={reactionControl.onEmojiReact}
-              className="mb-2"
+              variant="bare"
+              className="mb-2 gap-x-2 gap-y-1"
             />
             <ReactionToggleBar
               compact
+              variant="bare"
               upvotes={reactionControl.upvotes}
               downvotes={reactionControl.downvotes}
               viewerReaction={reactionControl.viewerReaction}
@@ -448,7 +449,7 @@ function StickyNoteCardFrame({
               emojiPending={reactionControl.emojiPending}
               onReact={reactionControl.onReact}
               onEmojiReact={reactionControl.onEmojiReact}
-              viewerEmoji={reactionControl.viewerEmoji}
+              viewerEmojis={reactionControl.viewerEmojis}
             />
           </div>
         ) : null}

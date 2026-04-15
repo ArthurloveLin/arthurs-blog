@@ -52,7 +52,7 @@ export default function TournamentDuel({ items: initialItems, sessionToken, onCl
     }
   }, [pool])
 
-  const saveResults = async (champion: Item, runnerUp: Item, thirdPlace?: Item) => {
+  const saveResults = useCallback(async (champion: Item, runnerUp: Item, thirdPlace?: Item) => {
     setSaving(true)
     try {
       const response = await fetch(`/api/sessions/${sessionToken}/rankings`, {
@@ -76,7 +76,7 @@ export default function TournamentDuel({ items: initialItems, sessionToken, onCl
     } finally {
       setSaving(false)
     }
-  }
+  }, [router, sessionToken])
 
   const handlePick = useCallback((winnerSide: 'left' | 'right') => {
     if (animating || !leftItem || !rightItem) return
@@ -110,7 +110,7 @@ export default function TournamentDuel({ items: initialItems, sessionToken, onCl
         setAnimating(null)
       }
     }, 600)
-  }, [leftItem, rightItem, pool, animating, loserHistory])
+  }, [animating, leftItem, loserHistory, pool, rightItem, saveResults])
 
   if (!leftItem || !rightItem) return null
 

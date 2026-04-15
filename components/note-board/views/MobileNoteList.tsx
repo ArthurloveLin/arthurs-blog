@@ -103,13 +103,14 @@ function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
       </div>
       <EmojiReactionSummary
         entries={reactionControl.emojiReactions}
-        viewerEmoji={reactionControl.viewerEmoji}
         onSelect={reactionControl.onEmojiReact}
-        className="mt-4"
+        variant="bare"
+        className="mt-4 gap-x-2 gap-y-1"
       />
       <ReactionToggleBar
         className="mt-4"
         compact
+        variant="bare"
         upvotes={reactionControl.upvotes}
         downvotes={reactionControl.downvotes}
         viewerReaction={reactionControl.viewerReaction}
@@ -117,7 +118,7 @@ function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
         emojiPending={reactionControl.emojiPending}
         onReact={reactionControl.onReact}
         onEmojiReact={reactionControl.onEmojiReact}
-        viewerEmoji={reactionControl.viewerEmoji}
+        viewerEmojis={reactionControl.viewerEmojis}
       />
     </div>
   )
