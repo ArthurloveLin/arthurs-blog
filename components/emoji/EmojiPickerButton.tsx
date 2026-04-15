@@ -1,9 +1,13 @@
 'use client'
 
-import { SmilePlus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, SmilePlus } from 'lucide-react'
 import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ALL_EMOJI_SECTIONS, searchEmojiSections } from '@/lib/emoji'
+
+const DEFAULT_CATEGORY_ID = ALL_EMOJI_SECTIONS[0]?.id ?? 'frequent'
+const BROWSE_PAGE_SIZE = 28
+const SEARCH_PAGE_SIZE = 24
 
 interface EmojiPickerButtonProps {
   onSelect: (emoji: string) => void
@@ -24,6 +28,8 @@ export default function EmojiPickerButton({
 }: EmojiPickerButtonProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const [activeCategoryId, setActiveCategoryId] = useState(DEFAULT_CATEGORY_ID)
+  const [currentPage, setCurrentPage] = useState(0)
   const [panelStyle, setPanelStyle] = useState<{ bottom: number; left: number; width: number; maxHeight: number } | null>(null)
   const deferredQuery = useDeferredValue(query)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -31,6 +37,29 @@ export default function EmojiPickerButton({
   const panelRef = useRef<HTMLDivElement>(null)
   const searchId = useId()
   const sections = useMemo(() => deferredQuery ? searchEmojiSections(deferredQuery) : ALL_EMOJI_SECTIONS, [deferredQuery])
+  const isSearching = deferredQuery.trim().length > 0
+  const activeSection = useMemo(
+    () => sections.find((section) => section.id === activeCategoryId) ?? sections[0] ?? null,
+    [activeCategoryId, sections],
+  )
+  const searchItems = useMemo(
+    () => sections.flatMap((section) => section.items.map((item) => ({ ...item, categoryLabel: section.label }))),
+    [sections],
+  )
+  const pageSize = isSearching ? SEARCH_PAGE_SIZE : BROWSE_PAGE_SIZE
+  const totalPages = Math.max(
+    1,
+    Math.ceil((isSearching ? searchItems.length : activeSection?.items.length ?? 0) / pageSize),
+  )
+  const visiblePage = Math.min(currentPage, totalPages - 1)
+  const visibleItems = useMemo(() => {
+    const start = visiblePage * pageSize
+    if (isSearching) {
+      return searchItems.slice(start, start + pageSize)
+    }
+
+    return activeSection?.items.slice(start, start + pageSize) ?? []
+  }, [activeSection, isSearching, pageSize, searchItems, visiblePage])
   const canUsePortal = typeof document !== 'undefined'
 
   useEffect(() => {
@@ -46,7 +75,7 @@ export default function EmojiPickerButton({
 
       const rect = trigger.getBoundingClientRect()
       const viewportPadding = 16
-      const desiredWidth = Math.min(384, window.innerWidth - viewportPadding * 2)
+      const desiredWidth = Math.min(352, window.innerWidth - viewportPadding * 2)
       const left = panelAlign === 'start'
         ? rect.left
         : rect.right - desiredWidth
@@ -120,24 +149,59 @@ export default function EmojiPickerButton({
             <input
               id={searchId}
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value)
+                setCurrentPage(0)
+              }}
               placeholder="搜索表情、关键词或分类…"
               className="w-full rounded-full border border-black/10 bg-white/70 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
+          {!isSearching && sections.length > 0 ? (
+            <div className="border-b border-black/6 px-3 py-2">
+              <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+                {sections.map((section) => (
+                  <button
+                    key={section.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveCategoryId(section.id)
+                      setCurrentPage(0)
+                    }}
+                    className={[
+                      'shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium transition',
+                      activeSection?.id === section.id
+                        ? 'bg-slate-900 text-white shadow-[0_10px_24px_-18px_rgba(15,23,42,0.9)]'
+                        : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900',
+                    ].join(' ')}
+                  >
+                    {section.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="overflow-y-auto px-3 py-3" style={{ maxHeight: panelStyle.maxHeight }}>
-            <div className="space-y-4">
-              {sections.map((section) => (
-                <section key={section.id}>
-                  <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">{section.label}</p>
-                  <div className="grid grid-cols-8 gap-1">
-                    {section.items.map((item) => (
+            <div className="space-y-3">
+              {visibleItems.length > 0 ? (
+                <section>
+                  <div className="mb-2 flex items-center justify-between px-1">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                      {isSearching ? '搜索结果' : activeSection?.label}
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      {visiblePage + 1} / {totalPages}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {visibleItems.map((item) => (
                       <button
-                        key={`${section.id}-${item.id}`}
+                        key={`${item.categoryId}-${item.id}`}
                         type="button"
                         title={`${item.emoji} ${item.name}`}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-2xl text-xl transition hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-transparent text-[22px] transition hover:border-black/6 hover:bg-slate-100 focus:border-primary/20 focus:bg-slate-100 focus:outline-none"
                         onClick={() => {
                           onSelect(item.emoji)
                           setOpen(false)
@@ -148,12 +212,41 @@ export default function EmojiPickerButton({
                       </button>
                     ))}
                   </div>
+                  {isSearching ? (
+                    <div className="mt-3 rounded-[18px] bg-slate-50/80 px-3 py-2 text-[11px] text-slate-500">
+                      当前结果覆盖 {sections.length} 个分类。
+                    </div>
+                  ) : null}
                 </section>
-              ))}
+              ) : null}
 
-              {sections.length === 0 ? (
+              {visibleItems.length === 0 ? (
                 <div className="rounded-[20px] border border-dashed border-black/10 bg-slate-50/70 px-4 py-6 text-center text-sm text-slate-500">
                   没找到匹配的 emoji。
+                </div>
+              ) : null}
+
+              {visibleItems.length > 0 && totalPages > 1 ? (
+                <div className="flex items-center justify-between gap-3 rounded-[18px] border border-black/6 bg-slate-50/80 px-2 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(Math.max(0, visiblePage - 1))}
+                    disabled={visiblePage === 0}
+                    className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-black/8 bg-white px-2 text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-35"
+                  >
+                    <ChevronLeft size={14} strokeWidth={1.9} />
+                  </button>
+                  <p className="text-[11px] text-slate-500">
+                    {isSearching ? `第 ${visiblePage + 1} 页，共 ${searchItems.length} 个结果` : `本类第 ${visiblePage + 1} 页`}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(Math.min(totalPages - 1, visiblePage + 1))}
+                    disabled={visiblePage >= totalPages - 1}
+                    className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-black/8 bg-white px-2 text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-35"
+                  >
+                    <ChevronRight size={14} strokeWidth={1.9} />
+                  </button>
                 </div>
               ) : null}
             </div>
