@@ -1,10 +1,13 @@
 'use client'
 
 import { createContext, use, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { Check, Clock3, MessageCircleReply, PencilLine, Trash2, X } from 'lucide-react'
 import { updatePresenceActivity } from './ActivityBanner'
 import { useAuth } from './AuthProvider'
 import EditorActionBar from './EditorActionBar'
+import ReactionToggleBar from './ReactionToggleBar'
 import { formatCommentTimeLabel } from '@/lib/date-format'
+import type { ReactionValue } from '@/lib/comment-reactions'
 
 interface Comment {
   id: string
@@ -13,6 +16,10 @@ interface Comment {
   created_at: string
   updated_at: string | null
   parent_id: string | null
+  upvotes: number
+  downvotes: number
+  viewer_reaction: ReactionValue
+  optimistic?: boolean
 }
 
 interface CommentTreeContextValue {
@@ -26,6 +33,7 @@ interface CommentTreeContextValue {
   identityReady: boolean
   identityAliases: string[]
   isAdmin: boolean
+  reactingIds: Record<string, boolean>
   composerRef: React.RefObject<HTMLTextAreaElement | null>
   onDraftChange: (value: string) => void
   onReply: (comment: Comment) => void
@@ -33,6 +41,7 @@ interface CommentTreeContextValue {
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
   onDelete: (id: string) => void
   onUpdate: (id: string, content: string) => Promise<void>
+  onReact: (id: string, reaction: 1 | -1) => Promise<void>
 }
 
 const CommentTreeContext = createContext<CommentTreeContextValue | null>(null)
@@ -45,6 +54,30 @@ function useCommentTree() {
 
 function canModifyComment(comment: Comment, identityAliases: string[], isAdmin: boolean) {
   return isAdmin || identityAliases.includes(comment.author)
+}
+
+function applyOptimisticReactionToComment(comment: Comment, nextReaction: 1 | -1 | 0): Comment {
+  let upvotes = comment.upvotes
+  let downvotes = comment.downvotes
+
+  if (comment.viewer_reaction === 1) {
+    upvotes = Math.max(0, upvotes - 1)
+  } else if (comment.viewer_reaction === -1) {
+    downvotes = Math.max(0, downvotes - 1)
+  }
+
+  if (nextReaction === 1) {
+    upvotes += 1
+  } else if (nextReaction === -1) {
+    downvotes += 1
+  }
+
+  return {
+    ...comment,
+    upvotes,
+    downvotes,
+    viewer_reaction: nextReaction,
+  }
 }
 
 function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[] {
@@ -172,12 +205,40 @@ function CommentThreadHeader() {
   )
 }
 
+function CommentIconButton({
+  label,
+  onClick,
+  children,
+  tone = 'default',
+}: {
+  label: string
+  onClick: () => void
+  children: ReactNode
+  tone?: 'default' | 'danger'
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={[
+        'inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white/65 text-slate-500 transition-all duration-200 hover:-translate-y-px hover:bg-white',
+        tone === 'danger' ? 'hover:border-rose-200 hover:text-rose-600' : 'hover:border-slate-300 hover:text-slate-900',
+      ].join(' ')}
+    >
+      {children}
+    </button>
+  )
+}
+
 function CommentCard({ comment }: { comment: Comment }) {
-  const { identityAliases, isAdmin, onReply, onDelete, onUpdate } = useCommentTree()
+  const { identityAliases, isAdmin, reactingIds, onReply, onDelete, onUpdate, onReact } = useCommentTree()
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(comment.content)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const editable = canModifyComment(comment, identityAliases, isAdmin)
 
   useEffect(() => {
@@ -201,11 +262,31 @@ function CommentCard({ comment }: { comment: Comment }) {
   }
 
   return (
-    <div className="flex gap-2 items-start">
-      <div className="flex-1 bg-white/35 border border-black/5 rounded-[18px] px-3.5 py-3 hover:bg-white/50 transition-all shadow-[0_4px_12px_-6px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-bold uppercase tracking-tight text-slate-800">{comment.author}</span>
-          <span className="text-[10px] font-medium text-slate-400">{formatCommentTimeLabel(comment.created_at, comment.updated_at)}</span>
+    <div className={['flex gap-2 items-start', comment.optimistic ? 'animate-in fade-in slide-in-from-bottom-2 duration-300' : ''].filter(Boolean).join(' ')}>
+      <div className="flex-1 rounded-[18px] border border-black/5 bg-white/35 px-3.5 py-3 shadow-[0_4px_12px_-6px_rgba(0,0,0,0.06)] transition-all hover:bg-white/50">
+        <div className="mb-2 flex items-start justify-between gap-3">
+          <span className="pt-1 text-[10px] font-bold uppercase tracking-tight text-slate-800">{comment.author}</span>
+          <div className="flex min-h-8 items-center justify-end gap-1.5">
+            {editable && !isEditing ? (
+              confirmDelete ? (
+                <>
+                  <CommentIconButton label="取消删除" onClick={() => setConfirmDelete(false)}>
+                    <X size={14} strokeWidth={1.9} />
+                  </CommentIconButton>
+                  <CommentIconButton label="确认删除" onClick={() => {
+                    setConfirmDelete(false)
+                    onDelete(comment.id)
+                  }} tone="danger">
+                    <Check size={14} strokeWidth={2.1} />
+                  </CommentIconButton>
+                </>
+              ) : (
+                <CommentIconButton label="删除评论" onClick={() => setConfirmDelete(true)} tone="danger">
+                  <Trash2 size={14} strokeWidth={1.9} />
+                </CommentIconButton>
+              )
+            ) : null}
+          </div>
         </div>
         {isEditing ? (
           <CommentEditorForm
@@ -221,7 +302,7 @@ function CommentCard({ comment }: { comment: Comment }) {
             error={error}
           />
         ) : (
-          <div className="text-sm text-slate-800 w-full whitespace-pre-wrap break-words leading-relaxed">
+          <div className="w-full whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-800">
             {comment.content.split('\n').map((line, index) => (
               <p key={`${comment.id}-l-${index}`}>
                 {line.length > 0 ? renderInlineFormattedText(line, `${comment.id}-${index}`) : <span>&nbsp;</span>}
@@ -229,35 +310,36 @@ function CommentCard({ comment }: { comment: Comment }) {
             ))}
           </div>
         )}
-        <div className="flex items-center justify-end gap-3">
-          {editable && !isEditing ? (
-            <button
-              onClick={() => {
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <div className="inline-flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+            <Clock3 size={12} strokeWidth={1.9} />
+            <span>{comment.optimistic ? '发送中…' : formatCommentTimeLabel(comment.created_at, comment.updated_at)}</span>
+          </div>
+          <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+            <ReactionToggleBar
+              compact
+              upvotes={comment.upvotes}
+              downvotes={comment.downvotes}
+              viewerReaction={comment.viewer_reaction}
+              pending={Boolean(reactingIds[comment.id])}
+              onReact={(reaction) => void onReact(comment.id, reaction)}
+            />
+            <CommentIconButton label="回复评论" onClick={() => onReply(comment)}>
+              <MessageCircleReply size={14} strokeWidth={1.9} />
+            </CommentIconButton>
+            {editable && !isEditing ? (
+              <CommentIconButton label="编辑评论" onClick={() => {
                 setDraft(comment.content)
                 setError(null)
+                setConfirmDelete(false)
                 setIsEditing(true)
-              }}
-              className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 hover:text-primary mt-1.5 transition-all"
-            >
-              编辑
-            </button>
-          ) : null}
-          <button
-            onClick={() => onReply(comment)}
-            className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-900 mt-2 transition-all"
-          >
-            回复
-          </button>
+              }}>
+                <PencilLine size={14} strokeWidth={1.9} />
+              </CommentIconButton>
+            ) : null}
+          </div>
         </div>
       </div>
-      {canModifyComment(comment, identityAliases, isAdmin) && (
-        <button
-          onClick={() => onDelete(comment.id)}
-          className="text-muted-foreground/20 hover:text-destructive text-xl leading-none mt-2 shrink-0 transition-colors px-1"
-        >
-          ×
-        </button>
-      )}
     </div>
   )
 }
@@ -393,11 +475,56 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [reactingIds, setReactingIds] = useState<Record<string, boolean>>({})
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const commentsRef = useRef(initialComments)
+  const freshTimerRefs = useRef<Record<string, number>>({})
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    commentsRef.current = comments
+  }, [comments])
+
+  useEffect(() => {
+    if (!mounted || !identity) return
+
+    const controller = new AbortController()
+    const searchParams = new URLSearchParams({ target_type: targetType, target_id: targetId, identity })
+
+    void fetch(`/api/comments?${searchParams.toString()}`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((nextComments: Comment[] | null) => {
+        if (!nextComments) return
+
+        setComments((current) => {
+          const optimisticComments = current.filter((comment) => comment.optimistic)
+          return [...nextComments, ...optimisticComments.filter((comment) => !nextComments.some((entry) => entry.id === comment.id))]
+        })
+      })
+      .catch((fetchError) => {
+        if ((fetchError as Error).name !== 'AbortError') {
+          setError((current) => current ?? '评论状态同步失败。')
+        }
+      })
+
+    return () => controller.abort()
+  }, [identity, mounted, targetId, targetType])
+
+  useEffect(() => () => {
+    Object.values(freshTimerRefs.current).forEach((timer) => window.clearTimeout(timer))
+  }, [])
+
+  function markCommentFresh(id: string) {
+    const timer = window.setTimeout(() => {
+      setComments((current) => current.map((comment) => comment.id === id ? { ...comment, optimistic: false } : comment))
+      delete freshTimerRefs.current[id]
+    }, 900)
+
+    freshTimerRefs.current[id] = timer
+  }
 
   const topLevelComments = useMemo(() => comments.filter((comment) => !comment.parent_id), [comments])
   const repliesByParentId = useMemo(() => comments.reduce<Record<string, Comment[]>>((accumulator, comment) => {
@@ -417,8 +544,28 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     event.preventDefault()
     if (!draft.trim() || !identity || submitting) return
 
+    const draftValue = draft.trim()
+    const replyTarget = replyTo
+    const optimisticId = `optimistic-${crypto.randomUUID()}`
+    const optimisticComment: Comment = {
+      id: optimisticId,
+      author: publicIdentity,
+      content: draftValue,
+      created_at: new Date().toISOString(),
+      updated_at: null,
+      parent_id: replyTarget?.id ?? null,
+      upvotes: 0,
+      downvotes: 0,
+      viewer_reaction: 0,
+      optimistic: true,
+    }
+
     setSubmitting(true)
     setError(null)
+    setComments((prev) => [...prev, optimisticComment])
+    setDraft('')
+    setReplyTo(null)
+    markCommentFresh(optimisticId)
 
     try {
       const res = await fetch('/api/comments', {
@@ -428,16 +575,18 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
           target_type: targetType,
           target_id: targetId,
           author: publicIdentity,
-          content: draft.trim(),
-          parent_id: replyTo?.id ?? null,
+          content: draftValue,
+          parent_id: replyTarget?.id ?? null,
         }),
       })
       if (!res.ok) throw new Error('评论发送失败。')
       const newComment: Comment = await res.json()
-      setComments((prev) => [...prev, newComment])
-      setDraft('')
-      setReplyTo(null)
+      setComments((prev) => prev.map((comment) => comment.id === optimisticId ? newComment : comment))
+      markCommentFresh(newComment.id)
     } catch (submitError) {
+      setComments((prev) => prev.filter((comment) => comment.id !== optimisticId))
+      setDraft(draftValue)
+      setReplyTo(replyTarget)
       setError(submitError instanceof Error ? submitError.message : '评论发送失败。')
     } finally {
       setSubmitting(false)
@@ -445,6 +594,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
   }
 
   async function handleDelete(id: string) {
+    const snapshot = commentsRef.current
     const res = await fetch(`/api/comments/${id}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -456,6 +606,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
       return
     }
 
+    setComments(snapshot)
     setError(res.status === 403 ? '当前身份没有删除这条评论的权限。' : '删除评论失败。')
   }
 
@@ -471,7 +622,45 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     }
 
     const updatedComment: Comment = await res.json()
-    setComments((prev) => prev.map((comment) => comment.id === id ? updatedComment : comment))
+    setComments((prev) => prev.map((comment) => comment.id === id
+      ? { ...updatedComment, viewer_reaction: comment.viewer_reaction }
+      : comment))
+  }
+
+  async function handleReaction(id: string, reaction: 1 | -1) {
+    if (!identity || reactingIds[id]) return
+
+    const snapshot = commentsRef.current.find((comment) => comment.id === id)
+    if (!snapshot) return
+
+    const nextReaction = snapshot.viewer_reaction === reaction ? 0 : reaction
+
+    setReactingIds((current) => ({ ...current, [id]: true }))
+    setComments((prev) => prev.map((comment) => comment.id === id ? applyOptimisticReactionToComment(comment, nextReaction) : comment))
+
+    try {
+      const res = await fetch(`/api/comments/${id}/reaction`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity, reaction: nextReaction }),
+      })
+
+      if (!res.ok) {
+        throw new Error('互动更新失败。')
+      }
+
+      const summary = await res.json() as Pick<Comment, 'upvotes' | 'downvotes' | 'viewer_reaction'>
+      setComments((prev) => prev.map((comment) => comment.id === id ? { ...comment, ...summary } : comment))
+    } catch (reactionError) {
+      setComments((prev) => prev.map((comment) => comment.id === id ? snapshot : comment))
+      setError(reactionError instanceof Error ? reactionError.message : '互动更新失败。')
+    } finally {
+      setReactingIds((current) => {
+        const next = { ...current }
+        delete next[id]
+        return next
+      })
+    }
   }
 
   const contextValue: CommentTreeContextValue = {
@@ -485,6 +674,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     identityReady: mounted && Boolean(identity),
     identityAliases,
     isAdmin,
+    reactingIds,
     composerRef: inputRef,
     onDraftChange: setDraft,
     onReply: handleReply,
@@ -492,6 +682,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     onSubmit: handleSubmit,
     onDelete: handleDelete,
     onUpdate: handleUpdate,
+    onReact: handleReaction,
   }
 
   return (

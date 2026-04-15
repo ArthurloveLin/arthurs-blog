@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { normalizeReactionIdentity } from '@/lib/comment-reactions'
 import { isNotePriority, isNoteSortMode } from '@/lib/note-priority'
 import {
   createBoardMessage,
@@ -22,12 +23,13 @@ export async function GET(
   const rawOffset = Number.parseInt(searchParams.get('offset') ?? '', 10)
   const archived = searchParams.get('archived') === '1'
   const rawSort = searchParams.get('sort')
+  const identity = normalizeReactionIdentity(searchParams.get('identity'))
   const sort = isNoteSortMode(rawSort) ? rawSort : 'time'
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), config?.pageSize ?? 24) : config?.initialPageLimit ?? 48
   const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0
 
   try {
-    const messages = await getBoardMessages(board, limit, offset, archived, sort)
+    const messages = await getBoardMessages(board, limit, offset, archived, sort, identity)
     return NextResponse.json({ messages, nextOffset: offset + messages.length, hasMore: messages.length === limit })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to load board' }, { status: 500 })
