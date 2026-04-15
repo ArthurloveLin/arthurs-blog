@@ -9,7 +9,7 @@ export interface EmojiReactionEntry {
 
 export interface EmojiReactionSummary {
   emoji_reactions: EmojiReactionEntry[]
-  viewer_emoji: string | null
+  viewer_emojis: string[]
 }
 
 export interface EmojiReactionTargetRecord {
@@ -32,7 +32,7 @@ export function normalizeEmoji(value: unknown) {
 function createEmptySummary(): EmojiReactionSummary {
   return {
     emoji_reactions: [],
-    viewer_emoji: null,
+    viewer_emojis: [],
   }
 }
 
@@ -74,8 +74,8 @@ export async function getEmojiReactionSummaryMap(commentIds: string[], identity?
 
     aggregateMap.set(commentId, byEmoji)
 
-    if (rowIdentity === normalizedIdentity) {
-      summaryMap[commentId].viewer_emoji = emoji
+    if (rowIdentity === normalizedIdentity && !summaryMap[commentId].viewer_emojis.includes(emoji)) {
+      summaryMap[commentId].viewer_emojis = [...summaryMap[commentId].viewer_emojis, emoji]
     }
   }
 
@@ -94,6 +94,7 @@ export async function getEmojiReactionSummaryMap(commentIds: string[], identity?
         return right.updatedAt.localeCompare(left.updatedAt)
       })
         .map((entry) => ({ emoji: entry.emoji, count: entry.count, viewer: entry.viewer }))
+    summaryMap[commentId].viewer_emojis = [...summaryMap[commentId].viewer_emojis].sort((left, right) => left.localeCompare(right))
   }
 
   return summaryMap
@@ -105,7 +106,7 @@ export async function attachViewerEmojiReactions<T extends EmojiReactionTargetRe
   return records.map((record) => ({
     ...record,
     emoji_reactions: summaryMap[record.id]?.emoji_reactions ?? [],
-    viewer_emoji: summaryMap[record.id]?.viewer_emoji ?? null,
+    viewer_emojis: summaryMap[record.id]?.viewer_emojis ?? [],
   }))
 }
 
@@ -115,8 +116,8 @@ export async function applyCommentEmojiReaction(commentId: string, identity: str
     throw new Error('MISSING_IDENTITY')
   }
 
-  const normalizedEmoji = emoji === null ? null : normalizeEmoji(emoji)
-  if (emoji !== null && !normalizedEmoji) {
+  const normalizedEmoji = normalizeEmoji(emoji)
+  if (!normalizedEmoji) {
     throw new Error('INVALID_EMOJI')
   }
 
@@ -132,30 +133,18 @@ export async function applyCommentEmojiReaction(commentId: string, identity: str
 
   const { data: existingReaction, error: existingReactionError } = await supabaseAdmin
     .from('comment_emoji_reactions')
-    .select('id, emoji')
+    .select('id')
     .eq('comment_id', commentId)
     .eq('identity', normalizedIdentity)
+    .eq('emoji', normalizedEmoji)
     .maybeSingle()
 
   if (existingReactionError) {
     throw new Error(existingReactionError.message)
   }
 
-  const currentEmoji = normalizeEmoji(existingReaction?.emoji)
-
-  if (!normalizedEmoji || currentEmoji === normalizedEmoji) {
-    if (existingReaction?.id) {
-      const { error } = await supabaseAdmin.from('comment_emoji_reactions').delete().eq('id', existingReaction.id)
-      if (error) {
-        throw new Error(error.message)
-      }
-    }
-  } else if (existingReaction?.id) {
-    const { error } = await supabaseAdmin
-      .from('comment_emoji_reactions')
-      .update({ emoji: normalizedEmoji })
-      .eq('id', existingReaction.id)
-
+  if (existingReaction?.id) {
+    const { error } = await supabaseAdmin.from('comment_emoji_reactions').delete().eq('id', existingReaction.id)
     if (error) {
       throw new Error(error.message)
     }

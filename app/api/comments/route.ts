@@ -48,5 +48,5 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ ...(data ?? {}), viewer_reaction: 0, emoji_reactions: [], viewer_emoji: null }, { status: 201 })
+  return NextResponse.json({ ...(data ?? {}), viewer_reaction: 0, emoji_reactions: [], viewer_emojis: [] }, { status: 201 })
 }

@@ -24,7 +24,7 @@ interface Comment {
   downvotes: number
   viewer_reaction: ReactionValue
   emoji_reactions: EmojiReactionEntry[]
-  viewer_emoji: string | null
+  viewer_emojis: string[]
   optimistic?: boolean
 }
 
@@ -89,25 +89,26 @@ function applyOptimisticReactionToComment(comment: Comment, nextReaction: 1 | -1
 }
 
 function applyOptimisticEmojiToComment(comment: Comment, nextEmoji: string): Comment {
-  const activeEmoji = comment.viewer_emoji === nextEmoji ? null : nextEmoji
+  const viewerEmojiSet = new Set(comment.viewer_emojis)
+  const removingEmoji = viewerEmojiSet.has(nextEmoji)
   const summaryMap = new Map(comment.emoji_reactions.map((entry) => [entry.emoji, { ...entry }]))
 
-  if (comment.viewer_emoji) {
-    const previous = summaryMap.get(comment.viewer_emoji)
+  if (removingEmoji) {
+    viewerEmojiSet.delete(nextEmoji)
+    const previous = summaryMap.get(nextEmoji)
     if (previous) {
       const nextCount = previous.count - 1
       if (nextCount > 0) {
-        summaryMap.set(comment.viewer_emoji, { ...previous, count: nextCount, viewer: false })
+        summaryMap.set(nextEmoji, { ...previous, count: nextCount, viewer: false })
       } else {
-        summaryMap.delete(comment.viewer_emoji)
+        summaryMap.delete(nextEmoji)
       }
     }
-  }
-
-  if (activeEmoji) {
-    const current = summaryMap.get(activeEmoji)
-    summaryMap.set(activeEmoji, {
-      emoji: activeEmoji,
+  } else {
+    viewerEmojiSet.add(nextEmoji)
+    const current = summaryMap.get(nextEmoji)
+    summaryMap.set(nextEmoji, {
+      emoji: nextEmoji,
       count: (current?.count ?? 0) + 1,
       viewer: true,
     })
@@ -115,7 +116,7 @@ function applyOptimisticEmojiToComment(comment: Comment, nextEmoji: string): Com
 
   return {
     ...comment,
-    viewer_emoji: activeEmoji,
+    viewer_emojis: [...viewerEmojiSet].sort((left, right) => left.localeCompare(right)),
     emoji_reactions: [...summaryMap.values()].sort((left, right) => {
       if (right.count !== left.count) {
         return right.count - left.count
@@ -387,7 +388,6 @@ function CommentCard({ comment }: { comment: Comment }) {
         {!isEditing ? (
           <EmojiReactionSummary
             entries={comment.emoji_reactions}
-            viewerEmoji={comment.viewer_emoji}
             onSelect={(emoji) => void onEmojiReact(comment.id, emoji)}
             className="mt-3"
           />
@@ -404,7 +404,7 @@ function CommentCard({ comment }: { comment: Comment }) {
               downvotes={comment.downvotes}
               viewerReaction={comment.viewer_reaction}
               pending={Boolean(reactingIds[comment.id])}
-              viewerEmoji={comment.viewer_emoji}
+              viewerEmojis={comment.viewer_emojis}
               emojiPending={Boolean(emojiReactingIds[comment.id])}
               onReact={(reaction) => void onReact(comment.id, reaction)}
               onEmojiReact={(emoji) => void onEmojiReact(comment.id, emoji)}
@@ -666,7 +666,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
       downvotes: 0,
       viewer_reaction: 0,
       emoji_reactions: [],
-      viewer_emoji: null,
+      viewer_emojis: [],
       optimistic: true,
     }
 
@@ -733,7 +733,14 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
 
     const updatedComment: Comment = await res.json()
     setComments((prev) => prev.map((comment) => comment.id === id
-      ? { ...updatedComment, viewer_reaction: comment.viewer_reaction, viewer_emoji: comment.viewer_emoji }
+      ? {
+        ...updatedComment,
+        upvotes: comment.upvotes,
+        downvotes: comment.downvotes,
+        viewer_reaction: comment.viewer_reaction,
+        emoji_reactions: comment.emoji_reactions,
+        viewer_emojis: comment.viewer_emojis,
+      }
       : comment))
   }
 
@@ -793,7 +800,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
         throw new Error('表情互动更新失败。')
       }
 
-      const summary = await res.json() as Pick<Comment, 'emoji_reactions' | 'viewer_emoji'>
+      const summary = await res.json() as Pick<Comment, 'emoji_reactions' | 'viewer_emojis'>
       setComments((prev) => prev.map((comment) => comment.id === id ? { ...comment, ...summary } : comment))
     } catch (emojiError) {
       setComments((prev) => prev.map((comment) => comment.id === id ? snapshot : comment))
