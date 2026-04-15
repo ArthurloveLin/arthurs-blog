@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { deleteR2Object } from '@/lib/r2'
 import { isAdminRequest } from '@/lib/auth'
 

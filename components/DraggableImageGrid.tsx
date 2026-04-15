@@ -143,8 +143,8 @@ export default function DraggableImageGrid({ items: initialItems, sessionToken }
                           </div>
                         )}
                         {item.rank && item.rank <= 3 && (
-                          <div className={`mr-4 text-[10px] px-2 py-1 rounded-full font-black shadow-lg flex items-center gap-1 border border-white/20 shrink-0 ${
-                            item.rank === 1 ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white' : 
+                          <div className={`mr-4 text-[10px] px-2 py-1 rounded-full font-black shadow-lg flex items-center gap-1 border shrink-0 ${
+                            item.rank === 1 ? 'border-amber-100/80 bg-[linear-gradient(135deg,#fde68a,#f59e0b,#c2410c)] text-[#2f1800] shadow-[0_8px_24px_rgba(245,158,11,0.35)]' : 
                             item.rank === 2 ? 'bg-gradient-to-r from-slate-300 to-slate-500 text-white' : 
                             'bg-gradient-to-r from-amber-600 to-amber-800 text-white'
                           }`}>

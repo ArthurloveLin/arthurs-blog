@@ -1,7 +1,8 @@
 import matter from 'gray-matter'
 import { cache } from 'react'
 import { unstable_cache } from 'next/cache'
-import { supabase, supabaseAdmin } from './supabase'
+import { supabase } from './supabase'
+import { supabaseAdmin } from './supabase-admin'
 import { getR2Object } from './r2'
 
 const BLOG_BUCKET = process.env.R2_BLOG_BUCKET!
