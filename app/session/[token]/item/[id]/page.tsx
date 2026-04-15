@@ -29,12 +29,22 @@ export default async function ItemPage({
 
   const sessionData = item.sessions as { template_config?: unknown } | null
   const templateConfig = sessionData?.template_config as import('@/lib/templates').TemplateConfig | undefined
+  const itemRefreshKey = [
+    item.id,
+    item.decision ?? '',
+    item.price ?? '',
+    item.notes ?? '',
+    item.category ?? '',
+    item.ocr_status ?? '',
+    item.ocr_processed_at ?? '',
+  ].join(':')
 
   return (
     <main className="min-h-screen bg-background">
       <RealtimeSync sessionId={item.session_id} />
       <ActivityBanner sessionId={item.session_id} />
       <ItemDetail
+        key={itemRefreshKey}
         item={item as Parameters<typeof ItemDetail>[0]['item']}
         token={token}
         templateConfig={templateConfig}

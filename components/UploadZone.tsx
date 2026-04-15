@@ -111,31 +111,36 @@ export default function UploadZone({ sessionToken, templateConfig }: UploadZoneP
   return (
     <div className="w-full">
       {isWardrobe && (
-        <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
-          <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/50 shrink-0">上传分类：</span>
-          <button
-            onClick={() => setSelectedCategory('')}
-            className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${
-              selectedCategory === ''
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800'
-            }`}
-          >
-            不限
-          </button>
-          {CATEGORIES.map((cat) => (
+        <div className="mb-3 space-y-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/50 shrink-0">上传分类：</span>
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => setSelectedCategory('')}
               className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${
-                selectedCategory === cat
+                selectedCategory === ''
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800'
               }`}
             >
-              {cat}
+              不限
             </button>
-          ))}
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${
+                  selectedCategory === cat
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-muted text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground/70 px-1">
+            上传完成后会在后台自动识别价格和商品信息，不阻塞创建。
+          </p>
         </div>
       )}
 
@@ -194,7 +199,7 @@ export default function UploadZone({ sessionToken, templateConfig }: UploadZoneP
               {u.progress === 'uploading' && (
                 <span className="text-primary text-[10px] font-bold uppercase animate-pulse">上传中…</span>
               )}
-              {u.progress === 'done' && <span className="text-green-500 text-[10px] font-bold uppercase">✓ 完成</span>}
+              {u.progress === 'done' && <span className="text-green-500 text-[10px] font-bold uppercase">✓ 已创建，后台识别中</span>}
               {u.progress === 'error' && (
                 <span className="text-destructive text-[10px] font-bold uppercase">{u.error ?? '失败'}</span>
               )}
