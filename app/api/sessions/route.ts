@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { isAdminRequest } from '@/lib/auth'
 import { TEMPLATES, DEFAULT_TEMPLATE } from '@/lib/templates'
 

@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserRole } from '@/lib/auth'
 import ImageGrid from '@/components/ImageGrid'
 import DraggableImageGrid from '@/components/DraggableImageGridWrapper'
@@ -108,6 +108,7 @@ export default async function SessionPage({
 
   const buyCount = items.filter((i) => i.decision === 'buy').length
   const pendingCount = items.filter((i) => i.decision === 'pending').length
+  const tournamentItems = items.filter((i) => i.decision === 'buy')
   const totalBuyPrice = items
     .filter((i) => i.decision === 'buy' && i.price !== null)
     .reduce((sum, i) => sum + (i.price ?? 0), 0)
@@ -146,10 +147,13 @@ export default async function SessionPage({
 
         {/* View Toggle */}
         {items.length > 0 && (
-          <div className="mb-6">
-            <Suspense fallback={<div className="h-10 animate-pulse bg-muted rounded-xl" />}>
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Suspense fallback={<div className="h-12 animate-pulse bg-muted rounded-2xl" />}>
               <FinalListToggle current={view} />
             </Suspense>
+            {isAdmin && (
+              <TournamentEntry items={tournamentItems} sessionToken={token} templateConfig={templateConfig} />
+            )}
           </div>
         )}
 
@@ -171,18 +175,17 @@ export default async function SessionPage({
 
         {/* Final list heading */}
         {isFinalView && (
-          <div className="mb-6 flex items-center gap-3 bg-primary/5 p-4 rounded-xl border border-primary/10">
-            <div className="flex-1">
+          <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-primary/10 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1">
               <h2 className="text-lg font-bold text-foreground leading-tight">✨ 最终清单</h2>
-              <span className="text-xs text-muted-foreground font-medium">挑选出的 {sortedItems.length} {itemLabel} {templateConfig?.name === '衣评' ? '穿搭' : '优选'}</span>
+              <span className="mt-1 block text-xs leading-5 text-muted-foreground font-medium">挑选出的 {sortedItems.length} {itemLabel} {templateConfig?.name === '衣评' ? '穿搭' : '优选'}</span>
             </div>
             {totalBuyPrice > 0 && (
-              <div className="text-right">
+              <div className="rounded-xl bg-background/70 px-3 py-2 text-left shadow-sm sm:text-right">
                 <span className="block text-[10px] text-muted-foreground uppercase font-bold">预估支出</span>
                 <span className="text-xl font-black text-primary">¥{totalBuyPrice}</span>
               </div>
             )}
-            <TournamentEntry items={sortedItems} templateConfig={templateConfig} />
           </div>
         )}
 

@@ -120,13 +120,29 @@ function ItemDetailImageSection() {
           点击放大
         </div>
         {item.rank && item.rank <= 3 && (
-          <div className="absolute top-0 right-0 w-24 h-24 overflow-hidden z-20 pointer-events-none">
-            <div className={`absolute top-[28px] right-[-34px] w-[140px] rotate-45 text-white text-xs font-black py-1.5 shadow-2xl border-y border-white/20 text-center uppercase tracking-widest ${
-              item.rank === 1 ? 'bg-gradient-to-r from-yellow-400 to-orange-500 animate-champion-shine bg-[length:200%_100%]' :
-              item.rank === 2 ? 'bg-gradient-to-r from-slate-300 to-slate-500' :
-              'bg-gradient-to-r from-amber-600 to-amber-800'
-            }`}>
-              {item.rank === 1 ? '🥇 Champion' : item.rank === 2 ? '🥈 Runner Up' : '🥉 Third Place'}
+          <div className="absolute top-0 right-0 w-28 h-28 overflow-hidden z-20 pointer-events-none">
+            <div
+              className="absolute top-[32px] right-[-36px] w-[152px] rotate-45 text-xs font-bold py-1.5 text-center tracking-widest"
+              style={{
+                background:
+                  item.rank === 1 ? 'rgba(216,180,72,0.68)' :
+                  item.rank === 2 ? 'rgba(192,198,208,0.68)' :
+                  'rgba(182,138,90,0.68)',
+                backdropFilter: 'blur(6px)',
+                WebkitBackdropFilter: 'blur(6px)',
+                color:
+                  item.rank === 1 ? '#2a1800' :
+                  item.rank === 2 ? '#1a202c' :
+                  '#1f120a',
+                borderTop: item.rank === 1 ? '1px solid rgba(255,225,100,0.40)' :
+                  item.rank === 2 ? '1px solid rgba(235,240,248,0.40)' :
+                  '1px solid rgba(220,180,130,0.40)',
+                borderBottom: item.rank === 1 ? '1px solid rgba(255,225,100,0.40)' :
+                  item.rank === 2 ? '1px solid rgba(235,240,248,0.40)' :
+                  '1px solid rgba(220,180,130,0.40)',
+              }}
+            >
+              {item.rank === 1 ? '🥇 冠军' : item.rank === 2 ? '🥈 亚军' : '🥉 季军'}
             </div>
           </div>
         )}

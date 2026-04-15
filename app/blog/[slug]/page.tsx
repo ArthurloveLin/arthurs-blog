@@ -15,7 +15,7 @@ import RecentPostsCard from '@/components/RecentPostsCard'
 import ToolsCard from '@/components/ToolsCard'
 import ScrollCollapseWrapper from '@/components/ScrollHideWrapper'
 import { formatBlogPublishedDate } from '@/lib/date-format'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import ScrollToTop from '@/components/ScrollToTop'
 import { getPostAnchorHref } from '@/lib/blog-return'
 
