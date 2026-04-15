@@ -18,6 +18,7 @@ import { formatBlogPublishedDate } from '@/lib/date-format'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import ScrollToTop from '@/components/ScrollToTop'
 import { getPostAnchorHref } from '@/lib/blog-return'
+import { attachViewerEmojiReactions } from '@/lib/comment-emojis'
 
 function formatDate(dateStr: string | null | undefined) {
   if (!dateStr) return ''
@@ -42,6 +43,8 @@ type Comment = {
   upvotes: number
   downvotes: number
   viewer_reaction: -1 | 0 | 1
+  emoji_reactions: { emoji: string; count: number; viewer: boolean }[]
+  viewer_emoji: string | null
 }
 
 // async-suspense-boundaries: inner Server Component for TOC — shares contentPromise
@@ -137,7 +140,9 @@ export default async function BlogPostPage({
       .eq('target_type', 'blog_post')
       .eq('target_id', post.id)
       .order('created_at', { ascending: true })
-      .then((r) => (r.data ?? []).map((comment) => ({ ...comment, viewer_reaction: 0 })) as Comment[])
+      .then(async (r) => attachViewerEmojiReactions(
+        (r.data ?? []).map((comment) => ({ ...comment, viewer_reaction: 0 })) as Array<Omit<Comment, 'emoji_reactions' | 'viewer_emoji'>>,
+      ) as Promise<Comment[]>)
   )
 
   return (

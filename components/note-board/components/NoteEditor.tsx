@@ -2,9 +2,11 @@
 
 import { Bold, Check, Highlighter, Italic, ListTodo, X } from 'lucide-react'
 import { useEffect, useRef, type ReactNode } from 'react'
+import EmojiPickerButton from '@/components/emoji/EmojiPickerButton'
 import EditorActionBar from '@/components/EditorActionBar'
 import type { TextEditResult, TextSelectionRange } from '@/components/note-board/types'
 import { clamp } from '@/components/note-board/utils/board'
+import { insertTextAtSelection } from '@/lib/text-selection'
 import { insertChecklistSyntax, wrapSelectionWithSyntax } from '@/components/note-board/utils/editor'
 
 export interface NoteEditorProps {
@@ -134,6 +136,20 @@ export function NoteEditor({
           leading={(
             <>
               {toolbarLeadingAddon}
+              <EmojiPickerButton
+                size={buttonSize}
+                panelAlign="start"
+                onSelect={(emoji) => withSelection((text, start, end) => {
+                  const result = insertTextAtSelection(text, emoji, start, end)
+                  return {
+                    value: result.value,
+                    selection: {
+                      start: result.selectionStart,
+                      end: result.selectionEnd,
+                    },
+                  }
+                })}
+              />
               <ToolbarIconButton size={buttonSize} onClick={() => withSelection(insertChecklistSyntax)} label="插入 checklist">
                 <ListTodo size={buttonSize === 'sm' ? 10 : 12} strokeWidth={1.8} />
               </ToolbarIconButton>

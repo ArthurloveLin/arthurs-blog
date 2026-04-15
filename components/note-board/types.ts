@@ -1,3 +1,4 @@
+import type { EmojiReactionEntry } from '@/lib/comment-emojis'
 import type { NoteMessage } from '@/lib/note-boards'
 import type { ReactionValue } from '@/lib/comment-reactions'
 import type { NotePriority } from '@/lib/note-priority'
@@ -82,8 +83,12 @@ export interface StickyNoteCardReactionControl {
   upvotes: number
   downvotes: number
   viewerReaction: ReactionValue
+  emojiReactions: EmojiReactionEntry[]
+  viewerEmoji: string | null
   pending?: boolean
+  emojiPending?: boolean
   onReact: (value: 1 | -1) => void
+  onEmojiReact: (emoji: string) => void
 }
 
 export interface NoteCardViewModel {
