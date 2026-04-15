@@ -1,4 +1,6 @@
 import { cache } from 'react'
+import { attachViewerEmojiReactions, type EmojiReactionEntry } from '@/lib/comment-emojis'
+import { attachViewerReactions, type ReactionValue } from '@/lib/comment-reactions'
 import { DEFAULT_NOTE_PRIORITY, isNotePriority, type NotePriority, type NoteSortMode } from '@/lib/note-priority'
 import { getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
@@ -13,6 +15,11 @@ export interface NoteMessage {
   priority: NotePriority
   archived: boolean
   parent_id: string | null
+  upvotes: number
+  downvotes: number
+  viewer_reaction: ReactionValue
+  emoji_reactions: EmojiReactionEntry[]
+  viewer_emojis: string[]
 }
 
 function canWriteBoard(board: NoteBoardSlug, role: UserRole) {
@@ -53,11 +60,12 @@ export const getBoardMessages = cache(async (
   offset = 0,
   archived = false,
   sort: NoteSortMode = 'time',
+  viewerIdentity?: string | null,
 ) => {
   const config = getNoteBoardConfig(board)
   let query = supabaseAdmin
     .from('comments')
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes')
     .eq('target_type', config.targetType)
     .eq('target_id', config.targetId)
     .eq('archived', archived)
@@ -76,7 +84,12 @@ export const getBoardMessages = cache(async (
     throw new Error(error.message)
   }
 
-  return (data ?? []) as NoteMessage[]
+  const withReactions = await attachViewerReactions(
+    (data ?? []) as Array<Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emojis'>>,
+    viewerIdentity,
+  )
+
+  return attachViewerEmojiReactions(withReactions, viewerIdentity) as Promise<NoteMessage[]>
 })
 
 export async function createBoardMessage(board: NoteBoardSlug, author: string, content: string, priority?: NotePriority) {
@@ -103,14 +116,19 @@ export async function createBoardMessage(board: NoteBoardSlug, author: string, c
       priority: nextPriority,
       parent_id: null,
     })
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes')
     .single()
 
   if (error) {
     throw new Error(error.message)
   }
 
-  return data as NoteMessage
+  return {
+    ...(data as Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emojis'>),
+    viewer_reaction: 0,
+    emoji_reactions: [],
+    viewer_emojis: [],
+  } as NoteMessage
 }
 
 export async function updateBoardMessage(
@@ -171,14 +189,21 @@ export async function updateBoardMessage(
     .from('comments')
     .update(patch)
     .eq('id', id)
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes')
     .single()
 
   if (error || !data) {
     throw new Error(error?.message ?? 'UPDATE_FAILED')
   }
 
-  return data as NoteMessage
+  const [message] = await attachViewerEmojiReactions([
+    {
+      ...(data as Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emojis'>),
+      viewer_reaction: 0,
+    },
+  ])
+
+  return message as NoteMessage
 }
 
 export async function deleteBoardMessage(

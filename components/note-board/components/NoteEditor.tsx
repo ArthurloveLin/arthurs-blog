@@ -2,9 +2,11 @@
 
 import { Bold, Check, Highlighter, Italic, ListTodo, X } from 'lucide-react'
 import { useEffect, useRef, type ReactNode } from 'react'
+import EmojiPickerButton from '@/components/emoji/EmojiPickerButton'
 import EditorActionBar from '@/components/EditorActionBar'
 import type { TextEditResult, TextSelectionRange } from '@/components/note-board/types'
 import { clamp } from '@/components/note-board/utils/board'
+import { insertTextAtSelection } from '@/lib/text-selection'
 import { insertChecklistSyntax, wrapSelectionWithSyntax } from '@/components/note-board/utils/editor'
 
 export interface NoteEditorProps {
@@ -76,6 +78,14 @@ export function NoteEditor({
   const pendingSelectionRef = useRef<TextSelectionRange | null>(null)
 
   useEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    textarea.style.height = '0px'
+    textarea.style.height = `${textarea.scrollHeight}px`
+  }, [value])
+
+  useEffect(() => {
     if (!pendingSelectionRef.current || !textareaRef.current) return
 
     const nextSelection = pendingSelectionRef.current
@@ -117,7 +127,7 @@ export function NoteEditor({
         onChange={(event) => onChange(event.target.value)}
         maxLength={maxLength}
         placeholder={placeholder}
-        className={`${minHeightClassName} w-full resize-none rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-primary/30 focus:ring-2 focus:ring-primary/20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
+        className={`${minHeightClassName} w-full resize-none overflow-hidden rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-primary/30 focus:ring-2 focus:ring-primary/20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
       />
       <div className={shellClassName}>
         <EditorActionBar
@@ -126,6 +136,20 @@ export function NoteEditor({
           leading={(
             <>
               {toolbarLeadingAddon}
+              <EmojiPickerButton
+                size={buttonSize}
+                panelAlign="start"
+                onSelect={(emoji) => withSelection((text, start, end) => {
+                  const result = insertTextAtSelection(text, emoji, start, end)
+                  return {
+                    value: result.value,
+                    selection: {
+                      start: result.selectionStart,
+                      end: result.selectionEnd,
+                    },
+                  }
+                })}
+              />
               <ToolbarIconButton size={buttonSize} onClick={() => withSelection(insertChecklistSyntax)} label="插入 checklist">
                 <ListTodo size={buttonSize === 'sm' ? 10 : 12} strokeWidth={1.8} />
               </ToolbarIconButton>

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { attachViewerEmojiReactions } from '@/lib/comment-emojis'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserRole } from '@/lib/auth'
 
@@ -80,12 +81,13 @@ export async function PATCH(
     .from('comments')
     .update({ content })
     .eq('id', id)
-    .select('id, author, content, created_at, updated_at, parent_id')
+    .select('id, author, content, created_at, updated_at, parent_id, upvotes, downvotes')
     .single()
 
   if (error || !data) {
     return NextResponse.json({ error: error?.message ?? 'Failed to update comment' }, { status: 500 })
   }
 
-  return NextResponse.json(data)
+  const [commentWithEmoji] = await attachViewerEmojiReactions([{ ...(data ?? {}), viewer_reaction: 0 }])
+  return NextResponse.json(commentWithEmoji)
 }
