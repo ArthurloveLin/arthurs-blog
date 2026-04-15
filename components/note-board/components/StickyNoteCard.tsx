@@ -3,6 +3,8 @@
 import { Archive, ArchiveRestore, ArrowRight, PencilLine, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
+import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
 import { NoteContent } from '@/components/note-board/components/NoteContent'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
@@ -15,6 +17,7 @@ import type {
   StickyNoteCardInlineEditor,
   StickyNoteCardLinkAction,
   StickyNoteCardPriorityControl,
+  StickyNoteCardReactionControl,
 } from '@/components/note-board/types'
 import {
   clamp,
@@ -44,9 +47,12 @@ interface StickyNoteCardSharedProps {
 interface StickyNoteBoardCardProps extends StickyNoteCardSharedProps {
   actions?: StickyNoteCardActions
   priorityControl?: StickyNoteCardPriorityControl
+  reactionControl: StickyNoteCardReactionControl
   inlineEditor?: StickyNoteCardInlineEditor
   onHeightChange?: (height: number) => void
   surface?: 'desktop' | 'mobile-stack'
+  isOptimistic?: boolean
+  isFresh?: boolean
 }
 
 interface StickyNotePreviewCardProps extends StickyNoteCardSharedProps {
@@ -58,10 +64,13 @@ interface StickyNoteCardFrameProps extends StickyNoteCardSharedProps {
   variant: 'preview' | 'board'
   actions?: StickyNoteCardActions
   priorityControl?: StickyNoteCardPriorityControl
+  reactionControl?: StickyNoteCardReactionControl
   inlineEditor?: StickyNoteCardInlineEditor
   onHeightChange?: (height: number) => void
   animatePosition: boolean
   dragBoundsMode: 'contained' | 'mobile-stack'
+  isOptimistic?: boolean
+  isFresh?: boolean
 }
 
 function StickyNoteCardFrame({
@@ -77,14 +86,18 @@ function StickyNoteCardFrame({
   variant,
   actions,
   priorityControl,
+  reactionControl,
   inlineEditor,
   onLift,
   onCommit,
   onHeightChange,
   animatePosition,
   dragBoundsMode,
+  isOptimistic = false,
+  isFresh = false,
 }: StickyNoteCardFrameProps) {
   const articleRef = useRef<HTMLElement>(null)
+  const paperRef = useRef<HTMLDivElement>(null)
   const dragOriginRef = useRef<NotePosition | null>(null)
   const dragPointerRef = useRef<{ startClientX: number; startClientY: number } | null>(null)
   const velocityRef = useRef({ lastClientX: 0, lastClientY: 0, lastTime: 0, velocityX: 0, velocityY: 0 })
@@ -92,8 +105,10 @@ function StickyNoteCardFrame({
   const queuedDragPositionRef = useRef<NotePosition | null>(null)
   const latestDragPositionRef = useRef<NotePosition | null>(null)
   const measuredHeightRef = useRef(0)
+  const paperHeightRef = useRef(0)
   const [dragPosition, setDragPosition] = useState<NotePosition | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
   const isPreview = variant === 'preview'
   const isInlineEditing = Boolean(inlineEditor)
 
@@ -104,6 +119,19 @@ function StickyNoteCardFrame({
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (!isInlineEditing && paperRef.current) {
+      paperHeightRef.current = Math.ceil(paperRef.current.offsetHeight)
+    }
+  }, [isInlineEditing, message.content, message.updated_at, message.upvotes, message.downvotes])
+
+  useEffect(() => {
+    if (!confirmingAction) return
+
+    const timeout = window.setTimeout(() => setConfirmingAction(null), 3600)
+    return () => window.clearTimeout(timeout)
+  }, [confirmingAction])
 
   useEffect(() => {
     if (!onHeightChange || typeof ResizeObserver === 'undefined') return
@@ -120,6 +148,10 @@ function StickyNoteCardFrame({
 
       measuredHeightRef.current = nextHeight
       onHeightChange(nextHeight)
+
+      if (!isInlineEditing && paperRef.current) {
+        paperHeightRef.current = Math.ceil(paperRef.current.offsetHeight)
+      }
     }
 
     emitHeight()
@@ -244,6 +276,8 @@ function StickyNoteCardFrame({
     commitDrag()
   }
 
+  const showConfirmActions = !isPreview && confirmingAction && ((confirmingAction === 'archive' && actions?.archive) || (confirmingAction === 'delete' && actions?.delete))
+
   return (
     <article
       ref={articleRef}
@@ -253,6 +287,7 @@ function StickyNoteCardFrame({
         styles.paperFrame,
         isPreview ? styles.previewCard : '',
         isDragging ? styles.dragging : '',
+        (isOptimistic || isFresh) ? 'animate-in fade-in slide-in-from-bottom-3 duration-300' : '',
       ].filter(Boolean).join(' ')}
       style={{
         width,
@@ -289,9 +324,13 @@ function StickyNoteCardFrame({
         )
       ) : null}
       <div
+        ref={paperRef}
         className={[styles.paper, isPreview ? styles.previewPaper : styles.boardPaper].join(' ')}
         style={{
           backgroundColor: STICKY_COLORS[colorIndex % STICKY_COLORS.length],
+          minHeight: isInlineEditing && inlineEditor?.surfaceMinHeight
+            ? `${inlineEditor.surfaceMinHeight}px`
+            : undefined,
           transform: `translate3d(0, ${isDragging ? -6 : 0}px, 0) scale(${isDragging ? 1.03 : 1})`,
           boxShadow: isDragging
             ? '0 22px 42px -16px rgba(15, 23, 42, 0.28), inset 0 18px 24px -12px rgba(0, 0, 0, 0.22)'
@@ -320,7 +359,10 @@ function StickyNoteCardFrame({
             ) : null}
 
             {actions?.archive ? (
-              <NoteActionButton label={actions.archive.archived ? '取消归档' : '归档便签'} onClick={actions.archive.onToggle}>
+              <NoteActionButton
+                label={confirmingAction === 'archive' ? '确认归档便签' : (actions.archive.archived ? '取消归档' : '归档便签')}
+                onClick={() => setConfirmingAction((current) => current === 'archive' ? null : 'archive')}
+              >
                 {actions.archive.archived ? <ArchiveRestore size={16} strokeWidth={1.9} /> : <Archive size={16} strokeWidth={1.9} />}
               </NoteActionButton>
             ) : null}
@@ -330,12 +372,43 @@ function StickyNoteCardFrame({
               </NoteActionButton>
             ) : null}
             {actions?.delete && !isInlineEditing ? (
-              <NoteActionButton label="删除便签" onClick={actions.delete.onClick}>
+              <NoteActionButton
+                label={confirmingAction === 'delete' ? '确认删除便签' : '删除便签'}
+                onClick={() => setConfirmingAction((current) => current === 'delete' ? null : 'delete')}
+              >
                 <Trash2 size={16} strokeWidth={1.85} />
               </NoteActionButton>
             ) : null}
           </div>
         </div>
+        {showConfirmActions ? (
+          <div className="mb-2 flex items-center justify-end gap-2" onPointerDown={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-[10px] font-bold tracking-widest text-slate-500 transition hover:text-slate-900"
+              onClick={() => setConfirmingAction(null)}
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              className="rounded-full bg-slate-900 px-3 py-1 text-[10px] font-bold tracking-widest text-white transition hover:opacity-90"
+              onClick={() => {
+                if (confirmingAction === 'archive') {
+                  actions?.archive?.onToggle()
+                }
+
+                if (confirmingAction === 'delete') {
+                  actions?.delete?.onClick()
+                }
+
+                setConfirmingAction(null)
+              }}
+            >
+              {confirmingAction === 'archive' ? '确认归档' : '确认删除'}
+            </button>
+          </div>
+        ) : null}
         {inlineEditor ? (
           <div onPointerDown={(event) => event.stopPropagation()}>
             <NoteEditor
@@ -348,7 +421,7 @@ function StickyNoteCardFrame({
               onCancel={inlineEditor.onCancel}
               saveDisabled={!inlineEditor.value.trim()}
               maxLength={180}
-              minHeightClassName="min-h-[80px]"
+              minHeightClassName="min-h-0"
               shellClassName="overflow-hidden rounded-[14px] border border-black/10 bg-white/30"
               toolbarClassName="px-2 py-1.5 text-[10px] text-slate-700"
               buttonSize="sm"
@@ -358,6 +431,29 @@ function StickyNoteCardFrame({
         ) : (
           <NoteContent content={message.content} variant={variant} />
         )}
+        {!isPreview && reactionControl ? (
+          <div className="mt-auto pt-1" onPointerDown={(event) => event.stopPropagation()}>
+            <EmojiReactionSummary
+              entries={reactionControl.emojiReactions}
+              onSelect={reactionControl.onEmojiReact}
+              variant="bare"
+              className="mb-2 gap-x-2 gap-y-1"
+            />
+            <ReactionToggleBar
+              compact
+              variant="bare"
+              upvotes={reactionControl.upvotes}
+              downvotes={reactionControl.downvotes}
+              viewerReaction={reactionControl.viewerReaction}
+              pending={reactionControl.pending}
+              emojiPending={reactionControl.emojiPending}
+              onReact={reactionControl.onReact}
+              onEmojiReact={reactionControl.onEmojiReact}
+              viewerEmojis={reactionControl.viewerEmojis}
+            />
+          </div>
+        ) : null}
+        {isOptimistic ? <p className="text-[10px] font-bold tracking-widest text-slate-500/70">发布中…</p> : null}
       </div>
     </article>
   )
@@ -366,9 +462,12 @@ function StickyNoteCardFrame({
 export function StickyNoteBoardCard({
   actions,
   priorityControl,
+  reactionControl,
   inlineEditor,
   onHeightChange,
   surface = 'desktop',
+  isOptimistic,
+  isFresh,
   ...props
 }: StickyNoteBoardCardProps) {
   return (
@@ -377,10 +476,13 @@ export function StickyNoteBoardCard({
       variant="board"
       actions={actions}
       priorityControl={priorityControl}
+      reactionControl={reactionControl}
       inlineEditor={inlineEditor}
       onHeightChange={onHeightChange}
       animatePosition
       dragBoundsMode={surface === 'mobile-stack' ? 'mobile-stack' : 'contained'}
+      isOptimistic={isOptimistic}
+      isFresh={isFresh}
     />
   )
 }

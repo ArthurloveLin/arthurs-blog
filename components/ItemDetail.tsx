@@ -30,6 +30,11 @@ interface Comment {
   created_at: string
   updated_at: string | null
   parent_id: string | null
+  upvotes: number
+  downvotes: number
+  viewer_reaction: -1 | 0 | 1
+  emoji_reactions: { emoji: string; count: number; viewer: boolean }[]
+  viewer_emojis: string[]
 }
 
 interface Item {

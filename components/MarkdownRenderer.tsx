@@ -2,13 +2,11 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeSlug from 'rehype-slug'
-import { ViewTransition } from 'react'
 import Image from 'next/image'
 import 'highlight.js/styles/github.css'
 
 export default function MarkdownRenderer({
   content,
-  postId,
   skipFirstParagraph = false
 }: {
   content: string;
