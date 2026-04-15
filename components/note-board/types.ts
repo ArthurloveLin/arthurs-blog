@@ -1,4 +1,6 @@
+import type { EmojiReactionEntry } from '@/lib/comment-emojis'
 import type { NoteMessage } from '@/lib/note-boards'
+import type { ReactionValue } from '@/lib/comment-reactions'
 import type { NotePriority } from '@/lib/note-priority'
 
 export interface Size {
@@ -74,6 +76,19 @@ export interface StickyNoteCardInlineEditor {
   onChange: (value: string) => void
   onSave: () => void
   onCancel?: () => void
+  surfaceMinHeight?: number
+}
+
+export interface StickyNoteCardReactionControl {
+  upvotes: number
+  downvotes: number
+  viewerReaction: ReactionValue
+  emojiReactions: EmojiReactionEntry[]
+  viewerEmojis: string[]
+  pending?: boolean
+  emojiPending?: boolean
+  onReact: (value: 1 | -1) => void
+  onEmojiReact: (emoji: string) => void
 }
 
 export interface NoteCardViewModel {
@@ -82,7 +97,10 @@ export interface NoteCardViewModel {
   canEdit: boolean
   actions: StickyNoteCardActions
   priorityControl?: StickyNoteCardPriorityControl
+  reactionControl: StickyNoteCardReactionControl
   inlineEditor?: StickyNoteCardInlineEditor
   isEditing: boolean
   isPriorityUpdating: boolean
+  isOptimistic: boolean
+  isFresh: boolean
 }

@@ -1,0 +1,6 @@
+ALTER TABLE comment_emoji_reactions
+DROP CONSTRAINT IF EXISTS comment_emoji_reactions_comment_id_identity_key;
+
+ALTER TABLE comment_emoji_reactions
+ADD CONSTRAINT comment_emoji_reactions_comment_id_identity_emoji_key
+UNIQUE (comment_id, identity, emoji);
