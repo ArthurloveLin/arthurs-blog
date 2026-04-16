@@ -1,6 +1,6 @@
 import type { NoteBoardSlug } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
-import type { NotePosition, Size } from '@/components/note-board/types'
+import type { NotePosition, Size, OptimisticMessageSnapshot, NoteBoardListPayload } from '@/components/note-board/types'
 import { type NoteSortMode } from '@/lib/note-priority'
 
 export const STICKY_COLORS = ['#f8ef9f', '#ffd0a8', '#f8bfd3', '#c9eff3', '#d9ccff']
@@ -193,3 +193,163 @@ export function getEditPermission(isAdmin: boolean, identity: string | string[],
 export function getBoardHref(board: NoteBoardSlug) {
   return board === 'memo' ? '/memo' : '/guestbook'
 }
+
+export function applyOptimisticReactionToMessage(message: NoteMessage, nextReaction: 1 | -1 | 0) {
+  let upvotes = message.upvotes
+  let downvotes = message.downvotes
+
+  if (message.viewer_reaction === 1) {
+    upvotes = Math.max(0, upvotes - 1)
+  } else if (message.viewer_reaction === -1) {
+    downvotes = Math.max(0, downvotes - 1)
+  }
+
+  if (nextReaction === 1) {
+    upvotes += 1
+  } else if (nextReaction === -1) {
+    downvotes += 1
+  }
+
+  return {
+    ...message,
+    upvotes,
+    downvotes,
+    viewer_reaction: nextReaction,
+  }
+}
+
+export function applyOptimisticEmojiToMessage(message: NoteMessage, nextEmoji: string) {
+  const viewerEmojiSet = new Set(message.viewer_emojis)
+  const removingEmoji = viewerEmojiSet.has(nextEmoji)
+  const summaryMap = new Map(message.emoji_reactions.map((entry) => [entry.emoji, { ...entry }]))
+
+  if (removingEmoji) {
+    viewerEmojiSet.delete(nextEmoji)
+    const previous = summaryMap.get(nextEmoji)
+    if (previous) {
+      const nextCount = previous.count - 1
+      if (nextCount > 0) {
+        summaryMap.set(nextEmoji, { ...previous, count: nextCount, viewer: false })
+      } else {
+        summaryMap.delete(nextEmoji)
+      }
+    }
+  } else {
+    viewerEmojiSet.add(nextEmoji)
+    const current = summaryMap.get(nextEmoji)
+    summaryMap.set(nextEmoji, {
+      emoji: nextEmoji,
+      count: (current?.count ?? 0) + 1,
+      viewer: true,
+    })
+  }
+
+  return {
+    ...message,
+    viewer_emojis: [...viewerEmojiSet].sort((left, right) => left.localeCompare(right)),
+    emoji_reactions: [...summaryMap.values()].sort((left, right) => {
+      if (right.count !== left.count) {
+        return right.count - left.count
+      }
+
+      if (left.viewer !== right.viewer) {
+        return Number(right.viewer) - Number(left.viewer)
+      }
+
+      return left.emoji.localeCompare(right.emoji)
+    }),
+  }
+}
+
+export function createBoardPayload(
+  messages: NoteMessage[],
+  archived: boolean,
+  sort: NoteSortMode,
+  nextOffset: number,
+  hasMore: boolean,
+): NoteBoardListPayload {
+  return {
+    messages,
+    nextOffset,
+    hasMore,
+    archived,
+    sort,
+  }
+}
+
+export function isSameBoardSurfacePayload(
+  payload: NoteBoardListPayload,
+  messages: NoteMessage[],
+  nextOffset: number,
+  hasMore: boolean,
+) {
+  if (payload.nextOffset !== nextOffset || payload.hasMore !== hasMore) {
+    return false
+  }
+
+  if (payload.messages.length !== messages.length) {
+    return false
+  }
+
+  for (let index = 0; index < payload.messages.length; index += 1) {
+    const left = payload.messages[index]
+    const right = messages[index]
+
+    if (
+      left.id !== right.id ||
+      left.author !== right.author ||
+      left.content !== right.content ||
+      left.created_at !== right.created_at ||
+      left.updated_at !== right.updated_at ||
+      left.priority !== right.priority ||
+      left.archived !== right.archived ||
+      left.parent_id !== right.parent_id ||
+      left.upvotes !== right.upvotes ||
+      left.downvotes !== right.downvotes ||
+      left.viewer_reaction !== right.viewer_reaction ||
+      left.viewer_emojis.length !== right.viewer_emojis.length ||
+      left.emoji_reactions.length !== right.emoji_reactions.length
+    ) {
+      return false
+    }
+
+    for (let viewerEmojiIndex = 0; viewerEmojiIndex < left.viewer_emojis.length; viewerEmojiIndex += 1) {
+      if (left.viewer_emojis[viewerEmojiIndex] !== right.viewer_emojis[viewerEmojiIndex]) {
+        return false
+      }
+    }
+
+    for (let emojiIndex = 0; emojiIndex < left.emoji_reactions.length; emojiIndex += 1) {
+      const leftEmoji = left.emoji_reactions[emojiIndex]
+      const rightEmoji = right.emoji_reactions[emojiIndex]
+
+      if (
+        leftEmoji.emoji !== rightEmoji.emoji ||
+        leftEmoji.count !== rightEmoji.count ||
+        leftEmoji.viewer !== rightEmoji.viewer
+      ) {
+        return false
+      }
+    }
+  }
+
+  return true
+}
+
+export function buildOptimisticSnapshot(
+  id: string,
+  messages: NoteMessage[],
+  customPositions: Record<string, NotePosition>,
+  cardZIndices: Record<string, number>,
+): OptimisticMessageSnapshot | null {
+  const index = messages.findIndex((message) => message.id === id)
+  if (index === -1) return null
+
+  return {
+    message: messages[index],
+    index,
+    customPosition: customPositions[id],
+    zIndex: cardZIndices[id],
+  }
+}
+
