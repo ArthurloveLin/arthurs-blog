@@ -106,11 +106,16 @@ function StickyNoteCardFrame({
   const latestDragPositionRef = useRef<NotePosition | null>(null)
   const measuredHeightRef = useRef(0)
   const paperHeightRef = useRef(0)
+  const isInlineEditingRef = useRef(Boolean(inlineEditor))
   const [dragPosition, setDragPosition] = useState<NotePosition | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
   const isPreview = variant === 'preview'
   const isInlineEditing = Boolean(inlineEditor)
+
+  useEffect(() => {
+    isInlineEditingRef.current = isInlineEditing
+  }, [isInlineEditing])
 
   useEffect(() => {
     return () => {
@@ -134,12 +139,16 @@ function StickyNoteCardFrame({
   }, [confirmingAction])
 
   useEffect(() => {
-    if (!onHeightChange || typeof ResizeObserver === 'undefined') return
+    if (!onHeightChange || typeof ResizeObserver === 'undefined' || isInlineEditing) return
 
     const element = articleRef.current
     if (!element) return
 
     const emitHeight = () => {
+      if (isInlineEditingRef.current) {
+        return
+      }
+
       const nextHeight = Math.ceil(element.offsetHeight)
 
       if (nextHeight <= 0 || nextHeight === measuredHeightRef.current) {
@@ -162,7 +171,7 @@ function StickyNoteCardFrame({
     return () => {
       observer.disconnect()
     }
-  }, [inlineEditor?.value, isInlineEditing, onHeightChange])
+  }, [isInlineEditing, onHeightChange])
 
   function scheduleDragPosition(nextPosition: NotePosition) {
     latestDragPositionRef.current = nextPosition
@@ -425,6 +434,9 @@ function StickyNoteCardFrame({
               shellClassName="overflow-hidden rounded-[14px] border border-black/10 bg-white/30"
               toolbarClassName="px-2 py-1.5 text-[10px] text-slate-700"
               buttonSize="sm"
+              toolbarButtonVariant="bare"
+              emojiTriggerVariant="bare"
+              showCancelButton={true}
               autoFocus
             />
           </div>
