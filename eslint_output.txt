@@ -1,0 +1,99 @@
+
+/home/arthur/project/arthur_grace_tools/wardrobe-picks/components/note-board/NoteBoardProvider.tsx
+   20:10  warning  'DEFAULT_NOTE_PRIORITY' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+  189:30  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  204:5   warning  'resetBoardSurface' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  244:5   warning  'setLayoutVersion' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  245:5   warning  'zIndexCounterRef' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  257:3   error    Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/home/arthur/project/arthur_grace_tools/wardrobe-picks/components/note-board/NoteBoardProvider.tsx:257:3
+  255 |   // Bind the surface methods and refs to the surfaceRefs so SWR data fetch operations 
+  256 |   // can update surface locations
+> 257 |   surfaceRefs.current = {
+      |   ^^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  258 |     setCustomPositions,
+  259 |     customPositionsRef,
+  260 |     setCardZIndices,  react-hooks/refs
+  301:3   error    Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/home/arthur/project/arthur_grace_tools/wardrobe-picks/components/note-board/NoteBoardProvider.tsx:301:3
+  299 |
+  300 |   // Update the ref so data-layer can call cancelEditingNote
+> 301 |   cancelEditingNoteRef.current = cancelEditingNote
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  302 |
+  303 |   const {
+  304 |     priorityUpdatingIds,                                                               react-hooks/refs
+
+/home/arthur/project/arthur_grace_tools/wardrobe-picks/components/note-board/hooks/useBoardData.ts
+  314:30  warning  'current' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/arthur/project/arthur_grace_tools/wardrobe-picks/components/note-board/hooks/useBoardSurface.ts
+   41:5  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `visibleMessages`, but the source dependencies were [messageIds, size.width, layoutVersion]. Inferred different dependency than source.
+
+/home/arthur/project/arthur_grace_tools/wardrobe-picks/components/note-board/hooks/useBoardSurface.ts:41:5
+  39 |
+  40 |   const { cardWidth, height, layouts } = useMemo(
+> 41 |     () => computeBoardLayout(visibleMessages, size.width, measuredHeights),
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Could not preserve existing manual memoization
+  42 |     [messageIds, size.width, layoutVersion],
+  43 |   )
+  44 |                                                                                                                                                                                                                    react-hooks/preserve-manual-memoization
+   41:5  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `measuredHeights`, but the source dependencies were [messageIds, size.width, layoutVersion]. Inferred different dependency than source.
+
+/home/arthur/project/arthur_grace_tools/wardrobe-picks/components/note-board/hooks/useBoardSurface.ts:41:5
+  39 |
+  40 |   const { cardWidth, height, layouts } = useMemo(
+> 41 |     () => computeBoardLayout(visibleMessages, size.width, measuredHeights),
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Could not preserve existing manual memoization
+  42 |     [messageIds, size.width, layoutVersion],
+  43 |   )
+  44 |                                                                                                                                                                                                                    react-hooks/preserve-manual-memoization
+   42:5  warning  React Hook useMemo has missing dependencies: 'measuredHeights' and 'visibleMessages'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+  118:7  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/arthur/project/arthur_grace_tools/wardrobe-picks/components/note-board/hooks/useBoardSurface.ts:118:7
+  116 |     const element = containerElement
+  117 |     if (!element) {
+> 118 |       setSize({ width: 0, height: 0 })
+      |       ^^^^^^^ Avoid calling setState() directly within an effect
+  119 |       return
+  120 |     }
+  121 |                                                                                                                                    react-hooks/set-state-in-effect
+  135:5  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/arthur/project/arthur_grace_tools/wardrobe-picks/components/note-board/hooks/useBoardSurface.ts:135:5
+  133 |
+  134 |   useEffect(() => {
+> 135 |     setMeasuredHeights((current) => {
+      |     ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  136 |       const nextEntries = Object.entries(current).filter(([id]) => messages.some((message) => message.id === id))
+  137 |
+  138 |       if (nextEntries.length === Object.keys(current).length) {  react-hooks/set-state-in-effect
+
+/home/arthur/project/arthur_grace_tools/wardrobe-picks/components/note-board/hooks/useNoteEditor.ts
+  41:3  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 14 problems (7 errors, 7 warnings)
+
