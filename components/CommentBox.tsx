@@ -404,7 +404,6 @@ function CommentCard({ comment }: { comment: Comment }) {
               downvotes={comment.downvotes}
               viewerReaction={comment.viewer_reaction}
               pending={Boolean(reactingIds[comment.id])}
-              viewerEmojis={comment.viewer_emojis}
               emojiPending={Boolean(emojiReactingIds[comment.id])}
               onReact={(reaction) => void onReact(comment.id, reaction)}
               onEmojiReact={(emoji) => void onEmojiReact(comment.id, emoji)}
