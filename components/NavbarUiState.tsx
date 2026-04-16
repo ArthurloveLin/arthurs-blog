@@ -12,6 +12,8 @@ interface NavbarUiStateValue {
   setActiveDrawer: (drawer: DrawerType) => void
   setIsMobileMenuOpen: (isOpen: boolean) => void
   toggleDrawer: (drawer: Exclude<DrawerType, null>) => void
+  isSearching: boolean
+  setIsSearching: (isSearching: boolean) => void
 }
 
 const NavbarUiStateContext = createContext<NavbarUiStateValue | null>(null)
@@ -19,6 +21,7 @@ const NavbarUiStateContext = createContext<NavbarUiStateValue | null>(null)
 export function NavbarUiStateProvider({ children }: { children: ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [activeDrawer, setActiveDrawer] = useState<DrawerType>(null)
+  const [isSearching, setIsSearching] = useState(false)
 
   const closeMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(false)
@@ -40,7 +43,9 @@ export function NavbarUiStateProvider({ children }: { children: ReactNode }) {
     setActiveDrawer,
     setIsMobileMenuOpen,
     toggleDrawer,
-  }), [activeDrawer, closeDrawer, closeMobileMenu, isMobileMenuOpen, toggleDrawer])
+    isSearching,
+    setIsSearching,
+  }), [activeDrawer, closeDrawer, closeMobileMenu, isMobileMenuOpen, toggleDrawer, isSearching])
 
   return (
     <NavbarUiStateContext.Provider value={value}>

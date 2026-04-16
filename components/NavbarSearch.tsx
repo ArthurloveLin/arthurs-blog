@@ -1,13 +1,14 @@
 'use client'
 
 import { FormEvent, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { createPortal } from 'react-dom'
-import { Clock3, Loader2, Search, X } from 'lucide-react'
+import { Clock3, Loader2, Search, X, TrendingUp } from 'lucide-react'
 import SearchResultCard from '@/components/SearchResultCard'
 import type { SearchPostResult } from '@/lib/blog'
 import { normalizeSearchQuery, SEARCH_MIN_QUERY_LENGTH } from '@/lib/blog-search'
+import { useNavbarUiState } from './NavbarUiState'
 
 const HISTORY_KEY = 'blog-search-history'
 const SUGGESTION_LIMIT = 6
@@ -26,7 +27,6 @@ function SearchSuggestions({
   loading,
   error,
   history,
-  compact,
   onSelectHistory,
   onNavigate,
 }: {
@@ -36,88 +36,118 @@ function SearchSuggestions({
   loading: boolean
   error: string | null
   history: string[]
-  compact?: boolean
   onSelectHistory: (value: string) => void
   onNavigate: () => void
 }) {
   const normalizedQuery = normalizeSearchQuery(query)
-  const showHistory = normalizedQuery.length < SEARCH_MIN_QUERY_LENGTH
+  const isQuerying = normalizedQuery.length >= SEARCH_MIN_QUERY_LENGTH
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 rounded-[1.1rem] border border-border/70 bg-background/70 px-4 py-4 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        搜索中…
+      <div className="flex items-center gap-3 px-8 py-10 text-muted-foreground animate-apple-fade-in">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        <span className="text-lg font-medium tracking-tight">搜索中…</span>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="rounded-[1.1rem] border border-destructive/20 bg-destructive/5 px-4 py-4 text-sm text-destructive">
-        搜索失败：{error}
+      <div className="px-8 py-10 text-destructive animate-apple-fade-in">
+        <p className="text-lg font-medium tracking-tight">搜索失败：{error}</p>
       </div>
     )
   }
 
-  if (showHistory) {
+  if (!isQuerying) {
     return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          <Clock3 className="h-3.5 w-3.5" />
-          最近搜索
-        </div>
-        {history.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {history.map((item) => (
+      <div className="py-6 px-4 sm:px-8">
+        <h3 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-[0.15em] mb-4 animate-apple-fade-in-right opacity-0" style={{ animationDelay: '0ms' }}>
+          快速链接
+        </h3>
+        <div className="space-y-1">
+          {history.length > 0 ? (
+            history.map((item, index) => (
               <button
                 key={item}
                 type="button"
                 onClick={() => onSelectHistory(item)}
-                className="rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground transition hover:border-foreground/20 hover:bg-muted"
+                className="group flex items-center gap-3 w-full px-4 py-2.5 text-[15px] font-medium text-foreground/80 hover:text-primary hover:bg-muted/50 rounded-xl transition-all animate-apple-fade-in-right opacity-0"
+                style={{ animationDelay: `${(index + 1) * 40}ms` }}
               >
+                <Clock3 className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 {item}
               </button>
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-[1.1rem] border border-dashed border-border bg-background/65 px-4 py-4 text-sm text-muted-foreground">
-            还没有历史记录。试试标题、标签或分类里的关键词。
-          </p>
-        )}
+            ))
+          ) : (
+            <div className="animate-apple-fade-in-right opacity-0" style={{ animationDelay: '40ms' }}>
+              <p className="px-4 py-6 text-[15px] text-muted-foreground border border-dashed border-border rounded-2xl bg-muted/20">
+                还没有历史记录。试试标题、标签或分类里的关键词。
+              </p>
+            </div>
+          )}
+          
+          {/* Default Suggestions if no history */}
+          {history.length < 3 && (
+            <>
+              <div className="h-px bg-border/40 my-4 animate-apple-fade-in-right opacity-0" style={{ animationDelay: '160ms' }} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {['Life Gallery', 'Life Lens', 'News'].map((tag, index) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => onSelectHistory(tag)}
+                    className="group flex items-center gap-3 px-4 py-2.5 text-[15px] font-medium text-foreground/80 hover:text-primary hover:bg-muted/50 rounded-xl transition-all animate-apple-fade-in-right opacity-0"
+                    style={{ animationDelay: `${(index + history.length + 2) * 40}ms` }}
+                  >
+                    <TrendingUp className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     )
   }
 
   if (results.length === 0) {
     return (
-      <div className="rounded-[1.1rem] border border-dashed border-border bg-background/65 px-4 py-5 text-sm text-muted-foreground">
-        没有找到与 “{normalizedQuery}” 相关的结果。
+      <div className="px-8 py-12 text-center animate-apple-fade-in">
+        <p className="text-lg text-muted-foreground font-medium">
+          没有找到与 “{normalizedQuery}” 相关的结果。
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">建议结果</p>
+    <div className="py-6 px-4 sm:px-8 space-y-6 animate-apple-fade-in">
+      <div className="flex items-center justify-between gap-3 px-4">
+        <h3 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-[0.2em]">建议结果</h3>
         <Link
           href={`/search?q=${encodeURIComponent(normalizedQuery)}`}
           onClick={onNavigate}
-          className="text-xs font-medium text-primary transition hover:text-primary/80"
+          className="text-[13px] font-semibold text-primary hover:underline underline-offset-4 decoration-2 transition-all"
         >
           查看全部 {total} 条
         </Link>
       </div>
-      <div className="space-y-2">
-        {results.map((result) => (
-          <SearchResultCard
-            key={result.id}
-            result={result}
-            query={normalizedQuery}
-            compact={compact ?? true}
-            onNavigate={onNavigate}
-          />
+      <div className="grid grid-cols-1 gap-3 px-1">
+        {results.map((result, index) => (
+          <div 
+            key={result.id} 
+            className="animate-apple-fade-in-right opacity-0" 
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
+            <SearchResultCard
+              result={result}
+              query={normalizedQuery}
+              compact={true}
+              onNavigate={onNavigate}
+            />
+          </div>
         ))}
       </div>
     </div>
@@ -127,22 +157,20 @@ function SearchSuggestions({
 export default function NavbarSearch() {
   const router = useRouter()
   const pathname = usePathname()
-  const desktopInputRef = useRef<HTMLInputElement>(null)
-  const mobileInputRef = useRef<HTMLInputElement>(null)
-  const desktopContainerRef = useRef<HTMLDivElement>(null)
-  const [desktopOpen, setDesktopOpen] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { isSearching, setIsSearching } = useNavbarUiState()
+  
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchPostResult[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState<string[]>([])
+  const [mounted, setMounted] = useState(false)
   const deferredQuery = useDeferredValue(query)
   const inputId = useId()
   const normalizedDeferredQuery = useMemo(() => normalizeSearchQuery(deferredQuery), [deferredQuery])
-  const isOpen = desktopOpen || mobileOpen
-  const canUsePortal = typeof document !== 'undefined'
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -155,72 +183,66 @@ export default function NavbarSearch() {
     } catch {
       setHistory([])
     }
+    setMounted(true)
   }, [])
 
   useEffect(() => {
-    setDesktopOpen(false)
-    setMobileOpen(false)
+    if (isSearching) {
+      setIsSearching(false)
+    }
   }, [pathname])
 
   useEffect(() => {
-    if (!desktopOpen) return
+    if (!isSearching) return
 
     function handlePointerDown(event: PointerEvent) {
       const target = event.target as Node
-      if (!desktopContainerRef.current?.contains(target)) {
-        setDesktopOpen(false)
+      // If clicking outside the search container, close it
+      if (containerRef.current && !containerRef.current.contains(target)) {
+        setIsSearching(false)
       }
     }
 
     window.addEventListener('pointerdown', handlePointerDown)
     return () => window.removeEventListener('pointerdown', handlePointerDown)
-  }, [desktopOpen])
+  }, [isSearching, setIsSearching])
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
-        if (window.matchMedia('(max-width: 767px)').matches) {
-          setMobileOpen(true)
-        } else {
-          setDesktopOpen(true)
-        }
+        setIsSearching(!isSearching)
         return
       }
 
       if (event.key === 'Escape') {
-        setDesktopOpen(false)
-        setMobileOpen(false)
+        setIsSearching(false)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [isSearching, setIsSearching])
 
   useEffect(() => {
-    if (desktopOpen) {
-      desktopInputRef.current?.focus()
-    }
-  }, [desktopOpen])
-
-  useEffect(() => {
-    if (mobileOpen) {
-      mobileInputRef.current?.focus()
+    if (isSearching) {
+      // Focus input with a slight delay
+      const timer = setTimeout(() => {
+        inputRef.current?.focus()
+      }, 350)
+      
       document.body.style.overflow = 'hidden'
       return () => {
+        clearTimeout(timer)
         document.body.style.overflow = ''
       }
+    } else {
+      document.body.style.overflow = ''
     }
-
-    document.body.style.overflow = ''
-    return undefined
-  }, [mobileOpen])
+  }, [isSearching])
 
   useEffect(() => {
-    if (!isOpen) {
-      return
-    }
+    if (!isSearching) return
 
     if (normalizedDeferredQuery.length < SEARCH_MIN_QUERY_LENGTH) {
       setResults([])
@@ -263,12 +285,12 @@ export default function NavbarSearch() {
       controller.abort()
       window.clearTimeout(timeoutId)
     }
-  }, [isOpen, normalizedDeferredQuery])
+  }, [isSearching, normalizedDeferredQuery])
 
   function persistHistory(value: string) {
     if (typeof window === 'undefined') return
 
-    const next = [value, ...history.filter((item) => item !== value)].slice(0, 6)
+    const next = [value, ...history.filter((item) => item !== value)].slice(0, 5)
     setHistory(next)
     window.localStorage.setItem(HISTORY_KEY, JSON.stringify(next))
   }
@@ -280,8 +302,7 @@ export default function NavbarSearch() {
     }
 
     persistHistory(normalizedQuery)
-    setDesktopOpen(false)
-    setMobileOpen(false)
+    setIsSearching(false)
     router.push(`/search?q=${encodeURIComponent(normalizedQuery)}`)
   }
 
@@ -290,155 +311,83 @@ export default function NavbarSearch() {
     navigateToSearch(query)
   }
 
-  function handleDesktopToggle() {
-    if (!desktopOpen) {
-      setDesktopOpen(true)
-      return
-    }
-
-    if (query) {
-      setQuery('')
-      setResults([])
-      setTotal(0)
-      return
-    }
-
-    setDesktopOpen(false)
-  }
-
   function handleHistorySelect(value: string) {
     setQuery(value)
-    if (mobileOpen) {
-      mobileInputRef.current?.focus()
-    } else {
-      desktopInputRef.current?.focus()
-    }
+    inputRef.current?.focus()
   }
-
-  const desktopPanel = desktopOpen ? (
-    <div className="absolute right-0 top-[calc(100%+0.8rem)] z-[70] hidden w-[26rem] rounded-[1.4rem] border border-border/70 bg-card/96 p-4 shadow-[0_20px_60px_-28px_rgba(15,23,42,0.45)] backdrop-blur-xl md:block">
-      <SearchSuggestions
-        query={query}
-        results={results}
-        total={total}
-        loading={loading}
-        error={error}
-        history={history}
-        onSelectHistory={handleHistorySelect}
-        onNavigate={() => {
-          if (query) {
-            persistHistory(normalizeSearchQuery(query))
-          }
-          setDesktopOpen(false)
-        }}
-      />
-    </div>
-  ) : null
 
   return (
     <>
-      <div ref={desktopContainerRef} className="relative hidden md:block">
-        <form
-          onSubmit={handleSubmit}
-          className={[
-            'relative flex h-11 items-center overflow-hidden border text-foreground transition-all duration-500 ease-out',
-            desktopOpen
-              ? 'w-[20rem] rounded-[1.1rem] border-border bg-card/90 pl-4 pr-12 shadow-[0_12px_32px_-22px_rgba(15,23,42,0.45)] backdrop-blur-xl'
-              : 'w-11 rounded-full border-border/70 bg-card/70 pl-0 pr-0 hover:border-foreground/15 hover:bg-card',
-          ].join(' ')}
-          role="search"
-        >
-          <label htmlFor={inputId} className="sr-only">搜索文章</label>
-          <input
-            id={inputId}
-            ref={desktopInputRef}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onFocus={() => setDesktopOpen(true)}
-            placeholder="搜索标题、正文、标签、分类…"
-            className={[
-              'h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/80 transition-opacity duration-200',
-              desktopOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
-            ].join(' ')}
-            enterKeyHint="search"
-          />
-          {!desktopOpen ? (
-            <div className="pointer-events-none absolute right-12 top-1/2 hidden -translate-y-1/2 rounded-full border border-border/80 px-2 py-1 text-[10px] font-medium tracking-[0.14em] text-muted-foreground/90 lg:block">
-              Ctrl K
-            </div>
-          ) : null}
-          <button
-            type="button"
-            onClick={handleDesktopToggle}
-            className="absolute right-1.5 top-1.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
-            aria-label={desktopOpen ? (query ? '清空搜索' : '关闭搜索') : '打开搜索'}
-            title={desktopOpen ? '关闭搜索' : '搜索'}
-          >
-            {desktopOpen ? <X className="h-[17px] w-[17px]" strokeWidth={1.9} /> : <Search className="h-[17px] w-[17px]" strokeWidth={1.9} />}
-          </button>
-        </form>
-        {desktopPanel}
-      </div>
-
       <button
         type="button"
-        onClick={() => setMobileOpen(true)}
-        className="p-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 md:hidden"
-        aria-label="搜索"
-        title="搜索"
+        onClick={() => setIsSearching(true)}
+        className={`p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? 'pointer-events-none' : ''}`}
+        aria-label="打开搜索"
+        title="搜索 (Ctrl K)"
       >
         <Search className="w-[18px] h-[18px]" strokeWidth={1.75} />
       </button>
 
-      {mobileOpen && canUsePortal ? createPortal(
-        <div className="fixed inset-0 z-[90] md:hidden">
-          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <div className="absolute inset-x-0 top-0 h-full overflow-y-auto bg-background px-4 pb-8 pt-4">
-            <div className="mx-auto max-w-2xl">
-              <form onSubmit={handleSubmit} className="rounded-[1.4rem] border border-border/70 bg-card/95 p-3 shadow-[0_18px_50px_-24px_rgba(15,23,42,0.42)]">
-                <div className="flex items-center gap-2">
-                  <Search className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+      {isSearching && mounted ? createPortal(
+        <>
+          {/* Search Input Container - Fixed to match Navbar's top position and height */}
+          <div
+            ref={containerRef}
+            className="fixed inset-x-0 top-0 h-16 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-md transition-colors border-b border-border/50"
+          >
+            <div className="site-shell flex items-center justify-between gap-4 w-full">
+              {/* We use a max-width container to match Apple's centered search look */}
+              <div className="mx-auto w-full max-w-[680px] flex items-center">
+                <form onSubmit={handleSubmit} className="flex-1 flex items-center animate-apple-fade-in-right">
+                  <Search className="w-5 h-5 text-foreground/50 shrink-0" strokeWidth={2} />
                   <input
-                    ref={mobileInputRef}
+                    id={inputId}
+                    ref={inputRef}
                     value={query}
-                    onChange={(event) => setQuery(event.target.value)}
+                    onChange={(e) => setQuery(e.target.value)}
                     placeholder="搜索标题、正文、标签、分类…"
-                    className="h-12 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/80"
+                    className="flex-1 bg-transparent px-3 py-2 text-[17px] font-medium text-foreground outline-none placeholder:text-muted-foreground/60 w-full"
                     enterKeyHint="search"
+                    autoComplete="off"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setMobileOpen(false)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
-                    aria-label="关闭搜索"
-                  >
-                    <X className="h-5 w-5" strokeWidth={1.8} />
-                  </button>
-                </div>
-              </form>
+                </form>
+                <button
+                  type="button"
+                  onClick={() => setIsSearching(false)}
+                  className="ml-2 p-2 text-foreground/60 hover:text-foreground transition-all duration-300 transform hover:rotate-90 animate-apple-fade-in-right"
+                  style={{ animationDelay: '100ms' }}
+                >
+                  <X className="w-5 h-5" strokeWidth={2} />
+                </button>
+              </div>
+            </div>
 
-              <div className="mt-5 rounded-[1.4rem] border border-border/70 bg-card/94 p-4 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.32)]">
-                <SearchSuggestions
-                  query={query}
-                  results={results}
-                  total={total}
-                  loading={loading}
-                  error={error}
-                  history={history}
-                  compact={false}
-                  onSelectHistory={handleHistorySelect}
-                  onNavigate={() => {
-                    if (query) {
-                      persistHistory(normalizeSearchQuery(query))
-                    }
-                    setMobileOpen(false)
-                  }}
-                />
+            {/* Quick Links / Suggestions Dropdown - Positioned below the fixed bar */}
+            <div className="absolute top-16 left-0 right-0 animate-apple-fade-in-right" style={{ animationDelay: '150ms' }}>
+              <div className="site-shell flex justify-center">
+                <div className="w-full max-w-[680px] bg-background/98 backdrop-blur-3xl rounded-b-[2rem] border-x border-b border-border shadow-[0_40px_100px_-20px_rgba(0,0,0,0.25)] dark:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden">
+                  <SearchSuggestions
+                    query={query}
+                    results={results}
+                    total={total}
+                    loading={loading}
+                    error={error}
+                    history={history}
+                    onSelectHistory={handleHistorySelect}
+                    onNavigate={() => setIsSearching(false)}
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>,
-        document.body,
+
+          {/* Backdrop for closing Search */}
+          <div 
+            className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-[2px] z-[90] animate-in fade-in duration-500"
+            onClick={() => setIsSearching(false)}
+          />
+        </>,
+        document.body
       ) : null}
     </>
   )
