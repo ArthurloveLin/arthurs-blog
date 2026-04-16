@@ -463,7 +463,11 @@ export default function ReactionToggleBar({
                   'emoji-radial-wheel__item',
                   viewerEmojis.includes(emoji) ? 'emoji-radial-wheel__item--active' : '',
                 ].filter(Boolean).join(' ')}
-                style={{ ['--emoji-index' as string]: String(index), ['--emoji-total' as string]: String(COMMON_REACTION_EMOJIS.length) }}
+                style={{
+                  ['--emoji-index' as string]: String(index),
+                  ['--emoji-total' as string]: String(COMMON_REACTION_EMOJIS.length),
+                  ['--emoji-radius' as string]: compact ? '2.15rem' : '2.45rem',
+                }}
                 onClick={() => {
                   onEmojiReact(emoji)
                   setWheelOpen(false)

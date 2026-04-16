@@ -16,6 +16,7 @@ interface EmojiPickerButtonProps {
   triggerClassName?: string
   panelAlign?: 'start' | 'end'
   size?: 'sm' | 'md'
+  triggerVariant?: 'filled' | 'bare'
 }
 
 export default function EmojiPickerButton({
@@ -25,6 +26,7 @@ export default function EmojiPickerButton({
   triggerClassName = '',
   panelAlign = 'end',
   size = 'md',
+  triggerVariant = 'filled',
 }: EmojiPickerButtonProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -126,7 +128,10 @@ export default function EmojiPickerButton({
         title={title}
         onClick={() => setOpen((current) => !current)}
         className={[
-          'inline-flex items-center justify-center rounded-full border border-black/10 bg-white/70 text-slate-700 transition hover:bg-white hover:text-slate-950',
+          'inline-flex items-center justify-center rounded-full border text-slate-700 transition hover:text-slate-950',
+          triggerVariant === 'bare'
+            ? 'border-transparent bg-transparent hover:bg-black/5'
+            : 'border-black/10 bg-white/70 hover:bg-white',
           size === 'sm' ? 'h-6 w-6' : 'h-8 w-8',
           triggerClassName,
         ].filter(Boolean).join(' ')}
@@ -160,7 +165,7 @@ export default function EmojiPickerButton({
 
           {!isSearching && sections.length > 0 ? (
             <div className="border-b border-black/6 px-3 py-2">
-              <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+              <div className="flex flex-wrap gap-1 pb-1">
                 {sections.map((section) => (
                   <button
                     key={section.id}
@@ -170,7 +175,7 @@ export default function EmojiPickerButton({
                       setCurrentPage(0)
                     }}
                     className={[
-                      'shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium transition',
+                      'rounded-full px-3 py-1.5 text-[11px] font-medium transition',
                       activeSection?.id === section.id
                         ? 'bg-slate-900 text-white shadow-[0_10px_24px_-18px_rgba(15,23,42,0.9)]'
                         : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900',
