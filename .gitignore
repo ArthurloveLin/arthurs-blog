@@ -43,3 +43,11 @@ next-env.d.ts
 # agents
 .agents
 .claude
+
+# logs and temporary files
+eslint_output.txt
+scratch/
+tmp/
+
+# npm config
+.npmrc
