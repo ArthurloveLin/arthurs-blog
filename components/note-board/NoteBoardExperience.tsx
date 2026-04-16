@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useCallback } from 'react'
-import { Layers, LayoutList } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Layers, LayoutList } from 'lucide-react'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import { StickyNoteCard } from '@/components/note-board/components/StickyNoteCard'
@@ -51,7 +51,11 @@ function NoteBoardControls() {
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{meta.board.title}</p>
         </div>
-        <p className="text-xs text-muted-foreground/80">当前已加载 {state.totalLoaded} 张便签</p>
+        <p className="text-xs text-muted-foreground/80">
+          {state.viewportReady && !state.isMobileViewport
+            ? `第 ${state.currentPage} 页 · 单页 ${state.pageSize} 张 · 当前显示 ${state.visibleCount} 张`
+            : `当前已加载 ${state.totalLoaded} 张便签`}
+        </p>
       </div>
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -182,20 +186,48 @@ function NoteBoardControls() {
             )}
           </div>
 
-          {state.hasMore ? (
+          {state.hasPreviousPage || state.hasNextPage ? (
             <div className="mt-6 flex justify-center">
-              <button
-                type="button"
-                className="rounded-full border border-border/70 bg-card px-5 py-2 text-sm text-foreground transition hover:border-foreground/20 hover:bg-accent"
-                onClick={() => void actions.handleLoadMore()}
-                disabled={state.isPending}
-              >
-                {state.isPending ? '正在展开更多便签…' : '加载更多便签'}
-              </button>
+              <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/90 px-2 py-2 text-sm shadow-sm backdrop-blur-sm">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                  onClick={actions.handlePreviousPage}
+                  disabled={!state.hasPreviousPage || state.isPending || state.isRefreshingBoard}
+                >
+                  <ChevronLeft size={16} />
+                  上一页
+                </button>
+                <span className="min-w-[92px] text-center text-xs text-muted-foreground">
+                  第 {state.currentPage} 页
+                </span>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                  onClick={() => void actions.handleNextPage()}
+                  disabled={!state.hasNextPage || state.isPending || state.isRefreshingBoard}
+                >
+                  下一页
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
           ) : null}
         </div>
       )}
+
+      {state.viewportReady && state.isMobileViewport && state.hasMore ? (
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            className="rounded-full border border-border/70 bg-card px-5 py-2 text-sm text-foreground transition hover:border-foreground/20 hover:bg-accent"
+            onClick={() => void actions.handleLoadMore()}
+            disabled={state.isPending}
+          >
+            {state.isPending ? '正在展开更多便签…' : '加载更多便签'}
+          </button>
+        </div>
+      ) : null}
     </section>
   )
 }
