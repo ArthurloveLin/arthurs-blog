@@ -118,7 +118,6 @@ function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
         emojiPending={reactionControl.emojiPending}
         onReact={reactionControl.onReact}
         onEmojiReact={reactionControl.onEmojiReact}
-        viewerEmojis={reactionControl.viewerEmojis}
       />
     </div>
   )
