@@ -5,6 +5,7 @@ import {
   use,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -29,6 +30,7 @@ import { useBoardData } from './hooks/useBoardData'
 import { useNoteEditor } from './hooks/useNoteEditor'
 import { useBoardMutations } from './hooks/useBoardMutations'
 import { useBoardNoteItems } from './hooks/useBoardNoteItems'
+import type { BoardSurfaceRefs } from './hooks/useBoardData'
 
 interface NoteBoardProviderProps {
   board: NoteBoardViewConfig
@@ -160,6 +162,21 @@ const NoteBoardMetaContext = createContext<NoteBoardMeta | null>(null)
 const NoteBoardBindingsContext = createContext<NoteBoardBindings | null>(null)
 const DESKTOP_NOTES_PER_PAGE = 10
 
+const noopSetCustomPositions: BoardSurfaceRefs['setCustomPositions'] = () => undefined
+const noopSetCardZIndices: BoardSurfaceRefs['setCardZIndices'] = () => undefined
+const noopSetMeasuredHeights: BoardSurfaceRefs['setMeasuredHeights'] = () => undefined
+
+function createInitialSurfaceRefs(): BoardSurfaceRefs {
+  return {
+    setCustomPositions: noopSetCustomPositions,
+    customPositionsRef: { current: {} },
+    setCardZIndices: noopSetCardZIndices,
+    cardZIndicesRef: { current: {} },
+    recordedHeightIdsRef: { current: new Set<string>() },
+    setMeasuredHeights: noopSetMeasuredHeights,
+  }
+}
+
 function useRequiredContext<T>(context: React.Context<T | null>, name: string) {
   const value = use(context)
   if (!value) {
@@ -187,15 +204,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
   const { isMobileViewport, isDesktopViewport, viewportReady } = useViewportDetection()
 
   const cancelEditingNoteRef = useRef<() => void>(() => {})
-  const surfaceRefs = useRef<{
-    setCustomPositions: React.Dispatch<React.SetStateAction<Record<string, NotePosition>>>
-    customPositionsRef: React.MutableRefObject<Record<string, NotePosition>>
-    setCardZIndices: React.Dispatch<React.SetStateAction<Record<string, number>>>
-    cardZIndicesRef: React.MutableRefObject<Record<string, number>>
-    recordedHeightIdsRef: React.MutableRefObject<Set<string>>
-    setMeasuredHeights: React.Dispatch<React.SetStateAction<Record<string, number>>>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }>({} as any)
+  const surfaceRefs = useRef<BoardSurfaceRefs>(createInitialSurfaceRefs())
   
   const {
     messages,
@@ -260,7 +269,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
 
   // Bind the surface methods and refs to the surfaceRefs so SWR data fetch operations 
   // can update surface locations
-  useEffect(() => {
+  useLayoutEffect(() => {
     surfaceRefs.current = {
       setCustomPositions,
       customPositionsRef,
