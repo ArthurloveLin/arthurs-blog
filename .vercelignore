@@ -26,6 +26,8 @@ scripts/
 supabase/
 workers/
 tmp/
+eslint_output.txt
+scratch/
 *.sh
 *.py
 
