@@ -4,6 +4,7 @@ import { unstable_cache } from 'next/cache'
 import { supabase } from './supabase'
 import { supabaseAdmin } from './supabase-admin'
 import { getR2Object } from './r2'
+import { buildSearchSnippet, normalizeSearchQuery, SEARCH_MIN_QUERY_LENGTH, type SearchMatchField } from './blog-search'
 
 const BLOG_BUCKET = process.env.R2_BLOG_BUCKET!
 const BLOG_PUBLIC_DOMAIN = process.env.R2_BLOG_PUBLIC_DOMAIN
@@ -21,6 +22,19 @@ export interface Post {
   published_at: string | null
   updated_at: string
   sticky: number
+}
+
+export interface SearchPostResult extends Post {
+  rank: number
+  matched_fields: SearchMatchField[]
+  snippet: string
+}
+
+interface SearchPostRow extends Post {
+  matched_fields: SearchMatchField[] | null
+  rank: number | null
+  search_content: string | null
+  total_count: number | null
 }
 
 export async function getPosts(limit = 20, offset = 0): Promise<Post[]> {
@@ -424,6 +438,7 @@ export async function upsertPost(post: {
   category?: string | null
   cover_image?: string | null
   r2_key: string
+  search_content?: string
   published: boolean
   published_at?: string
   sticky?: number
@@ -439,4 +454,54 @@ export async function upsertPost(post: {
     )
 
   if (error) throw new Error(error.message)
+}
+
+export async function searchPosts(
+  query: string,
+  page = 1,
+  limit = 12,
+): Promise<{ results: SearchPostResult[]; total: number; page: number; limit: number }> {
+  const normalizedQuery = normalizeSearchQuery(query)
+
+  if (normalizedQuery.length < SEARCH_MIN_QUERY_LENGTH) {
+    return { results: [], total: 0, page, limit }
+  }
+
+  const safeLimit = Math.min(Math.max(limit, 1), 50)
+  const safePage = Math.max(page, 1)
+  const offset = (safePage - 1) * safeLimit
+
+  const { data, error } = await supabaseAdmin.rpc('search_posts', {
+    p_query: normalizedQuery,
+    p_limit: safeLimit,
+    p_offset: offset,
+  })
+
+  if (error) throw new Error(error.message)
+
+  const rows = ((data ?? []) as SearchPostRow[])
+  const total = rows[0]?.total_count ?? 0
+
+  return {
+    results: rows.map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      summary: row.summary,
+      tags: row.tags ?? [],
+      category: row.category,
+      cover_image: row.cover_image,
+      r2_key: row.r2_key,
+      published: row.published,
+      published_at: row.published_at,
+      updated_at: row.updated_at,
+      sticky: row.sticky,
+      rank: row.rank ?? 0,
+      matched_fields: row.matched_fields ?? [],
+      snippet: buildSearchSnippet(row.search_content || row.summary || row.title, normalizedQuery),
+    })),
+    total,
+    page: safePage,
+    limit: safeLimit,
+  }
 }

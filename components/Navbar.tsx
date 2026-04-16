@@ -10,7 +10,8 @@ import { useAuth } from '@/components/AuthProvider'
 import { logout } from '@/app/auth/logout/actions'
 import { useTheme } from 'next-themes'
 import { useSiteConfig } from './SiteDataProvider'
-import { Rss, Search, Menu, X, Settings, User, LayoutList, Tag, Clock, Archive, Wrench } from 'lucide-react'
+import { Menu, X, Settings, User, LayoutList, Tag, Clock, Archive, Wrench } from 'lucide-react'
+import NavbarSearch from './NavbarSearch'
 import {
   BLOG_RETURN_CURRENT_POST_ID_KEY,
   BLOG_RETURN_CURRENT_POST_SLUG_KEY,
@@ -233,6 +234,7 @@ function NavbarContent() {
     isMobileMenuOpen,
     setIsMobileMenuOpen,
     toggleDrawer: toggleDrawerInternal,
+    isSearching,
   } = useNavbarUiState()
 
   const isNowWatchingPage = pathname === '/now-watching'
@@ -354,7 +356,7 @@ function NavbarContent() {
             href={homeHref}
             onClick={handleHomeClick}
             transitionTypes={isOnArticle ? ['nav-back'] : undefined}
-            className="flex items-center gap-2.5 flex-shrink-0 group"
+            className={`flex items-center gap-2.5 flex-shrink-0 group`}
           >
             <div className="w-8 h-8 relative flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               {/* Elegant Blur Glow */}
@@ -382,14 +384,14 @@ function NavbarContent() {
 
           {/* ── Center: Navigation Links ───────────────────────────── */}
           <nav className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
-            {navLinks.map((link) =>
+            {navLinks.map((link, index) =>
               link.external ? (
                 <a
                   key={link.href}
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+                  className={`px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? `animate-apple-fade-out delay-out-${index}` : `animate-apple-fade-in delay-in-${index}`}`}
                   title={link.tooltip}
                 >
                   {link.label}
@@ -400,7 +402,7 @@ function NavbarContent() {
                   href={link.href === '/' ? homeHref : link.href}
                   onClick={link.href === '/' ? handleHomeClick : undefined}
                   transitionTypes={link.href === '/' && isOnArticle ? ['nav-back'] : undefined}
-                  className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+                  className={`px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? `animate-apple-fade-out delay-out-${index}` : `animate-apple-fade-in delay-in-${index}`}`}
                   title={link.tooltip}
                 >
                   {link.label}
@@ -411,35 +413,24 @@ function NavbarContent() {
 
           {/* ── Right: Icons ───────────────────────────────────────── */}
           <div className="flex items-center gap-1 flex-shrink-0">
-
-            {/* RSS Placeholder */}
-            <button
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 hidden md:flex"
-              aria-label="RSS 订阅"
-              title="RSS 订阅"
-            >
-              <Rss className="w-[18px] h-[18px]" strokeWidth={1.75} />
-            </button>
-
-            {/* Search Placeholder */}
-            <button
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 hidden md:flex"
-              aria-label="搜索"
-              title="搜索功能开发中"
-            >
-              <Search className="w-[18px] h-[18px]" strokeWidth={1.75} />
-            </button>
+            <div className={isSearching ? 'animate-apple-fade-out delay-out-5' : 'animate-apple-fade-in delay-in-5'}>
+              <NavbarSearch />
+            </div>
 
             {/* Theme Toggle */}
-            <ThemeToggle />
+            <div className={isSearching ? 'animate-apple-fade-out delay-out-6' : 'animate-apple-fade-in delay-in-6'}>
+              <ThemeToggle />
+            </div>
 
             {/* Auth Status */}
-            <NavDesktopAuthStatus />
+            <div className={isSearching ? 'animate-apple-fade-out delay-out-7' : 'animate-apple-fade-in delay-in-7'}>
+              <NavDesktopAuthStatus />
+            </div>
 
             {/* Mobile Menu Toggle */}
             <button
               onClick={toggleMobileMenu}
-              className="md:hidden p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+              className={`md:hidden p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? 'animate-apple-fade-out delay-out-8' : 'animate-apple-fade-in delay-in-8'}`}
               aria-label="菜单"
             >
               {isMobileMenuOpen ? (
