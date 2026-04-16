@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import matter from 'gray-matter'
 import { parseBlogFrontmatterDate } from '@/lib/date-format'
+import { stripMarkdownToText } from '@/lib/blog-search'
 import { listR2ObjectsWithMeta, getR2Object } from '@/lib/r2'
 import { upsertPost, deletePostsNotIn, getPostsMetadata } from '@/lib/blog'
 
@@ -33,6 +34,7 @@ async function processFile(
   // 提取摘要逻辑：优先 fm.summary，其次 <!-- more --> (fm.excerpt)，最后尝试提取正文第一段
   const firstParagraph = mdContent.split(/\n\s*\n/).find(p => p.trim() && !p.trim().startsWith('#'))?.trim()
   const summary = fm.summary ?? fm.excerpt ?? (excerpt?.trim()) ?? firstParagraph ?? null
+  const searchContent = stripMarkdownToText(mdContent)
 
   await upsertPost({
     slug,
@@ -55,6 +57,7 @@ async function processFile(
       return `https://${domain}/${noteDir}${imagePath}`
     })(),
     r2_key: key,
+    search_content: searchContent,
     published,
     published_at: parseBlogFrontmatterDate(fm.date),
     sticky: typeof fm.sticky === 'number' ? fm.sticky : 0,
