@@ -380,7 +380,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
   const viewportReady = isMobileViewport !== null
   const { cardWidth, height, layouts } = useMemo(
     () => computeBoardLayout(messages, size.width, measuredHeights),
-    [measuredHeights, messages, size.width],
+    [messages, size.width],
   )
   const hasMeasured = size.width > 0 && size.height > 0
   const canInitializeSurface = hasMeasured && (messages.length === 0 || messages.every((message) => measuredHeights[message.id] > 0))
