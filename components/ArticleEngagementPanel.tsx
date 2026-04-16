@@ -179,7 +179,6 @@ export default function ArticleEngagementPanel({ postId, initialSummary }: Artic
             pending={pendingReaction}
             onReact={handleReaction}
             onEmojiReact={handleEmojiReaction}
-            viewerEmojis={summary.viewer_emojis}
             emojiPending={pendingEmoji}
             emphasis="hero"
             className="justify-center"
