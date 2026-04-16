@@ -57,9 +57,9 @@ export default async function RootLayout({
           <link rel="dns-prefetch" href="https://obsidian.arthurlovegrace.top" />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          {/* LXGW WenKai TC: 仅用于便签组件的手写风格，不纳入全局字体系统 */}
-          {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-          <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&display=swap" rel="stylesheet" />
+          {/* LXGW WenKai Screen: 仅用于便签组件的手写风格（简体中文优化版），不纳入全局字体系统 */}
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.1.0/style.css" />
+
         </head>
         <body className="bg-background antialiased pb-24 md:pb-0">
           <ThemeProvider
