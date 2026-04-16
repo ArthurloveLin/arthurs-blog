@@ -18,15 +18,17 @@ export interface UseBoardDataProps {
   reactionIdentity: string | undefined
   isDesktopViewport: boolean
   cancelEditingNoteRef: React.MutableRefObject<() => void>
-  surfaceRefs: React.MutableRefObject<{
-    setCustomPositions: React.Dispatch<React.SetStateAction<Record<string, NotePosition>>>
-    customPositionsRef: React.MutableRefObject<Record<string, NotePosition>>
-    setCardZIndices: React.Dispatch<React.SetStateAction<Record<string, number>>>
-    cardZIndicesRef: React.MutableRefObject<Record<string, number>>
-    recordedHeightIdsRef: React.MutableRefObject<Set<string>>
-    setMeasuredHeights: React.Dispatch<React.SetStateAction<Record<string, number>>>
-  }>
+  surfaceRefs: React.MutableRefObject<BoardSurfaceRefs>
   setError: React.Dispatch<React.SetStateAction<string | null>>
+}
+
+export interface BoardSurfaceRefs {
+  setCustomPositions: React.Dispatch<React.SetStateAction<Record<string, NotePosition>>>
+  customPositionsRef: React.MutableRefObject<Record<string, NotePosition>>
+  setCardZIndices: React.Dispatch<React.SetStateAction<Record<string, number>>>
+  cardZIndicesRef: React.MutableRefObject<Record<string, number>>
+  recordedHeightIdsRef: React.MutableRefObject<Set<string>>
+  setMeasuredHeights: React.Dispatch<React.SetStateAction<Record<string, number>>>
 }
 
 export function useBoardData({

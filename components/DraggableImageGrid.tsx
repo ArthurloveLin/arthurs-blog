@@ -30,6 +30,10 @@ export default function DraggableImageGrid({ items: initialItems, sessionToken }
   const [orderedItems, setOrderedItems] = useState<Item[]>(initialItems)
   const [isDragging, setIsDragging] = useState(false)
 
+  const prefetchItem = useCallback((href: string) => {
+    router.prefetch(href)
+  }, [router])
+
   const hasSameItemSet = useCallback((left: Item[], right: Item[]) => {
     if (left.length !== right.length) return false
     const leftIds = new Set(left.map((item) => item.id))
@@ -70,6 +74,7 @@ export default function DraggableImageGrid({ items: initialItems, sessionToken }
           <div ref={provided.innerRef} {...provided.droppableProps}>
             <div className="space-y-3">
               {displayItems.map((item, index) => {
+                const itemHref = `/session/${sessionToken}/item/${item.id}`
                 const scoreDiff =
                   item.arthurScore !== null && item.graceScore !== null
                     ? Math.abs(item.arthurScore - item.graceScore)
@@ -93,8 +98,10 @@ export default function DraggableImageGrid({ items: initialItems, sessionToken }
                           ⠿
                         </div>
                         <Link
-                          href={`/session/${sessionToken}/item/${item.id}`}
+                          href={itemHref}
                           className="relative w-16 h-16 shrink-0 overflow-hidden rounded-lg bg-gray-100"
+                          onMouseEnter={() => prefetchItem(itemHref)}
+                          onFocus={() => prefetchItem(itemHref)}
                         >
                           <div className="relative w-full h-full">
                           <Image
@@ -107,8 +114,10 @@ export default function DraggableImageGrid({ items: initialItems, sessionToken }
                           </div>
                         </Link>
                         <Link
-                          href={`/session/${sessionToken}/item/${item.id}`}
+                          href={itemHref}
                           className="flex-1 min-w-0 py-2"
+                          onMouseEnter={() => prefetchItem(itemHref)}
+                          onFocus={() => prefetchItem(itemHref)}
                         >
                           <div className="flex items-center gap-2 flex-wrap">
                             {item.price !== null && (

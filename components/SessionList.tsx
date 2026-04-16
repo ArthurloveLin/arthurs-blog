@@ -66,6 +66,10 @@ export default function SessionList({ sessions }: SessionListProps) {
   const visible = showArchived ? sessions : sessions.filter((s) => !s.archived)
   const archivedCount = sessions.filter((s) => s.archived).length
 
+  function prefetchSession(token: string) {
+    router.prefetch(`/session/${token}`)
+  }
+
   return (
     <>
       {/* 归档切换提示 */}
@@ -129,6 +133,8 @@ export default function SessionList({ sessions }: SessionListProps) {
               <Link
                 href={`/session/${session.token}`}
                 className="block p-4"
+                onMouseEnter={() => prefetchSession(session.token)}
+                onFocus={() => prefetchSession(session.token)}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">

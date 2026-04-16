@@ -1,10 +1,10 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { createContext, use, useEffect, useRef, useState } from 'react'
 import BackButton from './BackButton'
 import MultiDimRating from './MultiDimRating'
-import CommentBox from './CommentBox'
 import Lightbox from './Lightbox'
 import { useAuth } from './AuthProvider'
 import { updatePresenceActivity } from './ActivityBanner'
@@ -39,6 +39,7 @@ interface Comment {
 
 interface Item {
   id: string
+  session_id?: string
   image_url: string
   decision: Decision
   price: number | null
@@ -51,8 +52,21 @@ interface Item {
     error?: string
   } | null
   ratings: Rating[]
-  comments: Comment[]
+  comments?: Comment[]
 }
+
+const CommentBox = dynamic(() => import('./CommentBox'), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-3">
+      <div className="h-5 w-28 rounded-full bg-muted animate-pulse" />
+      <div className="rounded-2xl border border-border bg-card/60 p-4 space-y-3">
+        <div className="h-16 rounded-xl bg-muted animate-pulse" />
+        <div className="h-20 rounded-xl bg-muted animate-pulse" />
+      </div>
+    </div>
+  ),
+})
 
 interface ItemDetailProps {
   item: Item
@@ -365,7 +379,7 @@ function ItemDetailCommentsSection() {
 
   return (
     <SectionCard>
-      <CommentBox targetType="wardrobe_item" targetId={item.id} initialComments={item.comments} />
+      <CommentBox targetType="wardrobe_item" targetId={item.id} initialComments={item.comments ?? []} />
     </SectionCard>
   )
 }

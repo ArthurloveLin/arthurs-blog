@@ -327,6 +327,7 @@ const ViewableItemCard = memo(({
   hasConflict,
   scoreDiff,
   templateConfig,
+  onPrefetch,
 }: {
   item: Item
   sessionToken: string
@@ -335,15 +336,19 @@ const ViewableItemCard = memo(({
   hasConflict: boolean
   scoreDiff: number | null
   templateConfig?: TemplateConfig
+  onPrefetch: (href: string) => void
 }) => {
   const buyLabel = templateConfig?.descLabels?.buy || '买'
   const skipLabel = templateConfig?.descLabels?.skip || '不买'
+  const itemHref = `/session/${sessionToken}/item/${item.id}`
 
   return (
     <>
       <Link
-        href={`/session/${sessionToken}/item/${item.id}`}
+        href={itemHref}
         className="block h-full bg-card"
+        onMouseEnter={() => onPrefetch(itemHref)}
+        onFocus={() => onPrefetch(itemHref)}
       >
         <div className="relative aspect-square">
           <Image
@@ -435,10 +440,15 @@ ViewableItemCard.displayName = 'ViewableItemCard'
 
 const BrowseImageGridCard = memo(function BrowseImageGridCard({ item }: { item: Item }) {
   const { controller, sessionToken, templateConfig } = useImageGridCtx()
+  const router = useRouter()
   const scoreDiff = item.arthurScore !== null && item.graceScore !== null
     ? Math.abs(item.arthurScore - item.graceScore)
     : null
   const hasConflict = scoreDiff !== null && scoreDiff >= 2
+
+  function prefetchItem(href: string) {
+    router.prefetch(href)
+  }
 
   return (
     <div className="relative group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all active:scale-[0.98]">
@@ -450,6 +460,7 @@ const BrowseImageGridCard = memo(function BrowseImageGridCard({ item }: { item: 
         hasConflict={hasConflict}
         scoreDiff={scoreDiff}
         templateConfig={templateConfig}
+        onPrefetch={prefetchItem}
       />
     </div>
   )
