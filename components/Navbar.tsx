@@ -10,7 +10,8 @@ import { useAuth } from '@/components/AuthProvider'
 import { logout } from '@/app/auth/logout/actions'
 import { useTheme } from 'next-themes'
 import { useSiteConfig } from './SiteDataProvider'
-import { Rss, Search, Menu, X, Settings, User, LayoutList, Tag, Clock, Archive, Wrench } from 'lucide-react'
+import { Menu, X, Settings, User, LayoutList, Tag, Clock, Archive, Wrench } from 'lucide-react'
+import NavbarSearch from './NavbarSearch'
 import {
   BLOG_RETURN_CURRENT_POST_ID_KEY,
   BLOG_RETURN_CURRENT_POST_SLUG_KEY,
@@ -411,24 +412,7 @@ function NavbarContent() {
 
           {/* ── Right: Icons ───────────────────────────────────────── */}
           <div className="flex items-center gap-1 flex-shrink-0">
-
-            {/* RSS Placeholder */}
-            <button
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 hidden md:flex"
-              aria-label="RSS 订阅"
-              title="RSS 订阅"
-            >
-              <Rss className="w-[18px] h-[18px]" strokeWidth={1.75} />
-            </button>
-
-            {/* Search Placeholder */}
-            <button
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 hidden md:flex"
-              aria-label="搜索"
-              title="搜索功能开发中"
-            >
-              <Search className="w-[18px] h-[18px]" strokeWidth={1.75} />
-            </button>
+            <NavbarSearch />
 
             {/* Theme Toggle */}
             <ThemeToggle />
