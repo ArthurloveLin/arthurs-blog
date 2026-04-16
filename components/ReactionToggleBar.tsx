@@ -459,10 +459,7 @@ export default function ReactionToggleBar({
               <button
                 key={emoji}
                 type="button"
-                className={[
-                  'emoji-radial-wheel__item',
-                  viewerEmojis.includes(emoji) ? 'emoji-radial-wheel__item--active' : '',
-                ].filter(Boolean).join(' ')}
+                className="emoji-radial-wheel__item"
                 style={{
                   ['--emoji-index' as string]: String(index),
                   ['--emoji-total' as string]: String(COMMON_REACTION_EMOJIS.length),
