@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { FormEvent, useDeferredValue, useEffect, useId, useMemo, useRef, useState, useTransition, memo } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -20,7 +20,41 @@ interface SearchResponse {
   limit: number
 }
 
-function SearchSuggestions({
+// Separate component for Quick Link items to avoid re-rendering all of them
+const QuickLinkItem = memo(({ 
+  item, 
+  index, 
+  icon: Icon, 
+  onClick, 
+  baseDelay,
+  staggerDelay = 30
+}: { 
+  item: string
+  index: number
+  icon: typeof Clock3 | typeof TrendingUp
+  onClick: (value: string) => void
+  baseDelay: number
+  staggerDelay?: number
+}) => {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(item)}
+      className="group flex items-center gap-3 w-full px-4 py-2.5 text-[15px] font-medium text-foreground/80 hover:text-primary hover:bg-muted/40 rounded-xl transition-colors duration-200 animate-apple-fade-in-right"
+      style={{ 
+        animationDelay: `${baseDelay + (index + 1) * staggerDelay}ms`, 
+        animationFillMode: 'both' 
+      }}
+    >
+      <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
+      {item}
+    </button>
+  )
+})
+
+QuickLinkItem.displayName = 'QuickLinkItem'
+
+const SearchSuggestionsList = memo(({
   query,
   results,
   total,
@@ -29,7 +63,7 @@ function SearchSuggestions({
   history,
   onSelectHistory,
   onNavigate,
-  baseDelay = 0,
+  isOpening,
 }: {
   query: string
   results: SearchPostResult[]
@@ -39,12 +73,16 @@ function SearchSuggestions({
   history: string[]
   onSelectHistory: (value: string) => void
   onNavigate: () => void
-  baseDelay?: number
-}) {
+  isOpening: boolean
+}) => {
   const normalizedQuery = normalizeSearchQuery(query)
   const isQuerying = normalizedQuery.length >= SEARCH_MIN_QUERY_LENGTH
+  
+  // Only use stagger delay if we are currently opening the search panel
+  const baseDelay = isOpening ? 280 : 0
+  const staggerDelay = isOpening ? 30 : 0
 
-  if (loading) {
+  if (loading && results.length === 0) {
     return (
       <div className="flex items-center gap-3 px-8 py-10 text-muted-foreground animate-apple-fade-in" style={{ animationDelay: `${baseDelay}ms`, animationFillMode: 'both' }}>
         <Loader2 className="h-5 w-5 animate-spin" />
@@ -70,41 +108,38 @@ function SearchSuggestions({
         <div className="space-y-1">
           {history.length > 0 ? (
             history.map((item, index) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => onSelectHistory(item)}
-                className="group flex items-center gap-3 w-full px-4 py-2.5 text-[15px] font-medium text-foreground/80 hover:text-primary hover:bg-muted/50 rounded-xl transition-all animate-apple-fade-in-right"
-                style={{ animationDelay: `${baseDelay + (index + 1) * 40}ms`, animationFillMode: 'both' }}
-              >
-                <Clock3 className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                {item}
-              </button>
+              <QuickLinkItem
+                key={`history-${item}`}
+                item={item}
+                index={index}
+                icon={Clock3}
+                onClick={onSelectHistory}
+                baseDelay={baseDelay}
+                staggerDelay={staggerDelay}
+              />
             ))
           ) : (
-            <div className="animate-apple-fade-in-right" style={{ animationDelay: `${baseDelay + 40}ms`, animationFillMode: 'both' }}>
+            <div className="animate-apple-fade-in-right" style={{ animationDelay: `${baseDelay + staggerDelay}ms`, animationFillMode: 'both' }}>
               <p className="px-4 py-6 text-[15px] text-muted-foreground border border-dashed border-border rounded-2xl bg-muted/20">
                 还没有历史记录。试试标题、标签或分类里的关键词。
               </p>
             </div>
           )}
           
-          {/* Default Suggestions if no history */}
           {history.length < 3 && (
             <>
-              <div className="h-px bg-border/40 my-4 animate-apple-fade-in-right" style={{ animationDelay: `${baseDelay + 160}ms`, animationFillMode: 'both' }} />
+              <div className="h-px bg-border/40 my-4 animate-apple-fade-in-right" style={{ animationDelay: `${baseDelay + staggerDelay * 4}ms`, animationFillMode: 'both' }} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {['Life Gallery', 'Life Lens', 'News'].map((tag, index) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => onSelectHistory(tag)}
-                    className="group flex items-center gap-3 px-4 py-2.5 text-[15px] font-medium text-foreground/80 hover:text-primary hover:bg-muted/50 rounded-xl transition-all animate-apple-fade-in-right"
-                    style={{ animationDelay: `${baseDelay + (index + history.length + 2) * 40}ms`, animationFillMode: 'both' }}
-                  >
-                    <TrendingUp className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                    {tag}
-                  </button>
+                  <QuickLinkItem
+                    key={`suggestion-${tag}`}
+                    item={tag}
+                    index={index + history.length}
+                    icon={TrendingUp}
+                    onClick={onSelectHistory}
+                    baseDelay={baseDelay}
+                    staggerDelay={staggerDelay}
+                  />
                 ))}
               </div>
             </>
@@ -114,7 +149,7 @@ function SearchSuggestions({
     )
   }
 
-  if (results.length === 0) {
+  if (results.length === 0 && !loading) {
     return (
       <div className="px-8 py-12 text-center animate-apple-fade-in" style={{ animationDelay: `${baseDelay}ms`, animationFillMode: 'both' }}>
         <p className="text-lg text-muted-foreground font-medium">
@@ -131,7 +166,7 @@ function SearchSuggestions({
         <Link
           href={`/search?q=${encodeURIComponent(normalizedQuery)}`}
           onClick={onNavigate}
-          className="text-[13px] font-semibold text-primary hover:underline underline-offset-4 decoration-2 transition-all"
+          className="text-[13px] font-semibold text-primary hover:underline underline-offset-4 decoration-2 transition-colors duration-200"
         >
           查看全部 {total} 条
         </Link>
@@ -141,7 +176,10 @@ function SearchSuggestions({
           <div 
             key={result.id} 
             className="animate-apple-fade-in-right" 
-            style={{ animationDelay: `${baseDelay + index * 50}ms`, animationFillMode: 'both' }}
+            style={{ 
+              animationDelay: `${baseDelay + index * staggerDelay * 1.5}ms`, 
+              animationFillMode: 'both' 
+            }}
           >
             <SearchResultCard
               result={result}
@@ -154,7 +192,9 @@ function SearchSuggestions({
       </div>
     </div>
   )
-}
+})
+
+SearchSuggestionsList.displayName = 'SearchSuggestionsList'
 
 export default function NavbarSearch() {
   const router = useRouter()
@@ -171,7 +211,9 @@ export default function NavbarSearch() {
   const [history, setHistory] = useState<string[]>([])
   const [mounted, setMounted] = useState(false)
   const [portalOpen, setPortalOpen] = useState(false)
-  const [animateResultsDelay, setAnimateResultsDelay] = useState(400)
+  const [isOpening, setIsOpening] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  
   const deferredQuery = useDeferredValue(query)
   const inputId = useId()
   const normalizedDeferredQuery = useMemo(() => normalizeSearchQuery(deferredQuery), [deferredQuery])
@@ -198,18 +240,19 @@ export default function NavbarSearch() {
 
   useEffect(() => {
     let timeoutId: number
-    let delayDropTimer: number
+    let openingTimer: number
     if (isSearching) {
       setPortalOpen(true)
-      // When opening, reset the delay to 400. Then after the entrance animation finishes, drop it to 0.
-      setAnimateResultsDelay(400)
-      delayDropTimer = window.setTimeout(() => setAnimateResultsDelay(0), 500)
+      setIsOpening(true)
+      // Duration of the "opening" state where stagger animations are active
+      openingTimer = window.setTimeout(() => setIsOpening(false), 800)
     } else {
       timeoutId = window.setTimeout(() => setPortalOpen(false), 300)
+      setIsOpening(false)
     }
     return () => {
       window.clearTimeout(timeoutId)
-      window.clearTimeout(delayDropTimer)
+      window.clearTimeout(openingTimer)
     }
   }, [isSearching])
 
@@ -218,7 +261,6 @@ export default function NavbarSearch() {
 
     function handlePointerDown(event: PointerEvent) {
       const target = event.target as Node
-      // If clicking outside the search container, close it
       if (containerRef.current && !containerRef.current.contains(target)) {
         setIsSearching(false)
       }
@@ -247,7 +289,6 @@ export default function NavbarSearch() {
 
   useEffect(() => {
     if (isSearching) {
-      // Focus input with a slight delay
       const timer = setTimeout(() => {
         inputRef.current?.focus()
       }, 350)
@@ -288,8 +329,13 @@ export default function NavbarSearch() {
         }
 
         const data = await response.json() as SearchResponse
-        setResults(data.results ?? [])
-        setTotal(data.total ?? 0)
+        
+        // Use transition to update results without blocking the UI
+        startTransition(() => {
+          setResults(data.results ?? [])
+          setTotal(data.total ?? 0)
+          setLoading(false)
+        })
       } catch (fetchError) {
         if ((fetchError as Error).name === 'AbortError') {
           return
@@ -297,10 +343,9 @@ export default function NavbarSearch() {
         setError(fetchError instanceof Error ? fetchError.message : '搜索失败')
         setResults([])
         setTotal(0)
-      } finally {
         setLoading(false)
       }
-    }, 220)
+    }, 200)
 
     return () => {
       controller.abort()
@@ -351,13 +396,11 @@ export default function NavbarSearch() {
 
       {portalOpen && mounted ? createPortal(
         <>
-          {/* Search Input Container - Transparent background to show Logo */}
           <div
             ref={containerRef}
             className={`fixed inset-x-0 top-0 h-16 z-[100] flex items-center pointer-events-none transition-opacity duration-300 ${isSearching ? 'opacity-100' : 'opacity-0'}`}
           >
             <div className="site-shell flex items-center h-full w-full relative pointer-events-none">
-              {/* Search field wrapper */}
               <div className="flex items-center w-full md:absolute md:left-1/2 md:-translate-x-1/2 md:max-w-[540px] pl-[170px] pr-[10px] md:px-0 pointer-events-auto">
                 <form onSubmit={handleSubmit} className="flex-1 flex items-center animate-apple-fade-in-right" style={{ animationDelay: isSearching ? '350ms' : '0ms', animationFillMode: 'both' }}>
                   <Search className="w-[18px] h-[18px] md:w-5 md:h-5 text-foreground/50 shrink-0" strokeWidth={2} />
@@ -371,6 +414,9 @@ export default function NavbarSearch() {
                     enterKeyHint="search"
                     autoComplete="off"
                   />
+                  {(loading || isPending) && (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50 mr-2" />
+                  )}
                 </form>
                 <button
                   type="button"
@@ -383,14 +429,16 @@ export default function NavbarSearch() {
               </div>
             </div>
 
-            {/* Quick Links / Suggestions Dropdown - Positioned below the fixed bar */}
             <div className="absolute top-16 left-0 right-0 pointer-events-none">
               <div className="site-shell flex justify-center relative">
                 <div 
-                  className="w-full max-w-[680px] bg-background rounded-b-[2rem] border-x border-b border-border shadow-xl overflow-hidden pointer-events-auto animate-apple-fade-in"
-                  style={{ animationDelay: isSearching ? '350ms' : '0ms', animationFillMode: 'both', willChange: 'opacity, transform' }}
+                  className="w-full max-w-[680px] bg-background rounded-b-[2rem] border-x border-b border-border shadow-2xl overflow-hidden pointer-events-auto animate-apple-fade-in"
+                  style={{ 
+                    animationDelay: isSearching ? '350ms' : '0ms', 
+                    animationFillMode: 'both'
+                  }}
                 >
-                  <SearchSuggestions
+                  <SearchSuggestionsList
                     query={query}
                     results={results}
                     total={total}
@@ -399,14 +447,13 @@ export default function NavbarSearch() {
                     history={history}
                     onSelectHistory={handleHistorySelect}
                     onNavigate={() => setIsSearching(false)}
-                    baseDelay={animateResultsDelay}
+                    isOpening={isOpening}
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Backdrop for closing Search */}
           <div 
             className={`fixed inset-x-0 bottom-0 top-16 bg-black/20 dark:bg-black/40 backdrop-blur-[2px] z-[90] transition-opacity duration-300 ${isSearching ? 'opacity-100' : 'opacity-0'}`}
             onClick={() => setIsSearching(false)}

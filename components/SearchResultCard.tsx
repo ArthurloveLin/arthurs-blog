@@ -1,3 +1,4 @@
+import { useMemo, memo } from 'react'
 import Link from 'next/link'
 import { formatBlogPublishedDate } from '@/lib/date-format'
 import { splitHighlightedText, type SearchMatchField } from '@/lib/blog-search'
@@ -19,7 +20,7 @@ const fieldLabelMap: Record<SearchMatchField, string> = {
 }
 
 function HighlightText({ text, query }: { text: string; query: string }) {
-  const segments = splitHighlightedText(text, query)
+  const segments = useMemo(() => splitHighlightedText(text, query), [text, query])
 
   return (
     <>
@@ -27,7 +28,7 @@ function HighlightText({ text, query }: { text: string; query: string }) {
         segment.match ? (
           <mark
             key={`${segment.text}-${index}`}
-            className="rounded-[0.35rem] bg-primary/14 px-0.5 text-foreground"
+            className="rounded-[0.35rem] bg-primary/14 px-0.5 text-foreground transition-colors duration-200"
           >
             {segment.text}
           </mark>
@@ -39,7 +40,9 @@ function HighlightText({ text, query }: { text: string; query: string }) {
   )
 }
 
-export default function SearchResultCard({ result, query, compact = false, onNavigate }: SearchResultCardProps) {
+const MemoizedHighlightText = memo(HighlightText)
+
+function SearchResultCard({ result, query, compact = false, onNavigate }: SearchResultCardProps) {
   const publishedDate = result.published_at ? formatBlogPublishedDate(result.published_at) : ''
   const matchedFields = result.matched_fields.slice(0, compact ? 2 : 4)
 
@@ -57,12 +60,12 @@ export default function SearchResultCard({ result, query, compact = false, onNav
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h2 className={compact ? 'text-sm font-semibold leading-6 text-foreground' : 'text-xl font-semibold leading-8 text-foreground'}>
-            <HighlightText text={result.title} query={query} />
+            <MemoizedHighlightText text={result.title} query={query} />
           </h2>
 
           {(result.snippet || result.summary) ? (
             <p className={compact ? 'mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground' : 'mt-3 text-base leading-7 text-foreground/78'}>
-              <HighlightText text={result.snippet || result.summary || ''} query={query} />
+              <MemoizedHighlightText text={result.snippet || result.summary || ''} query={query} />
             </p>
           ) : null}
 
@@ -70,12 +73,12 @@ export default function SearchResultCard({ result, query, compact = false, onNav
             {publishedDate ? <span className="font-mono tracking-[0.12em] uppercase">{publishedDate}</span> : null}
             {result.category ? (
               <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-foreground/75">
-                <HighlightText text={result.category} query={query} />
+                <MemoizedHighlightText text={result.category} query={query} />
               </span>
             ) : null}
             {result.tags.slice(0, compact ? 2 : 4).map((tag) => (
               <span key={tag} className="rounded-full bg-muted/75 px-2.5 py-1 text-[11px] text-foreground/70">
-                #<HighlightText text={tag} query={query} />
+                #<MemoizedHighlightText text={tag} query={query} />
               </span>
             ))}
           </div>
@@ -99,3 +102,5 @@ export default function SearchResultCard({ result, query, compact = false, onNav
     </Link>
   )
 }
+
+export default memo(SearchResultCard)
