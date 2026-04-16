@@ -356,7 +356,7 @@ function NavbarContent() {
             href={homeHref}
             onClick={handleHomeClick}
             transitionTypes={isOnArticle ? ['nav-back'] : undefined}
-            className={`flex items-center gap-2.5 flex-shrink-0 group ${isSearching ? 'animate-apple-fade-out delay-out-0' : 'animate-apple-fade-in delay-in-0'}`}
+            className={`flex items-center gap-2.5 flex-shrink-0 group`}
           >
             <div className="w-8 h-8 relative flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               {/* Elegant Blur Glow */}
@@ -391,7 +391,7 @@ function NavbarContent() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? `animate-apple-fade-out delay-out-${index + 1}` : `animate-apple-fade-in delay-in-${index + 1}`}`}
+                  className={`px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? `animate-apple-fade-out delay-out-${index}` : `animate-apple-fade-in delay-in-${index}`}`}
                   title={link.tooltip}
                 >
                   {link.label}
@@ -402,7 +402,7 @@ function NavbarContent() {
                   href={link.href === '/' ? homeHref : link.href}
                   onClick={link.href === '/' ? handleHomeClick : undefined}
                   transitionTypes={link.href === '/' && isOnArticle ? ['nav-back'] : undefined}
-                  className={`px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? `animate-apple-fade-out delay-out-${index + 1}` : `animate-apple-fade-in delay-in-${index + 1}`}`}
+                  className={`px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? `animate-apple-fade-out delay-out-${index}` : `animate-apple-fade-in delay-in-${index}`}`}
                   title={link.tooltip}
                 >
                   {link.label}
@@ -413,24 +413,24 @@ function NavbarContent() {
 
           {/* ── Right: Icons ───────────────────────────────────────── */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            <div className={isSearching ? 'animate-apple-fade-out delay-out-6' : 'animate-apple-fade-in delay-in-6'}>
+            <div className={isSearching ? 'animate-apple-fade-out delay-out-5' : 'animate-apple-fade-in delay-in-5'}>
               <NavbarSearch />
             </div>
 
             {/* Theme Toggle */}
-            <div className={isSearching ? 'animate-apple-fade-out delay-out-7' : 'animate-apple-fade-in delay-in-7'}>
+            <div className={isSearching ? 'animate-apple-fade-out delay-out-6' : 'animate-apple-fade-in delay-in-6'}>
               <ThemeToggle />
             </div>
 
             {/* Auth Status */}
-            <div className={isSearching ? 'animate-apple-fade-out delay-out-8' : 'animate-apple-fade-in delay-in-8'}>
+            <div className={isSearching ? 'animate-apple-fade-out delay-out-7' : 'animate-apple-fade-in delay-in-7'}>
               <NavDesktopAuthStatus />
             </div>
 
             {/* Mobile Menu Toggle */}
             <button
               onClick={toggleMobileMenu}
-              className={`md:hidden p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? 'animate-apple-fade-out delay-out-9' : 'animate-apple-fade-in delay-in-9'}`}
+              className={`md:hidden p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? 'animate-apple-fade-out delay-out-8' : 'animate-apple-fade-in delay-in-8'}`}
               aria-label="菜单"
             >
               {isMobileMenuOpen ? (
