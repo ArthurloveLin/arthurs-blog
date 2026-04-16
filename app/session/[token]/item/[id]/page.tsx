@@ -26,6 +26,7 @@ export default async function ItemPage({
       category,
       rank,
       ocr_status,
+      ocr_processed_at,
       ocr_provider,
       ocr_data,
       sessions(template_config),
