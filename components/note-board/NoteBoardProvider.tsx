@@ -366,6 +366,8 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
   const toastTimerRef = useRef<number | null>(null)
   const freshTimerRefs = useRef<Record<string, number>>({})
   const pendingOptimisticIdsRef = useRef<Set<string>>(new Set())
+  const recordedHeightIdsRef = useRef<Set<string>>(new Set())
+  const [layoutVersion, setLayoutVersion] = useState(0)
   const messagesRef = useRef(initialSortedMessages)
   const customPositionsRef = useRef<Record<string, NotePosition>>({})
   const getTargetPositionRef = useRef<(index: number) => NotePosition>(() => ({ x: 0, y: 0, rotation: 0 }))
@@ -378,9 +380,10 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
   const canWrite = board.slug === 'guestbook' || isAdmin
   const priorityEnabled = board.slug === 'memo'
   const viewportReady = isMobileViewport !== null
+  const messageIds = useMemo(() => messages.map((m) => m.id).join(','), [messages])
   const { cardWidth, height, layouts } = useMemo(
     () => computeBoardLayout(messages, size.width, measuredHeights),
-    [messages, size.width],
+    [messageIds, size.width, layoutVersion],
   )
   const hasMeasured = size.width > 0 && size.height > 0
   const canInitializeSurface = hasMeasured && (messages.length === 0 || messages.every((message) => measuredHeights[message.id] > 0))
@@ -536,6 +539,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     const nextZIndices = Object.fromEntries(sortedMessages.map((message, index) => [message.id, sortedMessages.length - index + 1]))
     cardZIndicesRef.current = nextZIndices
     setCardZIndices(nextZIndices)
+    recordedHeightIdsRef.current.clear()
     setMeasuredHeights((current) => {
       const allowed = new Set(sortedMessages.map((message) => message.id))
       return Object.fromEntries(Object.entries(current).filter(([id]) => allowed.has(id)))
@@ -612,6 +616,11 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
         return current
       }
 
+      if (!recordedHeightIdsRef.current.has(id)) {
+        recordedHeightIdsRef.current.add(id)
+        setLayoutVersion((v) => v + 1)
+      }
+
       return { ...current, [id]: nextHeight }
     })
   }, [])
@@ -632,6 +641,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
 
     setError(null)
     cancelEditingNote()
+    recordedHeightIdsRef.current.clear()
     setShowArchived(archived)
   }
 
