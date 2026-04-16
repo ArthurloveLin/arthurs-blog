@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { ReactNode } from 'react'
+import { ReactNode, useEffect } from 'react'
 
 interface BackButtonProps {
   fallback?: string
@@ -15,6 +15,10 @@ export default function BackButton({
   children = "← 返回"
 }: BackButtonProps) {
   const router = useRouter()
+
+  useEffect(() => {
+    router.prefetch(fallback)
+  }, [fallback, router])
 
   return (
     <button
