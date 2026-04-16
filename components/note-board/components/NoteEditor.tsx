@@ -25,6 +25,9 @@ export interface NoteEditorProps {
   autoFocus?: boolean
   buttonSize?: 'sm' | 'md'
   toolbarLeadingAddon?: ReactNode
+  toolbarButtonVariant?: 'filled' | 'bare'
+  emojiTriggerVariant?: 'filled' | 'bare'
+  showCancelButton?: boolean
 }
 
 function ToolbarIconButton({
@@ -34,6 +37,7 @@ function ToolbarIconButton({
   disabled = false,
   emphasize = false,
   size = 'md',
+  variant = 'filled',
 }: {
   onClick: () => void
   label: string
@@ -41,15 +45,22 @@ function ToolbarIconButton({
   disabled?: boolean
   emphasize?: boolean
   size?: 'sm' | 'md'
+  variant?: 'filled' | 'bare'
 }) {
   const sizeClass = size === 'sm' ? 'h-6 w-6' : 'h-8 w-8'
+  const variantClassName = emphasize
+    ? 'border-slate-900 bg-slate-900 text-white hover:opacity-90 disabled:border-slate-400 disabled:bg-slate-400'
+    : variant === 'bare'
+      ? 'bg-transparent text-slate-500 hover:text-slate-900 disabled:opacity-30'
+      : 'border-black/10 bg-white/70 text-slate-700 hover:bg-white disabled:opacity-40'
+
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
       disabled={disabled}
-      className={`inline-flex ${sizeClass} items-center justify-center rounded-full border transition ${emphasize ? 'border-slate-900 bg-slate-900 text-white hover:opacity-90 disabled:border-slate-400 disabled:bg-slate-400' : 'border-black/10 bg-white/70 text-slate-700 hover:bg-white disabled:opacity-40'}`}
+      className={`inline-flex ${sizeClass} items-center justify-center transition-all ${variant !== 'bare' ? 'rounded-full border' : ''} ${variantClassName}`}
       onClick={onClick}
     >
       {children}
@@ -73,9 +84,13 @@ export function NoteEditor({
   autoFocus = false,
   buttonSize = 'md',
   toolbarLeadingAddon,
+  toolbarButtonVariant = 'filled',
+  emojiTriggerVariant = 'filled',
+  showCancelButton = true,
 }: NoteEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pendingSelectionRef = useRef<TextSelectionRange | null>(null)
+  const iconSize = buttonSize === 'sm' ? 11 : 13
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -139,6 +154,7 @@ export function NoteEditor({
               <EmojiPickerButton
                 size={buttonSize}
                 panelAlign="start"
+                triggerVariant={emojiTriggerVariant}
                 onSelect={(emoji) => withSelection((text, start, end) => {
                   const result = insertTextAtSelection(text, emoji, start, end)
                   return {
@@ -150,29 +166,29 @@ export function NoteEditor({
                   }
                 })}
               />
-              <ToolbarIconButton size={buttonSize} onClick={() => withSelection(insertChecklistSyntax)} label="插入 checklist">
-                <ListTodo size={buttonSize === 'sm' ? 10 : 12} strokeWidth={1.8} />
+              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection(insertChecklistSyntax)} label="插入 checklist">
+                <ListTodo size={iconSize} strokeWidth={1.8} />
               </ToolbarIconButton>
-              <ToolbarIconButton size={buttonSize} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '**'))} label="加粗">
-                <Bold size={buttonSize === 'sm' ? 10 : 12} strokeWidth={1.8} />
+              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '**'))} label="加粗">
+                <Bold size={iconSize} strokeWidth={1.8} />
               </ToolbarIconButton>
-              <ToolbarIconButton size={buttonSize} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '*'))} label="斜体">
-                <Italic size={buttonSize === 'sm' ? 10 : 12} strokeWidth={1.8} />
+              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '*'))} label="斜体">
+                <Italic size={iconSize} strokeWidth={1.8} />
               </ToolbarIconButton>
-              <ToolbarIconButton size={buttonSize} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '=='))} label="高亮">
-                <Highlighter size={buttonSize === 'sm' ? 10 : 12} strokeWidth={1.8} />
+              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '=='))} label="高亮">
+                <Highlighter size={iconSize} strokeWidth={1.8} />
               </ToolbarIconButton>
             </>
           )}
           trailing={(
             <>
-              {onCancel ? (
-                <ToolbarIconButton size={buttonSize} onClick={onCancel} label="取消编辑">
-                  <X size={buttonSize === 'sm' ? 10 : 12} strokeWidth={1.8} />
+              {onCancel && showCancelButton ? (
+                <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={onCancel} label="取消编辑">
+                  <X size={iconSize} strokeWidth={1.8} />
                 </ToolbarIconButton>
               ) : null}
               <ToolbarIconButton size={buttonSize} onClick={onSave} label={isSaving ? '保存中' : saveLabel} disabled={isSaving || saveDisabled} emphasize>
-                <Check size={buttonSize === 'sm' ? 10 : 12} strokeWidth={2} />
+                <Check size={iconSize} strokeWidth={2} />
               </ToolbarIconButton>
             </>
           )}
