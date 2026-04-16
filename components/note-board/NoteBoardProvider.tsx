@@ -48,6 +48,11 @@ interface NoteBoardState {
   isRefreshingBoard: boolean
   showArchived: boolean
   sortMode: NoteSortMode
+  currentPage: number
+  pageSize: number
+  visibleCount: number
+  hasPreviousPage: boolean
+  hasNextPage: boolean
   toastNotice: ToastNotice | null
   error: string | null
   canWrite: boolean
@@ -93,6 +98,8 @@ interface NoteBoardActions {
   bringCardToFront: (id: string) => void
   handleCardHeightChange: (id: string, height: number) => void
   handleLoadMore: () => Promise<void>
+  handlePreviousPage: () => void
+  handleNextPage: () => Promise<void>
   handleSubmit: (event: React.FormEvent<HTMLFormElement>) => void
   handleSwitchArchiveView: (archived: boolean) => void
   handleSortModeChange: (nextSortMode: NoteSortMode) => void
@@ -128,6 +135,11 @@ interface NoteBoardBoardState {
   isRefreshingBoard: boolean
   showArchived: boolean
   sortMode: NoteSortMode
+  currentPage: number
+  pageSize: number
+  visibleCount: number
+  hasPreviousPage: boolean
+  hasNextPage: boolean
   totalLoaded: number
   isMobileViewport: boolean
   viewportReady: boolean
@@ -155,6 +167,7 @@ const NoteBoardToastContext = createContext<ToastNotice | null | undefined>(unde
 const NoteBoardActionsContext = createContext<NoteBoardActions | null>(null)
 const NoteBoardMetaContext = createContext<NoteBoardMeta | null>(null)
 const NoteBoardBindingsContext = createContext<NoteBoardBindings | null>(null)
+const DESKTOP_NOTES_PER_PAGE = 10
 
 function getBoardQueryKey(boardSlug: string, archived: boolean, sort: NoteSortMode) {
   return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}`
@@ -347,6 +360,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
   const [mobileView, setMobileView] = useState<'stack' | 'list'>('stack')
   const [nextOffset, setNextOffset] = useState(initialMessages.length)
   const [hasMore, setHasMore] = useState(initialHasMore)
+  const [currentPageIndex, setCurrentPageIndex] = useState(0)
   const [isPending, startTransition] = useTransition()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
@@ -376,17 +390,30 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
   )
   const viewerIdentity = publicIdentity ?? ''
   const reactionIdentity = identity?.trim() ?? ''
-  const viewerIdentityAliases = identityAliases.length > 0 ? identityAliases : [identity].filter(Boolean)
+  const viewerIdentityAliases = useMemo(
+    () => identityAliases.length > 0 ? identityAliases : [identity].filter(Boolean),
+    [identity, identityAliases],
+  )
   const canWrite = board.slug === 'guestbook' || isAdmin
   const priorityEnabled = board.slug === 'memo'
   const viewportReady = isMobileViewport !== null
-  const messageIds = useMemo(() => messages.map((m) => m.id).join(','), [messages])
+  const isDesktopViewport = isMobileViewport === false
+  const loadedDesktopPageCount = Math.max(1, Math.ceil(messages.length / DESKTOP_NOTES_PER_PAGE))
+  const visibleMessages = useMemo(() => {
+    if (!isDesktopViewport) {
+      return messages
+    }
+
+    const start = currentPageIndex * DESKTOP_NOTES_PER_PAGE
+    return messages.slice(start, start + DESKTOP_NOTES_PER_PAGE)
+  }, [currentPageIndex, isDesktopViewport, messages])
+  const messageIds = useMemo(() => visibleMessages.map((m) => m.id).join(','), [visibleMessages])
   const { cardWidth, height, layouts } = useMemo(
-    () => computeBoardLayout(messages, size.width, measuredHeights),
+    () => computeBoardLayout(visibleMessages, size.width, measuredHeights),
     [messageIds, size.width, layoutVersion],
   )
   const hasMeasured = size.width > 0 && size.height > 0
-  const canInitializeSurface = hasMeasured && (messages.length === 0 || messages.every((message) => measuredHeights[message.id] > 0))
+  const canInitializeSurface = hasMeasured && (visibleMessages.length === 0 || visibleMessages.every((message) => measuredHeights[message.id] > 0))
   const editingMessage = useMemo(() => messages.find((message) => message.id === editingNoteId) ?? null, [messages, editingNoteId])
   const initialBoardPayload = useMemo(
     () => createBoardPayload(initialSortedMessages, false, 'time', initialSortedMessages.length, initialHasMore),
@@ -439,7 +466,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
   )
   const isRefreshingBoard = isBoardLoading || isBoardValidating
 
-  function showToast(message: string) {
+  const showToast = useCallback((message: string) => {
     const nextNotice = { id: Date.now(), message }
     setToastNotice(nextNotice)
 
@@ -451,7 +478,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       setToastNotice((current) => current?.id === nextNotice.id ? null : current)
       toastTimerRef.current = null
     }, 2800)
-  }
+  }, [])
 
   const markMessageFresh = useCallback((id: string) => {
     setFreshMessageIds((current) => ({ ...current, [id]: true }))
@@ -491,10 +518,10 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     setError(null)
   }, [])
 
-  function replaceMessages(
+  const replaceMessages = useCallback((
     nextMessagesOrUpdater: NoteMessage[] | ((current: NoteMessage[]) => NoteMessage[]),
     options: { resetPositions?: boolean; sort?: boolean; hasMore?: boolean; nextOffset?: number } = {},
-  ) {
+  ) => {
     const nextMessages = typeof nextMessagesOrUpdater === 'function'
       ? nextMessagesOrUpdater(messagesRef.current)
       : nextMessagesOrUpdater
@@ -525,7 +552,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       nextOffset: typeof options.nextOffset === 'number' ? options.nextOffset : current.nextOffset,
       hasMore: typeof options.hasMore === 'boolean' ? options.hasMore : current.hasMore,
     } : current, { revalidate: false })
-  }
+  }, [mutateBoardPayload, sortMode])
 
   const resetBoardSurface = useCallback((nextMessages: NoteMessage[], payload?: Pick<NoteBoardListPayload, 'nextOffset' | 'hasMore'>) => {
     const sortedMessages = sortBoardMessages(nextMessages, sortMode)
@@ -547,7 +574,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     cancelEditingNote()
   }, [board.initialPageLimit, cancelEditingNote, sortMode])
 
-  function removeMessageFromSurface(id: string) {
+  const removeMessageFromSurface = useCallback((id: string) => {
     replaceMessages((current) => current.filter((message) => message.id !== id), {
       hasMore,
       nextOffset: Math.max(nextOffset - 1, 0),
@@ -570,9 +597,9 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     if (editingNoteId === id) {
       cancelEditingNote()
     }
-  }
+  }, [cancelEditingNote, editingNoteId, hasMore, nextOffset, replaceMessages])
 
-  function restoreMessageSnapshot(snapshot: OptimisticMessageSnapshot) {
+  const restoreMessageSnapshot = useCallback((snapshot: OptimisticMessageSnapshot) => {
     setMessages((current) => {
       const withoutTarget = current.filter((message) => message.id !== snapshot.message.id)
       const next = [...withoutTarget]
@@ -600,15 +627,15 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     }
 
     setNextOffset((current) => current + 1)
-  }
+  }, [])
 
-  function bringCardToFront(id: string) {
+  const bringCardToFront = useCallback((id: string) => {
     setCardZIndices((current) => {
       const next = { ...current, [id]: zIndexCounterRef.current++ }
       cardZIndicesRef.current = next
       return next
     })
-  }
+  }, [])
 
   const handleCardHeightChange = useCallback((id: string, nextHeight: number) => {
     setMeasuredHeights((current) => {
@@ -625,7 +652,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     })
   }, [])
 
-  function startEditingNote(message: NoteMessage) {
+  const startEditingNote = useCallback((message: NoteMessage) => {
     setEditingNoteId(message.id)
     setEditContent(message.content)
     setEditPriority(message.priority)
@@ -634,18 +661,19 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     if (isMobileViewport) {
       scrollToEditor()
     }
-  }
+  }, [isMobileViewport, scrollToEditor])
 
-  function handleSwitchArchiveView(archived: boolean) {
+  const handleSwitchArchiveView = useCallback((archived: boolean) => {
     if (archived === showArchived || isRefreshingBoard) return
 
     setError(null)
     cancelEditingNote()
     recordedHeightIdsRef.current.clear()
+    setCurrentPageIndex(0)
     setShowArchived(archived)
-  }
+  }, [cancelEditingNote, isRefreshingBoard, showArchived])
 
-  async function handleToggleArchive(message: NoteMessage) {
+  const handleToggleArchive = useCallback(async (message: NoteMessage) => {
     if (!identity || pendingOptimisticIdsRef.current.has(message.id)) return
 
     setError(null)
@@ -671,17 +699,18 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     } finally {
       pendingOptimisticIdsRef.current.delete(message.id)
     }
-  }
+  }, [board.slug, identity, removeMessageFromSurface, restoreMessageSnapshot, showToast, viewerIdentityAliases])
 
-  function handleSortModeChange(nextSortMode: NoteSortMode) {
+  const handleSortModeChange = useCallback((nextSortMode: NoteSortMode) => {
     if (nextSortMode === sortMode || isRefreshingBoard) return
 
     setError(null)
     cancelEditingNote()
+    setCurrentPageIndex(0)
     setSortMode(nextSortMode)
-  }
+  }, [cancelEditingNote, isRefreshingBoard, sortMode])
 
-  async function handlePriorityChange(message: NoteMessage, priority: NotePriority) {
+  const handlePriorityChange = useCallback(async (message: NoteMessage, priority: NotePriority) => {
     if (!identity || priority === message.priority || priorityUpdatingIds[message.id]) return
 
     setPriorityUpdatingIds((current) => ({ ...current, [message.id]: true }))
@@ -721,9 +750,9 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
         return next
       })
     }
-  }
+  }, [board.slug, editingMessage, identity, priorityUpdatingIds, replaceMessages, showToast, viewerIdentityAliases])
 
-  async function saveEditingNote() {
+  const saveEditingNote = useCallback(async () => {
     if (!editingMessage || !identity || isUpdatingNote) return
 
     const nextContent = editContent.trim()
@@ -763,9 +792,9 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     } finally {
       setIsUpdatingNote(false)
     }
-  }
+  }, [board.slug, cancelEditingNote, editContent, editPriority, editingMessage, identity, isUpdatingNote, replaceMessages, viewerIdentityAliases])
 
-  async function submitDraft() {
+  const submitDraft = useCallback(async () => {
     if (!draft.trim() || !identity || !canWrite || isSubmitting) return
 
     const draftValue = draft.trim()
@@ -791,6 +820,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     setError(null)
     setDraft('')
     setDraftPriority(DEFAULT_NOTE_PRIORITY)
+    setCurrentPageIndex(0)
     replaceMessages((current) => [optimisticMessage, ...current], {
       resetPositions: true,
       nextOffset: nextOffset + 1,
@@ -828,9 +858,9 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     } finally {
       setIsSubmitting(false)
     }
-  }
+  }, [board.slug, canWrite, draft, draftPriority, hasMore, identity, isSubmitting, markMessageFresh, nextOffset, publicIdentity, replaceMessages])
 
-  async function handleReaction(message: NoteMessage, value: 1 | -1) {
+  const handleReaction = useCallback(async (message: NoteMessage, value: 1 | -1) => {
     if (!reactionIdentity || reactionUpdatingIds[message.id]) return
 
     const snapshot = messagesRef.current.find((entry) => entry.id === message.id)
@@ -870,9 +900,9 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
         return next
       })
     }
-  }
+  }, [reactionIdentity, reactionUpdatingIds, replaceMessages, showToast])
 
-  async function handleEmojiReaction(message: NoteMessage, emoji: string) {
+  const handleEmojiReaction = useCallback(async (message: NoteMessage, emoji: string) => {
     if (!reactionIdentity || emojiUpdatingIds[message.id]) return
 
     const snapshot = messagesRef.current.find((entry) => entry.id === message.id)
@@ -910,9 +940,9 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
         return next
       })
     }
-  }
+  }, [emojiUpdatingIds, reactionIdentity, replaceMessages, showToast])
 
-  async function handleDelete(id: string) {
+  const handleDelete = useCallback(async (id: string) => {
     if (!identity || pendingOptimisticIdsRef.current.has(id)) return
 
     const snapshot = buildOptimisticSnapshot(id, messagesRef.current, customPositionsRef.current, cardZIndicesRef.current)
@@ -938,10 +968,54 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     } finally {
       pendingOptimisticIdsRef.current.delete(id)
     }
-  }
+  }, [board.slug, identity, removeMessageFromSurface, restoreMessageSnapshot, showToast, viewerIdentityAliases])
 
-  async function handleLoadMore() {
+  const handleLoadMore = useCallback(async () => {
     if (isPending || isRefreshingBoard || !hasMore) {
+      return
+    }
+
+    const requestKey = activeBoardQueryKeyRef.current
+
+    try {
+      const payload = await fetchBoardMessages(showArchived, sortMode, nextOffset, board.pageSize)
+      if (requestKey !== activeBoardQueryKeyRef.current) {
+        return
+      }
+      startTransition(() => {
+        replaceMessages((current) => [...current, ...payload.messages], {
+          nextOffset: payload.nextOffset,
+          hasMore: payload.hasMore,
+        })
+      })
+    } catch {
+      if (requestKey === activeBoardQueryKeyRef.current) {
+        setError('更多便签加载失败，请稍后重试。')
+      }
+    }
+  }, [board.pageSize, fetchBoardMessages, hasMore, isPending, isRefreshingBoard, nextOffset, replaceMessages, showArchived, sortMode])
+
+  const handlePreviousPage = useCallback(() => {
+    if (!isDesktopViewport || currentPageIndex === 0 || isPending || isRefreshingBoard) {
+      return
+    }
+
+    setCurrentPageIndex((current) => Math.max(current - 1, 0))
+  }, [currentPageIndex, isDesktopViewport, isPending, isRefreshingBoard])
+
+  const handleNextPage = useCallback(async () => {
+    if (!isDesktopViewport || isPending || isRefreshingBoard) {
+      return
+    }
+
+    const targetPageIndex = currentPageIndex + 1
+
+    if (targetPageIndex < loadedDesktopPageCount) {
+      setCurrentPageIndex(targetPageIndex)
+      return
+    }
+
+    if (!hasMore) {
       return
     }
 
@@ -958,15 +1032,19 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
           nextOffset: payload.nextOffset,
           hasMore: payload.hasMore,
         })
+        setCurrentPageIndex((current) => {
+          const nextPageCount = Math.max(1, Math.ceil(messagesRef.current.length / DESKTOP_NOTES_PER_PAGE))
+          return Math.min(targetPageIndex, nextPageCount - 1)
+        })
       })
     } catch {
       if (requestKey === activeBoardQueryKeyRef.current) {
-        setError('更多便签加载失败，请稍后重试。')
+        setError('下一页便签加载失败，请稍后重试。')
       }
     }
-  }
+  }, [board.pageSize, currentPageIndex, fetchBoardMessages, hasMore, isDesktopViewport, isPending, isRefreshingBoard, loadedDesktopPageCount, nextOffset, replaceMessages, showArchived, sortMode])
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const handleSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (editingMessage && isMobileViewport) {
       void saveEditingNote()
@@ -974,7 +1052,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     }
 
     void submitDraft()
-  }
+  }, [editingMessage, isMobileViewport, saveEditingNote, submitDraft])
 
   const getTargetPosition = useCallback((index: number): NotePosition => {
     const layout = layouts[index]
@@ -987,9 +1065,9 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       rotation: layout?.rotation ?? (index % 2 === 0 ? -2 : 2),
     }
   }, [cardWidth, layouts, size.width])
-  const messageIdsSignature = useMemo(() => messages.map((message) => message.id).join('|'), [messages])
+  const messageIdsSignature = useMemo(() => visibleMessages.map((message) => message.id).join('|'), [visibleMessages])
 
-  const noteItems: NoteCardViewModel[] = messages.map((message) => {
+  const noteItems = useMemo<NoteCardViewModel[]>(() => visibleMessages.map((message) => {
     const canDelete = getDeletePermission(board.slug, isAdmin, viewerIdentityAliases, message)
     const canEdit = getEditPermission(isAdmin, viewerIdentityAliases, message)
     const isEditing = editingNoteId === message.id
@@ -1033,10 +1111,32 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
         surfaceMinHeight: measuredHeights[message.id],
       } : undefined,
     }
-  })
+  }), [
+    board.slug,
+    cancelEditingNote,
+    editContent,
+    editingNoteId,
+    emojiUpdatingIds,
+    freshMessageIds,
+    handleDelete,
+    handleEmojiReaction,
+    handlePriorityChange,
+    handleReaction,
+    handleToggleArchive,
+    isAdmin,
+    isUpdatingNote,
+    measuredHeights,
+    priorityEnabled,
+    priorityUpdatingIds,
+    reactionUpdatingIds,
+    saveEditingNote,
+    startEditingNote,
+    viewerIdentityAliases,
+    visibleMessages,
+  ])
 
   const boardState = useMemo<NoteBoardBoardState>(() => ({
-    messages,
+    messages: visibleMessages,
     noteItems,
     customPositions,
     cardZIndices,
@@ -1046,21 +1146,30 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     isRefreshingBoard,
     showArchived,
     sortMode,
+    currentPage: isDesktopViewport ? currentPageIndex + 1 : 1,
+    pageSize: DESKTOP_NOTES_PER_PAGE,
+    visibleCount: visibleMessages.length,
+    hasPreviousPage: isDesktopViewport && currentPageIndex > 0,
+    hasNextPage: isDesktopViewport && (currentPageIndex + 1 < loadedDesktopPageCount || hasMore),
     totalLoaded: messages.length,
     isMobileViewport: Boolean(isMobileViewport),
     viewportReady,
   }), [
     cardZIndices,
+    currentPageIndex,
     customPositions,
     hasMore,
+    isDesktopViewport,
     isMobileViewport,
     isPending,
     isRefreshingBoard,
+    loadedDesktopPageCount,
     messages,
     mobileView,
     noteItems,
     showArchived,
     sortMode,
+    visibleMessages,
     viewportReady,
   ])
 
@@ -1099,16 +1208,26 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     viewerIdentity,
   ])
 
-  const actions: NoteBoardActions = {
-    toggleMobileView: () => setMobileView((current) => current === 'stack' ? 'list' : 'stack'),
-    setCardPosition: (id, nextPosition) => setCustomPositions((current) => {
+  const toggleMobileView = useCallback(() => {
+    setMobileView((current) => current === 'stack' ? 'list' : 'stack')
+  }, [])
+
+  const setCardPosition = useCallback((id: string, nextPosition: NotePosition) => {
+    setCustomPositions((current) => {
       const next = { ...current, [id]: nextPosition }
       customPositionsRef.current = next
       return next
-    }),
+    })
+  }, [])
+
+  const actions = useMemo<NoteBoardActions>(() => ({
+    toggleMobileView,
+    setCardPosition,
     bringCardToFront,
     handleCardHeightChange,
     handleLoadMore,
+    handlePreviousPage,
+    handleNextPage,
     handleSubmit,
     handleSwitchArchiveView,
     handleSortModeChange,
@@ -1116,7 +1235,23 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     updateEditorPriority: isMobileViewport && editingMessage ? setEditPriority : setDraftPriority,
     submitEditor: isMobileViewport && editingMessage ? saveEditingNote : submitDraft,
     cancelEditingNote,
-  }
+  }), [
+    bringCardToFront,
+    cancelEditingNote,
+    editingMessage,
+    handleCardHeightChange,
+    handleLoadMore,
+    handleNextPage,
+    handlePreviousPage,
+    handleSortModeChange,
+    handleSubmit,
+    handleSwitchArchiveView,
+    isMobileViewport,
+    saveEditingNote,
+    setCardPosition,
+    submitDraft,
+    toggleMobileView,
+  ])
 
   const metaValue = useMemo<NoteBoardMeta>(() => ({
     board,
@@ -1155,6 +1290,17 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
   useEffect(() => {
     activeBoardQueryKeyRef.current = activeBoardQueryKey
   }, [activeBoardQueryKey])
+
+  useEffect(() => {
+    if (!isDesktopViewport) {
+      return
+    }
+
+    const lastPageIndex = Math.max(Math.ceil(messages.length / DESKTOP_NOTES_PER_PAGE) - 1, 0)
+    if (currentPageIndex > lastPageIndex) {
+      setCurrentPageIndex(lastPageIndex)
+    }
+  }, [currentPageIndex, isDesktopViewport, messages.length])
 
   useEffect(() => {
     if (!boardPayload) {
@@ -1234,7 +1380,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
       let changed = false
       const next = { ...current }
 
-      messagesRef.current.forEach((message, index) => {
+      visibleMessages.forEach((message, index) => {
         if (next[message.id]) {
           return
         }
@@ -1249,7 +1395,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
 
       return changed ? next : current
     })
-  }, [canInitializeSurface, messageIdsSignature])
+  }, [canInitializeSurface, messageIdsSignature, visibleMessages])
 
   useEffect(() => {
     setCardZIndices((current) => {
