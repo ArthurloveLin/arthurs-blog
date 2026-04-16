@@ -12,7 +12,6 @@ interface ReactionToggleBarProps {
   pending?: boolean
   onReact: (value: 1 | -1) => void
   onEmojiReact?: (emoji: string) => void
-  viewerEmojis?: string[]
   emojiPending?: boolean
   compact?: boolean
   variant?: 'pill' | 'bare'
@@ -260,7 +259,6 @@ export default function ReactionToggleBar({
   pending = false,
   onReact,
   onEmojiReact,
-  viewerEmojis = [],
   emojiPending = false,
   compact = false,
   variant = 'pill',
