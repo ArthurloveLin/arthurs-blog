@@ -71,7 +71,7 @@ const AuthorProfileCardBody = memo(function AuthorProfileCardBody({ variant = 'd
 
   return (
     <div
-      className={`bg-card text-card-foreground rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.04)] dark:shadow-none transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.08)] relative group border border-border/50 dark:border-white/10 z-10 hover:z-30 ${isCompact ? 'p-5' : 'p-6'}`}
+      className={`bg-card text-card-foreground rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.08)] dark:hover:border-white/20 relative group ${isCompact ? 'p-5' : 'p-6'}`}
       style={{ overflowAnchor: 'none' }}
     >
 
