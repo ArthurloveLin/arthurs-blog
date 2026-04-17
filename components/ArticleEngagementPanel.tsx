@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
+import ThankYouAnimation from '@/components/ThankYouAnimation'
 import { useAuth } from '@/components/AuthProvider'
 import type { PostReactionSummary } from '@/lib/post-reactions'
 
@@ -83,6 +84,7 @@ export default function ArticleEngagementPanel({ postId, initialSummary }: Artic
   const [summary, setSummary] = useState(initialSummary)
   const [pendingReaction, setPendingReaction] = useState(false)
   const [pendingEmoji, setPendingEmoji] = useState(false)
+  const [showAnimation, setShowAnimation] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -115,6 +117,11 @@ export default function ArticleEngagementPanel({ postId, initialSummary }: Artic
 
     const snapshot = summary
     const nextReaction = summary.viewer_reaction === value ? 0 : value
+
+    if (nextReaction === 1) {
+      setShowAnimation(true)
+    }
+
     setPendingReaction(true)
     setSummary((current) => applyOptimisticReaction(current, nextReaction))
 
@@ -168,29 +175,37 @@ export default function ArticleEngagementPanel({ postId, initialSummary }: Artic
   }
 
   return (
-    <section className="relative overflow-hidden rounded-[32px] border border-black/8 bg-[radial-gradient(circle_at_top,rgba(251,113,133,0.18),transparent_38%),radial-gradient(circle_at_bottom,rgba(251,191,36,0.14),transparent_34%),linear-gradient(145deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-6 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.38)] md:px-6 md:py-7">
-      <div className="pointer-events-none absolute inset-x-10 top-0 h-24 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.78),transparent_72%)] blur-2xl" />
-      <div className="relative flex flex-col items-center justify-center gap-5">
-        <div className="flex w-full justify-center">
-          <ReactionToggleBar
-            upvotes={summary.upvotes}
-            downvotes={summary.downvotes}
-            viewerReaction={summary.viewer_reaction}
-            pending={pendingReaction}
-            onReact={handleReaction}
-            onEmojiReact={handleEmojiReaction}
-            emojiPending={pendingEmoji}
-            emphasis="hero"
+    <div className="relative mt-8 md:mt-10">
+      {showAnimation ? (
+        <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-5 -translate-x-1/2 md:mb-6">
+          <ThankYouAnimation onComplete={() => setShowAnimation(false)} />
+        </div>
+      ) : null}
+
+      <section className="relative flex flex-col items-center justify-center gap-4 py-2 md:gap-5 md:py-3">
+        <div className="relative flex flex-col items-center justify-center gap-5">
+          <div className="flex w-full justify-center">
+            <ReactionToggleBar
+              upvotes={summary.upvotes}
+              downvotes={summary.downvotes}
+              viewerReaction={summary.viewer_reaction}
+              pending={pendingReaction}
+              onReact={handleReaction}
+              onEmojiReact={handleEmojiReaction}
+              emojiPending={pendingEmoji}
+              emphasis="hero"
+              className="justify-center"
+            />
+          </div>
+
+          <EmojiReactionSummary
+            entries={summary.emoji_reactions}
+            onSelect={handleEmojiReaction}
+            variant="bare"
             className="justify-center"
           />
         </div>
-
-        <EmojiReactionSummary
-          entries={summary.emoji_reactions}
-          onSelect={handleEmojiReaction}
-          className="justify-center"
-        />
-      </div>
-    </section>
+      </section>
+    </div>
   )
 }
