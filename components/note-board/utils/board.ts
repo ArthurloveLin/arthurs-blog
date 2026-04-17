@@ -73,6 +73,10 @@ export function getStickyColorIndex(seed: string) {
   return Math.floor(seededUnit(seed, 7) * STICKY_COLORS.length)
 }
 
+export function getStickyColorSeed(message: Pick<NoteMessage, 'id' | 'visual_seed'>) {
+  return message.visual_seed ?? message.id
+}
+
 export function getMobileStackPosition(stackIndex: number, size: Size, cardWidth: number, messageId: string): NotePosition {
   return {
     x: (size.width - cardWidth) / 2 + Math.min(stackIndex, 4) * 4,
@@ -125,18 +129,19 @@ export function computeBoardLayout(
   const layouts: BoardLayoutCard[] = []
 
   messages.forEach((message, absoluteIndex) => {
+    const colorSeed = getStickyColorSeed(message)
     // Place card in the shortest column to fill gaps
     const col = columnHeights.indexOf(Math.min(...columnHeights))
     const cardHeight = getBoardCardHeight(message.id, measuredHeights)
-    const xJitter = (seededUnit(message.id, 1) - 0.5) * 8
+    const xJitter = (seededUnit(colorSeed, 1) - 0.5) * 8
     const x = clamp(columnX[col] + xJitter, 0, maxX)
 
     layouts.push({
       x,
       y: columnHeights[col],
-      rotation: getBoardRotation(message.id, absoluteIndex, col),
+      rotation: getBoardRotation(colorSeed, absoluteIndex, col),
       zIndex: messages.length - absoluteIndex,
-      colorIndex: getStickyColorIndex(message.id),
+      colorIndex: getStickyColorIndex(colorSeed),
     })
 
     columnHeights[col] += cardHeight + gapY

@@ -122,7 +122,7 @@ export async function POST() {
   revalidatePath('/')
   revalidatePath('/blog/[slug]', 'page')
   revalidatePath('/blog/tags/[tag]', 'page')
-  revalidatePath('/blog/category/[category]', 'page')
+  revalidatePath('/category/[slug]', 'page')
   revalidatePath('/archive')
   revalidatePath('/wardrobe')
 
