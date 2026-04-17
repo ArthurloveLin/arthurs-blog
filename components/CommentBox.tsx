@@ -10,6 +10,7 @@ import EditorActionBar from './EditorActionBar'
 import ReactionToggleBar from './ReactionToggleBar'
 import type { EmojiReactionEntry } from '@/lib/comment-emojis'
 import { formatCommentTimeLabel } from '@/lib/date-format'
+import { COMMENT_MAX_LENGTH } from '@/lib/input-limits'
 import type { ReactionValue } from '@/lib/comment-reactions'
 import { insertTextAtSelection } from '@/lib/text-selection'
 
@@ -53,6 +54,14 @@ interface CommentTreeContextValue {
 }
 
 const CommentTreeContext = createContext<CommentTreeContextValue | null>(null)
+
+function limitCommentText(value: string) {
+  return value.slice(0, COMMENT_MAX_LENGTH)
+}
+
+function getLengthTone(length: number, maxLength: number) {
+  return maxLength - length <= Math.min(40, Math.floor(maxLength * 0.12)) ? 'text-amber-600' : 'text-muted-foreground/75'
+}
 
 function useCommentTree() {
   const ctx = use(CommentTreeContext)
@@ -214,12 +223,12 @@ function CommentEditorForm({
   function insertEmoji(emoji: string) {
     const textarea = textareaRef.current
     if (!textarea) {
-      onChange(`${value}${emoji}`)
+      onChange(limitCommentText(`${value}${emoji}`))
       return
     }
 
     const result = insertTextAtSelection(value, emoji, textarea.selectionStart, textarea.selectionEnd)
-    onChange(result.value)
+    onChange(limitCommentText(result.value))
 
     window.requestAnimationFrame(() => {
       textarea.focus()
@@ -262,9 +271,16 @@ function CommentEditorForm({
       <textarea
         ref={textareaRef}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => onChange(limitCommentText(event.target.value))}
+        maxLength={COMMENT_MAX_LENGTH}
         className="min-h-[96px] w-full resize-y bg-transparent px-3 py-3 text-sm leading-relaxed text-foreground outline-none transition focus:ring-0 focus:shadow-none"
       />
+      <div className="flex items-center justify-between px-3 pb-3 text-[11px]">
+        <span className="text-muted-foreground/70">最多 {COMMENT_MAX_LENGTH} 字</span>
+        <span className={getLengthTone(value.length, COMMENT_MAX_LENGTH)}>
+          已输入 {value.length} 字，还剩 {Math.max(COMMENT_MAX_LENGTH - value.length, 0)} 字
+        </span>
+      </div>
       {error ? <p className="px-3 pb-3 text-xs text-rose-600">{error}</p> : null}
     </CommentComposerShell>
   )
@@ -488,12 +504,12 @@ function CommentThreadComposer() {
   function insertEmoji(emoji: string) {
     const textarea = composerRef.current
     if (!textarea) {
-      onDraftChange(`${draft}${emoji}`)
+      onDraftChange(limitCommentText(`${draft}${emoji}`))
       return
     }
 
     const result = insertTextAtSelection(draft, emoji, textarea.selectionStart, textarea.selectionEnd)
-    onDraftChange(result.value)
+    onDraftChange(limitCommentText(result.value))
 
     window.requestAnimationFrame(() => {
       textarea.focus()
@@ -542,14 +558,21 @@ function CommentThreadComposer() {
           <textarea
             ref={composerRef}
             value={draft}
-            onChange={(event) => onDraftChange(event.target.value)}
+            onChange={(event) => onDraftChange(limitCommentText(event.target.value))}
             onFocus={() => updatePresenceActivity('正在评论')}
             placeholder={replyTo ? `回复 @${replyTo.author}…` : '写点什么…'}
             rows={replyTo ? 3 : 2}
+            maxLength={COMMENT_MAX_LENGTH}
             className="flex-1 resize-none bg-transparent px-4 py-3 text-sm leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none focus:ring-0 focus:shadow-none"
           />
         </div>
       </CommentComposerShell>
+      <div className="flex items-center justify-between px-1 text-[11px]">
+        <span className="text-muted-foreground/70">最多 {COMMENT_MAX_LENGTH} 字</span>
+        <span className={getLengthTone(draft.length, COMMENT_MAX_LENGTH)}>
+          已输入 {draft.length} 字，还剩 {Math.max(COMMENT_MAX_LENGTH - draft.length, 0)} 字
+        </span>
+      </div>
       {error ? <p className="text-xs text-rose-600">{error}</p> : null}
     </div>
   )
@@ -688,7 +711,10 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
           parent_id: replyTarget?.id ?? null,
         }),
       })
-      if (!res.ok) throw new Error('评论发送失败。')
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null) as { error?: string } | null
+        throw new Error(payload?.error === 'Content too long' ? `评论不能超过 ${COMMENT_MAX_LENGTH} 字。` : '评论发送失败。')
+      }
       const newComment: Comment = await res.json()
       setComments((prev) => prev.map((comment) => comment.id === optimisticId ? newComment : comment))
       markCommentFresh(newComment.id)
@@ -727,7 +753,11 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     })
 
     if (!res.ok) {
-      throw new Error(res.status === 403 ? '当前身份没有编辑这条评论的权限。' : '评论更新失败。')
+      const payload = await res.json().catch(() => null) as { error?: string } | null
+      if (res.status === 403) {
+        throw new Error('当前身份没有编辑这条评论的权限。')
+      }
+      throw new Error(payload?.error === 'Content too long' ? `评论不能超过 ${COMMENT_MAX_LENGTH} 字。` : '评论更新失败。')
     }
 
     const updatedComment: Comment = await res.json()
@@ -827,7 +857,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     reactingIds,
     emojiReactingIds,
     composerRef: inputRef,
-    onDraftChange: setDraft,
+    onDraftChange: (value) => setDraft(limitCommentText(value)),
     onReply: handleReply,
     onCancelReply: () => setReplyTo(null),
     onSubmit: handleSubmit,

@@ -4,10 +4,12 @@ import { attachViewerReactions, type ReactionValue } from '@/lib/comment-reactio
 import { DEFAULT_NOTE_PRIORITY, isNotePriority, type NotePriority, type NoteSortMode } from '@/lib/note-priority'
 import { getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
+import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export interface NoteMessage {
   id: string
+  visual_seed?: string
   author: string
   content: string
   created_at: string
@@ -106,13 +108,22 @@ export async function createBoardMessage(board: NoteBoardSlug, author: string, c
     throw new Error('INVALID_PRIORITY')
   }
 
+  const nextContent = content.trim()
+  if (!nextContent) {
+    throw new Error('MISSING_CONTENT')
+  }
+
+  if (nextContent.length > NOTE_MAX_LENGTH) {
+    throw new Error('CONTENT_TOO_LONG')
+  }
+
   const { data, error } = await supabaseAdmin
     .from('comments')
     .insert({
       target_type: config.targetType,
       target_id: config.targetId,
       author: author.trim(),
-      content: content.trim(),
+      content: nextContent,
       priority: nextPriority,
       parent_id: null,
     })
@@ -164,6 +175,10 @@ export async function updateBoardMessage(
     const content = input.content.trim()
     if (!content) {
       throw new Error('MISSING_CONTENT')
+    }
+
+    if (content.length > NOTE_MAX_LENGTH) {
+      throw new Error('CONTENT_TOO_LONG')
     }
 
     patch.content = content
