@@ -434,7 +434,7 @@ export default function ThankYouAnimation({ onComplete }: ThankYouAnimationProps
   return (
     <div
       ref={containerRef}
-      className={`${oswald.className} pointer-events-none select-none`}
+      className={`${oswald.className} thank-you-root pointer-events-none select-none`}
       style={{ width: mobileWidth ? `${mobileWidth}px` : 'min(700px, calc(100vw - 2rem))' }}
       aria-hidden="true"
     >
@@ -527,8 +527,44 @@ export default function ThankYouAnimation({ onComplete }: ThankYouAnimationProps
       </svg>
 
       <style jsx>{`
+        .thank-you-root {
+          /* Light Theme (Default) */
+          --ty-primary: #7c3aed;
+          --ty-accent-1: #b191ff; /* purple (original lavender) */
+          --ty-accent-2: #dce2aa; /* lime (original pale-lime) */
+          --ty-accent-3: #241e4e; /* blue (original navy) */
+        }
+
+        :global(.dark) .thank-you-root {
+          --ty-primary: #a78bfa;
+          --ty-accent-1: #f472b6; /* pinkish-lavender */
+          --ty-accent-2: #2dd4bf; /* soft-teal */
+          --ty-accent-3: #60a5fa; /* sky-blue */
+        }
+
+        :global(.ocean) .thank-you-root {
+          --ty-primary: #0ea5e9;
+          --ty-accent-1: #06b6d4; /* cyan */
+          --ty-accent-2: #10b981; /* emerald/green-teal */
+          --ty-accent-3: #6366f1; /* indigo */
+        }
+
+        :global(.sunset) .thank-you-root {
+          --ty-primary: #f97316;
+          --ty-accent-1: #facc15; /* amber-yellow */
+          --ty-accent-2: #e11d48; /* crimson-rose */
+          --ty-accent-3: #fb923c; /* light-orange */
+        }
+
+        :global(.forest) .thank-you-root {
+          --ty-primary: #10b981;
+          --ty-accent-1: #4ade80; /* bright-green */
+          --ty-accent-2: #facc15; /* sunshine-yellow */
+          --ty-accent-3: #0d9488; /* forest-teal */
+        }
+
         svg :global(text) {
-          fill: var(--primary);
+          fill: var(--ty-primary);
           font-family: inherit;
           font-weight: 700;
         }
@@ -541,7 +577,7 @@ export default function ThankYouAnimation({ onComplete }: ThankYouAnimationProps
         svg :global(polyline),
         svg :global(ellipse),
         svg :global(path) {
-          stroke: var(--primary);
+          stroke: var(--ty-primary);
           fill: none;
           stroke-linecap: round;
           stroke-linejoin: round;
@@ -565,19 +601,19 @@ export default function ThankYouAnimation({ onComplete }: ThankYouAnimationProps
         }
 
         svg :global(.purple) {
-          stroke: #b191ff;
+          stroke: var(--ty-accent-1);
         }
 
         svg :global(.lime) {
-          stroke: #dce2aa;
+          stroke: var(--ty-accent-2);
         }
 
         svg :global(.plum) {
-          stroke: var(--primary);
+          stroke: var(--ty-primary);
         }
 
         svg :global(.blue) {
-          stroke: #241e4e;
+          stroke: var(--ty-accent-3);
         }
       `}</style>
     </div>
