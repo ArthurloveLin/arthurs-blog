@@ -4,6 +4,7 @@ import { useActionState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { login } from './actions'
+import Turnstile from '@/components/Turnstile'
 
 function LoginForm() {
   const searchParams = useSearchParams()
@@ -58,6 +59,10 @@ function LoginForm() {
             {state?.error && (
               <p className="text-sm text-red-500">{state.error}</p>
             )}
+
+            <div className="flex justify-center">
+              <Turnstile />
+            </div>
 
             <button
               type="submit"
