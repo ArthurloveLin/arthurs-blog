@@ -1,0 +1,45 @@
+name: Supabase Daily Backup to R2
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 每天北京时间 08:00 执行 (00:00 UTC)
+  workflow_dispatch: # 支持手动触发全量备份
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Dump Supabase Database
+        run: |
+          # 导出结构和数据 (包含 --all 标志)
+          supabase db dump --project-ref ${{ secrets.SUPABASE_PROJECT_ID }} \
+            --db-password ${{ secrets.SUPABASE_DB_PASSWORD }} \
+            --linked \
+            --all \
+            --output backup.sql
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Compress backup
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
+          mv backup.sql "supabase_backup_${TIMESTAMP}.sql"
+          gzip "supabase_backup_${TIMESTAMP}.sql"
+          echo "BACKUP_FILE=supabase_backup_${TIMESTAMP}.sql.gz" >> $GITHUB_ENV
+
+      - name: Upload to Cloudflare R2
+        run: |
+          aws s3 cp "${{ env.BACKUP_FILE }}" "s3://supabase-backups/${{ env.BACKUP_FILE }}" \
+            --endpoint-url "https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
