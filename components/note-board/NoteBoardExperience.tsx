@@ -15,7 +15,8 @@ import {
   useNoteBoardMeta,
   useNoteBoardToast,
 } from '@/components/note-board/NoteBoardProvider'
-import { getStickyColorIndex } from '@/components/note-board/utils/board'
+import { getStickyColorIndex, getStickyColorSeed } from '@/components/note-board/utils/board'
+import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
 export { StickyStackPreview } from '@/components/note-board/views/StickyStackPreview'
@@ -168,7 +169,7 @@ function NoteBoardControls() {
                       zIndex={state.cardZIndices[message.id] ?? layout?.zIndex ?? state.messages.length - index}
                       width={meta.surface.cardWidth}
                       bounds={{ width: meta.surface.size.width, height: Math.max(meta.surface.height, 420) }}
-                      colorIndex={layout?.colorIndex ?? getStickyColorIndex(message.id)}
+                      colorIndex={layout?.colorIndex ?? getStickyColorIndex(getStickyColorSeed(message))}
                       draggable={meta.surface.isScattered && !isEditing}
                       actions={cardActions}
                       priorityControl={priorityControl}
@@ -266,7 +267,7 @@ function NoteBoardEditorSection() {
             onSave={() => void actions.submitEditor()}
             onCancel={state.editorMode === 'edit' ? actions.cancelEditingNote : undefined}
             saveDisabled={!state.editorValue.trim()}
-            maxLength={180}
+            maxLength={NOTE_MAX_LENGTH}
             minHeightClassName="min-h-[140px]"
             shellClassName="overflow-hidden rounded-[24px] border border-border/70 bg-background/55"
             toolbarClassName="px-4 py-3 text-xs text-muted-foreground"

@@ -187,8 +187,21 @@ export function useBoardMutations({
   const handlePriorityChange = useCallback(async (message: NoteMessage, priority: NotePriority) => {
     if (!identity || priority === message.priority || priorityUpdatingIds[message.id]) return
 
+    const snapshot = messagesRef.current.find((entry) => entry.id === message.id)
+    if (!snapshot) return
+
     setPriorityUpdatingIds((current) => ({ ...current, [message.id]: true }))
     setError(null)
+    replaceMessages((current) => current.map((currentMessage) => currentMessage.id === message.id
+      ? {
+        ...currentMessage,
+        priority,
+      }
+      : currentMessage))
+
+    if (editingMessage?.id === message.id) {
+      setEditPriority(priority)
+    }
 
     try {
       const response = await fetch(`/api/note-boards/${board.slug}/${message.id}`, {
@@ -205,6 +218,7 @@ export function useBoardMutations({
       replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedMessage.id
         ? {
           ...updatedMessage,
+          visual_seed: currentMessage.visual_seed,
           upvotes: currentMessage.upvotes,
           downvotes: currentMessage.downvotes,
           viewer_reaction: currentMessage.viewer_reaction,
@@ -216,6 +230,10 @@ export function useBoardMutations({
         setEditPriority(updatedMessage.priority)
       }
     } catch (updateError) {
+      replaceMessages((current) => current.map((currentMessage) => currentMessage.id === message.id ? snapshot : currentMessage))
+      if (editingMessage?.id === message.id) {
+        setEditPriority(snapshot.priority)
+      }
       showToast(updateError instanceof Error ? updateError.message : '优先级更新失败，请稍后再试。')
     } finally {
       setPriorityUpdatingIds((current) => {
@@ -224,7 +242,7 @@ export function useBoardMutations({
         return next
       })
     }
-  }, [board.slug, editingMessage, identity, priorityUpdatingIds, replaceMessages, showToast, viewerIdentityAliases, setError, setEditPriority])
+  }, [board.slug, editingMessage, identity, messagesRef, priorityUpdatingIds, replaceMessages, showToast, viewerIdentityAliases, setError, setEditPriority])
 
   return {
     priorityUpdatingIds,

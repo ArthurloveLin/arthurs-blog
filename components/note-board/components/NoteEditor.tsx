@@ -91,6 +91,8 @@ export function NoteEditor({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pendingSelectionRef = useRef<TextSelectionRange | null>(null)
   const iconSize = buttonSize === 'sm' ? 11 : 13
+  const currentLength = value.length
+  const remainingLength = typeof maxLength === 'number' ? Math.max(maxLength - currentLength, 0) : null
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -139,11 +141,19 @@ export function NoteEditor({
       <textarea
         ref={textareaRef}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => onChange(typeof maxLength === 'number' ? event.target.value.slice(0, maxLength) : event.target.value)}
         maxLength={maxLength}
         placeholder={placeholder}
         className={`${minHeightClassName} w-full resize-none overflow-hidden rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-primary/30 focus:ring-2 focus:ring-primary/20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
       />
+      {typeof maxLength === 'number' ? (
+        <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground/80">
+          <span>最多 {maxLength} 字</span>
+          <span className={remainingLength !== null && remainingLength <= Math.min(20, Math.floor(maxLength * 0.12)) ? 'text-amber-600' : undefined}>
+            已输入 {currentLength} 字，还剩 {remainingLength} 字
+          </span>
+        </div>
+      ) : null}
       <div className={shellClassName}>
         <EditorActionBar
           noWrap
