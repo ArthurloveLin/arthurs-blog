@@ -28,6 +28,7 @@ workers/
 tmp/
 eslint_output.txt
 scratch/
+.github/
 *.sh
 *.py
 
