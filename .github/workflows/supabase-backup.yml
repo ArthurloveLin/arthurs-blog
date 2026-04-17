@@ -19,10 +19,9 @@ jobs:
 
       - name: Dump Supabase Database
         run: |
-          # 使用 --db-url 进行导出，因为 --project-ref 不是直接支持的标志
+          # 使用 --db-url 进行导出，去掉不支持的 --all 标志，使用 --file 指定输出文件
           supabase db dump --db-url "postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.${{ secrets.SUPABASE_PROJECT_ID }}.supabase.co:5432/postgres" \
-            --all \
-            --output backup.sql
+            --file backup.sql
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
