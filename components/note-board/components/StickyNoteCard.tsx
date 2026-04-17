@@ -27,6 +27,7 @@ import {
   STICKY_COLORS,
 } from '@/components/note-board/utils/board'
 import { formatCommentTimeLabel } from '@/lib/date-format'
+import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { NOTE_PRIORITY_META } from '@/lib/note-priority'
 import type { NoteMessage } from '@/lib/note-boards'
 
@@ -429,7 +430,7 @@ function StickyNoteCardFrame({
               onSave={inlineEditor.onSave}
               onCancel={inlineEditor.onCancel}
               saveDisabled={!inlineEditor.value.trim()}
-              maxLength={180}
+              maxLength={NOTE_MAX_LENGTH}
               minHeightClassName="min-h-0"
               shellClassName="overflow-hidden rounded-[14px] border border-black/10 bg-white/30"
               toolbarClassName="px-2 py-1.5 text-[10px] text-slate-700"

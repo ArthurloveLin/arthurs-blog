@@ -80,8 +80,8 @@ export async function PATCH(
     if (message === 'INVALID_PRIORITY') {
       return NextResponse.json({ error: 'Invalid priority' }, { status: 400 })
     }
-    if (message === 'MISSING_CONTENT' || message === 'MISSING_PATCH') {
-      return NextResponse.json({ error: 'Missing patch' }, { status: 400 })
+    if (message === 'MISSING_CONTENT' || message === 'MISSING_PATCH' || message === 'CONTENT_TOO_LONG') {
+      return NextResponse.json({ error: message === 'CONTENT_TOO_LONG' ? 'Content too long' : 'Missing patch' }, { status: 400 })
     }
     return NextResponse.json({ error: message }, { status: 500 })
   }

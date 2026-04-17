@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { attachViewerEmojiReactions } from '@/lib/comment-emojis'
+import { COMMENT_MAX_LENGTH } from '@/lib/input-limits'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserRole } from '@/lib/auth'
 
@@ -70,6 +71,10 @@ export async function PATCH(
 
   if (!content) {
     return NextResponse.json({ error: 'Missing content' }, { status: 400 })
+  }
+
+  if (content.length > COMMENT_MAX_LENGTH) {
+    return NextResponse.json({ error: 'Content too long' }, { status: 400 })
   }
 
   const role = await getUserRole()

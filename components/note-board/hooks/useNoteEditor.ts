@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { NoteMessage } from '@/lib/note-boards'
+import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { DEFAULT_NOTE_PRIORITY, type NotePriority } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 
@@ -97,13 +98,18 @@ export function useNoteEditor({
       })
 
       if (!response.ok) {
-        throw new Error(response.status === 403 ? '当前身份没有编辑权限。' : '便签更新失败，请稍后再试。')
+        const payload = await response.json().catch(() => null) as { error?: string } | null
+        if (response.status === 403) {
+          throw new Error('当前身份没有编辑权限。')
+        }
+        throw new Error(payload?.error === 'Content too long' ? `便签不能超过 ${NOTE_MAX_LENGTH} 字。` : '便签更新失败，请稍后再试。')
       }
 
       const updatedMessage = (await response.json()) as NoteMessage
       replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedMessage.id
         ? {
           ...updatedMessage,
+          visual_seed: currentMessage.visual_seed,
           upvotes: currentMessage.upvotes,
           downvotes: currentMessage.downvotes,
           viewer_reaction: currentMessage.viewer_reaction,
@@ -127,6 +133,7 @@ export function useNoteEditor({
     const optimisticId = `optimistic-${crypto.randomUUID()}`
     const optimisticMessage: NoteMessage = {
       id: optimisticId,
+      visual_seed: optimisticId,
       author: publicIdentity ?? '',
       content: draftValue,
       created_at: new Date().toISOString(),
@@ -164,11 +171,15 @@ export function useNoteEditor({
       })
 
       if (!response.ok) {
-        throw new Error(response.status === 403 ? '当前身份没有写入权限。' : '便签保存失败，请稍后再试。')
+        const payload = await response.json().catch(() => null) as { error?: string } | null
+        if (response.status === 403) {
+          throw new Error('当前身份没有写入权限。')
+        }
+        throw new Error(payload?.error === 'Content too long' ? `便签不能超过 ${NOTE_MAX_LENGTH} 字。` : '便签保存失败，请稍后再试。')
       }
 
       const message = (await response.json()) as NoteMessage
-      replaceMessages((current) => current.map((currentMessage) => currentMessage.id === optimisticId ? message : currentMessage), {
+      replaceMessages((current) => current.map((currentMessage) => currentMessage.id === optimisticId ? { ...message, visual_seed: currentMessage.visual_seed ?? currentMessage.id } : currentMessage), {
         resetPositions: true,
         nextOffset: nextOffset + 1,
         hasMore,

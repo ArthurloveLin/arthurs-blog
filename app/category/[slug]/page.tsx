@@ -7,6 +7,14 @@ import { getBoardMessages, type NoteMessage } from '@/lib/note-boards'
 
 export const revalidate = 60
 
+function decodeCategorySlug(slug: string) {
+  try {
+    return decodeURIComponent(slug)
+  } catch {
+    return slug
+  }
+}
+
 export async function generateStaticParams() {
   const categories = await getCategories().catch(() => [])
   return categories.map((c) => ({
@@ -20,7 +28,7 @@ export default async function CategoryPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const decodedSlug = decodeURIComponent(slug)
+  const decodedSlug = decodeCategorySlug(slug)
   const guestbookConfig = getNoteBoardConfig('guestbook')
   let posts: Post[] = []
   let guestbookMessages: NoteMessage[] = []

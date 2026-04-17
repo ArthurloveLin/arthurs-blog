@@ -67,6 +67,9 @@ export async function POST(
     if (message === 'INVALID_PRIORITY') {
       return NextResponse.json({ error: 'Invalid priority' }, { status: 400 })
     }
+    if (message === 'MISSING_CONTENT' || message === 'CONTENT_TOO_LONG') {
+      return NextResponse.json({ error: message === 'CONTENT_TOO_LONG' ? 'Content too long' : 'Missing content' }, { status: 400 })
+    }
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
