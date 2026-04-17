@@ -4,6 +4,7 @@ import { useActionState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { register } from './actions'
+import Turnstile from '@/components/Turnstile'
 
 function RegisterForm() {
   const searchParams = useSearchParams()
@@ -72,6 +73,10 @@ function RegisterForm() {
             {state?.error && (
               <p className="text-sm text-red-500">{state.error}</p>
             )}
+
+            <div className="flex justify-center">
+              <Turnstile />
+            </div>
 
             <button
               type="submit"
