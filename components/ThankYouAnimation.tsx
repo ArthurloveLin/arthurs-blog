@@ -528,7 +528,7 @@ export default function ThankYouAnimation({ onComplete }: ThankYouAnimationProps
 
       <style jsx>{`
         svg :global(text) {
-          fill: #843b62;
+          fill: var(--primary);
           font-family: inherit;
           font-weight: 700;
         }
@@ -541,7 +541,7 @@ export default function ThankYouAnimation({ onComplete }: ThankYouAnimationProps
         svg :global(polyline),
         svg :global(ellipse),
         svg :global(path) {
-          stroke: #843b62;
+          stroke: var(--primary);
           fill: none;
           stroke-linecap: round;
           stroke-linejoin: round;
@@ -573,7 +573,7 @@ export default function ThankYouAnimation({ onComplete }: ThankYouAnimationProps
         }
 
         svg :global(.plum) {
-          stroke: #843b62;
+          stroke: var(--primary);
         }
 
         svg :global(.blue) {
