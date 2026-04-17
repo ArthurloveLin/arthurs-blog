@@ -10,6 +10,7 @@ import {
   clamp,
   getBoardHref,
   getStickyColorIndex,
+  getStickyColorSeed,
   PREVIEW_CARD_SIZE,
   PREVIEW_REVEAL_THRESHOLD,
   PREVIEW_STACK_LIMIT,
@@ -122,7 +123,7 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
                 zIndex={cardZIndices[message.id] ?? (placed ? visibleMessages.length + index + 4 : visibleMessages.length - index + 2)}
                 width={cardWidth}
                 bounds={{ width: size.width, height: size.height }}
-                colorIndex={getStickyColorIndex(message.id)}
+                colorIndex={getStickyColorIndex(getStickyColorSeed(message))}
                 draggable={isDraggable}
                 cta={{ href: boardHref, label: board.ctaLabel }}
                 animatePosition={hasSettledLayout}

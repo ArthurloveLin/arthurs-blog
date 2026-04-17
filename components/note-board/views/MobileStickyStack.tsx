@@ -9,6 +9,7 @@ import {
   getMobileSideParkPosition,
   getMobileStackPosition,
   getStickyColorIndex,
+  getStickyColorSeed,
   MOBILE_COLLECT_STAGGER_MS,
   NOTE_CARD_WIDTH,
   PREVIEW_REVEAL_THRESHOLD,
@@ -166,7 +167,7 @@ export function MobileStickyStack({ items }: MobileStickyStackProps) {
                     zIndex={placed ? 30 + index : visibleItems.length - index + 2}
                     width={cardWidth}
                     bounds={{ width: size.width, height: size.height }}
-                    colorIndex={getStickyColorIndex(message.id)}
+                    colorIndex={getStickyColorIndex(getStickyColorSeed(message))}
                     draggable={isDraggable}
                     surface="mobile-stack"
                     actions={actions}
