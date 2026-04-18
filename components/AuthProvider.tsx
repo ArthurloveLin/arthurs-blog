@@ -1,10 +1,23 @@
 'use client'
 
-import { createContext, use, useState, ReactNode } from 'react'
+import { createContext, use, useEffect, useRef, useState, ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import useSWR from 'swr'
 import { getGuestDisplayName, getGuestIdentityAliases, getOrCreateGuestId } from '@/lib/guest'
 
 export type UserRole = 'guest' | 'user' | 'admin'
+
+export interface AuthState {
+  role: UserRole
+  email: string | null
+  display_name: string | null
+}
+
+export const GUEST_AUTH_STATE: AuthState = {
+  role: 'guest',
+  email: null,
+  display_name: null,
+}
 
 interface AuthUser {
   email: string | null
@@ -24,6 +37,8 @@ interface AuthContextValue {
   loading: boolean
   isAuthenticated: boolean
   isAdmin: boolean
+  refreshAuth: () => Promise<void>
+  syncAuth: (nextState: AuthState) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -40,27 +55,43 @@ export function useAuthIdentity() {
   return useAuth().identity
 }
 
-const fetcher = (url: string) => fetch(url).then((r) => r.ok ? r.json() : null)
+const fetcher = (url: string): Promise<AuthState | null> =>
+  fetch(url, { cache: 'no-store' }).then((response) => (response.ok ? response.json() : null))
 
 interface AuthProviderProps {
   children: ReactNode
-  initialData?: {
-    role: UserRole
-    email: string | null
-    display_name: string | null
-  }
+  initialData?: AuthState
 }
 
 export default function AuthProvider({ children, initialData }: AuthProviderProps) {
+  const pathname = usePathname()
   const [guestId] = useState(() =>
     typeof window === 'undefined' ? '' : getOrCreateGuestId()
   )
+  const previousPathnameRef = useRef(pathname)
 
-  const { data, isLoading } = useSWR('/api/me', fetcher, {
+  const { data, isLoading, mutate } = useSWR<AuthState | null>('/api/me', fetcher, {
     fallbackData: initialData,
     revalidateOnFocus: false,
-    dedupingInterval: 60_000,
+    dedupingInterval: 0,
   })
+
+  useEffect(() => {
+    if (previousPathnameRef.current === pathname) {
+      return
+    }
+
+    previousPathnameRef.current = pathname
+    void mutate()
+  }, [pathname, mutate])
+
+  const refreshAuth = async () => {
+    await mutate()
+  }
+
+  const syncAuth = (nextState: AuthState) => {
+    void mutate(nextState, { revalidate: false })
+  }
 
   const role = (data?.role as UserRole) ?? 'guest'
   const displayName = data?.display_name ?? null
@@ -83,6 +114,8 @@ export default function AuthProvider({ children, initialData }: AuthProviderProp
     loading: isLoading && !data,
     isAuthenticated: role !== 'guest',
     isAdmin: role === 'admin',
+    refreshAuth,
+    syncAuth,
   }
 
   return (

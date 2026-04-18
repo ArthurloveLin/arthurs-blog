@@ -1,12 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useCallback, startTransition, useSyncExternalStore } from 'react'
+import { useEffect, useCallback, startTransition, useSyncExternalStore, useTransition } from 'react'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import type { LucideIcon } from 'lucide-react'
-import { useAuth } from '@/components/AuthProvider'
+import { GUEST_AUTH_STATE, useAuth } from '@/components/AuthProvider'
 import { logout } from '@/app/auth/logout/actions'
 import { useTheme } from 'next-themes'
 import { useSiteConfig } from './SiteDataProvider'
@@ -99,14 +99,7 @@ function DesktopSignedInAuth({
       <span className="text-sm text-foreground/60 max-w-[120px] truncate">
         {displayName ?? email}
       </span>
-      <form action={logout}>
-        <button
-          type="submit"
-          className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
-        >
-          退出
-        </button>
-      </form>
+      <LogoutButton className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200" />
     </>
   )
 }
@@ -152,12 +145,61 @@ function MobileSignedInAuth({
         )}
         <span className="text-sm text-foreground/60">{displayName ?? email}</span>
       </div>
-      <form action={logout}>
-        <button type="submit" className="text-sm text-muted-foreground hover:text-foreground">
-          退出
-        </button>
-      </form>
+      <LogoutButton
+        className="text-sm text-muted-foreground hover:text-foreground"
+        onComplete={onClose}
+      />
     </div>
+  )
+}
+
+function LogoutButton({
+  className,
+  onComplete,
+}: {
+  className: string
+  onComplete?: () => void
+}) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const { refreshAuth, syncAuth } = useAuth()
+  const [isPending, startLogoutTransition] = useTransition()
+
+  const handleLogout = () => {
+    if (isPending) {
+      return
+    }
+
+    startLogoutTransition(async () => {
+      const result = await logout()
+
+      if (result?.error) {
+        console.error('Failed to log out:', result.error)
+        return
+      }
+
+      syncAuth(GUEST_AUTH_STATE)
+      onComplete?.()
+      void refreshAuth()
+
+      if (pathname !== '/') {
+        router.replace('/')
+      }
+
+      router.refresh()
+    })
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleLogout}
+      disabled={isPending}
+      className={className}
+      aria-busy={isPending}
+    >
+      {isPending ? '退出中…' : '退出'}
+    </button>
   )
 }
 

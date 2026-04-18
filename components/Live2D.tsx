@@ -11,7 +11,7 @@ declare global {
 export default function Live2D() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const defaultPosition = { left: 60, top: 6 }
+  const defaultPosition = { left: 50, top: 6 }
   const [pos, setPos] = useState(() => {
     if (typeof window === 'undefined') {
       return defaultPosition
