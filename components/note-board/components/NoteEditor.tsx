@@ -28,6 +28,7 @@ export interface NoteEditorProps {
   toolbarButtonVariant?: 'filled' | 'bare'
   emojiTriggerVariant?: 'filled' | 'bare'
   showCancelButton?: boolean
+  counterVariant?: 'full' | 'compact'
 }
 
 function ToolbarIconButton({
@@ -87,6 +88,7 @@ export function NoteEditor({
   toolbarButtonVariant = 'filled',
   emojiTriggerVariant = 'filled',
   showCancelButton = true,
+  counterVariant = 'full',
 }: NoteEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pendingSelectionRef = useRef<TextSelectionRange | null>(null)
@@ -147,12 +149,20 @@ export function NoteEditor({
         className={`${minHeightClassName} w-full resize-none overflow-hidden rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-primary/30 focus:ring-2 focus:ring-primary/20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
       />
       {typeof maxLength === 'number' ? (
-        <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground/80">
-          <span>最多 {maxLength} 字</span>
-          <span className={remainingLength !== null && remainingLength <= Math.min(20, Math.floor(maxLength * 0.12)) ? 'text-amber-600' : undefined}>
-            已输入 {currentLength} 字，还剩 {remainingLength} 字
-          </span>
-        </div>
+        counterVariant === 'full' ? (
+          <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground/80">
+            <span>最多 {maxLength} 字</span>
+            <span className={remainingLength !== null && remainingLength <= Math.min(20, Math.floor(maxLength * 0.12)) ? 'text-amber-600' : undefined}>
+              已输入 {currentLength} 字，还剩 {remainingLength} 字
+            </span>
+          </div>
+        ) : (
+          <div className="-mt-1.5 flex justify-end px-2 text-[10px] text-slate-400/80">
+            <span className={remainingLength !== null && remainingLength <= Math.min(20, Math.floor(maxLength * 0.12)) ? 'font-bold text-amber-600' : undefined}>
+              剩 {remainingLength} 字
+            </span>
+          </div>
+        )
       ) : null}
       <div className={shellClassName}>
         <EditorActionBar
