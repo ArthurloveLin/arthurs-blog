@@ -438,6 +438,7 @@ function StickyNoteCardFrame({
               toolbarButtonVariant="bare"
               emojiTriggerVariant="bare"
               showCancelButton={true}
+              counterVariant="compact"
               autoFocus
             />
           </div>

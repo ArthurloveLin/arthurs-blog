@@ -425,17 +425,17 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     loadingIdentity: loading,
     viewerIdentity,
     editingMessage,
-    editorMode: isMobileViewport && editingMessage ? 'edit' : 'create',
-    editorValue: isMobileViewport && editingMessage ? editContent : draft,
-    editorSaving: isMobileViewport && editingMessage ? isUpdatingNote : isSubmitting,
-    editorPriority: isMobileViewport && editingMessage ? editPriority : draftPriority,
-    editorSectionLabel: isMobileViewport && editingMessage ? '便签编辑区' : (board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'),
-    editorPlaceholder: isMobileViewport && editingMessage
+    editorMode: editingMessage ? 'edit' : 'create',
+    editorValue: editingMessage ? editContent : draft,
+    editorSaving: editingMessage ? isUpdatingNote : isSubmitting,
+    editorPriority: editingMessage ? editPriority : draftPriority,
+    editorSectionLabel: editingMessage ? '便签编辑区' : (board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'),
+    editorPlaceholder: editingMessage
       ? '直接修改这张便签的原始文本，checklist 状态也在这里编辑。'
       : (board.slug === 'guestbook'
         ? '写下想贴在主页上的留言，或直接插入 checklist。'
         : '写一条新的 Memo 便签，或直接插入 checklist。'),
-    editorSaveLabel: isMobileViewport && editingMessage ? '保存编辑' : '贴上便签',
+    editorSaveLabel: editingMessage ? '保存编辑' : '贴上便签',
   }), [
     board.slug,
     canWrite,
@@ -464,9 +464,9 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     handleSubmit,
     handleSwitchArchiveView,
     handleSortModeChange,
-    updateEditorValue: isMobileViewport && editingMessage ? setEditContent : setDraft,
-    updateEditorPriority: isMobileViewport && editingMessage ? setEditPriority : setDraftPriority,
-    submitEditor: isMobileViewport && editingMessage ? saveEditingNote : submitDraft,
+    updateEditorValue: editingMessage ? setEditContent : setDraft,
+    updateEditorPriority: editingMessage ? setEditPriority : setDraftPriority,
+    submitEditor: editingMessage ? saveEditingNote : submitDraft,
     cancelEditingNote,
   }), [
     bringCardToFront,
