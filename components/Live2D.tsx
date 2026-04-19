@@ -17,7 +17,7 @@ export default function Live2D() {
   const canvasWidth = Number(config.live2d_canvas_width) || 280
   const canvasHeight = Number(config.live2d_canvas_height) || 240
 
-  const defaultPosition = { left: 50, top: 6 }
+  const defaultPosition = { left: 50, bottom: 0 }
   const [pos, setPos] = useState(() => {
     if (typeof window === 'undefined') {
       return defaultPosition
@@ -29,7 +29,12 @@ export default function Live2D() {
     }
 
     try {
-      return JSON.parse(savedPos)
+      const parsed = JSON.parse(savedPos)
+      // Migration: if it's the old format with 'top', discard it and use default
+      if (parsed.top !== undefined && parsed.bottom === undefined) {
+        return defaultPosition
+      }
+      return parsed
     } catch (error) {
       console.error('Failed to parse saved position', error)
       return defaultPosition
@@ -38,7 +43,7 @@ export default function Live2D() {
   const [isDragging, setIsDragging] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
   const [opacity, setOpacity] = useState(0)
-  const dragStartPos = useRef({ x: 0, y: 0, left: 0, top: 0 })
+  const dragStartPos = useRef({ x: 0, y: 0, left: 0, bottom: 0 })
 
   useEffect(() => {
     // Initial fade in
@@ -107,7 +112,7 @@ export default function Live2D() {
       x: e.clientX,
       y: e.clientY,
       left: pos.left,
-      top: pos.top
+      bottom: pos.bottom
     }
     e.currentTarget.setPointerCapture(e.pointerId)
   }
@@ -124,15 +129,15 @@ export default function Live2D() {
     const deltaY = ((e.clientY - dragStartPos.current.y) / parentRect.height) * 100
 
     let newLeft = dragStartPos.current.left + deltaX
-    let newTop = dragStartPos.current.top + deltaY
+    // Moving mouse down (positive deltaY) should DECREASE bottom offset
+    let newBottom = dragStartPos.current.bottom - deltaY
 
     // Bounds check
-    // Allow exceeding top (no min check for top)
-    // But don't allow exceeding bottom (cap at 85% to keep cat sitting on the line)
+    // Allow exceeding bottom slightly? No, stick to bottom
     newLeft = Math.max(-20, Math.min(100, newLeft))
-    newTop = Math.min(85, newTop)
+    newBottom = Math.max(-10, Math.min(85, newBottom))
 
-    setPos({ left: newLeft, top: newTop })
+    setPos({ left: newLeft, bottom: newBottom })
   }
 
   const handlePointerUp = (e: React.PointerEvent) => {
@@ -147,9 +152,9 @@ export default function Live2D() {
       className="absolute z-10 hidden lg:block touch-none"
       style={{
         left: `${pos.left}%`,
-        top: `${pos.top}%`,
+        bottom: `${pos.bottom}%`,
         opacity: isVisible ? opacity : 0,
-        transition: isDragging ? 'none' : 'left 0.5s ease-out, top 0.5s ease-out, opacity 0.5s ease-in-out',
+        transition: isDragging ? 'none' : 'left 0.5s ease-out, bottom 0.5s ease-out, opacity 0.5s ease-in-out',
         visibility: isVisible ? 'visible' : 'hidden',
         pointerEvents: 'none'
       }}
