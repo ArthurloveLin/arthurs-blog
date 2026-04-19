@@ -27,7 +27,42 @@ interface ConfigData {
   site_title_highlight_2?: string
   site_title_rest?: string
   site_description?: string
+  live2d_model_url?: string
+  live2d_engine_js_url?: string
+  live2d_canvas_width?: string
+  live2d_canvas_height?: string
 }
+
+const LIVE2D_PRESETS = [
+  { 
+    id: 'tororo', 
+    name: 'Tororo (白猫)', 
+    url: 'https://cdn.arthurlovegrace.top/tororo/tororo.model.json',
+    width: '280',
+    height: '240'
+  },
+  { 
+    id: 'hijiki', 
+    name: 'Hijiki (黑猫)', 
+    url: 'https://cdn.arthurlovegrace.top/hijiki/hijiki.model.json',
+    width: '280',
+    height: '240'
+  },
+  { 
+    id: 'ots14_normal', 
+    name: 'OTS14 (默认)', 
+    url: 'https://cdn.arthurlovegrace.top/ots14_3001/normal/model.json',
+    width: '340',
+    height: '550'
+  },
+  { 
+    id: 'ots14_bridal', 
+    name: 'OTS14 (婚纱)', 
+    url: 'https://cdn.arthurlovegrace.top/ots14_3001/destroy/model.json',
+    width: '340',
+    height: '550'
+  },
+]
 
 const STATUS_OPTIONS = [
   { emoji: '👨‍💻', label: '工作中', value: '工作中' },
@@ -52,6 +87,27 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
   const [crop, setCrop] = useState<Crop>()
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
   const [showCropModal, setShowCropModal] = useState(false)
+
+  // Live2D Scan states
+  const [scannedModels, setScannedModels] = useState<{ id: string; name: string; url: string }[]>([])
+  const [isScanning, setIsScanning] = useState(false)
+
+  const handleScanModels = async () => {
+    setIsScanning(true)
+    setMessage('🔍 正在扫描 CDN 目录...')
+    try {
+      const res = await fetch('/api/admin/live2d/scan')
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Scan failed')
+      setScannedModels(result.models || [])
+      setMessage(`✅ 扫描完成，发现 ${result.models?.length || 0} 个模型。`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setMessage(`❌ 扫描失败: ${msg}`)
+    } finally {
+      setIsScanning(false)
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -440,6 +496,181 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
                 className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all resize-none"
               />
             </div>
+          </div>
+        </div>
+
+        {/* ── Live2D 看板娘配置 ── */}
+        <div className="bg-card text-card-foreground border border-border shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 md:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-sm font-bold tracking-widest text-muted-foreground uppercase">看板娘配置 (Live2D Settings)</h2>
+            <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase tracking-tight">CDN Optimized</span>
+          </div>
+          
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium text-foreground ml-1">角色预设 (Presets)</label>
+                <button
+                  type="button"
+                  onClick={handleScanModels}
+                  disabled={isScanning}
+                  className="text-[10px] font-bold text-primary hover:opacity-80 transition-opacity flex items-center gap-1 bg-primary/5 px-2 py-1 rounded-md"
+                >
+                  {isScanning ? <Loader2 className="w-3 h-3 animate-spin" /> : '🔄 自动扫描 CDN 模型'}
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Manual Presets */}
+                <div className="flex flex-wrap gap-2">
+                  {LIVE2D_PRESETS.map((preset) => {
+                    const isSelected = data.live2d_model_url === preset.url;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          setData(prev => ({ 
+                            ...prev, 
+                            live2d_model_url: preset.url,
+                            live2d_canvas_width: preset.width,
+                            live2d_canvas_height: preset.height
+                          }));
+                        }}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                          isSelected
+                            ? 'bg-primary border-primary text-primary-foreground shadow-sm'
+                            : 'bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                        }`}
+                      >
+                        {preset.name}
+                      </button>
+                    );
+                  })}
+                  
+                  {/* Manual / Custom Button - Always present */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Only clear if it was a preset, otherwise leave it for editing
+                      setData(prev => ({ 
+                        ...prev, 
+                        live2d_model_url: (LIVE2D_PRESETS.some(p => p.url === prev.live2d_model_url) || scannedModels.some(p => p.url === prev.live2d_model_url)) ? '' : prev.live2d_model_url
+                      }));
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border border-dashed transition-all ${
+                      (!LIVE2D_PRESETS.some(p => p.url === data.live2d_model_url) && !scannedModels.some(p => p.url === data.live2d_model_url))
+                        ? 'bg-primary/10 border-primary text-primary shadow-sm'
+                        : 'bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                    }`}
+                  >
+                    {(!LIVE2D_PRESETS.some(p => p.url === data.live2d_model_url) && !scannedModels.some(p => p.url === data.live2d_model_url)) 
+                      ? '✍️ 自定义模式中' 
+                      : '➕ 手动输入 / 自定义'}
+                  </button>
+                </div>
+
+                {/* Scanned Results */}
+                {scannedModels.length > 0 && (
+                  <div className="pt-2 animate-in fade-in slide-in-from-top-2 duration-500">
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 ml-1">扫描到的模型 (Found on CDN)</label>
+                    <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-xl border border-dashed border-border">
+                      {scannedModels.map((model) => {
+                        const isSelected = data.live2d_model_url === model.url;
+                        return (
+                          <button
+                            key={model.id}
+                            type="button"
+                            onClick={() => {
+                              setData(prev => ({ 
+                                ...prev, 
+                                live2d_model_url: model.url,
+                                // Provide default size if switching to a new unknown model
+                                live2d_canvas_width: isSelected ? prev.live2d_canvas_width : (prev.live2d_canvas_width || '280'),
+                                live2d_canvas_height: isSelected ? prev.live2d_canvas_height : (prev.live2d_canvas_height || '240')
+                              }));
+                            }}
+                            className={`px-3 py-1.5 text-[11px] font-medium rounded-lg border transition-all ${
+                              isSelected
+                                ? 'bg-primary/20 border-primary text-primary shadow-sm font-semibold'
+                                : 'bg-background border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                            }`}
+                          >
+                            {model.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">模型 JSON URL</label>
+                    <input
+                      type="text"
+                      name="live2d_model_url"
+                      value={data.live2d_model_url || ''}
+                      onChange={handleChange}
+                      placeholder="https://cdn.../model.json"
+                      className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all font-mono text-[11px]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">窗口宽度 (Canvas Width)</label>
+                      <input
+                        type="number"
+                        name="live2d_canvas_width"
+                        value={data.live2d_canvas_width || ''}
+                        onChange={handleChange}
+                        placeholder="280"
+                        className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">窗口高度 (Canvas Height)</label>
+                      <input
+                        type="number"
+                        name="live2d_canvas_height"
+                        value={data.live2d_canvas_height || ''}
+                        onChange={handleChange}
+                        placeholder="240"
+                        className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">引擎 JS URL</label>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    name="live2d_engine_js_url"
+                    value={data.live2d_engine_js_url || ''}
+                    onChange={handleChange}
+                    placeholder="https://cdn.../live2d.js"
+                    className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all font-mono text-[11px]"
+                  />
+                  {!data.live2d_engine_js_url && (
+                    <button
+                      type="button"
+                      onClick={() => setData(prev => ({ ...prev, live2d_engine_js_url: 'https://cdn.arthurlovegrace.top/js/live2d.js' }))}
+                      className="text-[10px] text-primary hover:underline ml-1"
+                    >
+                      使用 R2 默认引擎路径
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-[10px] text-muted-foreground ml-1">
+              建议将模型文件上传至 Cloudflare R2 以获得最佳加载速度。如果为空，将回退到本地默认文件。
+            </p>
           </div>
         </div>
 
