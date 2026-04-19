@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useSiteConfig } from './SiteDataProvider'
 
 declare global {
   interface Window {
@@ -9,9 +10,14 @@ declare global {
 }
 
 export default function Live2D() {
+  const config = useSiteConfig()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const defaultPosition = { left: 60, top: 6 }
+
+  const canvasWidth = Number(config.live2d_canvas_width) || 280
+  const canvasHeight = Number(config.live2d_canvas_height) || 240
+
+  const defaultPosition = { left: 50, top: 6 }
   const [pos, setPos] = useState(() => {
     if (typeof window === 'undefined') {
       return defaultPosition
@@ -47,7 +53,7 @@ export default function Live2D() {
       ([entry]) => {
         setIsVisible(entry.isIntersecting)
       },
-      { 
+      {
         threshold: 0,
         rootMargin: '100px' // Start loading/rendering slightly before it enters view
       }
@@ -58,13 +64,16 @@ export default function Live2D() {
 
   // Live2D Initialization
   useEffect(() => {
-    const modelUrl = '/live2d/tororo/tororo.model.json'
+    // Default to the R2 CDN for the core model and engine if no custom config exists
+    const modelUrl = config.live2d_model_url || 'https://cdn.arthurlovegrace.top/tororo/tororo.model.json'
+    const engineUrl = config.live2d_engine_js_url || 'https://cdn.arthurlovegrace.top/js/live2d.js'
     const scriptId = 'live2d-js-engine'
-    
+
     const initModel = () => {
       if (window.loadlive2d && canvasRef.current) {
         try {
-          window.loadlive2d('live2d-tororo', modelUrl)
+          // Use the constant canvas ID but dynamic model URL
+          window.loadlive2d('live2d-canvas', modelUrl)
         } catch (err) {
           console.error('Live2D init error:', err)
         }
@@ -75,16 +84,21 @@ export default function Live2D() {
     if (!script) {
       script = document.createElement('script')
       script.id = scriptId
-      script.src = '/live2d/js/live2d.js'
+      script.src = engineUrl
       script.async = true
       script.onload = initModel
       document.body.appendChild(script)
-    } else if (window.loadlive2d) {
-      initModel()
     } else {
-      script.addEventListener('load', initModel)
+      // If script exists, we might need to update its src if the engineUrl changed
+      // but usually the engine is the same. To be safe, if engineUrl changed, 
+      // we'd need to reload but that's complex. Most models use the same v2 engine.
+      if (window.loadlive2d) {
+        initModel()
+      } else {
+        script.addEventListener('load', initModel)
+      }
     }
-  }, [])
+  }, [config.live2d_model_url, config.live2d_engine_js_url, config.live2d_canvas_width, config.live2d_canvas_height])
 
   // Dragging Logic
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -100,24 +114,24 @@ export default function Live2D() {
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDragging) return
-    
+
     // Use the parent of the container for bounds calculation
     const parent = containerRef.current?.parentElement
     if (!parent) return
-    
+
     const parentRect = parent.getBoundingClientRect()
     const deltaX = ((e.clientX - dragStartPos.current.x) / parentRect.width) * 100
     const deltaY = ((e.clientY - dragStartPos.current.y) / parentRect.height) * 100
-    
+
     let newLeft = dragStartPos.current.left + deltaX
     let newTop = dragStartPos.current.top + deltaY
-    
+
     // Bounds check
     // Allow exceeding top (no min check for top)
     // But don't allow exceeding bottom (cap at 85% to keep cat sitting on the line)
-    newLeft = Math.max(-20, Math.min(100, newLeft)) 
-    newTop = Math.min(85, newTop) 
-    
+    newLeft = Math.max(-20, Math.min(100, newLeft))
+    newTop = Math.min(85, newTop)
+
     setPos({ left: newLeft, top: newTop })
   }
 
@@ -128,7 +142,7 @@ export default function Live2D() {
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="absolute z-10 hidden lg:block touch-none"
       style={{
@@ -140,7 +154,7 @@ export default function Live2D() {
         pointerEvents: 'none'
       }}
     >
-      <div 
+      <div
         className="relative group pointer-events-auto"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -148,10 +162,10 @@ export default function Live2D() {
         onPointerCancel={handlePointerUp}
       >
         <canvas
-          id="live2d-tororo"
+          id="live2d-canvas"
           ref={canvasRef}
-          width={280}
-          height={240}
+          width={canvasWidth}
+          height={canvasHeight}
           className={`cursor-grab active:cursor-grabbing ${isDragging ? 'scale-110' : 'hover:scale-105'} transition-transform duration-300 origin-bottom`}
         />
         {/* Shadow */}
