@@ -58,8 +58,8 @@ export default function BlogHero({ guestbookBoard, initialGuestbookMessages }: B
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
             {siteConfig.site_description || '探索编程、设计、Life Lens 真实评价等领域的见解与思考。记录成长，分享知识，连接彼此。'}
           </p>
-          <Live2D />
         </div>
+        <Live2D />
       </div>
     </div>
   )

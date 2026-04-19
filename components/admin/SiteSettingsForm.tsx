@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
 import { Loader2 } from 'lucide-react'
@@ -53,14 +54,14 @@ const LIVE2D_PRESETS = [
     name: 'OTS14 (默认)', 
     url: 'https://cdn.arthurlovegrace.top/ots14_3001/normal/model.json',
     width: '340',
-    height: '550'
+    height: '400'
   },
   { 
     id: 'ots14_bridal', 
     name: 'OTS14 (婚纱)', 
     url: 'https://cdn.arthurlovegrace.top/ots14_3001/destroy/model.json',
     width: '340',
-    height: '550'
+    height: '400'
   },
 ]
 
@@ -75,6 +76,7 @@ const STATUS_OPTIONS = [
 ]
 
 export default function SiteSettingsForm({ initialData }: { initialData: Record<string, string> }) {
+  const router = useRouter()
   const [data, setData] = useState<ConfigData>(initialData)
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -241,6 +243,7 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || 'Save failed')
       setMessage('✅ 配置已成功保存！前端即时生效。')
+      router.refresh()
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       setMessage(`❌ 保存失败: ${msg}`)
