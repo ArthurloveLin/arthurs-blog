@@ -44,7 +44,11 @@ export async function POST(request: NextRequest) {
       'site_title_highlight',
       'site_title_highlight_2',
       'site_title_rest',
-      'site_description'
+      'site_description',
+      'live2d_model_url',
+      'live2d_engine_js_url',
+      'live2d_canvas_width',
+      'live2d_canvas_height'
     ]
 
     for (const key of allowedKeys) {
