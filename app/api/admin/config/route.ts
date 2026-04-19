@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdminRequest } from '@/lib/auth'
 import { upsertSiteConfig, getSiteConfig } from '@/lib/blog'
-import { revalidateTag } from 'next/cache'
+import { revalidateTag, revalidatePath } from 'next/cache'
 
 export async function GET() {
   if (!await isAdminRequest()) {
@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     revalidateTag('site-config', 'max')
+    revalidatePath('/', 'layout')
 
     return NextResponse.json({ success: true, updated: Object.keys(entries) })
   } catch (error) {
