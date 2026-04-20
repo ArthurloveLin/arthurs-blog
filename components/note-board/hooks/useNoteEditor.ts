@@ -116,7 +116,7 @@ export function useNoteEditor({
           emoji_reactions: currentMessage.emoji_reactions,
           viewer_emojis: currentMessage.viewer_emojis,
         }
-        : currentMessage))
+        : currentMessage), { resetPositions: true })
       cancelEditingNote()
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : '便签更新失败，请稍后再试。')

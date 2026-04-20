@@ -177,21 +177,10 @@ export function useBoardData({
     replaceMessages((current) => current.filter((message) => message.id !== id), {
       hasMore,
       nextOffset: Math.max(nextOffset - 1, 0),
+      resetPositions: true,
     })
 
-    surfaceRefs.current.setCustomPositions((current) => {
-      const next = { ...current }
-      delete next[id]
-      surfaceRefs.current.customPositionsRef.current = next
-      return next
-    })
-
-    surfaceRefs.current.setCardZIndices((current) => {
-      const next = { ...current }
-      delete next[id]
-      surfaceRefs.current.cardZIndicesRef.current = next
-      return next
-    })
+    // Positions and Z-indices are already cleared by resetPositions: true
 
     if (editingNoteId === id && cancelEditingNoteRef.current) {
       cancelEditingNoteRef.current()
