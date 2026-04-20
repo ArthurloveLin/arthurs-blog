@@ -4,6 +4,7 @@ import { createContext, use, useEffect, useRef, useState, ReactNode } from 'reac
 import { usePathname } from 'next/navigation'
 import useSWR from 'swr'
 import { getGuestDisplayName, getGuestIdentityAliases, getOrCreateGuestId } from '@/lib/guest'
+import { createClient } from '@/lib/supabase-client'
 
 export type UserRole = 'guest' | 'user' | 'admin'
 
@@ -67,6 +68,10 @@ export default function AuthProvider({ children, initialData }: AuthProviderProp
   const pathname = usePathname()
   const [guestId] = useState(() =>
     typeof window === 'undefined' ? '' : getOrCreateGuestId()
+  )
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_supabase] = useState(() => 
+    typeof window === 'undefined' ? null : createClient()
   )
   const previousPathnameRef = useRef(pathname)
 

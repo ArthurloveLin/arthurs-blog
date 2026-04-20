@@ -235,6 +235,7 @@ function NoteBoardControls() {
 
 function NoteBoardEditorSection() {
   const state = useNoteBoardEditorState()
+  const boardState = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
   const bindings = useNoteBoardBindings()
   const bindEditorSection = useCallback((node: HTMLElement | null) => {
@@ -281,7 +282,7 @@ function NoteBoardEditorSection() {
                 menuDirection="up"
               />
             ) : undefined}
-            autoFocus={state.editorMode === 'edit'}
+            autoFocus={state.editorMode === 'edit' && boardState.isMobileViewport}
           />
         </form>
       ) : (

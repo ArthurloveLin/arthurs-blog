@@ -28,6 +28,7 @@ export interface SearchPostResult extends Post {
   rank: number
   matched_fields: SearchMatchField[]
   snippet: string
+  type?: 'post' | 'internal'
 }
 
 interface SearchPostRow extends Post {
