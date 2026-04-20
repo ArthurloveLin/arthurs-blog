@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes'
 
 interface TurnstileProps {
   onVerify?: (token: string) => void
-  onError?: (error: any) => void
+  onError?: (error: unknown) => void
   onExpire?: () => void
   className?: string
 }
@@ -19,7 +19,7 @@ declare global {
         options: {
           sitekey: string
           callback: (token: string) => void
-          'error-callback'?: (error: any) => void
+          'error-callback'?: (error: unknown) => void
           'expired-callback'?: () => void
           theme?: 'light' | 'dark' | 'auto'
           size?: 'normal' | 'compact'
@@ -67,7 +67,7 @@ export default function Turnstile({
             setToken(newToken)
             onVerify?.(newToken)
           },
-          'error-callback': (err: any) => {
+          'error-callback': (err: unknown) => {
             onError?.(err)
           },
           'expired-callback': () => {
