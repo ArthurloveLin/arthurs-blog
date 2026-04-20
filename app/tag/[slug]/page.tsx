@@ -50,6 +50,8 @@ export default async function TagPage({
       activeTags={[decodedSlug]}
       initialGuestbookMessages={guestbookMessages}
       guestbookBoard={guestbookConfig}
+      slogan={{ text1: 'Tracing the threads', text2: 'Captured in tags' }}
     />
+
   )
 }
