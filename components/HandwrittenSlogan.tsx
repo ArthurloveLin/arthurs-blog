@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { TegakiRenderer } from 'tegaki/react'
 import caveat from 'tegaki/fonts/caveat'
 
