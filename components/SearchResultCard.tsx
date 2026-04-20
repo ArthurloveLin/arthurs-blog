@@ -48,7 +48,7 @@ function SearchResultCard({ result, query, compact = false, onNavigate }: Search
 
   return (
     <Link
-      href={`/blog/${result.slug}`}
+      href={result.type === 'internal' ? result.slug : `/blog/${result.slug}`}
       onClick={onNavigate}
       className={[
         'group block rounded-[1.15rem] border border-border/70 bg-card/90 text-card-foreground transition duration-200',
@@ -91,6 +91,11 @@ function SearchResultCard({ result, query, compact = false, onNavigate }: Search
             </span>
           ) : null}
           <div className="flex flex-wrap justify-end gap-1.5">
+            {result.type === 'internal' && (
+              <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-bold tracking-[0.08em] text-primary uppercase animate-pulse-subtle">
+                页面
+              </span>
+            )}
             {matchedFields.map((field) => (
               <span key={field} className="rounded-full border border-border bg-background/70 px-2 py-1 text-[10px] font-medium tracking-[0.08em] text-muted-foreground uppercase">
                 {fieldLabelMap[field]}
