@@ -96,14 +96,7 @@ export function NoteEditor({
   const currentLength = value.length
   const remainingLength = typeof maxLength === 'number' ? Math.max(maxLength - currentLength, 0) : null
 
-  useEffect(() => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-
-    textarea.style.height = '0px'
-    textarea.style.height = `${textarea.scrollHeight}px`
-  }, [value])
-
+  // Auto-selection restoration after programmatic value changes
   useEffect(() => {
     if (!pendingSelectionRef.current || !textareaRef.current) return
 
@@ -140,14 +133,24 @@ export function NoteEditor({
 
   return (
     <div className="space-y-3">
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(event) => onChange(typeof maxLength === 'number' ? event.target.value.slice(0, maxLength) : event.target.value)}
-        maxLength={maxLength}
-        placeholder={placeholder}
-        className={`${minHeightClassName} w-full resize-none overflow-hidden rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-primary/30 focus:ring-2 focus:ring-primary/20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
-      />
+      <div className="grid">
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={(event) => onChange(typeof maxLength === 'number' ? event.target.value.slice(0, maxLength) : event.target.value)}
+          maxLength={maxLength}
+          placeholder={placeholder}
+          rows={1}
+          className={`${minHeightClassName} col-start-1 row-start-1 w-full resize-none overflow-hidden rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-primary/30 focus:ring-2 focus:ring-primary/20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
+        />
+        {/* Ghost element for zero-JS auto-height */}
+        <div 
+          className={`${minHeightClassName} col-start-1 row-start-1 invisible pointer-events-none whitespace-pre-wrap break-words px-3 py-3 text-sm leading-6`} 
+          aria-hidden="true"
+        >
+          {value + (value.endsWith('\n') ? ' ' : '')}
+        </div>
+      </div>
       {typeof maxLength === 'number' ? (
         counterVariant === 'full' ? (
           <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground/80">

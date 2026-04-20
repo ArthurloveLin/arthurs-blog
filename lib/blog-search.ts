@@ -1,3 +1,5 @@
+import { INTERNAL_SEARCH_ITEMS, type InternalLinkItem } from './internal-links'
+
 export const SEARCH_MIN_QUERY_LENGTH = 2
 
 export type SearchMatchField = 'title' | 'summary' | 'tags' | 'category' | 'content'
@@ -86,4 +88,23 @@ export function buildSearchSnippet(text: string, query: string, maxLength = 180)
   const suffix = end < source.length ? '…' : ''
 
   return `${prefix}${source.slice(start, end).trim()}${suffix}`
+}
+export function searchInternalLinks(query: string): InternalLinkItem[] {
+  const tokens = tokenizeSearchQuery(query.toLowerCase())
+  if (tokens.length === 0) return []
+
+  return INTERNAL_SEARCH_ITEMS.filter((item) => {
+    const title = item.title.toLowerCase()
+    const summary = item.summary.toLowerCase()
+    const tags = item.tags.map((t) => t.toLowerCase())
+
+    // Score based on how many tokens match
+    return tokens.every((token) => {
+      return (
+        title.includes(token) ||
+        summary.includes(token) ||
+        tags.some((tag) => tag.includes(token))
+      )
+    })
+  })
 }

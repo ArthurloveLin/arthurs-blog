@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Clock3, Loader2, Search, X, TrendingUp } from 'lucide-react'
 import SearchResultCard from '@/components/SearchResultCard'
 import type { SearchPostResult } from '@/lib/blog'
-import { normalizeSearchQuery, SEARCH_MIN_QUERY_LENGTH } from '@/lib/blog-search'
+import { normalizeSearchQuery, SEARCH_MIN_QUERY_LENGTH, searchInternalLinks } from '@/lib/blog-search'
 import { useNavbarUiState } from './NavbarUiState'
 
 const HISTORY_KEY = 'blog-search-history'
@@ -236,6 +236,7 @@ export default function NavbarSearch() {
     if (isSearching) {
       setIsSearching(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname])
 
   useEffect(() => {
@@ -330,10 +331,31 @@ export default function NavbarSearch() {
 
         const data = await response.json() as SearchResponse
         
+        // Local search for internal links
+        const internalResults = searchInternalLinks(normalizedDeferredQuery)
+        const mappedInternalResults: SearchPostResult[] = internalResults.map((item) => ({
+          id: item.id,
+          slug: item.href, // Reuse slug field for internal href
+          title: item.title,
+          summary: item.summary,
+          tags: item.tags,
+          category: item.category,
+          type: 'internal',
+          rank: 10,
+          matched_fields: ['title'],
+          snippet: item.summary,
+          r2_key: '',
+          cover_image: null,
+          published: true,
+          published_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          sticky: 0,
+        }))
+
         // Use transition to update results without blocking the UI
         startTransition(() => {
-          setResults(data.results ?? [])
-          setTotal(data.total ?? 0)
+          setResults([...mappedInternalResults, ...(data.results ?? [])])
+          setTotal((data.total ?? 0) + internalResults.length)
           setLoading(false)
         })
       } catch (fetchError) {
@@ -432,8 +454,10 @@ export default function NavbarSearch() {
             <div className="absolute top-16 left-0 right-0 pointer-events-none">
               <div className="site-shell flex justify-center relative">
                 <div 
-                  className="w-full max-w-[680px] bg-background rounded-b-[2rem] border-x border-b border-border shadow-2xl overflow-hidden pointer-events-auto animate-apple-fade-in"
+                  className="w-full max-w-[680px] bg-background rounded-b-[2rem] border-x border-b border-border shadow-xl overflow-hidden pointer-events-auto"
                   style={{ 
+                    opacity: isSearching ? 1 : 0,
+                    transition: 'opacity 300ms ease-out',
                     animationDelay: isSearching ? '350ms' : '0ms', 
                     animationFillMode: 'both'
                   }}
@@ -455,7 +479,7 @@ export default function NavbarSearch() {
           </div>
 
           <div 
-            className={`fixed inset-x-0 bottom-0 top-16 bg-black/20 dark:bg-black/40 backdrop-blur-[2px] z-[90] transition-opacity duration-300 ${isSearching ? 'opacity-100' : 'opacity-0'}`}
+            className={`fixed inset-x-0 bottom-0 top-16 bg-black/10 dark:bg-black/30 z-[90] transition-opacity duration-300 ${isSearching ? 'opacity-100' : 'opacity-0'}`}
             onClick={() => setIsSearching(false)}
           />
         </>,

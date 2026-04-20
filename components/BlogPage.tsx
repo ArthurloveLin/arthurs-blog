@@ -27,7 +27,9 @@ interface BlogPageProps {
   activeYear?: number | null
   initialGuestbookMessages?: NoteMessage[]
   guestbookBoard?: NoteBoardViewConfig
+  slogan?: { text1: string; text2?: string }
 }
+
 
 function getInitialReturningPostSlug() {
   if (typeof window === 'undefined') return null
@@ -83,7 +85,9 @@ export default function BlogPage({
   activeYear = null,
   initialGuestbookMessages = [],
   guestbookBoard = getNoteBoardConfig('guestbook'),
+  slogan,
 }: BlogPageProps) {
+
   const leftSidebarRef = useRef<HTMLDivElement>(null)
   const rightSidebarRef = useRef<HTMLDivElement>(null)
   const returningPostSlug = useReturningPost()
@@ -105,7 +109,8 @@ export default function BlogPage({
     <ScrollRestorer />
     <main className="min-h-screen bg-background">
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <BlogHero guestbookBoard={guestbookBoard} initialGuestbookMessages={initialGuestbookMessages} />
+      <BlogHero guestbookBoard={guestbookBoard} initialGuestbookMessages={initialGuestbookMessages} slogan={slogan} />
+
 
       {/* ── 3-Column Body ────────────────────────────────────────────── */}
       <div className="site-shell-triad py-8">
