@@ -4,7 +4,9 @@ const nextConfig: NextConfig = {
   experimental: {
     viewTransition: true,
   },
+  transpilePackages: ["tegaki"],
   outputFileTracingRoot: process.cwd(),
+
   async headers() {
     return [
       {
