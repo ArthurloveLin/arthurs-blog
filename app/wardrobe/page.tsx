@@ -17,8 +17,8 @@ export default async function WardrobePage() {
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <div className="relative border-b border-border bg-background overflow-hidden mb-8">
         {/* Blob Ornaments */}
-        <div className="absolute top-0 left-1/4 w-72 h-72 bg-blob-1 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob dark:mix-blend-screen pointer-events-none"></div>
-        <div className="absolute -top-10 right-1/4 w-72 h-72 bg-blob-2 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000 dark:mix-blend-screen pointer-events-none"></div>
+        <div className="absolute top-0 left-1/4 w-72 h-72 bg-blob-1 rounded-full filter blur-2xl opacity-50 animate-blob pointer-events-none"></div>
+        <div className="absolute -top-10 right-1/4 w-72 h-72 bg-blob-2 rounded-full filter blur-2xl opacity-50 animate-blob animation-delay-2000 pointer-events-none"></div>
 
         <div className="site-shell relative pt-10 pb-8 lg:pt-14 lg:pb-12 z-10 flex flex-col items-center text-center">
           <Link href="/" className="self-start text-[11px] font-mono tracking-widest text-muted-foreground hover:text-foreground transition-colors mb-6 flex items-center gap-2 uppercase">

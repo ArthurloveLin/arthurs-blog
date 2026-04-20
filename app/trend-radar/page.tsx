@@ -74,8 +74,8 @@ export default function TrendRadarPage({
       <main className="min-h-screen bg-background">
         {/* ── Hero ── */}
         <div className="relative border-b border-border bg-background overflow-hidden">
-          <div className="absolute top-0 left-1/4 w-72 h-72 bg-red-400/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob pointer-events-none"></div>
-          <div className="absolute -top-10 right-1/4 w-72 h-72 bg-blue-400/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000 pointer-events-none"></div>
+          <div className="absolute top-0 left-1/4 w-72 h-72 bg-red-400/10 rounded-full filter blur-2xl opacity-50 animate-blob pointer-events-none"></div>
+          <div className="absolute -top-10 right-1/4 w-72 h-72 bg-blue-400/10 rounded-full filter blur-2xl opacity-50 animate-blob animation-delay-2000 pointer-events-none"></div>
 
           <div className="site-shell-triad relative pt-14 pb-12 lg:pt-20 lg:pb-16 z-10">
             <p className="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase mb-5">
