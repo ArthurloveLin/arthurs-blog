@@ -9,7 +9,7 @@ import type { NoteMessage } from '@/lib/note-boards'
 
 const Live2D = dynamic(() => import('@/components/Live2D'), {
   ssr: false,
-  loading: () => <div className="h-40 w-40" />,
+  loading: () => <div className="absolute z-10 hidden h-40 w-40 lg:block pointer-events-none" />,
 })
 
 const WelcomeAnimation = dynamic(() => import('@/components/WelcomeAnimation'), {
