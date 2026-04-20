@@ -432,8 +432,10 @@ export default function NavbarSearch() {
             <div className="absolute top-16 left-0 right-0 pointer-events-none">
               <div className="site-shell flex justify-center relative">
                 <div 
-                  className="w-full max-w-[680px] bg-background rounded-b-[2rem] border-x border-b border-border shadow-2xl overflow-hidden pointer-events-auto animate-apple-fade-in"
+                  className="w-full max-w-[680px] bg-background rounded-b-[2rem] border-x border-b border-border shadow-xl overflow-hidden pointer-events-auto"
                   style={{ 
+                    opacity: isSearching ? 1 : 0,
+                    transition: 'opacity 300ms ease-out',
                     animationDelay: isSearching ? '350ms' : '0ms', 
                     animationFillMode: 'both'
                   }}
@@ -455,7 +457,7 @@ export default function NavbarSearch() {
           </div>
 
           <div 
-            className={`fixed inset-x-0 bottom-0 top-16 bg-black/20 dark:bg-black/40 backdrop-blur-[2px] z-[90] transition-opacity duration-300 ${isSearching ? 'opacity-100' : 'opacity-0'}`}
+            className={`fixed inset-x-0 bottom-0 top-16 bg-black/10 dark:bg-black/30 z-[90] transition-opacity duration-300 ${isSearching ? 'opacity-100' : 'opacity-0'}`}
             onClick={() => setIsSearching(false)}
           />
         </>,
