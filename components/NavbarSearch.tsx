@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Clock3, Loader2, Search, X, TrendingUp } from 'lucide-react'
 import SearchResultCard from '@/components/SearchResultCard'
 import type { SearchPostResult } from '@/lib/blog'
-import { normalizeSearchQuery, SEARCH_MIN_QUERY_LENGTH } from '@/lib/blog-search'
+import { normalizeSearchQuery, SEARCH_MIN_QUERY_LENGTH, searchInternalLinks } from '@/lib/blog-search'
 import { useNavbarUiState } from './NavbarUiState'
 
 const HISTORY_KEY = 'blog-search-history'
@@ -331,10 +331,31 @@ export default function NavbarSearch() {
 
         const data = await response.json() as SearchResponse
         
+        // Local search for internal links
+        const internalResults = searchInternalLinks(normalizedDeferredQuery)
+        const mappedInternalResults: SearchPostResult[] = internalResults.map((item) => ({
+          id: item.id,
+          slug: item.href, // Reuse slug field for internal href
+          title: item.title,
+          summary: item.summary,
+          tags: item.tags,
+          category: item.category,
+          type: 'internal',
+          rank: 10,
+          matched_fields: ['title'],
+          snippet: item.summary,
+          r2_key: '',
+          cover_image: null,
+          published: true,
+          published_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          sticky: 0,
+        }))
+
         // Use transition to update results without blocking the UI
         startTransition(() => {
-          setResults(data.results ?? [])
-          setTotal(data.total ?? 0)
+          setResults([...mappedInternalResults, ...(data.results ?? [])])
+          setTotal((data.total ?? 0) + internalResults.length)
           setLoading(false)
         })
       } catch (fetchError) {
