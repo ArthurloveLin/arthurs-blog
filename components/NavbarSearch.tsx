@@ -236,6 +236,7 @@ export default function NavbarSearch() {
     if (isSearching) {
       setIsSearching(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname])
 
   useEffect(() => {
