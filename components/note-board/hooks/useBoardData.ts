@@ -185,7 +185,7 @@ export function useBoardData({
     if (editingNoteId === id && cancelEditingNoteRef.current) {
       cancelEditingNoteRef.current()
     }
-  }, [cancelEditingNoteRef, hasMore, nextOffset, replaceMessages, surfaceRefs])
+  }, [cancelEditingNoteRef, hasMore, nextOffset, replaceMessages])
 
   const restoreMessageSnapshot = useCallback((snapshot: OptimisticMessageSnapshot) => {
     setMessages((current) => {
