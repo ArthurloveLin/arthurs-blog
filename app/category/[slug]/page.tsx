@@ -58,6 +58,8 @@ export default async function CategoryPage({
       activeCategory={decodedSlug}
       initialGuestbookMessages={guestbookMessages}
       guestbookBoard={guestbookConfig}
+      slogan={{ text1: 'The soul of content', text2: 'Purely categorized' }}
     />
+
   )
 }

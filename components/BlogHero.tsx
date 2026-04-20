@@ -16,12 +16,18 @@ const WelcomeAnimation = dynamic(() => import('@/components/WelcomeAnimation'), 
   ssr: false,
 })
 
+import HandwrittenSloganClient from '@/components/HandwrittenSloganClient'
+
+
+
 interface BlogHeroProps {
   guestbookBoard: NoteBoardViewConfig
   initialGuestbookMessages: NoteMessage[]
+  slogan?: { text1: string; text2?: string }
 }
 
-export default function BlogHero({ guestbookBoard, initialGuestbookMessages }: BlogHeroProps) {
+
+export default function BlogHero({ guestbookBoard, initialGuestbookMessages, slogan }: BlogHeroProps) {
   const siteConfig = useSiteConfig()
   const [isWelcomeActive, setIsWelcomeActive] = useState(true)
 
@@ -33,8 +39,21 @@ export default function BlogHero({ guestbookBoard, initialGuestbookMessages }: B
 
       <div className="site-shell-triad relative z-10 pt-14 pb-12 lg:pt-20 lg:pb-16">
         <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[100px] md:inset-0 md:h-full flex items-center justify-center">
-          <WelcomeAnimation onFinish={() => setIsWelcomeActive(false)} />
+          {slogan ? (
+            <HandwrittenSloganClient 
+              text1={slogan.text1} 
+              text2={slogan.text2} 
+              onComplete={() => setIsWelcomeActive(false)}
+              className="mt-8 md:mt-0"
+              size1="max(32px, min(6vw, 68px))"
+              size2="max(20px, min(4vw, 46px))"
+            />
+          ) : (
+
+            <WelcomeAnimation onFinish={() => setIsWelcomeActive(false)} />
+          )}
         </div>
+
 
         <div className="pointer-events-none absolute inset-0 z-20 hidden lg:block">
           <StickyStackPreview board={guestbookBoard} messages={initialGuestbookMessages} />
