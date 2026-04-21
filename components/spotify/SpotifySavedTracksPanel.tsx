@@ -1,11 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { Clock3, ExternalLink, Music2, Loader2 } from 'lucide-react'
 
 import type { SpotifySavedTrack } from '@/lib/spotify-types'
 import { formatStableDate } from '@/lib/date-format'
+import { useSpotifyCollectionPagination } from './useSpotifyCollectionPagination'
 
 function formatLocalDateTime(iso: string) {
   return formatStableDate(iso, {
@@ -25,6 +26,10 @@ function formatDuration(durationMs: number) {
 
 const PAGE_SIZE = 20
 
+function buildTracksResetKey(items: SpotifySavedTrack[], total: number) {
+  return `${total}:${items.map((item) => `${item.track.id}:${item.addedAt}`).join('|')}`
+}
+
 export default function SpotifySavedTracksPanel({
   initialItems,
   total,
@@ -32,39 +37,20 @@ export default function SpotifySavedTracksPanel({
   initialItems: SpotifySavedTrack[]
   total: number
 }) {
-  const [items, setItems] = useState<SpotifySavedTrack[]>(initialItems)
-  const [displayCount, setDisplayCount] = useState(PAGE_SIZE)
-  const [fullCollection, setFullCollection] = useState<SpotifySavedTrack[] | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
   const observerTarget = useRef<HTMLDivElement>(null)
+  const { error, hasMore, isLoading, loadMore, visibleItems } = useSpotifyCollectionPagination({
+    initialItems,
+    total,
+    pageSize: PAGE_SIZE,
+    fetchUrl: '/api/spotify/library/tracks',
+    resetKey: buildTracksResetKey(initialItems, total),
+  })
 
-  const hasMore = items.length < total || displayCount < items.length
-
-  const loadMore = useCallback(async () => {
-    // If we have more items in the current 'items' array that are not yet displayed
-    if (displayCount < items.length) {
-      setDisplayCount((prev) => Math.min(prev + PAGE_SIZE, items.length))
-      return
+  useEffect(() => {
+    if (error) {
+      console.error('Failed to fetch more tracks:', error)
     }
-
-    // If we need to fetch the full collection from the API
-    if (!fullCollection && items.length < total) {
-      setIsLoading(true)
-      try {
-        const response = await fetch('/api/spotify/library/tracks')
-        if (response.ok) {
-          const data = await response.json()
-          setFullCollection(data)
-          setItems(data) // The API returns the full list
-          setDisplayCount((prev) => Math.min(prev + PAGE_SIZE, data.length))
-        }
-      } catch (error) {
-        console.error('Failed to fetch more tracks:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-  }, [displayCount, items.length, fullCollection, total])
+  }, [error])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -82,9 +68,6 @@ export default function SpotifySavedTracksPanel({
 
     return () => observer.disconnect()
   }, [hasMore, isLoading, loadMore])
-
-  const visibleItems = items.slice(0, displayCount)
-
   return (
     <section className="rounded-[28px] border border-border/60 bg-card/95 p-6 shadow-[0_18px_60px_rgba(0,0,0,0.05)] h-full flex flex-col">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

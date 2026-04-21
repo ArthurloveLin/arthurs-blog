@@ -1,12 +1,17 @@
 'use client'
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { ExternalLink, Mic2, Users, Loader2 } from 'lucide-react'
 
 import type { SpotifyFollowedArtist } from '@/lib/spotify-types'
+import { useSpotifyCollectionPagination } from './useSpotifyCollectionPagination'
 
 const PAGE_SIZE = 12
+
+function buildArtistsResetKey(items: SpotifyFollowedArtist[], total: number) {
+  return `${total}:${items.map((artist) => artist.id).join('|')}`
+}
 
 export default function SpotifyFollowedArtistsPanel({
   initialItems,
@@ -15,37 +20,20 @@ export default function SpotifyFollowedArtistsPanel({
   initialItems: SpotifyFollowedArtist[]
   total: number
 }) {
-  const [items, setItems] = useState<SpotifyFollowedArtist[]>(initialItems)
-  const [displayCount, setDisplayCount] = useState(PAGE_SIZE)
-  const [fullCollection, setFullCollection] = useState<SpotifyFollowedArtist[] | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
   const observerTarget = useRef<HTMLDivElement>(null)
+  const { error, hasMore, isLoading, loadMore, visibleItems } = useSpotifyCollectionPagination({
+    initialItems,
+    total,
+    pageSize: PAGE_SIZE,
+    fetchUrl: '/api/spotify/library/artists',
+    resetKey: buildArtistsResetKey(initialItems, total),
+  })
 
-  const hasMore = items.length < total || displayCount < items.length
-
-  const loadMore = useCallback(async () => {
-    if (displayCount < items.length) {
-      setDisplayCount((prev) => Math.min(prev + PAGE_SIZE, items.length))
-      return
+  useEffect(() => {
+    if (error) {
+      console.error('Failed to fetch more artists:', error)
     }
-
-    if (!fullCollection && items.length < total) {
-      setIsLoading(true)
-      try {
-        const response = await fetch('/api/spotify/library/artists')
-        if (response.ok) {
-          const data = await response.json()
-          setFullCollection(data)
-          setItems(data)
-          setDisplayCount((prev) => Math.min(prev + PAGE_SIZE, data.length))
-        }
-      } catch (error) {
-        console.error('Failed to fetch more artists:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-  }, [displayCount, items.length, fullCollection, total])
+  }, [error])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -63,9 +51,6 @@ export default function SpotifyFollowedArtistsPanel({
 
     return () => observer.disconnect()
   }, [hasMore, isLoading, loadMore])
-
-  const visibleItems = items.slice(0, displayCount)
-
   return (
     <section className="rounded-[28px] border border-border/60 bg-card/95 p-6 shadow-[0_18px_60px_rgba(0,0,0,0.05)] h-full flex flex-col">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

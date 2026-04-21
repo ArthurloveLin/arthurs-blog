@@ -2,35 +2,28 @@
 
 import React, { createContext, use, ReactNode } from 'react'
 import useSWR from 'swr'
+import type { SpotifyNowPlayingData } from '@/lib/spotify-types'
 
-interface SpotifyData {
-  isPlaying: boolean
-  isRecentlyPlayed?: boolean
-  title?: string
-  artist?: string
-  album?: string
-  albumImageUrl?: string
-  songUrl?: string
-  deviceName?: string
-  deviceType?: string
-  playedAt?: string
-  bpm?: number
-  recentTracks?: Array<{
-    id: string
-    title: string
-    artist: string
-    album: string
-    albumImageUrl: string
-    songUrl: string
-    playedAt: string
-  }>
+const DEFAULT_REFRESH_INTERVAL_MS = 30000
+
+type SpotifyLiveData = SpotifyNowPlayingData | { isPlaying: false }
+
+async function fetchSpotifyNowPlaying(url: string): Promise<SpotifyLiveData> {
+  const response = await fetch(url, { cache: 'no-store' })
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Spotify status: ${response.status}`)
+  }
+
+  return response.json() as Promise<SpotifyLiveData>
 }
 
 interface SpotifyContextValue {
   state: {
-    data: SpotifyData | null
+    data: SpotifyNowPlayingData | null
     loading: boolean
     hasData: boolean
+    error: Error | null
   }
   actions: {
     refresh: () => Promise<void>
@@ -39,26 +32,36 @@ interface SpotifyContextValue {
 
 const SpotifyContext = createContext<SpotifyContextValue | null>(null)
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
-
-export function SpotifyProvider({ children }: { children: ReactNode }) {
-  const { data, error, isLoading, mutate } = useSWR<SpotifyData>('/api/now-playing', fetcher, {
-    refreshInterval: 30000, // 30 seconds
-    revalidateOnFocus: true,
-    dedupingInterval: 5000,
+export function SpotifyProvider({
+  children,
+  refreshIntervalMs = DEFAULT_REFRESH_INTERVAL_MS,
+}: {
+  children: ReactNode
+  refreshIntervalMs?: number
+}) {
+  const { data, error, isLoading, mutate } = useSWR<SpotifyLiveData>('/api/now-playing', fetchSpotifyNowPlaying, {
+    refreshInterval: refreshIntervalMs,
+    revalidateOnFocus: false,
+    refreshWhenHidden: false,
+    refreshWhenOffline: false,
+    dedupingInterval: 15000,
+    focusThrottleInterval: 60000,
+    keepPreviousData: true,
   })
 
-  // Log error if it happens (optional, for debugging)
   if (error) {
     console.error('Failed to fetch Spotify status', error)
   }
 
+  const spotifyData = data && data.isPlaying === false && !('title' in data) ? null : (data ?? null)
+
   return (
     <SpotifyContext.Provider value={{
       state: {
-        data: data ?? null,
+        data: spotifyData,
         loading: isLoading,
-        hasData: !!data && data.isPlaying !== undefined,
+        hasData: spotifyData !== null,
+        error: error instanceof Error ? error : null,
       },
       actions: {
         refresh: async () => {
