@@ -3,6 +3,7 @@
 import { memo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { SpotifyProvider } from './SpotifyProvider'
 import SpotifyNowPlaying from './SpotifyNowPlaying'
 import { ShoppingBag, Newspaper, BarChart2, ExternalLink, Camera, NotebookText, MessageSquareText, Clapperboard } from 'lucide-react'
 
@@ -157,7 +158,9 @@ const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
       {/* Tool links */}
       <ul className="space-y-1">
         <li>
-          <SpotifyNowPlaying />
+          <SpotifyProvider refreshIntervalMs={45000}>
+            <SpotifyNowPlaying />
+          </SpotifyProvider>
         </li>
         {tools.map((tool) => {
           return (

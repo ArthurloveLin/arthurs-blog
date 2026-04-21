@@ -5,12 +5,7 @@ import Image from 'next/image'
 import { ExternalLink, Mic2, Users } from 'lucide-react'
 
 import type { SpotifyTimeRange, SpotifyTopArtist } from '@/lib/spotify-types'
-
-const RANGE_LABELS: Record<SpotifyTimeRange, string> = {
-  short_term: '近 4 周',
-  medium_term: '近 6 个月',
-  long_term: '历史全部',
-}
+import SpotifyTimeRangeTabs from './SpotifyTimeRangeTabs'
 
 export default function SpotifyTopArtistsPanel({
   data,
@@ -29,30 +24,16 @@ export default function SpotifyTopArtistsPanel({
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Top Artists</p>
           <div className="mt-1 flex items-center justify-between gap-4">
             <h3 className="text-2xl font-semibold tracking-tight text-foreground">最爱歌手排行</h3>
-            
-            <div className="hidden sm:inline-flex flex-nowrap gap-1 rounded-full border border-border/70 bg-background/80 p-0.5 shrink-0">
-              {(Object.keys(RANGE_LABELS) as SpotifyTimeRange[]).map((range) => {
-                const isActive = range === activeRange
-
-                return (
-                  <button
-                    key={range}
-                    type="button"
-                    onClick={() => {
-                      startTransition(() => {
-                        setActiveRange(range)
-                      })
-                    }}
-                    className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
-                      isActive
-                        ? 'bg-foreground text-background shadow-[0_4px_12px_rgba(0,0,0,0.12)]'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {RANGE_LABELS[range]}
-                  </button>
-                )
-              })}
+            <div className="hidden shrink-0 sm:block">
+              <SpotifyTimeRangeTabs
+                activeRange={activeRange}
+                onChange={(range) => {
+                  startTransition(() => {
+                    setActiveRange(range)
+                  })
+                }}
+                tone="contrast"
+              />
             </div>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -60,30 +41,16 @@ export default function SpotifyTopArtistsPanel({
           </p>
         </div>
 
-        {/* Mobile buttons */}
-        <div className="sm:hidden inline-flex flex-nowrap gap-1 overflow-x-auto scrollbar-none rounded-full border border-border/70 bg-background/80 p-0.5">
-          {(Object.keys(RANGE_LABELS) as SpotifyTimeRange[]).map((range) => {
-            const isActive = range === activeRange
-
-            return (
-              <button
-                key={`${range}-mobile`}
-                type="button"
-                onClick={() => {
-                  startTransition(() => {
-                    setActiveRange(range)
-                  })
-                }}
-                className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
-                  isActive
-                    ? 'bg-foreground text-background shadow-[0_4px_12px_rgba(0,0,0,0.12)]'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {RANGE_LABELS[range]}
-              </button>
-            )
-          })}
+        <div className="sm:hidden">
+          <SpotifyTimeRangeTabs
+            activeRange={activeRange}
+            onChange={(range) => {
+              startTransition(() => {
+                setActiveRange(range)
+              })
+            }}
+            tone="contrast"
+          />
         </div>
       </div>
 
