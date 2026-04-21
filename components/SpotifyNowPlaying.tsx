@@ -114,16 +114,22 @@ export default function SpotifyNowPlaying() {
         {/* --- Card Header (Always Visible) --- */}
         <div className={`flex items-center gap-3 relative z-10 transition-all duration-500 ${isExpanded ? 'mb-6' : ''}`}>
           {/* Album Cover */}
-          <div className={`flex-shrink-0 overflow-hidden relative shadow-md transition-all duration-500 ${isExpanded ? 'w-12 h-12 rounded-xl' : 'w-8 h-8 rounded-lg group-hover:scale-105'}`}>
+          <div className={`flex-shrink-0 overflow-hidden relative shadow-md transition-all duration-500 ${isExpanded ? 'w-12 h-12 rounded-xl' : 'w-8 h-8 rounded-lg group-hover:scale-105'} bg-muted`}>
+            {data.albumImageUrl ? (
               <Image
-                src={data.albumImageUrl || ''}
+                src={data.albumImageUrl}
                 alt={data.album || ''}
                 fill
                 sizes={isExpanded ? '48px' : '32px'}
-                className={`object-cover ${!isPlaying ? 'grayscale bg-muted opacity-80' : ''}`}
+                className={`object-cover ${!isPlaying ? 'grayscale opacity-80' : ''}`}
                 unoptimized
               />
-            </div>
+            ) : (
+              <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+                <Music2 className={isExpanded ? 'w-5 h-5' : 'w-4 h-4'} strokeWidth={1.75} />
+              </div>
+            )}
+          </div>
 
           {/* Info Container */}
           <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
@@ -183,15 +189,21 @@ export default function SpotifyNowPlaying() {
                   key={`${track.id}-${i}`}
                   className="flex items-center gap-3 p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 group/item"
                 >
-                  <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-sm group-hover/item:shadow-md transition-shadow">
-                    <Image
-                      src={track.albumImageUrl}
-                      alt={track.album}
-                      fill
-                      sizes="32px"
-                      className="object-cover"
-                      unoptimized
-                    />
+                  <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-sm group-hover/item:shadow-md transition-shadow bg-muted">
+                    {track.albumImageUrl ? (
+                      <Image
+                        src={track.albumImageUrl}
+                        alt={track.album}
+                        fill
+                        sizes="32px"
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+                        <Music2 className="w-3 h-3" strokeWidth={1.5} />
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-foreground truncate group-hover/item:text-primary transition-colors">
