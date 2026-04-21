@@ -30,31 +30,59 @@ export default function SpotifyTopTracksPanel({
 
   return (
     <section className="rounded-[28px] border border-border/60 bg-card/95 p-6 shadow-[0_18px_60px_rgba(0,0,0,0.05)]">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="w-full">
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Top Tracks</p>
-          <h3 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">最爱单曲排行</h3>
+          <div className="mt-1 flex items-center justify-between gap-4">
+            <h3 className="text-2xl font-semibold tracking-tight text-foreground">最爱单曲排行</h3>
+            
+            <div className="hidden sm:inline-flex flex-nowrap gap-1 rounded-full border border-border/70 bg-background/80 p-0.5 shrink-0">
+              {(Object.keys(RANGE_LABELS) as SpotifyTimeRange[]).map((range) => {
+                const isActive = range === activeRange
+
+                return (
+                  <button
+                    key={range}
+                    type="button"
+                    onClick={() => {
+                      startTransition(() => {
+                        setActiveRange(range)
+                      })
+                    }}
+                    className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
+                      isActive
+                        ? 'bg-emerald-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.2)]'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {RANGE_LABELS[range]}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            按 Spotify 官方 time_range 拉取前 50 名，保留歌名、歌手、专辑与单曲时长。
+            基于收听频率自动生成的单曲排行榜。
           </p>
         </div>
 
-        <div className="inline-flex flex-wrap gap-2 rounded-full border border-border/70 bg-background/80 p-1">
+        {/* Mobile buttons */}
+        <div className="sm:hidden inline-flex flex-nowrap gap-1 overflow-x-auto scrollbar-none rounded-full border border-border/70 bg-background/80 p-0.5">
           {(Object.keys(RANGE_LABELS) as SpotifyTimeRange[]).map((range) => {
             const isActive = range === activeRange
 
             return (
               <button
-                key={range}
+                key={`${range}-mobile`}
                 type="button"
                 onClick={() => {
                   startTransition(() => {
                     setActiveRange(range)
                   })
                 }}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
                   isActive
-                    ? 'bg-emerald-500 text-white shadow-[0_10px_24px_rgba(16,185,129,0.22)]'
+                    ? 'bg-emerald-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.2)]'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -65,7 +93,7 @@ export default function SpotifyTopTracksPanel({
         </div>
       </div>
 
-      <div className={`mt-6 max-h-[860px] overflow-y-auto pr-1 transition ${isPending ? 'opacity-60' : 'opacity-100'}`}>
+      <div className={`mt-6 max-h-[860px] overflow-y-auto scrollbar-none transition ${isPending ? 'opacity-60' : 'opacity-100'}`}>
         {activeItems.length === 0 ? (
           <div className="rounded-[24px] border border-dashed border-border/70 bg-muted/20 p-6 text-sm text-muted-foreground">
             当前时间跨度没有返回可展示的 Top Tracks 数据。
