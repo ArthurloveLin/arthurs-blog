@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import useSWR from 'swr'
 import { Music2, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 
@@ -40,30 +41,30 @@ function Artwork({ src, alt, rounded = 'rounded-2xl' }: { src: string | null; al
   )
 }
 
-export default function SpotifyPlaylistDetail({ playlist }: { playlist: SpotifyPlaylistPreview }) {
-  const [tracks, setTracks] = useState<SpotifyPlaylistTrack[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isOpen, setIsOpen] = useState(false)
+async function fetchPlaylistTracks(url: string): Promise<SpotifyPlaylistTrack[]> {
+  const response = await fetch(url, { cache: 'no-store' })
 
-  useEffect(() => {
-    if (isOpen && tracks.length === 0 && !isLoading) {
-      const fetchTracks = async () => {
-        setIsLoading(true)
-        try {
-          const res = await fetch(`/api/spotify/playlists/${playlist.id}`)
-          if (!res.ok) throw new Error('Failed to load tracks')
-          const data = await res.ok ? await res.json() : []
-          setTracks(data)
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Unknown error')
-        } finally {
-          setIsLoading(false)
-        }
-      }
-      fetchTracks()
+  if (!response.ok) {
+    throw new Error('Failed to load tracks')
+  }
+
+  return response.json() as Promise<SpotifyPlaylistTrack[]>
+}
+
+export default function SpotifyPlaylistDetail({ playlist }: { playlist: SpotifyPlaylistPreview }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const { data: tracks = [], error, isLoading } = useSWR<SpotifyPlaylistTrack[]>(
+    isOpen ? `/api/spotify/playlists/${playlist.id}` : null,
+    fetchPlaylistTracks,
+    {
+      revalidateOnFocus: false,
+      refreshWhenHidden: false,
+      refreshWhenOffline: false,
+      dedupingInterval: 60 * 60 * 1000,
     }
-  }, [isOpen, playlist.id, tracks.length, isLoading])
+  )
+
+  const errorMessage = error instanceof Error ? error.message : null
 
   return (
     <details 
@@ -100,8 +101,8 @@ export default function SpotifyPlaylistDetail({ playlist }: { playlist: SpotifyP
             <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
             <span className="ml-3 text-sm text-muted-foreground">加载曲目列表中...</span>
           </div>
-        ) : error ? (
-          <div className="py-4 text-center text-sm text-destructive">{error}</div>
+        ) : errorMessage ? (
+          <div className="py-4 text-center text-sm text-destructive">{errorMessage}</div>
         ) : (
           <div className="max-h-[480px] overflow-y-auto pr-1">
             <div className="space-y-2">

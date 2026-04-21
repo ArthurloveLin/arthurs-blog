@@ -1,8 +1,5 @@
-'use client'
-
 import { memo, type ReactNode } from 'react'
 import Image from 'next/image'
-import dynamic from 'next/dynamic'
 import { AlertTriangle, CalendarClock, Heart, Library, Music2, Users2 } from 'lucide-react'
 
 
@@ -13,13 +10,12 @@ import type {
   SpotifySavedAlbum,
 } from '@/lib/spotify-types'
 import { formatStableDate } from '@/lib/date-format'
-
-const SpotifyTopArtistsPanel = dynamic(() => import('./SpotifyTopArtistsPanel'), { ssr: false })
-const SpotifyTopTracksPanel = dynamic(() => import('./SpotifyTopTracksPanel'), { ssr: false })
-const SpotifySavedTracksPanel = dynamic(() => import('./SpotifySavedTracksPanel'), { ssr: false })
-const SpotifyFollowedArtistsPanel = dynamic(() => import('./SpotifyFollowedArtistsPanel'), { ssr: false })
-const SpotifyWidePlayer = dynamic(() => import('./SpotifyWidePlayer'), { ssr: false })
-const SpotifyPlaylistDetail = dynamic(() => import('./SpotifyPlaylistDetail'), { ssr: false })
+import SpotifyFollowedArtistsPanel from './SpotifyFollowedArtistsPanel'
+import SpotifyLivePlayerPanel from './SpotifyLivePlayerPanel'
+import SpotifyPlaylistDetail from './SpotifyPlaylistDetail'
+import SpotifySavedTracksPanel from './SpotifySavedTracksPanel'
+import SpotifyTopArtistsPanel from './SpotifyTopArtistsPanel'
+import SpotifyTopTracksPanel from './SpotifyTopTracksPanel'
 
 function formatLocalDateTime(iso: string) {
   return formatStableDate(iso, {
@@ -200,7 +196,7 @@ export default function SpotifyDashboard({ data }: { data: SpotifyDashboardData 
   return (
     <div className="site-shell py-10 pb-24">
       <div className="rounded-[32px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(0,0,0,0.05),transparent_34%)] p-5 sm:p-6">
-        <SpotifyWidePlayer />
+        <SpotifyLivePlayerPanel />
 
 
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
