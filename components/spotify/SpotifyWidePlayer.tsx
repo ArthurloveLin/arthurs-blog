@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { ArrowRight, Clock3, Headphones, Music2, Radio, Sparkles } from 'lucide-react'
 
 import { useSpotify } from '@/components/SpotifyProvider'
+import AdminOnly from '@/components/AdminOnly'
+import SpotifySyncButton from './SpotifySyncButton'
+import { formatStableDate } from '@/lib/date-format'
 
 function formatRelativeTime(playedAt: string) {
   const date = new Date(playedAt)
@@ -18,12 +21,12 @@ function formatRelativeTime(playedAt: string) {
 }
 
 function formatAbsoluteTime(playedAt: string) {
-  return new Intl.DateTimeFormat('zh-CN', {
+  return formatStableDate(playedAt, {
     hour: '2-digit',
     minute: '2-digit',
     month: '2-digit',
     day: '2-digit',
-  }).format(new Date(playedAt))
+  })
 }
 
 function getDeviceLabel(deviceName?: string, deviceType?: string) {
@@ -144,17 +147,9 @@ export default function SpotifyWidePlayer() {
         </div>
 
         <div className="space-y-3 lg:justify-self-end">
-          {data.songUrl ? (
-            <a
-              href={data.songUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-between rounded-[22px] border border-emerald-500/15 bg-white/70 px-4 py-3 text-sm font-medium text-foreground transition hover:border-emerald-500/40 hover:bg-white dark:bg-white/5 dark:hover:bg-white/10"
-            >
-              <span>在 Spotify 打开歌曲</span>
-              <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
-            </a>
-          ) : null}
+          <AdminOnly>
+            <SpotifySyncButton />
+          </AdminOnly>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
             <a
               href="#recently-played"
@@ -179,9 +174,9 @@ export default function SpotifyWidePlayer() {
             <span className="text-xs text-muted-foreground">顶部卡片保持未展开形态，只预览后续轨迹</span>
           </div>
           <div className="grid gap-3 md:grid-cols-3">
-            {recentTracks.slice(0, 3).map((track) => (
+            {recentTracks.slice(0, 3).map((track, index) => (
               <a
-                key={`${track.id}-${track.playedAt}`}
+                key={`${track.id}-${track.playedAt}-${index}`}
                 href={track.songUrl}
                 target="_blank"
                 rel="noreferrer"
