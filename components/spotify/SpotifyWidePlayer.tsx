@@ -155,7 +155,7 @@ export default function SpotifyWidePlayer() {
               href="#recently-played"
               className="rounded-[22px] border border-border/60 bg-background/70 px-4 py-3 text-sm font-medium text-foreground transition hover:border-emerald-500/35 hover:text-emerald-600"
             >
-              查看最近播放
+              查看 Recently Played
             </a>
             <Link
               href="/spotify#library"
@@ -170,8 +170,8 @@ export default function SpotifyWidePlayer() {
       {recentTracks.length > 0 ? (
         <div className="relative z-10 mt-6 border-t border-emerald-500/10 pt-5">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Playback Tail</p>
-            <span className="text-xs text-muted-foreground">主舞台只保留当前曲目，下面补出后续几首的收听轨迹</span>
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Recent Tail</p>
+            <span className="text-xs text-muted-foreground">顶部卡片保持未展开形态，只预览后续轨迹</span>
           </div>
           <div className="grid gap-3 md:grid-cols-3">
             {recentTracks.slice(0, 3).map((track, index) => (
