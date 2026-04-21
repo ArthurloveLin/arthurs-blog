@@ -2,7 +2,7 @@ import DirectionalTransition from '@/components/DirectionalTransition'
 import PageHero from '@/components/PageHero'
 import SpotifyDashboard from '@/components/spotify/SpotifyDashboard'
 import { getSiteConfig } from '@/lib/blog'
-import { getSpotifyDashboardData } from '@/lib/spotify'
+import { getStoredSpotifyDashboardData } from '@/lib/spotify'
 
 export const metadata = { title: 'Spotify Dashboard' }
 export const dynamic = 'force-dynamic'
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 export default async function SpotifyPage() {
   const [siteConfig, spotifyDashboard] = await Promise.all([
     getSiteConfig(),
-    getSpotifyDashboardData(),
+    getStoredSpotifyDashboardData(),
   ])
 
   const titleNode = siteConfig.spotify_hero_title_highlight || siteConfig.spotify_hero_title_rest ? (

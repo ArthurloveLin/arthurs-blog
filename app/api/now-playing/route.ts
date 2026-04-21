@@ -12,9 +12,17 @@ export async function GET() {
       return NextResponse.json({ isPlaying: false })
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=45',
+      },
+    })
   } catch (error) {
     console.error('Failed to load Spotify now playing data:', error)
-    return NextResponse.json({ isPlaying: false })
+    return NextResponse.json({ isPlaying: false }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=10',
+      },
+    })
   }
 }

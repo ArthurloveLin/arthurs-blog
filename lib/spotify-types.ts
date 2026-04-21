@@ -82,6 +82,7 @@ export interface SpotifyPlaylist {
   description: string
   imageUrl: string | null
   url: string
+  snapshotId?: string | null
   ownerName: string | null
   totalTracks: number
   isPublic: boolean | null
@@ -93,6 +94,40 @@ export interface SpotifyCollectionPreview<T> {
   items: T[]
 }
 
+export interface SpotifySyncMeta {
+  lastSyncedAt: string | null
+  lastFullSyncedAt: string | null
+  syncCount: number
+  schemaVersion: number
+  syncLog: Array<{
+    syncedAt: string
+    mode: 'quick' | 'full'
+    warnings: string[]
+  }>
+}
+
+export interface SpotifyArchiveListSnapshot<T> {
+  capturedAt: string
+  items: T[]
+}
+
+export interface SpotifyRankingsHistory {
+  topTracks: Record<SpotifyTimeRange, SpotifyArchiveListSnapshot<SpotifyTopTrack>[]>
+  topArtists: Record<SpotifyTimeRange, SpotifyArchiveListSnapshot<SpotifyTopArtist>[]>
+}
+
+export interface SpotifyPlaylistPreview {
+  id: string
+  name: string
+  description: string
+  imageUrl: string | null
+  url: string
+  snapshotId?: string | null
+  ownerName: string | null
+  totalTracks: number
+  isPublic: boolean | null
+}
+
 export interface SpotifyDashboardData {
   fetchedAt: string
   recentlyPlayed: SpotifyRecentlyPlayedTrack[]
@@ -102,10 +137,19 @@ export interface SpotifyDashboardData {
     savedTracks: SpotifyCollectionPreview<SpotifySavedTrack>
     savedAlbums: SpotifyCollectionPreview<SpotifySavedAlbum>
     followedArtists: SpotifyCollectionPreview<SpotifyFollowedArtist>
-    playlists: SpotifyCollectionPreview<SpotifyPlaylist>
+    playlists: SpotifyCollectionPreview<SpotifyPlaylistPreview>
   }
   warnings: string[]
+  archiveMeta?: {
+    source: 'r2-archive' | 'spotify-api' | 'empty'
+    hasStoredSnapshot: boolean
+    lastSyncedAt: string | null
+    snapshotUrl: string | null
+    syncCount: number
+  }
 }
+
+
 
 export interface SpotifyNowPlayingRecentTrack {
   id: string

@@ -1,6 +1,7 @@
 'use client'
 
-import React, { createContext, use, useEffect, useState, ReactNode } from 'react'
+import React, { createContext, use, ReactNode } from 'react'
+import useSWR from 'swr'
 
 interface SpotifyData {
   isPlaying: boolean
@@ -38,42 +39,31 @@ interface SpotifyContextValue {
 
 const SpotifyContext = createContext<SpotifyContextValue | null>(null)
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
+
 export function SpotifyProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<SpotifyData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { data, error, isLoading, mutate } = useSWR<SpotifyData>('/api/now-playing', fetcher, {
+    refreshInterval: 30000, // 30 seconds
+    revalidateOnFocus: true,
+    dedupingInterval: 5000,
+  })
 
-  const fetchNowPlaying = async () => {
-    try {
-      const res = await fetch('/api/now-playing')
-      if (res.ok) {
-        const json = await res.json()
-        setData(json)
-      }
-    } catch (e) {
-      console.error('Failed to fetch Spotify status', e)
-    } finally {
-      setLoading(false)
-    }
+  // Log error if it happens (optional, for debugging)
+  if (error) {
+    console.error('Failed to fetch Spotify status', error)
   }
-
-  useEffect(() => {
-    // Initial fetch
-    fetchNowPlaying()
-    
-    // Periodic fetch every 30 seconds
-    const interval = setInterval(fetchNowPlaying, 30000)
-    return () => clearInterval(interval)
-  }, [])
 
   return (
     <SpotifyContext.Provider value={{
       state: {
-        data,
-        loading,
-        hasData: data !== null,
+        data: data ?? null,
+        loading: isLoading,
+        hasData: !!data && data.isPlaying !== undefined,
       },
       actions: {
-        refresh: fetchNowPlaying,
+        refresh: async () => {
+          await mutate()
+        },
       },
     }}>
       {children}
