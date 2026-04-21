@@ -1103,6 +1103,7 @@ export const getStoredSpotifyDashboardData = cache(async function getStoredSpoti
 
   const [latest, meta] = await Promise.all([readLatestSpotifyDashboard(), readSpotifyMeta()])
 
+
   if (!latest) {
     return createEmptyDashboardData({
       warnings: ['尚未发现 Spotify 离线快照。请等待自动同步或手动触发同步。'],
@@ -1207,21 +1208,35 @@ export async function syncSpotifyDashboardToArchive(
 
   // 3. 处理 Top 榜单快照
   const rankings = await readSpotifyRankings()
+
   if (mode === 'full') {
     appendTrackSnapshots(rankings.topTracks, liveDashboard.topTracks, syncedAt)
     appendArtistSnapshots(rankings.topArtists, liveDashboard.topArtists, syncedAt)
     writePromises.push(writeR2Json(bucket, SPOTIFY_RANKINGS_KEY, rankings))
   } else {
     // Quick Sync: 从历史排行榜中填充，避免由于跳过 API 调用导致 dashboard.json 中的排行榜被置空
-    liveDashboard.topTracks = {
-      short_term: rankings.topTracks.short_term[rankings.topTracks.short_term.length - 1]?.items ?? [],
-      medium_term: rankings.topTracks.medium_term[rankings.topTracks.medium_term.length - 1]?.items ?? [],
-      long_term: rankings.topTracks.long_term[rankings.topTracks.long_term.length - 1]?.items ?? [],
+    const lastTracks = {
+      short: rankings.topTracks.short_term[rankings.topTracks.short_term.length - 1],
+      medium: rankings.topTracks.medium_term[rankings.topTracks.medium_term.length - 1],
+      long: rankings.topTracks.long_term[rankings.topTracks.long_term.length - 1]
     }
+    
+    liveDashboard.topTracks = {
+      short_term: lastTracks.short?.items ?? [],
+      medium_term: lastTracks.medium?.items ?? [],
+      long_term: lastTracks.long?.items ?? [],
+    }
+    
+    const lastArtists = {
+      short: rankings.topArtists.short_term[rankings.topArtists.short_term.length - 1],
+      medium: rankings.topArtists.medium_term[rankings.topArtists.medium_term.length - 1],
+      long: rankings.topArtists.long_term[rankings.topArtists.long_term.length - 1]
+    }
+
     liveDashboard.topArtists = {
-      short_term: rankings.topArtists.short_term[rankings.topArtists.short_term.length - 1]?.items ?? [],
-      medium_term: rankings.topArtists.medium_term[rankings.topArtists.medium_term.length - 1]?.items ?? [],
-      long_term: rankings.topArtists.long_term[rankings.topArtists.long_term.length - 1]?.items ?? [],
+      short_term: lastArtists.short?.items ?? [],
+      medium_term: lastArtists.medium?.items ?? [],
+      long_term: lastArtists.long?.items ?? [],
     }
   }
 
