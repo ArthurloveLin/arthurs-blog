@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { TegakiRenderer } from 'tegaki/react'
-import caveat from 'tegaki/fonts/caveat'
 import gsap from 'gsap'
+import { useSiteConfig } from '@/components/SiteDataProvider'
+import HandwrittenSloganClient from '@/components/HandwrittenSloganClient'
 
 interface WelcomeAnimationProps {
   onFinish?: () => void
@@ -12,7 +12,7 @@ interface WelcomeAnimationProps {
 export default function WelcomeAnimation({ onFinish }: WelcomeAnimationProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [mounted, setMounted] = useState(false)
-  const [showSecondLine, setShowSecondLine] = useState(false)
+  const siteConfig = useSiteConfig()
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -44,41 +44,14 @@ export default function WelcomeAnimation({ onFinish }: WelcomeAnimationProps) {
       ref={containerRef}
       className="thank-you-root relative w-full h-[100px] md:h-[320px] max-w-[900px] mx-auto select-none pointer-events-none flex flex-col justify-center items-center p-4 md:p-8"
     >
-      <div className="w-full text-center md:text-left md:pl-28">
-        <TegakiRenderer 
-          font={caveat} 
-          time={{ mode: 'uncontrolled', speed: 1.8, delay: 0.5 }}
-          onComplete={() => setShowSecondLine(true)}
-          style={{ 
-            fontSize: 'max(20px, min(5vw, 28px))', 
-            // We use a CSS class for responsive font size instead
-            color: 'var(--ty-primary)',
-            fontWeight: 500,
-            lineHeight: 1.1
-          }}
-          className="welcome-text-line-1"
-        >
-          Welcome to my Blog
-        </TegakiRenderer>
-      </div>
-
-      <div className="w-full text-center md:text-right md:pr-32" style={{ transform: 'translateY(-2px)', opacity: showSecondLine ? 1 : 0 }}>
-        <TegakiRenderer 
-          font={caveat} 
-          time={{ mode: 'uncontrolled', speed: 1.6, playing: showSecondLine }}
-          onComplete={startFadeOut}
-          style={{ 
-            fontSize: 'max(14px, min(4vw, 20px))', 
-            color: 'var(--ty-primary)',
-            fontWeight: 400,
-            opacity: 0.85,
-            lineHeight: 1.1
-          }}
-          className="welcome-text-line-2"
-        >
-          Arthur & Grace
-        </TegakiRenderer>
-      </div>
+      <HandwrittenSloganClient 
+        text1={siteConfig.site_slogan_1 || "Welcome to my Blog"}
+        text2={siteConfig.site_slogan_2 || "Arthur & Grace"}
+        onComplete={startFadeOut}
+        className="welcome-slogan-wrapper"
+        // We do not pass size1/size2 because we will override them with !important
+        // to strictly match the original responsive sizes in CSS
+      />
 
       <style jsx>{`
         .thank-you-root {
@@ -87,15 +60,42 @@ export default function WelcomeAnimation({ onFinish }: WelcomeAnimationProps) {
           transform: translateY(-50px) translateX(60px);
         }
 
-        :global(.welcome-text-line-1) { font-size: 68px !important; }
-        :global(.welcome-text-line-2) { font-size: 46px !important; }
+        /* 
+          Override HandwrittenSlogan inline styles to perfectly match
+          the old WelcomeAnimation responsive layout 
+        */
+        :global(.welcome-slogan-wrapper .slogan-line-1) { 
+          font-size: 68px !important; 
+          color: var(--ty-primary) !important;
+        }
+        :global(.welcome-slogan-wrapper .slogan-line-2) { 
+          font-size: 46px !important; 
+          color: var(--ty-primary) !important;
+        }
 
-        @media (max-width: 768px) {
+        /* Desktop specific alignment */
+        @media (min-width: 768px) {
+          :global(.welcome-slogan-wrapper > div:nth-child(1)) {
+            text-align: left !important;
+            padding-left: 7rem !important; /* md:pl-28 */
+          }
+          :global(.welcome-slogan-wrapper > div:nth-child(2)) {
+            text-align: right !important;
+            padding-right: 8rem !important; /* md:pr-32 */
+            transform: translateY(-2px) !important;
+          }
+        }
+
+        @media (max-width: 767px) {
           .thank-you-root {
             transform: none;
           }
-          :global(.welcome-text-line-1) { font-size: 40px !important; }
-          :global(.welcome-text-line-2) { font-size: 24px !important; }
+          :global(.welcome-slogan-wrapper .slogan-line-1) { font-size: 40px !important; }
+          :global(.welcome-slogan-wrapper .slogan-line-2) { font-size: 24px !important; }
+          /* On mobile, HandwrittenSlogan defaults to text-center, which matches original */
+          :global(.welcome-slogan-wrapper > div:nth-child(2)) {
+            transform: translateY(-2px) !important;
+          }
         }
 
         :global(.dark) .thank-you-root {

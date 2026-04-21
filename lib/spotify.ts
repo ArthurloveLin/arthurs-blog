@@ -1,0 +1,1280 @@
+import 'server-only'
+
+import { cache } from 'react'
+
+import {
+  SPOTIFY_TIME_RANGES,
+  type SpotifyAlbumSummary,
+  type SpotifyArchiveListSnapshot,
+  type SpotifyCollectionPreview,
+  type SpotifyContextSource,
+  type SpotifyDashboardData,
+  type SpotifyFollowedArtist,
+  type SpotifyNowPlayingData,
+  type SpotifyPlaylist,
+  type SpotifyPlaylistPreview,
+  type SpotifyPlaylistTrack,
+  type SpotifyRankingsHistory,
+  SpotifyRecentlyPlayedTrack,
+  type SpotifySavedAlbum,
+  type SpotifySavedTrack,
+  type SpotifySyncMeta,
+  type SpotifyTimeRange,
+  type SpotifyTopArtist,
+  type SpotifyTopTrack,
+  type SpotifyTrackSummary,
+} from './spotify-types'
+import { getR2Object, putR2Object } from './r2'
+
+const SPOTIFY_TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
+const SPOTIFY_PLAYER_ENDPOINT = 'https://api.spotify.com/v1/me/player'
+const SPOTIFY_RECENTLY_PLAYED_ENDPOINT = 'https://api.spotify.com/v1/me/player/recently-played'
+const SPOTIFY_AUDIO_FEATURES_ENDPOINT = 'https://api.spotify.com/v1/audio-features'
+const SPOTIFY_TOP_TRACKS_ENDPOINT = 'https://api.spotify.com/v1/me/top/tracks'
+const SPOTIFY_TOP_ARTISTS_ENDPOINT = 'https://api.spotify.com/v1/me/top/artists'
+const SPOTIFY_SAVED_TRACKS_ENDPOINT = 'https://api.spotify.com/v1/me/tracks'
+const SPOTIFY_SAVED_ALBUMS_ENDPOINT = 'https://api.spotify.com/v1/me/albums'
+const SPOTIFY_FOLLOWED_ARTISTS_ENDPOINT = 'https://api.spotify.com/v1/me/following'
+const SPOTIFY_PLAYLISTS_ENDPOINT = 'https://api.spotify.com/v1/me/playlists'
+const SPOTIFY_PLAYLIST_DETAILS_ENDPOINT = 'https://api.spotify.com/v1/playlists'
+
+const RECENTLY_PLAYED_LIMIT = 12
+const SAVED_TRACKS_PREVIEW_LIMIT = 24
+const SAVED_ALBUMS_PREVIEW_LIMIT = 12
+const FOLLOWED_ARTISTS_PREVIEW_LIMIT = 12
+const SPOTIFY_META_KEY = 'spotify/meta.json'
+const SPOTIFY_LATEST_DASHBOARD_KEY = 'spotify/latest/dashboard.json'
+export const SPOTIFY_SAVED_TRACKS_KEY = 'spotify/collection/saved-tracks.json'
+const SPOTIFY_SAVED_ALBUMS_KEY = 'spotify/collection/saved-albums.json'
+export const SPOTIFY_FOLLOWED_ARTISTS_KEY = 'spotify/collection/followed-artists.json'
+const SPOTIFY_PLAYLISTS_KEY = 'spotify/collection/playlists.json'
+const SPOTIFY_PLAYLIST_SHARD_PATH = 'spotify/collection/playlists/'
+const SPOTIFY_RANKINGS_KEY = 'spotify/history/rankings.json'
+const SPOTIFY_RECENTLY_PLAYED_PATH = 'spotify/history/recently-played/'
+const TEMPO_CACHE = new Map<string, number | null>()
+
+const SPOTIFY_ARCHIVE_SCHEMA_VERSION = 2
+const SPOTIFY_REQUEST_MAX_ATTEMPTS = 3
+
+type SpotifyStoredDashboardSnapshot = Omit<SpotifyDashboardData, 'archiveMeta'>
+
+interface SpotifyLatestDashboardFile {
+  schemaVersion: number
+  syncedAt: string
+  data: SpotifyStoredDashboardSnapshot
+}
+
+
+interface SpotifySyncResult {
+  syncedAt: string
+  snapshotUrl: string | null
+  summary: {
+    recentlyPlayed: number
+    topTracks: number
+    topArtists: number
+    savedTracks: number
+    savedAlbums: number
+    followedArtists: number
+    playlists: number
+    warnings: number
+  }
+}
+
+type SpotifyImage = { url: string }
+
+type SpotifyArtistObject = {
+  id: string | null
+  name: string
+  external_urls?: { spotify?: string }
+  genres?: string[]
+  followers?: { total?: number }
+  images?: SpotifyImage[]
+  popularity?: number
+}
+
+type SpotifyAlbumObject = {
+  id: string | null
+  name: string
+  images: SpotifyImage[]
+  external_urls?: { spotify?: string }
+  artists: Array<{ name: string }>
+  release_date?: string
+  total_tracks?: number
+}
+
+type SpotifyTrackObject = {
+  id: string | null
+  uri?: string
+  name: string
+  duration_ms: number
+  popularity?: number
+  external_urls?: { spotify?: string }
+  artists: SpotifyArtistObject[]
+  album: SpotifyAlbumObject
+}
+
+type SpotifyPagingResponse<T> = {
+  items: T[]
+  next: string | null
+  total: number
+}
+
+type SpotifyCurrentPlaybackResponse = {
+  item: SpotifyTrackObject | null
+  is_playing: boolean
+  device?: {
+    name?: string
+    type?: string
+  }
+}
+
+type SpotifyRecentlyPlayedItem = {
+  track: SpotifyTrackObject
+  played_at: string
+  context?: {
+    type?: string
+    href?: string | null
+    uri?: string | null
+    external_urls?: { spotify?: string }
+  } | null
+}
+
+type SpotifySavedTrackItem = {
+  added_at: string
+  track: SpotifyTrackObject | null
+}
+
+type SpotifySavedAlbumItem = {
+  added_at: string
+  album: SpotifyAlbumObject
+}
+
+type SpotifyFollowedArtistsResponse = {
+  artists: {
+    items: SpotifyArtistObject[]
+    total: number
+  }
+}
+
+type SpotifyPlaylistObject = {
+  id: string
+  name: string
+  description: string
+  snapshot_id?: string | null
+  images: SpotifyImage[] | null
+  external_urls?: { spotify?: string }
+  owner?: { display_name?: string | null }
+  tracks?: { total?: number }
+  public?: boolean | null
+}
+
+type SpotifyPlaylistTrackItem = {
+  added_at: string | null
+  track: SpotifyTrackObject | null
+}
+
+type SpotifyPlaylistTracksResponse = {
+  items: SpotifyPlaylistTrackItem[]
+  next: string | null
+  total: number
+}
+
+type SpotifyAudioFeaturesResponse = {
+  tempo?: number
+}
+
+class SpotifyRequestError extends Error {
+  status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'SpotifyRequestError'
+    this.status = status
+  }
+}
+
+function getSpotifyArchiveConfig() {
+  return {
+    bucket: process.env.R2_SPOTIFY_BUCKET ?? '',
+    publicDomain: process.env.R2_SPOTIFY_PUBLIC_DOMAIN ?? null,
+  }
+}
+
+function emptyTopTracksRecord(): Record<SpotifyTimeRange, SpotifyTopTrack[]> {
+  return {
+    short_term: [],
+    medium_term: [],
+    long_term: [],
+  }
+}
+
+function emptyTopArtistsRecord(): Record<SpotifyTimeRange, SpotifyTopArtist[]> {
+  return {
+    short_term: [],
+    medium_term: [],
+    long_term: [],
+  }
+}
+
+function createEmptyDashboardData(overrides: Partial<SpotifyDashboardData> = {}): SpotifyDashboardData {
+  return {
+    fetchedAt: new Date().toISOString(),
+    recentlyPlayed: [],
+    topTracks: emptyTopTracksRecord(),
+    topArtists: emptyTopArtistsRecord(),
+    library: {
+      savedTracks: { total: 0, items: [] },
+      savedAlbums: { total: 0, items: [] },
+      followedArtists: { total: 0, items: [] },
+      playlists: { total: 0, items: [] },
+    },
+    warnings: [],
+    ...overrides,
+  }
+}
+
+function createEmptySyncMeta(): SpotifySyncMeta {
+  return {
+    schemaVersion: SPOTIFY_ARCHIVE_SCHEMA_VERSION,
+    lastSyncedAt: null,
+    lastFullSyncedAt: null,
+    syncCount: 0,
+    syncLog: [],
+  }
+}
+
+function createEmptyRankingsHistory(): SpotifyRankingsHistory {
+  return {
+    topTracks: {
+      short_term: [],
+      medium_term: [],
+      long_term: [],
+    },
+    topArtists: {
+      short_term: [],
+      medium_term: [],
+      long_term: [],
+    },
+  }
+}
+
+
+function isMissingR2ObjectError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  return (
+    error.name === 'NoSuchKey' ||
+    /NoSuchKey/i.test(error.message) ||
+    /The specified key does not exist/i.test(error.message)
+  )
+}
+
+async function readR2JsonIfExists<T>(bucket: string, key: string): Promise<T | null> {
+  try {
+    const raw = await getR2Object(bucket, key)
+    return JSON.parse(raw) as T
+  } catch (error) {
+    if (isMissingR2ObjectError(error)) {
+      return null
+    }
+
+    throw error
+  }
+}
+
+async function writeR2Json(bucket: string, key: string, payload: unknown) {
+  await putR2Object(
+    bucket,
+    key,
+    JSON.stringify(payload, null, 2),
+    'application/json; charset=utf-8',
+    { cacheControl: 'no-store' }
+  )
+}
+
+function buildSpotifySnapshotUrl(publicDomain: string | null, key: string) {
+  if (!publicDomain) {
+    return null
+  }
+
+  return `https://${publicDomain}/${key}`
+}
+
+function getSpotifyCredentials() {
+  const clientId = process.env.SPOTIFY_CLIENT_ID
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET
+  const refreshToken = process.env.SPOTIFY_REFRESH_TOKEN
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error('Missing Spotify environment variables')
+  }
+
+  return {
+    clientId,
+    clientSecret,
+    refreshToken,
+  }
+}
+
+const getSpotifyAccessToken = cache(async () => {
+  const { clientId, clientSecret, refreshToken } = getSpotifyCredentials()
+  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
+
+  const response = await fetch(SPOTIFY_TOKEN_ENDPOINT, {
+    method: 'POST',
+    cache: 'no-store',
+    headers: {
+      Authorization: `Basic ${basic}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+    }),
+  })
+
+  if (!response.ok) {
+    throw new SpotifyRequestError('Failed to refresh Spotify access token', response.status)
+  }
+
+  const payload = (await response.json()) as { access_token?: string }
+
+  if (!payload.access_token) {
+    throw new Error('Spotify token response did not include access_token')
+  }
+
+  return payload.access_token
+})
+
+async function requestSpotify<T>(accessToken: string, endpoint: string, allowNoContent = false): Promise<T> {
+  for (let attempt = 1; attempt <= SPOTIFY_REQUEST_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(endpoint, {
+        cache: 'no-store',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+
+      if (allowNoContent && response.status === 204) {
+        return null as T
+      }
+
+      if (!response.ok) {
+        let errorMessage = `Spotify request failed with status ${response.status}`
+
+        try {
+          const payload = (await response.json()) as {
+            error?: {
+              message?: string
+            }
+          }
+          if (payload.error?.message) {
+            errorMessage = payload.error.message
+          }
+        } catch {
+          // Ignore JSON parsing errors and use the fallback message.
+        }
+
+        const isRetriable = response.status === 429 || response.status >= 500
+
+        if (isRetriable && attempt < SPOTIFY_REQUEST_MAX_ATTEMPTS) {
+          const retryAfterHeader = response.headers.get('retry-after')
+          const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : NaN
+          const waitMs = Number.isFinite(retryAfterSeconds)
+            ? retryAfterSeconds * 1000
+            : attempt * 500
+
+          await new Promise((resolve) => setTimeout(resolve, waitMs))
+          continue
+        }
+
+        throw new SpotifyRequestError(errorMessage, response.status)
+      }
+
+      return response.json() as Promise<T>
+    } catch (error) {
+      const isLastAttempt = attempt === SPOTIFY_REQUEST_MAX_ATTEMPTS
+
+      if (error instanceof SpotifyRequestError || isLastAttempt) {
+        throw error
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, attempt * 500))
+    }
+  }
+
+  throw new Error('Spotify request exhausted all retry attempts')
+}
+
+function humanizeContextType(type: string | undefined | null) {
+  switch (type) {
+    case 'playlist':
+      return '歌单'
+    case 'album':
+      return '专辑'
+    case 'artist':
+      return '歌手'
+    case 'collection':
+      return '收藏集'
+    case 'show':
+      return '节目'
+    case 'station':
+      return '电台'
+    default:
+      return '来源'
+  }
+}
+
+function decodeHtmlEntities(input: string) {
+  return input
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function toTrackSummary(track: SpotifyTrackObject): SpotifyTrackSummary {
+  return {
+    id: track.id ?? track.uri ?? track.name,
+    title: track.name,
+    artists: track.artists.map((artist) => artist.name),
+    album: track.album.name,
+    albumId: track.album.id,
+    albumImageUrl: track.album.images[0]?.url ?? null,
+    songUrl: track.external_urls?.spotify ?? '',
+    durationMs: track.duration_ms,
+    popularity: track.popularity ?? null,
+  }
+}
+
+function toAlbumSummary(album: SpotifyAlbumObject): SpotifyAlbumSummary {
+  return {
+    id: album.id ?? album.name,
+    name: album.name,
+    imageUrl: album.images[0]?.url ?? null,
+    url: album.external_urls?.spotify ?? '',
+    artists: album.artists.map((artist) => artist.name),
+    releaseDate: album.release_date ?? null,
+    totalTracks: album.total_tracks ?? null,
+  }
+}
+
+function toFollowedArtist(artist: SpotifyArtistObject): SpotifyFollowedArtist {
+  return {
+    id: artist.id ?? artist.name,
+    name: artist.name,
+    imageUrl: artist.images?.[0]?.url ?? null,
+    url: artist.external_urls?.spotify ?? '',
+    genres: artist.genres ?? [],
+    followers: artist.followers?.total ?? null,
+  }
+}
+
+async function getCurrentPlayback(accessToken: string) {
+  const playback = await requestSpotify<SpotifyCurrentPlaybackResponse | null>(
+    accessToken,
+    SPOTIFY_PLAYER_ENDPOINT,
+    true
+  )
+
+  if (!playback?.item) {
+    return null
+  }
+
+  return {
+    track: toTrackSummary(playback.item),
+    isPlaying: playback.is_playing,
+    deviceName: playback.device?.name,
+    deviceType: playback.device?.type,
+  }
+}
+
+async function resolveContextLabel(accessToken: string, context: SpotifyRecentlyPlayedItem['context']) {
+  const contextType = context?.type ?? null
+  const fallbackLabel = humanizeContextType(contextType)
+
+  if (!context?.href) {
+    return fallbackLabel
+  }
+
+  try {
+    const payload = await requestSpotify<{ name?: string }>(accessToken, context.href)
+    return payload.name ?? fallbackLabel
+  } catch {
+    return fallbackLabel
+  }
+}
+
+async function getRecentlyPlayed(
+  accessToken: string,
+  limit: number,
+  options: { resolveContext?: boolean } = {}
+): Promise<SpotifyRecentlyPlayedTrack[]> {
+  const recent = await requestSpotify<{ items: SpotifyRecentlyPlayedItem[] }>(
+    accessToken,
+    `${SPOTIFY_RECENTLY_PLAYED_ENDPOINT}?limit=${limit}`
+  )
+
+  let labelsByHref = new Map<string, string>()
+
+  if (options.resolveContext) {
+    const uniqueContexts = Array.from(
+      new Map(
+        recent.items
+          .filter((item) => item.context?.href)
+          .map((item) => [item.context?.href as string, item.context])
+      ).values()
+    )
+
+    const resolvedLabels = await Promise.all(
+      uniqueContexts.map(async (context) => {
+        const label = await resolveContextLabel(accessToken, context)
+        return [context?.href as string, label] as const
+      })
+    )
+
+    labelsByHref = new Map(resolvedLabels)
+  }
+
+  return recent.items.map((item) => {
+    const track = toTrackSummary(item.track)
+    const contextLabel = item.context?.href
+      ? labelsByHref.get(item.context.href) ?? humanizeContextType(item.context.type)
+      : humanizeContextType(item.context?.type)
+
+    const context: SpotifyContextSource | null = item.context
+      ? {
+          type: item.context.type ?? 'unknown',
+          label: contextLabel,
+          uri: item.context.uri ?? null,
+          href: item.context.href ?? null,
+          externalUrl: item.context.external_urls?.spotify ?? null,
+        }
+      : null
+
+    return {
+      ...track,
+      playedAt: item.played_at,
+      context,
+    }
+  })
+}
+
+async function getTrackTempo(accessToken: string, trackId: string) {
+  if (TEMPO_CACHE.has(trackId)) {
+    return TEMPO_CACHE.get(trackId) ?? null
+  }
+
+  try {
+    const response = await requestSpotify<SpotifyAudioFeaturesResponse>(
+      accessToken,
+      `${SPOTIFY_AUDIO_FEATURES_ENDPOINT}/${trackId}`
+    )
+    const tempo = response.tempo ?? null
+    TEMPO_CACHE.set(trackId, tempo)
+    return tempo
+  } catch {
+    return null
+  }
+}
+
+async function getTopTracksByRange(accessToken: string, range: SpotifyTimeRange): Promise<SpotifyTopTrack[]> {
+  const response = await requestSpotify<SpotifyPagingResponse<SpotifyTrackObject>>(
+    accessToken,
+    `${SPOTIFY_TOP_TRACKS_ENDPOINT}?limit=50&time_range=${range}`
+  )
+
+  return response.items.map((track, index) => ({
+    ...toTrackSummary(track),
+    rank: index + 1,
+  }))
+}
+
+async function getTopArtistsByRange(accessToken: string, range: SpotifyTimeRange): Promise<SpotifyTopArtist[]> {
+  const response = await requestSpotify<SpotifyPagingResponse<SpotifyArtistObject>>(
+    accessToken,
+    `${SPOTIFY_TOP_ARTISTS_ENDPOINT}?limit=50&time_range=${range}`
+  )
+
+  return response.items.map((artist, index) => ({
+    id: artist.id ?? artist.name,
+    name: artist.name,
+    imageUrl: artist.images?.[0]?.url ?? null,
+    url: artist.external_urls?.spotify ?? '',
+    genres: artist.genres ?? [],
+    followers: artist.followers?.total ?? null,
+    popularity: artist.popularity ?? null,
+    rank: index + 1,
+  }))
+}
+
+async function getAllTopTracks(accessToken: string) {
+  const entries = await Promise.all(
+    SPOTIFY_TIME_RANGES.map(async (range) => {
+      const items = await getTopTracksByRange(accessToken, range)
+      return [range, items] as const
+    })
+  )
+
+  return Object.fromEntries(entries) as Record<SpotifyTimeRange, SpotifyTopTrack[]>
+}
+
+async function getAllTopArtists(accessToken: string) {
+  const entries = await Promise.all(
+    SPOTIFY_TIME_RANGES.map(async (range) => {
+      const items = await getTopArtistsByRange(accessToken, range)
+      return [range, items] as const
+    })
+  )
+
+  return Object.fromEntries(entries) as Record<SpotifyTimeRange, SpotifyTopArtist[]>
+}
+
+async function getSavedTracksPreview(accessToken: string): Promise<SpotifyCollectionPreview<SpotifySavedTrack>> {
+  const response = await requestSpotify<SpotifyPagingResponse<SpotifySavedTrackItem>>(
+    accessToken,
+    `${SPOTIFY_SAVED_TRACKS_ENDPOINT}?limit=${SAVED_TRACKS_PREVIEW_LIMIT}`
+  )
+
+  return {
+    total: response.total,
+    items: response.items
+      .filter((item) => item.track)
+      .map((item) => ({
+        addedAt: item.added_at,
+        track: toTrackSummary(item.track as SpotifyTrackObject),
+      })),
+  }
+}
+
+async function getSavedAlbumsPreview(accessToken: string): Promise<SpotifyCollectionPreview<SpotifySavedAlbum>> {
+  const response = await requestSpotify<SpotifyPagingResponse<SpotifySavedAlbumItem>>(
+    accessToken,
+    `${SPOTIFY_SAVED_ALBUMS_ENDPOINT}?limit=${SAVED_ALBUMS_PREVIEW_LIMIT}`
+  )
+
+  return {
+    total: response.total,
+    items: response.items.map((item) => ({
+      addedAt: item.added_at,
+      album: toAlbumSummary(item.album),
+    })),
+  }
+}
+
+async function getFollowedArtistsPreview(accessToken: string): Promise<SpotifyCollectionPreview<SpotifyFollowedArtist>> {
+  const response = await requestSpotify<SpotifyFollowedArtistsResponse>(
+    accessToken,
+    `${SPOTIFY_FOLLOWED_ARTISTS_ENDPOINT}?type=artist&limit=${FOLLOWED_ARTISTS_PREVIEW_LIMIT}`
+  )
+
+  return {
+    total: response.artists.total,
+    items: response.artists.items.map(toFollowedArtist),
+  }
+}
+
+async function getAllPlaylists(accessToken: string) {
+  const playlists: SpotifyPlaylistObject[] = []
+  let nextUrl: string | null = `${SPOTIFY_PLAYLISTS_ENDPOINT}?limit=50`
+
+  while (nextUrl) {
+    const response: SpotifyPagingResponse<SpotifyPlaylistObject> = await requestSpotify(
+      accessToken,
+      nextUrl
+    )
+    playlists.push(...response.items)
+    nextUrl = response.next
+  }
+
+  return playlists
+}
+
+async function getPlaylistTracks(accessToken: string, playlistId: string): Promise<SpotifyPlaylistTrack[]> {
+  const fields = 'total,next,items(added_at,track(id,uri,name,duration_ms,popularity,external_urls,artists(id,name,external_urls),album(id,name,images,external_urls,artists(name),release_date,total_tracks)))'
+  const firstUrl = `${SPOTIFY_PLAYLIST_DETAILS_ENDPOINT}/${playlistId}/tracks?limit=100&fields=${fields}`
+  
+  const firstResponse: SpotifyPlaylistTracksResponse = await requestSpotify(accessToken, firstUrl)
+  const tracks: SpotifyPlaylistTrack[] = firstResponse.items
+    .filter((item) => item.track)
+    .map((item) => ({
+      addedAt: item.added_at,
+      track: toTrackSummary(item.track as SpotifyTrackObject),
+    }))
+
+  const total = firstResponse.total
+  if (total <= 100) {
+    return tracks
+  }
+
+  // Calculate remaining offsets
+  const offsets = []
+  for (let offset = 100; offset < total; offset += 100) {
+    offsets.push(offset)
+  }
+
+  // Fetch remaining pages in parallel (with concurrency limit of 5)
+  const concurrencyLimit = 5
+  for (let i = 0; i < offsets.length; i += concurrencyLimit) {
+    const chunk = offsets.slice(i, i + concurrencyLimit)
+    const responses = await Promise.all(
+      chunk.map((offset) =>
+        requestSpotify<SpotifyPlaylistTracksResponse>(
+          accessToken,
+          `${SPOTIFY_PLAYLIST_DETAILS_ENDPOINT}/${playlistId}/tracks?limit=100&offset=${offset}&fields=${fields}`
+        )
+      )
+    )
+
+    for (const response of responses) {
+      tracks.push(
+        ...response.items
+          .filter((item) => item.track)
+          .map((item) => ({
+            addedAt: item.added_at,
+            track: toTrackSummary(item.track as SpotifyTrackObject),
+          }))
+      )
+    }
+  }
+
+  return tracks
+}
+
+async function getPlaylists(
+  accessToken: string,
+  archivedPlaylists: SpotifyPlaylist[] = []
+): Promise<SpotifyCollectionPreview<SpotifyPlaylist>> {
+  const playlists = await getAllPlaylists(accessToken)
+  const archivedById = new Map(archivedPlaylists.map((playlist) => [playlist.id, playlist]))
+  const withTracks = await Promise.all(
+    playlists.map(async (playlist) => {
+      const archived = archivedById.get(playlist.id)
+      const snapshotId = playlist.snapshot_id ?? null
+      const shouldReuseTracks = Boolean(
+        archived &&
+        archived.snapshotId &&
+        snapshotId &&
+        archived.snapshotId === snapshotId &&
+        archived.tracks.length > 0
+      )
+
+      return {
+        id: playlist.id,
+        name: playlist.name,
+        description: decodeHtmlEntities(playlist.description || ''),
+        imageUrl: playlist.images?.[0]?.url ?? null,
+        url: playlist.external_urls?.spotify ?? '',
+        snapshotId,
+        ownerName: playlist.owner?.display_name ?? null,
+        totalTracks: playlist.tracks?.total ?? 0,
+        isPublic: playlist.public ?? null,
+        tracks: shouldReuseTracks ? archived?.tracks ?? [] : await getPlaylistTracks(accessToken, playlist.id),
+      }
+    })
+  )
+
+  return {
+    total: playlists.length,
+    items: withTracks,
+  }
+}
+
+function normalizeNowPlayingRecentTrack(track: SpotifyRecentlyPlayedTrack) {
+  return {
+    id: track.id,
+    title: track.title,
+    artist: track.artists.join(', '),
+    album: track.album,
+    albumImageUrl: track.albumImageUrl,
+    songUrl: track.songUrl,
+    playedAt: track.playedAt,
+  }
+}
+
+export const getSpotifyNowPlayingData = cache(async function getSpotifyNowPlayingData(): Promise<SpotifyNowPlayingData | null> {
+  const accessToken = await getSpotifyAccessToken()
+  const [currentPlayback, recentTracks] = await Promise.all([
+    getCurrentPlayback(accessToken),
+    getRecentlyPlayed(accessToken, 6),
+  ])
+
+  const matchingRecentTrack = currentPlayback?.track
+    ? recentTracks.find((track) => track.id === currentPlayback.track.id)
+    : null
+
+  const fallbackTrack = !currentPlayback && recentTracks[0] ? recentTracks[0] : null
+  const activeTrack = currentPlayback?.track ?? fallbackTrack
+
+  if (!activeTrack) {
+    return null
+  }
+
+  const recentPreview = recentTracks
+    .filter((track) => {
+      if (currentPlayback?.track) {
+        return track.id !== currentPlayback.track.id
+      }
+
+      return track.playedAt !== fallbackTrack?.playedAt
+    })
+    .slice(0, 5)
+    .map(normalizeNowPlayingRecentTrack)
+
+  const playedAt = currentPlayback
+    ? currentPlayback.isPlaying
+      ? undefined
+      : matchingRecentTrack?.playedAt ?? new Date().toISOString()
+    : fallbackTrack?.playedAt
+
+  const bpm = activeTrack.id ? await getTrackTempo(accessToken, activeTrack.id) : null
+
+  return {
+    isPlaying: currentPlayback?.isPlaying ?? false,
+    isRecentlyPlayed: !currentPlayback,
+    title: activeTrack.title,
+    artist: activeTrack.artists.join(', '),
+    album: activeTrack.album,
+    albumImageUrl: activeTrack.albumImageUrl,
+    songUrl: activeTrack.songUrl,
+    deviceName: currentPlayback?.deviceName,
+    deviceType: currentPlayback?.deviceType,
+    playedAt,
+    bpm,
+    recentTracks: recentPreview,
+  }
+})
+
+async function fetchSpotifyDashboardDataFromApi(
+  options: {
+    archivedPlaylists?: SpotifyPlaylist[]
+    mode?: 'quick' | 'full'
+  } = {}
+): Promise<SpotifyStoredDashboardSnapshot> {
+  const mode = options.mode ?? 'full'
+  const accessToken = await getSpotifyAccessToken()
+
+  const [
+    recentlyPlayedResult,
+    topTracksResult,
+    topArtistsResult,
+    savedTracksResult,
+    savedAlbumsResult,
+    followedArtistsResult,
+    playlistsResult,
+  ] = await Promise.allSettled([
+    getRecentlyPlayed(accessToken, RECENTLY_PLAYED_LIMIT, { resolveContext: true }),
+    mode === 'full' ? getAllTopTracks(accessToken) : Promise.reject('skipped'),
+    mode === 'full' ? getAllTopArtists(accessToken) : Promise.reject('skipped'),
+    getSavedTracksPreview(accessToken),
+    getSavedAlbumsPreview(accessToken),
+    getFollowedArtistsPreview(accessToken),
+    getPlaylists(accessToken, options.archivedPlaylists),
+  ])
+
+  const warnings: string[] = []
+
+  function unwrapSettled<T>(
+    result: PromiseSettledResult<T>,
+    fallback: T,
+    label: string
+  ) {
+    if (result.status === 'fulfilled') {
+      return result.value
+    }
+
+    if (result.reason !== 'skipped') {
+      console.error(`Failed to load Spotify ${label}:`, result.reason)
+      warnings.push(`${label} 暂时不可用`)
+    }
+    
+    return fallback
+  }
+
+  return {
+    fetchedAt: new Date().toISOString(),
+    recentlyPlayed: unwrapSettled(recentlyPlayedResult, [], '最近播放'),
+    topTracks: unwrapSettled(topTracksResult, emptyTopTracksRecord(), 'Top Tracks'),
+    topArtists: unwrapSettled(topArtistsResult, emptyTopArtistsRecord(), 'Top Artists'),
+    library: {
+      savedTracks: unwrapSettled(savedTracksResult, { total: 0, items: [] }, '已点赞歌曲'),
+      savedAlbums: unwrapSettled(savedAlbumsResult, { total: 0, items: [] }, '已收藏专辑'),
+      followedArtists: unwrapSettled(followedArtistsResult, { total: 0, items: [] }, '关注歌手'),
+      playlists: unwrapSettled(playlistsResult, { total: 0, items: [] }, '歌单'),
+    },
+    warnings,
+  }
+}
+
+function mergeByKey<T>(
+  currentItems: T[],
+  incomingItems: T[],
+  getKey: (item: T) => string
+) {
+  const merged = new Map<string, T>()
+
+  for (const item of incomingItems) {
+    merged.set(getKey(item), item)
+  }
+
+  for (const item of currentItems) {
+    const key = getKey(item)
+    if (!merged.has(key)) {
+      merged.set(key, item)
+    }
+  }
+
+  return Array.from(merged.values())
+}
+
+function mergePlaylistHistory(currentItems: SpotifyPlaylist[], incomingItems: SpotifyPlaylist[]) {
+  const merged = new Map<string, SpotifyPlaylist>()
+
+  for (const playlist of currentItems) {
+    merged.set(playlist.id, playlist)
+  }
+
+  for (const playlist of incomingItems) {
+    const existing = merged.get(playlist.id)
+    if (!existing) {
+      merged.set(playlist.id, playlist)
+      continue
+    }
+
+    merged.set(playlist.id, {
+      ...existing,
+      ...playlist,
+      tracks: mergeByKey(existing.tracks, playlist.tracks, (item) => `${item.track.id}:${item.addedAt ?? 'na'}`),
+    })
+  }
+
+  return Array.from(merged.values())
+}
+
+function areRankedListsEqual<T extends { id: string }>(
+  previous: SpotifyArchiveListSnapshot<T> | undefined,
+  nextItems: T[]
+) {
+  if (!previous) {
+    return false
+  }
+
+  if (previous.items.length !== nextItems.length) {
+    return false
+  }
+
+  return previous.items.every((item, index) => item.id === nextItems[index]?.id)
+}
+
+function appendTrackSnapshots(
+  history: Record<SpotifyTimeRange, SpotifyArchiveListSnapshot<SpotifyTopTrack>[]>,
+  topTracks: Record<SpotifyTimeRange, SpotifyTopTrack[]>,
+  capturedAt: string
+) {
+  for (const range of SPOTIFY_TIME_RANGES) {
+    const snapshots = history[range]
+    const items = topTracks[range]
+    const previous = snapshots[snapshots.length - 1]
+
+    if (!areRankedListsEqual(previous, items)) {
+      snapshots.push({ capturedAt, items })
+    }
+  }
+}
+
+function appendArtistSnapshots(
+  history: Record<SpotifyTimeRange, SpotifyArchiveListSnapshot<SpotifyTopArtist>[]>,
+  topArtists: Record<SpotifyTimeRange, SpotifyTopArtist[]>,
+  capturedAt: string
+) {
+  for (const range of SPOTIFY_TIME_RANGES) {
+    const snapshots = history[range]
+    const items = topArtists[range]
+    const previous = snapshots[snapshots.length - 1]
+
+    if (!areRankedListsEqual(previous, items)) {
+      snapshots.push({ capturedAt, items })
+    }
+  }
+}
+
+async function readSpotifyMeta(): Promise<SpotifySyncMeta> {
+  const { bucket } = getSpotifyArchiveConfig()
+  if (!bucket) return createEmptySyncMeta()
+  const meta = await readR2JsonIfExists<SpotifySyncMeta>(bucket, SPOTIFY_META_KEY)
+  return meta ?? createEmptySyncMeta()
+}
+
+async function readSpotifyRankings(): Promise<SpotifyRankingsHistory> {
+  const { bucket } = getSpotifyArchiveConfig()
+  if (!bucket) return createEmptyRankingsHistory()
+  const rankings = await readR2JsonIfExists<SpotifyRankingsHistory>(bucket, SPOTIFY_RANKINGS_KEY)
+  return rankings ?? createEmptyRankingsHistory()
+}
+
+export async function readSpotifyCollection<T>(key: string): Promise<SpotifyCollectionPreview<T>> {
+  const { bucket } = getSpotifyArchiveConfig()
+  if (!bucket) return { total: 0, items: [] }
+  const collection = await readR2JsonIfExists<SpotifyCollectionPreview<T>>(bucket, key)
+  return collection ?? { total: 0, items: [] }
+}
+
+async function readRecentlyPlayedShard(yearMonth: string): Promise<SpotifyRecentlyPlayedTrack[]> {
+  const { bucket } = getSpotifyArchiveConfig()
+  if (!bucket) return []
+  const shard = await readR2JsonIfExists<SpotifyRecentlyPlayedTrack[]>(
+    bucket,
+    `${SPOTIFY_RECENTLY_PLAYED_PATH}${yearMonth}.json`
+  )
+  return shard ?? []
+}
+
+export async function readSpotifyPlaylistShard(id: string): Promise<SpotifyPlaylistTrack[]> {
+  const { bucket } = getSpotifyArchiveConfig()
+  if (!bucket) return []
+  const tracks = await readR2JsonIfExists<SpotifyPlaylistTrack[]>(
+    bucket,
+    `${SPOTIFY_PLAYLIST_SHARD_PATH}${id}.json`
+  )
+  return tracks ?? []
+}
+
+async function writeSpotifyPlaylistShard(id: string, tracks: SpotifyPlaylistTrack[]) {
+  const { bucket } = getSpotifyArchiveConfig()
+  if (!bucket) return
+  await writeR2Json(bucket, `${SPOTIFY_PLAYLIST_SHARD_PATH}${id}.json`, tracks)
+}
+
+function getYearMonth(date: Date = new Date()) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  return `${y}-${m}`
+}
+
+async function writeRecentlyPlayedShard(yearMonth: string, items: SpotifyRecentlyPlayedTrack[]) {
+  const { bucket } = getSpotifyArchiveConfig()
+  if (!bucket) return
+  await writeR2Json(bucket, `${SPOTIFY_RECENTLY_PLAYED_PATH}${yearMonth}.json`, items)
+}
+
+async function readLatestSpotifyDashboard() {
+  const { bucket, publicDomain } = getSpotifyArchiveConfig()
+
+  if (!bucket) {
+    return null
+  }
+
+  const latest = await readR2JsonIfExists<SpotifyLatestDashboardFile>(bucket, SPOTIFY_LATEST_DASHBOARD_KEY)
+
+  if (!latest?.data) {
+    return null
+  }
+
+  return {
+    data: latest.data,
+    syncedAt: latest.syncedAt,
+    snapshotUrl: buildSpotifySnapshotUrl(publicDomain, SPOTIFY_LATEST_DASHBOARD_KEY),
+  }
+}
+
+export const getStoredSpotifyDashboardData = cache(async function getStoredSpotifyDashboardData(): Promise<SpotifyDashboardData> {
+  const { bucket, publicDomain } = getSpotifyArchiveConfig()
+
+  if (!bucket) {
+    return createEmptyDashboardData({
+      warnings: ['未配置 R2_SPOTIFY_BUCKET，Spotify dashboard 无法读取离线快照'],
+      archiveMeta: {
+        source: 'empty',
+        hasStoredSnapshot: false,
+        lastSyncedAt: null,
+        snapshotUrl: buildSpotifySnapshotUrl(publicDomain, SPOTIFY_LATEST_DASHBOARD_KEY),
+        syncCount: 0,
+      },
+    })
+  }
+
+  const [latest, meta] = await Promise.all([readLatestSpotifyDashboard(), readSpotifyMeta()])
+
+  if (!latest) {
+    return createEmptyDashboardData({
+      warnings: ['尚未发现 Spotify 离线快照。请等待自动同步或手动触发同步。'],
+      archiveMeta: {
+        source: 'empty',
+        hasStoredSnapshot: false,
+        lastSyncedAt: meta.lastSyncedAt,
+        snapshotUrl: buildSpotifySnapshotUrl(publicDomain, SPOTIFY_LATEST_DASHBOARD_KEY),
+        syncCount: meta.syncCount,
+      },
+    })
+  }
+
+  return {
+    ...latest.data,
+    archiveMeta: {
+      source: 'r2-archive',
+      hasStoredSnapshot: true,
+      lastSyncedAt: latest.syncedAt,
+      snapshotUrl: latest.snapshotUrl,
+      syncCount: meta.syncCount,
+    },
+  }
+})
+
+
+export async function syncSpotifyDashboardToArchive(
+  options: { mode?: 'quick' | 'full' } = {}
+): Promise<SpotifySyncResult> {
+  const mode = options.mode ?? 'full'
+  const { bucket, publicDomain } = getSpotifyArchiveConfig()
+  if (!bucket) {
+    throw new Error('Missing R2_SPOTIFY_BUCKET')
+  }
+
+  const syncedAt = new Date().toISOString()
+  const yearMonth = getYearMonth(new Date(syncedAt))
+
+  const [meta, existingHistoryShard] = await Promise.all([
+    readSpotifyMeta(),
+    readRecentlyPlayedShard(yearMonth),
+  ])
+
+  // 为了合并增量数据，并在增量抓取歌单时进行 snapshot 校验，线上同步时需要读取已有的全量集合
+  const [
+    existingTracks,
+    existingAlbums,
+    existingArtists,
+    existingPlaylists
+  ] = await Promise.all([
+    readSpotifyCollection<SpotifySavedTrack>(SPOTIFY_SAVED_TRACKS_KEY),
+    readSpotifyCollection<SpotifySavedAlbum>(SPOTIFY_SAVED_ALBUMS_KEY),
+    readSpotifyCollection<SpotifyFollowedArtist>(SPOTIFY_FOLLOWED_ARTISTS_KEY),
+    readSpotifyCollection<SpotifyPlaylist>(SPOTIFY_PLAYLISTS_KEY),
+  ])
+
+  const liveDashboard = await fetchSpotifyDashboardDataFromApi({
+    archivedPlaylists: existingPlaylists.items,
+    mode,
+  })
+
+  // 1. 处理最近播放记录 (增量合并到月度分片)
+  const nextHistoryShard = mergeByKey(
+    existingHistoryShard,
+    liveDashboard.recentlyPlayed,
+    (item) => `${item.id}:${item.playedAt}`
+  )
+
+  const writePromises: Promise<void>[] = []
+  writePromises.push(writeRecentlyPlayedShard(yearMonth, nextHistoryShard))
+
+  // 2. 处理 Library 板块 (增量合并)
+  const nextTracks = {
+    total: liveDashboard.library.savedTracks.total,
+    items: mergeByKey(existingTracks.items, liveDashboard.library.savedTracks.items, (item) => `${item.track.id}:${item.addedAt}`)
+  }
+  const nextAlbums = {
+    total: liveDashboard.library.savedAlbums.total,
+    items: mergeByKey(existingAlbums.items, liveDashboard.library.savedAlbums.items, (item) => `${item.album.id}:${item.addedAt}`)
+  }
+  const nextArtists = {
+    total: liveDashboard.library.followedArtists.total,
+    items: mergeByKey(existingArtists.items, liveDashboard.library.followedArtists.items, (item) => item.id)
+  }
+  const nextPlaylists = {
+    total: liveDashboard.library.playlists.total,
+    items: mergePlaylistHistory(existingPlaylists.items, liveDashboard.library.playlists.items as unknown as SpotifyPlaylist[])
+  }
+
+  writePromises.push(writeR2Json(bucket, SPOTIFY_SAVED_TRACKS_KEY, nextTracks))
+  writePromises.push(writeR2Json(bucket, SPOTIFY_SAVED_ALBUMS_KEY, nextAlbums))
+  writePromises.push(writeR2Json(bucket, SPOTIFY_FOLLOWED_ARTISTS_KEY, nextArtists))
+  writePromises.push(writeR2Json(bucket, SPOTIFY_PLAYLISTS_KEY, nextPlaylists))
+
+  // 同步歌单曲目分片 (仅同步本次抓取到的歌单中包含曲目的部分，通常是 snapshot 变动的歌单)
+  for (const playlist of liveDashboard.library.playlists.items) {
+    const fullPlaylist = playlist as unknown as SpotifyPlaylist
+    if (fullPlaylist.tracks && fullPlaylist.tracks.length > 0) {
+      writePromises.push(writeSpotifyPlaylistShard(fullPlaylist.id, fullPlaylist.tracks))
+    }
+  }
+
+  // 3. 如果是 Full Sync，处理 Top 榜单快照
+  if (mode === 'full') {
+    const rankings = await readSpotifyRankings()
+    appendTrackSnapshots(rankings.topTracks, liveDashboard.topTracks, syncedAt)
+    appendArtistSnapshots(rankings.topArtists, liveDashboard.topArtists, syncedAt)
+    writePromises.push(writeR2Json(bucket, SPOTIFY_RANKINGS_KEY, rankings))
+  }
+
+  // 3. 构建 Latest Dashboard 数据
+  // 关键优化：从 dashboard 快照中剥离歌单详情曲目
+  const strippedPlaylists: SpotifyCollectionPreview<SpotifyPlaylistPreview> = {
+    ...liveDashboard.library.playlists,
+    items: liveDashboard.library.playlists.items.map((playlist) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { tracks, ...preview } = playlist as unknown as SpotifyPlaylist
+      return preview
+    })
+  }
+
+  const sortedRecentlyPlayed = [...nextHistoryShard].sort(
+    (a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
+  )
+
+  const dashboardDataSnapshot: SpotifyStoredDashboardSnapshot = {
+    ...liveDashboard,
+    library: {
+      savedTracks: nextTracks,
+      savedAlbums: nextAlbums,
+      followedArtists: nextArtists,
+      playlists: strippedPlaylists,
+    },
+    recentlyPlayed: sortedRecentlyPlayed.slice(0, RECENTLY_PLAYED_LIMIT),
+    fetchedAt: syncedAt
+  }
+
+  const latestFile: SpotifyLatestDashboardFile = {
+    schemaVersion: SPOTIFY_ARCHIVE_SCHEMA_VERSION,
+    syncedAt,
+    data: dashboardDataSnapshot,
+  }
+  writePromises.push(writeR2Json(bucket, SPOTIFY_LATEST_DASHBOARD_KEY, latestFile))
+
+  // 4. 更新元数据
+  const nextMeta: SpotifySyncMeta = {
+    ...meta,
+    lastSyncedAt: syncedAt,
+    lastFullSyncedAt: mode === 'full' ? syncedAt : meta.lastFullSyncedAt,
+    syncCount: meta.syncCount + 1,
+    syncLog: [
+      { syncedAt, mode, warnings: liveDashboard.warnings },
+      ...meta.syncLog.slice(0, 19), // 保留最近20条日志
+    ],
+  }
+  writePromises.push(writeR2Json(bucket, SPOTIFY_META_KEY, nextMeta))
+
+  // 等待所有写入完成
+  await Promise.all(writePromises)
+
+  return {
+    syncedAt,
+    snapshotUrl: buildSpotifySnapshotUrl(publicDomain, SPOTIFY_LATEST_DASHBOARD_KEY),
+    summary: {
+      recentlyPlayed: liveDashboard.recentlyPlayed.length,
+      topTracks: liveDashboard.topTracks.medium_term.length,
+      topArtists: liveDashboard.topArtists.medium_term.length,
+      savedTracks: liveDashboard.library.savedTracks.total,
+      savedAlbums: liveDashboard.library.savedAlbums.total,
+      followedArtists: liveDashboard.library.followedArtists.total,
+      playlists: liveDashboard.library.playlists.total,
+      warnings: liveDashboard.warnings.length,
+    },
+  }
+}
