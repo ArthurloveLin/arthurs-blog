@@ -1013,7 +1013,7 @@ async function readSpotifyMeta(): Promise<SpotifySyncMeta> {
   return meta ?? createEmptySyncMeta()
 }
 
-async function readSpotifyRankings(): Promise<SpotifyRankingsHistory> {
+export async function readSpotifyRankings(): Promise<SpotifyRankingsHistory> {
   const { bucket } = getSpotifyArchiveConfig()
   if (!bucket) return createEmptyRankingsHistory()
   const rankings = await readR2JsonIfExists<SpotifyRankingsHistory>(bucket, SPOTIFY_RANKINGS_KEY)
