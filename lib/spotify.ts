@@ -1205,12 +1205,24 @@ export async function syncSpotifyDashboardToArchive(
     }
   }
 
-  // 3. 如果是 Full Sync，处理 Top 榜单快照
+  // 3. 处理 Top 榜单快照
+  const rankings = await readSpotifyRankings()
   if (mode === 'full') {
-    const rankings = await readSpotifyRankings()
     appendTrackSnapshots(rankings.topTracks, liveDashboard.topTracks, syncedAt)
     appendArtistSnapshots(rankings.topArtists, liveDashboard.topArtists, syncedAt)
     writePromises.push(writeR2Json(bucket, SPOTIFY_RANKINGS_KEY, rankings))
+  } else {
+    // Quick Sync: 从历史排行榜中填充，避免由于跳过 API 调用导致 dashboard.json 中的排行榜被置空
+    liveDashboard.topTracks = {
+      short_term: rankings.topTracks.short_term[rankings.topTracks.short_term.length - 1]?.items ?? [],
+      medium_term: rankings.topTracks.medium_term[rankings.topTracks.medium_term.length - 1]?.items ?? [],
+      long_term: rankings.topTracks.long_term[rankings.topTracks.long_term.length - 1]?.items ?? [],
+    }
+    liveDashboard.topArtists = {
+      short_term: rankings.topArtists.short_term[rankings.topArtists.short_term.length - 1]?.items ?? [],
+      medium_term: rankings.topArtists.medium_term[rankings.topArtists.medium_term.length - 1]?.items ?? [],
+      long_term: rankings.topArtists.long_term[rankings.topArtists.long_term.length - 1]?.items ?? [],
+    }
   }
 
   // 3. 构建 Latest Dashboard 数据
