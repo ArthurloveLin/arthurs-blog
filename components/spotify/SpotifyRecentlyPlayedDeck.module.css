@@ -1,0 +1,338 @@
+.section {
+  position: relative;
+}
+
+.viewport {
+  position: relative;
+  padding-inline: 2.75rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.cardWrap {
+  transform: perspective(800px);
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+.cardWrap:hover .cardInfo {
+  transform: translateY(0);
+  transition: 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.cardWrap:hover .metaGroup,
+.cardWrap:hover .metaRow,
+.cardWrap:hover .spotifyBadge {
+  opacity: 1;
+  transition: 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.cardWrap:hover .infoOverlay::after {
+  transition: 5s cubic-bezier(0.23, 1, 0.32, 1);
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cardWrap:hover .cardBg {
+  transition: 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity 5s cubic-bezier(0.23, 1, 0.32, 1);
+  opacity: 0.8;
+}
+
+.cardWrap:hover .card {
+  transition: 0.6s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 2s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow:
+    rgba(255, 255, 255, 0.2) 0 0 40px 5px,
+    rgba(255, 255, 255, 0.95) 0 0 0 1px,
+    rgba(0, 0, 0, 0.66) 0 30px 60px 0,
+    inset #333 0 0 0 5px,
+    inset rgba(255, 255, 255, 0.86) 0 0 0 6px;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #333;
+  box-shadow:
+    rgba(0, 0, 0, 0.66) 0 30px 60px 0,
+    inset #333 0 0 0 5px,
+    inset rgba(255, 255, 255, 0.5) 0 0 0 6px;
+  transform: rotateY(var(--card-rotate-y, 0deg)) rotateX(var(--card-rotate-x, 0deg));
+  transition: 1s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+  will-change: transform, box-shadow;
+}
+
+.cardBg {
+  position: absolute;
+  inset: -20px;
+  opacity: 0.5;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  transform: translateX(var(--card-bg-x, 0px)) translateY(var(--card-bg-y, 0px)) scale(1.12);
+  transition: 1s cubic-bezier(0.445, 0.05, 0.55, 0.95), opacity 5s 1s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.cardShade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(10, 10, 10, 0.06) 0%, rgba(10, 10, 10, 0.12) 28%, rgba(10, 10, 10, 0.74) 100%),
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.26), transparent 40%);
+  pointer-events: none;
+}
+
+.infoOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.infoOverlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.72) 100%);
+  opacity: 0;
+  transform: translateY(100%);
+  transition: 5s 1s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+
+.cardInfo {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 1;
+  display: flex;
+  min-height: 74%;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 1.15rem;
+  color: #fff;
+  transform: translateY(57%);
+  transition: 0.6s 1.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.cardInfo > * {
+  position: relative;
+  z-index: 1;
+}
+
+.title {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.7rem, 2.6vw, 2.15rem);
+  font-weight: 700;
+  line-height: 0.95;
+  text-shadow: rgba(0, 0, 0, 0.55) 0 10px 10px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.metaGroup {
+  opacity: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  transition: 0.6s 1.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.metaRow {
+  opacity: 0;
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: rgba(0, 0, 0, 0.88) 0 2px 3px;
+  transition: 0.6s 1.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.mutedLabel {
+  margin-right: 0.35rem;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.spotifyBadge {
+  opacity: 0;
+  align-self: flex-start;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  padding: 0.28rem 0.62rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  transition: 0.6s 1.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.navButton {
+  position: absolute;
+  top: 50%;
+  z-index: 20;
+  display: inline-flex;
+  height: 3.4rem;
+  width: 3.4rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16);
+  color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  transform: translateY(-50%);
+  transition: transform 220ms ease, background-color 220ms ease, box-shadow 220ms ease, opacity 220ms ease;
+}
+
+.navButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.2);
+}
+
+.navButton:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.navButtonLeft {
+  left: 0;
+}
+
+.navButtonLeft:hover:not(:disabled) {
+  transform: translate(-2px, -50%);
+}
+
+.navButtonRight {
+  right: 0;
+}
+
+.navButtonRight:hover:not(:disabled) {
+  transform: translate(2px, -50%);
+}
+
+.statusBar {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.paginationDots {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.paginationDot {
+  height: 0.42rem;
+  width: 0.42rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  transition: transform 220ms ease, background-color 220ms ease, width 220ms ease;
+}
+
+.paginationDotActive {
+  width: 1.35rem;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.pageLabel {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.emptyState {
+  border: 1px dashed color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 1.5rem;
+  background: color-mix(in srgb, var(--muted) 24%, transparent);
+  padding: 1.5rem;
+  color: var(--muted-foreground);
+}
+
+@media (max-width: 1279px) {
+  .cardInfo {
+    transform: translateY(52%);
+  }
+}
+
+@media (max-width: 1023px) {
+  .viewport {
+    padding-inline: 2.25rem;
+  }
+
+  .cardInfo {
+    transform: translateY(48%);
+  }
+}
+
+@media (max-width: 767px) {
+  .viewport {
+    padding-inline: 0;
+  }
+
+  .navButton {
+    height: 3rem;
+    width: 3rem;
+    top: auto;
+    bottom: -4.15rem;
+    transform: none;
+  }
+
+  .navButtonLeft {
+    left: calc(50% - 3.5rem);
+  }
+
+  .navButtonLeft:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+
+  .navButtonRight {
+    right: calc(50% - 3.5rem);
+  }
+
+  .navButtonRight:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+
+  .statusBar {
+    margin-top: 4.9rem;
+    justify-content: center;
+  }
+
+  .pageLabel {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .cardBg,
+  .cardInfo,
+  .metaGroup,
+  .metaRow,
+  .spotifyBadge,
+  .infoOverlay::after,
+  .navButton,
+  .paginationDot {
+    transition-duration: 0ms !important;
+    transition-delay: 0ms !important;
+  }
+}
