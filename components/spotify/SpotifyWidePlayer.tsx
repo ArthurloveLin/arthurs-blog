@@ -94,11 +94,11 @@ export default function SpotifyWidePlayer() {
   const absolutePlayedAt = data.playedAt ? formatAbsoluteTime(data.playedAt) : null
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-emerald-500/15 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.20),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.96),rgba(236,253,245,0.92))] p-6 shadow-[0_24px_90px_rgba(16,185,129,0.16)] dark:bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.22),transparent_30%),linear-gradient(135deg,rgba(3,10,8,0.95),rgba(8,24,17,0.95))]">
+    <div className="relative overflow-hidden rounded-[28px] border border-emerald-500/15 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.20),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.96),rgba(236,253,245,0.92))] p-4 sm:p-5 md:p-6 shadow-[0_24px_90px_rgba(16,185,129,0.16)] dark:bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.22),transparent_30%),linear-gradient(135deg,rgba(3,10,8,0.95),rgba(8,24,17,0.95))]">
       <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[linear-gradient(120deg,transparent,rgba(16,185,129,0.12),transparent)] opacity-80" />
 
       <div className="relative z-10 grid gap-6 lg:grid-cols-[112px_minmax(0,1fr)_240px] lg:items-center">
-        <div className="relative h-28 w-28 overflow-hidden rounded-[28px] border border-white/50 bg-emerald-950/10 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[24px] border border-white/50 bg-emerald-950/10 shadow-[0_18px_40px_rgba(0,0,0,0.18)] sm:h-28 sm:w-28 sm:rounded-[28px]">
           {data.albumImageUrl ? (
             <Image
               src={data.albumImageUrl}
@@ -116,24 +116,24 @@ export default function SpotifyWidePlayer() {
         </div>
 
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-emerald-700/80 dark:text-emerald-300/80">
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-white/60 px-3 py-1 font-mono dark:bg-white/5">
+          <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-emerald-700/80 dark:text-emerald-300/80 sm:text-[11px]">
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-white/60 px-2 py-0.5 font-mono dark:bg-white/5 sm:px-3 sm:py-1">
               <Radio className="h-3.5 w-3.5" strokeWidth={1.8} />
               {statusLabel}
             </span>
             {data.bpm ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/15 px-3 py-1">
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/15 px-2 py-0.5 sm:px-3 sm:py-1">
                 <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
                 {Math.round(data.bpm)} BPM
               </span>
             ) : null}
           </div>
 
-          <h2 className="mt-4 truncate text-3xl font-semibold tracking-tight text-foreground sm:text-[2.6rem]">
+          <h2 className="mt-3 truncate text-2xl font-semibold tracking-tight text-foreground sm:mt-4 sm:text-3xl md:text-[2.6rem]">
             {data.title}
           </h2>
-          <p className="mt-2 truncate text-base text-foreground/80 sm:text-lg">{data.artist}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+          <p className="mt-1 truncate text-sm text-foreground/80 sm:mt-2 sm:text-base md:text-lg">{data.artist}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground sm:text-sm">
             <span className="inline-flex items-center gap-1.5">
               <Headphones className="h-4 w-4" strokeWidth={1.8} />
               {data.album}
