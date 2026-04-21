@@ -507,7 +507,6 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
             setActiveSlide(resolvedTargetSlide)
           }
 
-          animatingRef.current = false
           maybePrefetchNextRound()
         },
       })
@@ -550,7 +549,11 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       animatingRef.current = true
       startAutoPlay()
 
-      const timeline = gsap.timeline()
+      const timeline = gsap.timeline({
+        onComplete: () => {
+          animatingRef.current = false
+        },
+      })
       timeline.add(animateTitle(targetSlide.title, direction), 0)
       timeline.add(animateCarousel(direction, targetRound, targetIndex, isBoundarySwap), 0)
       syncBackgroundColor(targetSlide, true)

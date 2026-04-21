@@ -2,8 +2,9 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useSpotify } from './SpotifyProvider'
-import { Music2, ChevronDown } from 'lucide-react'
+import { Music2, ChevronDown, ArrowRight } from 'lucide-react'
 
 export default function SpotifyNowPlaying() {
   const { state: { data, loading } } = useSpotify()
@@ -113,22 +114,28 @@ export default function SpotifyNowPlaying() {
         {/* --- Card Header (Always Visible) --- */}
         <div className={`flex items-center gap-3 relative z-10 transition-all duration-500 ${isExpanded ? 'mb-6' : ''}`}>
           {/* Album Cover */}
-          <div className={`flex-shrink-0 overflow-hidden relative shadow-md transition-all duration-500 ${isExpanded ? 'w-12 h-12 rounded-xl' : 'w-8 h-8 rounded-lg group-hover:scale-105'}`}>
+          <div className={`flex-shrink-0 overflow-hidden relative shadow-md transition-all duration-500 ${isExpanded ? 'w-12 h-12 rounded-xl' : 'w-8 h-8 rounded-lg group-hover:scale-105'} bg-muted`}>
+            {data.albumImageUrl ? (
               <Image
-                src={data.albumImageUrl || ''}
+                src={data.albumImageUrl}
                 alt={data.album || ''}
                 fill
                 sizes={isExpanded ? '48px' : '32px'}
-                className={`object-cover ${!isPlaying ? 'grayscale bg-muted opacity-80' : ''}`}
+                className={`object-cover ${!isPlaying ? 'grayscale opacity-80' : ''}`}
                 unoptimized
               />
-            </div>
+            ) : (
+              <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+                <Music2 className={isExpanded ? 'w-5 h-5' : 'w-4 h-4'} strokeWidth={1.75} />
+              </div>
+            )}
+          </div>
 
           {/* Info Container */}
           <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
             {/* Row 1: Song Title - Artist */}
             <div className={`marquee-wrapper w-full overflow-hidden relative flex items-center mb-0.5 ${isExpanded ? 'h-6' : 'h-5'}`}>
-              <div className={`marquee-content whitespace-nowrap font-medium ${isPlaying ? 'text-foreground' : 'text-muted-foreground'} transition-all flex w-max items-center ${isExpanded ? 'text-base' : 'text-sm'}`}>
+              <div className={`marquee-content whitespace-nowrap font-medium ${isPlaying ? 'text-foreground' : 'text-muted-foreground'} transition-all flex w-max items-center text-sm`}>
                 <span className="px-1">{combinedText}</span>
                 {!isExpanded && (
                   <>
@@ -182,15 +189,21 @@ export default function SpotifyNowPlaying() {
                   key={`${track.id}-${i}`}
                   className="flex items-center gap-3 p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 group/item"
                 >
-                  <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-sm group-hover/item:shadow-md transition-shadow">
-                    <Image
-                      src={track.albumImageUrl}
-                      alt={track.album}
-                      fill
-                      sizes="32px"
-                      className="object-cover"
-                      unoptimized
-                    />
+                  <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-sm group-hover/item:shadow-md transition-shadow bg-muted">
+                    {track.albumImageUrl ? (
+                      <Image
+                        src={track.albumImageUrl}
+                        alt={track.album}
+                        fill
+                        sizes="32px"
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+                        <Music2 className="w-3 h-3" strokeWidth={1.5} />
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-foreground truncate group-hover/item:text-primary transition-colors">
@@ -206,12 +219,25 @@ export default function SpotifyNowPlaying() {
               ))}
             </div>
 
-            <button 
-              onClick={(e) => { e.stopPropagation(); setIsExpanded(false) }}
-              className="w-full mt-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-colors"
-            >
-              收起详情
-            </button>
+            <div className="flex flex-col gap-2 mt-4 px-1">
+              <Link 
+                href="/spotify"
+                onClick={(e) => e.stopPropagation()}
+                className="group/link flex items-center justify-between p-3 rounded-xl bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all duration-300"
+              >
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary/80 group-hover/link:text-primary">
+                  Explore Detailed Music Data
+                </span>
+                <ArrowRight className="w-3.5 h-3.5 text-primary/50 group-hover/link:text-primary transform group-hover/link:translate-x-1 transition-all" />
+              </Link>
+              
+              <button 
+                onClick={(e) => { e.stopPropagation(); setIsExpanded(false) }}
+                className="w-full py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                收起详情
+              </button>
+            </div>
           </div>
         )}
 
@@ -230,7 +256,7 @@ export default function SpotifyNowPlaying() {
           
           .marquee-content {
             animation: marquee-scroll 25s linear infinite;
-            animation-play-state: ${isExpanded ? 'paused' : 'running'};
+            animation-play-state: running;
             line-height: normal;
           }
           @keyframes marquee-scroll {
