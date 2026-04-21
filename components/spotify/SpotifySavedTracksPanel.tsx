@@ -38,6 +38,7 @@ export default function SpotifySavedTracksPanel({
   total: number
 }) {
   const observerTarget = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { error, hasMore, isLoading, loadMore, visibleItems } = useSpotifyCollectionPagination({
     initialItems,
     total,
@@ -59,7 +60,10 @@ export default function SpotifySavedTracksPanel({
           loadMore()
         }
       },
-      { threshold: 0.1 }
+      { 
+        threshold: 0.1,
+        root: scrollContainerRef.current
+      }
     )
 
     if (observerTarget.current) {
@@ -68,6 +72,7 @@ export default function SpotifySavedTracksPanel({
 
     return () => observer.disconnect()
   }, [hasMore, isLoading, loadMore])
+
   return (
     <section className="rounded-[28px] border border-border/60 bg-card/95 p-6 shadow-[0_18px_60px_rgba(0,0,0,0.05)] h-full flex flex-col">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -85,7 +90,10 @@ export default function SpotifySavedTracksPanel({
         </div>
       </div>
 
-      <div className="mt-6 max-h-[860px] overflow-y-auto scrollbar-none pr-1">
+      <div 
+        ref={scrollContainerRef}
+        className="mt-6 max-h-[860px] overflow-y-auto pr-2 scrollbar-none"
+      >
         {visibleItems.length === 0 ? (
           <div className="rounded-[24px] border border-dashed border-border/70 bg-muted/20 p-8 text-center text-sm text-muted-foreground">
             没有发现已点赞的歌曲。
@@ -158,3 +166,4 @@ export default function SpotifySavedTracksPanel({
     </section>
   )
 }
+

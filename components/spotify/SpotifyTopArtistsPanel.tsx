@@ -60,7 +60,7 @@ export default function SpotifyTopArtistsPanel({
             当前时间跨度没有返回可展示的 Top Artists 数据。
           </div>
         ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid gap-3">
             {activeItems.map((artist) => (
               <div
                 key={`${activeRange}-${artist.id}-${artist.rank}`}
@@ -101,11 +101,11 @@ export default function SpotifyTopArtistsPanel({
                       {artist.followers ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1">
                           <Users className="h-3.5 w-3.5" strokeWidth={1.8} />
-                          {artist.followers.toLocaleString()} followers
+                          {artist.followers.toLocaleString()} 关注者
                         </span>
                       ) : null}
                       {artist.popularity !== null ? (
-                        <span className="rounded-full bg-muted px-2.5 py-1">Popularity {artist.popularity}</span>
+                        <span className="rounded-full bg-muted px-2.5 py-1">热度 {artist.popularity}</span>
                       ) : null}
                     </div>
 
@@ -117,7 +117,7 @@ export default function SpotifyTopArtistsPanel({
                           </span>
                         ))
                       ) : (
-                        <span className="text-xs text-muted-foreground">该歌手未返回 genres 标签</span>
+                        <span className="text-xs text-muted-foreground">该歌手没有返回风格标签</span>
                       )}
                     </div>
                   </div>
