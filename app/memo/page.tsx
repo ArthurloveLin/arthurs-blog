@@ -2,6 +2,7 @@ import DirectionalTransition from '@/components/DirectionalTransition'
 import { NoteBoardPage } from '@/components/note-board/NoteBoardExperience'
 import { getNoteBoardConfig } from '@/lib/note-board-config'
 import { getBoardMessages } from '@/lib/note-boards'
+import { getSiteConfig } from '@/lib/blog'
 import PageHero from '@/components/PageHero'
 
 
@@ -10,17 +11,31 @@ export const revalidate = 60
 
 export default async function MemoPage() {
   const config = getNoteBoardConfig('memo')
-  const messages = await getBoardMessages('memo', config.initialPageLimit, 0, false, 'time')
+  const [messages, siteConfig] = await Promise.all([
+    getBoardMessages('memo', config.initialPageLimit, 0, false, 'time'),
+    getSiteConfig()
+  ])
+
+  const titleNode = siteConfig.memo_hero_title_highlight || siteConfig.memo_hero_title_rest ? (
+    <>
+      {siteConfig.memo_hero_title_highlight && <span className="block text-gradient-primary">{siteConfig.memo_hero_title_highlight}</span>}
+      {siteConfig.memo_hero_title_highlight_2 && <span className="block text-gradient-primary">{siteConfig.memo_hero_title_highlight_2}</span>}
+      {siteConfig.memo_hero_title_rest}
+    </>
+  ) : config?.subtitle
 
   return (
     <DirectionalTransition>
       <main className="min-h-screen bg-background">
         {/* ── Hero ── */}
         <PageHero 
-          title={config?.subtitle}
-          subtitle={config?.title}
-          description={config?.intro}
-          slogan={{ text1: "Capturing the spark", text2: "Whispers of time" }}
+          title={titleNode}
+          subtitle={siteConfig.memo_hero_subtitle || config?.title}
+          description={siteConfig.memo_hero_description || config?.intro}
+          slogan={{ 
+            text1: siteConfig.memo_slogan_1 || "Capturing the spark", 
+            text2: siteConfig.memo_slogan_2 || "Whispers of time" 
+          }}
           blobColors={['bg-purple-400/10', 'bg-indigo-400/10']}
         />
 
