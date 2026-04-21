@@ -43,7 +43,7 @@ const SectionCard = memo(function SectionCard({
   children: ReactNode
 }) {
   return (
-    <section id={id} className="scroll-mt-24 rounded-[28px] border border-border/60 bg-card/95 p-6 shadow-[0_18px_60_rgba(0,0,0,0.05)]">
+    <section id={id} className="scroll-mt-24 rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60_rgba(0,0,0,0.05)]">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{eyebrow}</p>
       <h3 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{title}</h3>
       {description ? <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
@@ -111,7 +111,7 @@ const PlaylistsBoard = memo(function PlaylistsBoard({ items, total }: { items: S
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-[22px] border border-dashed border-border/70 bg-muted/20 p-6 text-sm text-muted-foreground">
+        <div className="rounded-[22px] border border-dashed border-border/70 bg-muted/20 p-4 sm:p-6 text-sm text-muted-foreground">
           当前账户没有可展示的歌单。
         </div>
       ) : (
@@ -156,11 +156,11 @@ export default function SpotifyDashboard({ data }: { data: SpotifyDashboardData 
 
   return (
     <div className="site-shell py-10 pb-24">
-      <div className="rounded-[32px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(0,0,0,0.05),transparent_34%)] p-5 sm:p-6">
+      <div className="rounded-[32px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(0,0,0,0.05),transparent_34%)] p-4 sm:p-5 md:p-6">
         <SpotifyLivePlayerPanel />
 
 
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {overviewCards.map((card) => {
             const Icon = card.icon
 
