@@ -28,6 +28,29 @@ interface ConfigData {
   site_title_highlight_2?: string
   site_title_rest?: string
   site_description?: string
+  site_slogan_1?: string
+  site_slogan_2?: string
+  memo_hero_subtitle?: string
+  memo_hero_title_highlight?: string
+  memo_hero_title_highlight_2?: string
+  memo_hero_title_rest?: string
+  memo_hero_description?: string
+  memo_slogan_1?: string
+  memo_slogan_2?: string
+  guestbook_hero_subtitle?: string
+  guestbook_hero_title_highlight?: string
+  guestbook_hero_title_highlight_2?: string
+  guestbook_hero_title_rest?: string
+  guestbook_hero_description?: string
+  guestbook_slogan_1?: string
+  guestbook_slogan_2?: string
+  news_hero_subtitle?: string
+  news_hero_title_highlight?: string
+  news_hero_title_highlight_2?: string
+  news_hero_title_rest?: string
+  news_hero_description?: string
+  news_slogan_1?: string
+  news_slogan_2?: string
   live2d_model_url?: string
   live2d_engine_js_url?: string
   live2d_canvas_width?: string
@@ -74,6 +97,114 @@ const STATUS_OPTIONS = [
   { emoji: '💡', label: '沉思中', value: '沉思中' },
   { emoji: '💤', label: '挂机中', value: '挂机中' },
 ]
+
+function HeroSettingsGroup({
+  title,
+  prefix,
+  data,
+  onChange,
+}: {
+  title: string
+  prefix: string // 'site' | 'memo_hero' | 'guestbook_hero' | 'news_hero' (except slogan which might just be memo_slogan, site_slogan, etc. Wait, we named them prefix_hero_* and prefix_slogan)
+  data: ConfigData
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
+}) {
+  const subtitleKey = prefix === 'site' ? 'site_subtitle' : `${prefix}_hero_subtitle`
+  const hlKey1 = prefix === 'site' ? 'site_title_highlight' : `${prefix}_hero_title_highlight`
+  const hlKey2 = prefix === 'site' ? 'site_title_highlight_2' : `${prefix}_hero_title_highlight_2`
+  const restKey = prefix === 'site' ? 'site_title_rest' : `${prefix}_hero_title_rest`
+  const descKey = prefix === 'site' ? 'site_description' : `${prefix}_hero_description`
+  const slogan1Key = prefix === 'site' ? 'site_slogan_1' : `${prefix}_slogan_1`
+  const slogan2Key = prefix === 'site' ? 'site_slogan_2' : `${prefix}_slogan_2`
+
+  return (
+    <div className="bg-card text-card-foreground border border-border shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 md:p-8">
+      <h2 className="text-sm font-bold tracking-widest text-muted-foreground uppercase mb-6">{title}</h2>
+      
+      <div className="space-y-5">
+        <div>
+          <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">副标题 (顶部暗色小字)</label>
+          <input
+            type="text"
+            name={subtitleKey}
+            value={(data as Record<string, string>)[subtitleKey] || ''}
+            onChange={onChange}
+            className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+          />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div>
+            <label className="block text-xs font-bold text-primary mb-1.5 ml-1">主标题_段落1(渐变)</label>
+            <input
+              type="text"
+              name={hlKey1}
+              value={(data as Record<string, string>)[hlKey1] || ''}
+              onChange={onChange}
+              className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-primary mb-1.5 ml-1">主标题_段落2(渐变)</label>
+            <input
+              type="text"
+              name={hlKey2}
+              value={(data as Record<string, string>)[hlKey2] || ''}
+              onChange={onChange}
+              placeholder="（选填）"
+              className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">主标题_段落3(普通)</label>
+            <input
+              type="text"
+              name={restKey}
+              value={(data as Record<string, string>)[restKey] || ''}
+              onChange={onChange}
+              className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">介绍/导语 (Description)</label>
+          <textarea
+            name={descKey}
+            value={(data as Record<string, string>)[descKey] || ''}
+            onChange={onChange}
+            rows={2}
+            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all resize-none"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">手写标语 第一行 (Slogan 1)</label>
+            <input
+              type="text"
+              name={slogan1Key}
+              value={(data as Record<string, string>)[slogan1Key] || ''}
+              onChange={onChange}
+              className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">手写标语 第二行 (Slogan 2)</label>
+            <input
+              type="text"
+              name={slogan2Key}
+              value={(data as Record<string, string>)[slogan2Key] || ''}
+              onChange={onChange}
+              placeholder="（选填）"
+              className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function SiteSettingsForm({ initialData }: { initialData: Record<string, string> }) {
   const router = useRouter()
@@ -436,71 +567,16 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
         </div>
 
         {/* ── 首页文案模块 ── */}
-        <div className="bg-card text-card-foreground border border-border shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 md:p-8">
-          <h2 className="text-sm font-bold tracking-widest text-muted-foreground uppercase mb-6">首页头图文案 (Hero Section)</h2>
-          
-          <div className="space-y-5">
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">站点副标题 (顶部暗色小字)</label>
-              <input
-                type="text"
-                name="site_subtitle"
-                value={data.site_subtitle || ''}
-                onChange={handleChange}
-                placeholder="Arthur & Grace · Journal"
-                className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div>
-                <label className="block text-xs font-bold text-primary mb-1.5 ml-1">主标题_段落1(渐变)</label>
-                <input
-                  type="text"
-                  name="site_title_highlight"
-                  value={data.site_title_highlight || ''}
-                  onChange={handleChange}
-                  placeholder="技术、生活与创意"
-                  className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-primary mb-1.5 ml-1">主标题_段落2(渐变)</label>
-                <input
-                  type="text"
-                  name="site_title_highlight_2"
-                  value={data.site_title_highlight_2 || ''}
-                  onChange={handleChange}
-                  placeholder="（选填）"
-                  className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">主标题_段落3(普通)</label>
-                <input
-                  type="text"
-                  name="site_title_rest"
-                  value={data.site_title_rest || ''}
-                  onChange={handleChange}
-                  placeholder="的记录与分享"
-                  className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
-                />
-              </div>
-            </div>
+        <HeroSettingsGroup title="首页头图文案 (Home Hero)" prefix="site" data={data} onChange={handleChange} />
 
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">介绍/导语 (Hero Description)</label>
-              <textarea
-                name="site_description"
-                value={data.site_description || ''}
-                onChange={handleChange}
-                placeholder="探索编程、设计、选衣搭配等领域的见解与思考。记录成长，分享知识，连接彼此。"
-                rows={3}
-                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all resize-none"
-              />
-            </div>
-          </div>
-        </div>
+        {/* ── Memo 文案模块 ── */}
+        <HeroSettingsGroup title="便签墙头图文案 (Memo Hero)" prefix="memo" data={data} onChange={handleChange} />
+
+        {/* ── 留言板文案模块 ── */}
+        <HeroSettingsGroup title="留言板头图文案 (Guestbook Hero)" prefix="guestbook" data={data} onChange={handleChange} />
+
+        {/* ── 趋势雷达文案模块 ── */}
+        <HeroSettingsGroup title="趋势雷达头图文案 (Trend Radar Hero)" prefix="news" data={data} onChange={handleChange} />
 
         {/* ── Live2D 看板娘配置 ── */}
         <div className="bg-card text-card-foreground border border-border shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 md:p-8">
