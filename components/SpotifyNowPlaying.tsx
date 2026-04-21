@@ -2,8 +2,9 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useSpotify } from './SpotifyProvider'
-import { Music2, ChevronDown } from 'lucide-react'
+import { Music2, ChevronDown, ArrowRight } from 'lucide-react'
 
 export default function SpotifyNowPlaying() {
   const { state: { data, loading } } = useSpotify()
@@ -128,7 +129,7 @@ export default function SpotifyNowPlaying() {
           <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
             {/* Row 1: Song Title - Artist */}
             <div className={`marquee-wrapper w-full overflow-hidden relative flex items-center mb-0.5 ${isExpanded ? 'h-6' : 'h-5'}`}>
-              <div className={`marquee-content whitespace-nowrap font-medium ${isPlaying ? 'text-foreground' : 'text-muted-foreground'} transition-all flex w-max items-center ${isExpanded ? 'text-base' : 'text-sm'}`}>
+              <div className={`marquee-content whitespace-nowrap font-medium ${isPlaying ? 'text-foreground' : 'text-muted-foreground'} transition-all flex w-max items-center text-sm`}>
                 <span className="px-1">{combinedText}</span>
                 {!isExpanded && (
                   <>
@@ -206,12 +207,25 @@ export default function SpotifyNowPlaying() {
               ))}
             </div>
 
-            <button 
-              onClick={(e) => { e.stopPropagation(); setIsExpanded(false) }}
-              className="w-full mt-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-colors"
-            >
-              收起详情
-            </button>
+            <div className="flex flex-col gap-2 mt-4 px-1">
+              <Link 
+                href="/spotify"
+                onClick={(e) => e.stopPropagation()}
+                className="group/link flex items-center justify-between p-3 rounded-xl bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all duration-300"
+              >
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary/80 group-hover/link:text-primary">
+                  Explore Detailed Music Data
+                </span>
+                <ArrowRight className="w-3.5 h-3.5 text-primary/50 group-hover/link:text-primary transform group-hover/link:translate-x-1 transition-all" />
+              </Link>
+              
+              <button 
+                onClick={(e) => { e.stopPropagation(); setIsExpanded(false) }}
+                className="w-full py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                收起详情
+              </button>
+            </div>
           </div>
         )}
 
@@ -230,7 +244,7 @@ export default function SpotifyNowPlaying() {
           
           .marquee-content {
             animation: marquee-scroll 25s linear infinite;
-            animation-play-state: ${isExpanded ? 'paused' : 'running'};
+            animation-play-state: running;
             line-height: normal;
           }
           @keyframes marquee-scroll {
