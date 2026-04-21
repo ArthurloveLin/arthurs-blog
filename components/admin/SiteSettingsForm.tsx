@@ -51,6 +51,13 @@ interface ConfigData {
   news_hero_description?: string
   news_slogan_1?: string
   news_slogan_2?: string
+  spotify_hero_subtitle?: string
+  spotify_hero_title_highlight?: string
+  spotify_hero_title_highlight_2?: string
+  spotify_hero_title_rest?: string
+  spotify_hero_description?: string
+  spotify_slogan_1?: string
+  spotify_slogan_2?: string
   live2d_model_url?: string
   live2d_engine_js_url?: string
   live2d_canvas_width?: string
@@ -577,6 +584,9 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
 
         {/* ── 趋势雷达文案模块 ── */}
         <HeroSettingsGroup title="趋势雷达头图文案 (Trend Radar Hero)" prefix="news" data={data} onChange={handleChange} />
+
+        {/* ── 音乐库文案模块 ── */}
+        <HeroSettingsGroup title="音乐库头图文案 (Spotify Hero)" prefix="spotify" data={data} onChange={handleChange} />
 
         {/* ── Live2D 看板娘配置 ── */}
         <div className="bg-card text-card-foreground border border-border shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 md:p-8">
