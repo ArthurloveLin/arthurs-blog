@@ -171,7 +171,7 @@ export default function Live2D() {
           ref={canvasRef}
           width={canvasWidth}
           height={canvasHeight}
-          className={`cursor-grab active:cursor-grabbing ${isDragging ? 'scale-110' : 'hover:scale-105'} transition-transform duration-300 origin-bottom`}
+          className={`cursor-grab active:cursor-grabbing transition-transform duration-300 origin-bottom`}
         />
         {/* Shadow */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-32 h-4 bg-black/5 blur-xl rounded-[100%] -z-10 group-hover:bg-black/10 transition-colors duration-500" />

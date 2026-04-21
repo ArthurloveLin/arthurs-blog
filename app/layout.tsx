@@ -25,7 +25,6 @@ import AuthProvider from "@/components/AuthProvider";
 import { ThemeProvider } from "next-themes";
 import { getSiteConfig, getPostsCount, getCategories, getAllTags, getYearArchive, getRecentPostsMetadata } from "@/lib/blog";
 import { SiteDataProvider } from "@/components/SiteDataProvider"
-import { SpotifyProvider } from "@/components/SpotifyProvider"
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -69,27 +68,25 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <AuthProvider>
-              <SpotifyProvider>
-                <SiteDataProvider
-                  initialState={{
-                    config: config || {},
-                    stats: {
-                      postsCount: totalPostsCount,
-                      categoriesCount: categories.length,
-                      tagsCount: tags.length
-                    },
-                    sidebarData: {
-                      categories,
-                      tags,
-                      yearArchive,
-                      recentPosts
-                    }
-                  }}
-                >
-                  <Navbar />
-                  {children}
-                </SiteDataProvider>
-              </SpotifyProvider>
+              <SiteDataProvider
+                initialState={{
+                  config: config || {},
+                  stats: {
+                    postsCount: totalPostsCount,
+                    categoriesCount: categories.length,
+                    tagsCount: tags.length
+                  },
+                  sidebarData: {
+                    categories,
+                    tags,
+                    yearArchive,
+                    recentPosts
+                  }
+                }}
+              >
+                <Navbar />
+                {children}
+              </SiteDataProvider>
             </AuthProvider>
           </ThemeProvider>
           <Script
