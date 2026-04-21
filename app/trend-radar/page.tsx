@@ -9,6 +9,7 @@ import ArchiveCard from "@/components/ArchiveCard";
 import { AuthorProfileCompactCard } from "@/components/AuthorProfileCard";
 import TrendRadarDisplay from "@/components/TrendRadarDisplay";
 import PageHero from "@/components/PageHero";
+import { getSiteConfig } from "@/lib/blog";
 
 
 
@@ -66,26 +67,39 @@ async function TrendRadarContent({
 }
 
 
-export default function TrendRadarPage({
+export default async function TrendRadarPage({
   searchParams,
 }: {
   searchParams: Promise<{ report?: string }>;
 }) {
+  const siteConfig = await getSiteConfig();
+
+  const titleNode = siteConfig.news_hero_title_highlight || siteConfig.news_hero_title_rest ? (
+    <>
+      {siteConfig.news_hero_title_highlight && <span className="block text-gradient-primary">{siteConfig.news_hero_title_highlight}</span>}
+      {siteConfig.news_hero_title_highlight_2 && <span className="block text-gradient-primary">{siteConfig.news_hero_title_highlight_2}</span>}
+      {siteConfig.news_hero_title_rest}
+    </>
+  ) : (
+    <>
+      <span className="block text-gradient-primary">趋势雷达</span>
+      全网热点实时追踪
+    </>
+  );
+
   return (
     <DirectionalTransition>
       <ScrollRestorer />
       <main className="min-h-screen bg-background">
         {/* ── Hero ── */}
         <PageHero 
-          title={
-            <>
-              <span className="block text-gradient-primary">趋势雷达</span>
-              全网热点实时追踪
-            </>
-          }
-          subtitle="News / Trend Radar"
-          description="多平台热榜聚合分析，挖掘隐藏在信息流中的焦点与变化。"
-          slogan={{ text1: "Caught in the wake", text2: "Freshly delivered" }}
+          title={titleNode}
+          subtitle={siteConfig.news_hero_subtitle || "News / Trend Radar"}
+          description={siteConfig.news_hero_description || "多平台热榜聚合分析，挖掘隐藏在信息流中的焦点与变化。"}
+          slogan={{ 
+             text1: siteConfig.news_slogan_1 || "Caught in the wake", 
+             text2: siteConfig.news_slogan_2 || "Freshly delivered" 
+          }}
           blobColors={['bg-red-400/10', 'bg-blue-400/10']}
           containerClass="site-shell-triad"
         />

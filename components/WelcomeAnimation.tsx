@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
+import { useSiteConfig } from '@/components/SiteDataProvider'
 import HandwrittenSloganClient from '@/components/HandwrittenSloganClient'
 
 interface WelcomeAnimationProps {
@@ -11,6 +12,7 @@ interface WelcomeAnimationProps {
 export default function WelcomeAnimation({ onFinish }: WelcomeAnimationProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [mounted, setMounted] = useState(false)
+  const siteConfig = useSiteConfig()
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -43,8 +45,8 @@ export default function WelcomeAnimation({ onFinish }: WelcomeAnimationProps) {
       className="thank-you-root relative w-full h-[100px] md:h-[320px] max-w-[900px] mx-auto select-none pointer-events-none flex flex-col justify-center items-center p-4 md:p-8"
     >
       <HandwrittenSloganClient 
-        text1="Welcome to my Blog"
-        text2="Arthur & Grace"
+        text1={siteConfig.site_slogan_1 || "Welcome to my Blog"}
+        text2={siteConfig.site_slogan_2 || "Arthur & Grace"}
         onComplete={startFadeOut}
         className="welcome-slogan-wrapper"
         // We do not pass size1/size2 because we will override them with !important
