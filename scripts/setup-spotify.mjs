@@ -9,7 +9,7 @@ const env = Object.fromEntries(envContent.split('\n').filter(l => l.includes('='
 const client_id = env.SPOTIFY_CLIENT_ID;
 const client_secret = env.SPOTIFY_CLIENT_SECRET;
 const redirect_uri = 'http://127.0.0.1:3000';
-const scope = 'user-read-currently-playing user-read-playback-state user-read-recently-played';
+const scope = 'user-read-currently-playing user-read-playback-state user-read-recently-played user-top-read user-library-read user-follow-read playlist-read-private playlist-read-collaborative';
 
 const rl = readline.createInterface({
   input: process.stdin,
