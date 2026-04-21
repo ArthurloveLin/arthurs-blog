@@ -6,13 +6,13 @@ import { AlertTriangle, CalendarClock, Heart, Library, Music2, Users2 } from 'lu
 import type {
   SpotifyDashboardData,
   SpotifyPlaylistPreview,
-  SpotifyRecentlyPlayedTrack,
   SpotifySavedAlbum,
 } from '@/lib/spotify-types'
 import { formatStableDate } from '@/lib/date-format'
 import SpotifyFollowedArtistsPanel from './SpotifyFollowedArtistsPanel'
 import SpotifyLivePlayerPanel from './SpotifyLivePlayerPanel'
 import SpotifyPlaylistDetail from './SpotifyPlaylistDetail'
+import SpotifyRecentlyPlayedDeck from './SpotifyRecentlyPlayedDeck'
 import SpotifySavedTracksPanel from './SpotifySavedTracksPanel'
 import SpotifyTopArtistsPanel from './SpotifyTopArtistsPanel'
 import SpotifyTopTracksPanel from './SpotifyTopTracksPanel'
@@ -72,45 +72,6 @@ const Artwork = memo(function Artwork({ src, alt, rounded = 'rounded-2xl' }: { s
     />
   )
 })
-
-const RecentlyPlayedCard = memo(function RecentlyPlayedCard({ item }: { item: SpotifyRecentlyPlayedTrack }) {
-  return (
-    <div className="rounded-[24px] border border-border/60 bg-background/75 p-4">
-      <div className="flex items-start gap-4">
-        <div className="relative h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-[22px] bg-muted">
-          <Artwork src={item.albumImageUrl} alt={item.album} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h4 className="truncate text-base font-semibold text-foreground">{item.title}</h4>
-              <p className="truncate text-sm text-muted-foreground">{item.artists.join(', ')}</p>
-            </div>
-            {item.songUrl ? (
-              <a href={item.songUrl} target="_blank" rel="noreferrer" className="text-xs text-emerald-600 hover:text-emerald-500">
-                Spotify
-              </a>
-            ) : null}
-          </div>
-
-          <p className="mt-2 truncate text-sm text-foreground/80">{item.album}</p>
-
-          <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-            <div className="rounded-2xl bg-muted/70 px-3 py-2">
-              <p className="font-mono uppercase tracking-[0.18em] text-[10px]">播放于：</p>
-              <p className="mt-1 font-mono text-[11px] text-foreground/80">{formatLocalDateTime(item.playedAt)}</p>
-            </div>
-            <div className="rounded-2xl bg-muted/70 px-3 py-2">
-              <p className="font-mono uppercase tracking-[0.18em] text-[10px]">歌单名：</p>
-              <p className="mt-1 text-sm text-foreground/85">{item.context?.label ?? '未知来源'}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-})
-
 
 const SavedAlbumsGrid = memo(function SavedAlbumsGrid({ items, total }: { items: SpotifySavedAlbum[]; total: number }) {
   return (
@@ -217,26 +178,14 @@ export default function SpotifyDashboard({ data }: { data: SpotifyDashboardData 
         </div>
       </div>
 
-      <div className="mt-6">
-        <SectionCard
-          id="recently-played"
-          eyebrow="Recently Played"
-          title="最近播放记录"
-          description="记录最近收听的回放。"
-        >
-          {data.recentlyPlayed.length === 0 ? (
-            <div className="rounded-[22px] border border-dashed border-border/70 bg-muted/20 p-6 text-sm text-muted-foreground">
-              当前没有可展示的 Recently Played 数据。
-            </div>
-          ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
-              {data.recentlyPlayed.map((item, index) => (
-                <RecentlyPlayedCard key={`${item.id}-${item.playedAt}-${index}`} item={item} />
-              ))}
-            </div>
-          )}
-        </SectionCard>
-      </div>
+      <section id="recently-played" className="mt-6 scroll-mt-24">
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Recently Played</p>
+        <h3 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">最近播放记录</h3>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">第一组展示最近收听的几首，悬停卡片可查看艺人、时间和播放来源。</p>
+        <div className="mt-6">
+          <SpotifyRecentlyPlayedDeck items={data.recentlyPlayed} />
+        </div>
+      </section>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <SpotifyTopTracksPanel data={data.topTracks} />
