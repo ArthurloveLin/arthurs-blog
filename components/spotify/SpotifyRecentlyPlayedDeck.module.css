@@ -186,27 +186,28 @@
   top: 50%;
   z-index: 20;
   display: inline-flex;
-  height: 3.4rem;
-  width: 3.4rem;
+  height: 3rem;
+  width: 3rem;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.32);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16);
-  color: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--card) 85%, transparent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  color: var(--muted-foreground);
+  backdrop-filter: blur(10px);
   transform: translateY(-50%);
   transition: transform 220ms ease, background-color 220ms ease, box-shadow 220ms ease, opacity 220ms ease;
 }
 
 .navButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.24);
-  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.2);
+  background: color-mix(in srgb, var(--card) 95%, var(--foreground));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  color: var(--foreground);
 }
 
 .navButton:disabled {
-  opacity: 0.38;
+  opacity: 0.32;
   cursor: default;
 }
 
@@ -289,15 +290,15 @@
   }
 
   .navButton {
-    height: 3rem;
-    width: 3rem;
+    height: 2.6rem;
+    width: 2.6rem;
     top: auto;
-    bottom: -4.15rem;
+    bottom: -3.6rem;
     transform: none;
   }
 
   .navButtonLeft {
-    left: calc(50% - 3.5rem);
+    left: calc(50% - 3rem);
   }
 
   .navButtonLeft:hover:not(:disabled) {
@@ -305,7 +306,7 @@
   }
 
   .navButtonRight {
-    right: calc(50% - 3.5rem);
+    right: calc(50% - 3rem);
   }
 
   .navButtonRight:hover:not(:disabled) {
@@ -313,7 +314,7 @@
   }
 
   .statusBar {
-    margin-top: 4.9rem;
+    margin-top: 4.6rem;
     justify-content: center;
   }
 

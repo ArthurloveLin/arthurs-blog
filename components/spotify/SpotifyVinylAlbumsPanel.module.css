@@ -1,0 +1,369 @@
+/* ─── Vinyl album core — faithful port of CodePen/vinyl-albums/src/style.scss ─── */
+
+.album {
+  --album-size: 200px;
+  --vinyl-size: 185px;
+  --border-radius: 3px;
+  --cover-translate: -10px;
+  --cover-rotate: -2deg;
+  --vinyl-translate: 50%;
+  --vinyl-rotate: 360deg;
+
+  position: relative;
+  width: var(--album-size);
+  height: var(--album-size);
+  flex-shrink: 0;
+}
+
+.cover {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+  transition: transform 0.5s ease-in-out;
+}
+
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 10%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.4) 1%, transparent 50%);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.cover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent 4%),
+    linear-gradient(
+      225deg,
+      rgba(162, 162, 162, 0.1) 0%,
+      rgba(162, 162, 162, 0.2) 4%,
+      rgba(255, 255, 255, 0.2) 6%,
+      rgba(255, 255, 255, 0.6) 7%,
+      rgba(255, 255, 255, 0.2) 7%,
+      rgba(218, 218, 218, 0.04) 7%,
+      transparent 6%
+    ),
+    linear-gradient(
+      45deg,
+      rgba(14, 14, 14, 0.7),
+      rgba(0, 0, 0, 0.5) 0%,
+      rgba(0, 0, 0, 0.2) 4%,
+      rgba(14, 14, 14, 0.2) 6%,
+      rgba(255, 255, 255, 0.3) 7%,
+      rgba(218, 218, 218, 0.4) 7%,
+      transparent 8%
+    );
+  pointer-events: none;
+  z-index: 3;
+}
+
+.vinyl {
+  position: absolute;
+  top: 10px;
+  right: 0;
+  width: var(--vinyl-size);
+  height: var(--vinyl-size);
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      from 50deg at 50% 50%,
+      transparent 46%,
+      rgba(255, 255, 255, 0.1) 48%,
+      rgba(255, 255, 255, 0.15) 51%,
+      transparent 56%
+    ),
+    conic-gradient(
+      from 225deg at 50% 50%,
+      transparent 46%,
+      rgba(255, 255, 255, 0.1) 48%,
+      rgba(255, 255, 255, 0.15) 51%,
+      transparent 56%
+    ),
+    repeating-radial-gradient(
+      circle,
+      rgba(120, 120, 120, 0.1) 0%,
+      rgba(192, 192, 192, 0.01) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transform: translateX(0) rotate(270deg);
+  transition: transform 0.5s ease-in-out;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  z-index: 1;
+}
+
+.vinylCover {
+  width: calc(var(--vinyl-size) / 2.8);
+  height: calc(var(--vinyl-size) / 2.8);
+  background-size: cover;
+  background-position: center;
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px black;
+}
+
+/* Hover — pure CSS, no JS required */
+.album:hover .cover {
+  transform: translateX(var(--cover-translate)) rotate(var(--cover-rotate));
+}
+
+.album:hover .vinyl {
+  transform: translateX(var(--vinyl-translate)) rotate(var(--vinyl-rotate));
+}
+
+/* ─── Album item wrapper (vinyl + info text below) ─── */
+
+.albumItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.albumInfo {
+  text-align: center;
+  width: var(--album-size, 200px);
+}
+
+.albumName {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--foreground);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.albumArtist {
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin: 0.15rem 0 0;
+}
+
+.albumDate {
+  font-size: 0.62rem;
+  color: var(--muted-foreground);
+  opacity: 0.7;
+  margin: 0.1rem 0 0;
+}
+
+/* ─── Layout: row of albums ─── */
+
+.viewport {
+  position: relative;
+  padding-inline: 2.75rem;
+  overflow: visible;
+}
+
+/* 3 columns × 2 rows = 6 per page.
+   column-gap = vinyl slides out 50% of its width (92.5px) + 10px buffer,
+   so the vinyl of each album never overlaps its right neighbour. */
+.albumGrid {
+  display: grid;
+  grid-template-columns: repeat(3, var(--album-size, 200px));
+  column-gap: calc(var(--vinyl-size, 185px) * 0.5 + 10px);
+  row-gap: 2.5rem;
+  justify-content: center;
+  overflow: visible;
+  padding-block: 0.5rem;
+}
+
+/* ─── Navigation buttons ─── */
+
+.navButton {
+  position: absolute;
+  top: 50%;
+  z-index: 20;
+  display: inline-flex;
+  height: 3rem;
+  width: 3rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 85%, transparent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  color: var(--muted-foreground);
+  backdrop-filter: blur(10px);
+  transform: translateY(-50%);
+  transition:
+    transform 220ms ease,
+    background-color 220ms ease,
+    box-shadow 220ms ease,
+    opacity 220ms ease;
+}
+
+.navButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--card) 95%, var(--foreground));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  color: var(--foreground);
+}
+
+.navButton:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+.navButtonLeft {
+  left: 0;
+}
+
+.navButtonLeft:hover:not(:disabled) {
+  transform: translate(-2px, -50%);
+}
+
+.navButtonRight {
+  right: 0;
+}
+
+.navButtonRight:hover:not(:disabled) {
+  transform: translate(2px, -50%);
+}
+
+/* ─── Pagination ─── */
+
+.statusBar {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-inline: 2.75rem;
+}
+
+.paginationDots {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.paginationDot {
+  height: 0.38rem;
+  width: 0.38rem;
+  border-radius: 999px;
+  background: var(--muted-foreground);
+  opacity: 0.25;
+  transition:
+    width 220ms ease,
+    opacity 220ms ease;
+}
+
+.paginationDotActive {
+  width: 1.2rem;
+  opacity: 0.8;
+}
+
+.pageLabel {
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+}
+
+/* ─── Responsive ─── */
+
+/* Tablet: 2 columns, smaller albums */
+@media (max-width: 900px) {
+  .albumGrid {
+    --album-size: 150px;
+    --vinyl-size: 138px;
+    grid-template-columns: repeat(2, var(--album-size, 150px));
+    column-gap: calc(var(--vinyl-size, 138px) * 0.5 + 10px);
+    row-gap: 2rem;
+  }
+}
+
+/* Mobile: 1 column, single album per page */
+@media (max-width: 640px) {
+  .albumGrid {
+    --album-size: 200px;
+    --vinyl-size: 185px;
+    grid-template-columns: repeat(1, var(--album-size, 200px));
+    column-gap: 0;
+    row-gap: 0;
+  }
+
+  /* Too many dots at 1-per-page; replace with text counter */
+  .paginationDots {
+    display: none;
+  }
+
+  .pageLabel {
+    display: block;
+  }
+}
+
+@media (max-width: 767px) {
+  .viewport {
+    padding-inline: 0;
+  }
+
+  .navButton {
+    height: 2.6rem;
+    width: 2.6rem;
+    top: auto;
+    bottom: -3.6rem;
+    transform: none;
+  }
+
+  .navButtonLeft {
+    left: calc(50% - 3rem);
+  }
+
+  .navButtonLeft:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+
+  .navButtonRight {
+    right: calc(50% - 3rem);
+  }
+
+  .navButtonRight:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+
+  .statusBar {
+    margin-top: 4.6rem;
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .pageLabel {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover,
+  .vinyl,
+  .navButton,
+  .paginationDot {
+    transition-duration: 0ms !important;
+  }
+}
