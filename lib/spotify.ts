@@ -128,6 +128,7 @@ type SpotifyCurrentPlaybackResponse = {
     name?: string
     type?: string
   }
+  progress_ms: number
 }
 
 type SpotifyRecentlyPlayedItem = {
@@ -483,6 +484,8 @@ async function getCurrentPlayback(accessToken: string) {
     isPlaying: playback.is_playing,
     deviceName: playback.device?.name,
     deviceType: playback.device?.type,
+    progressMs: playback.progress_ms,
+    durationMs: playback.item.duration_ms,
   }
 }
 
@@ -833,6 +836,8 @@ export async function getSpotifyNowPlayingData(): Promise<SpotifyNowPlayingData 
     songUrl: track.songUrl,
     deviceName: currentPlayback.deviceName,
     deviceType: currentPlayback.deviceType,
+    progressMs: currentPlayback.progressMs,
+    durationMs: currentPlayback.durationMs,
     bpm,
     recentTracks // 注入合并后的历史记录
   }
