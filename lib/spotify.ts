@@ -11,6 +11,7 @@ import {
   type SpotifyDashboardData,
   type SpotifyFollowedArtist,
   type SpotifyNowPlayingData,
+  type SpotifyNowPlayingRecentTrack,
   type SpotifyPlaylist,
   type SpotifyPlaylistPreview,
   type SpotifyPlaylistTrack,
@@ -807,9 +808,40 @@ async function getPlaylists(
 
 export async function getSpotifyNowPlayingData(): Promise<SpotifyNowPlayingData | null> {
   const accessToken = await getSpotifyAccessToken()
-  const currentPlayback = await getCurrentPlayback(accessToken)
+
+  // 并行获取实时播放状态和 R2 缓存数据 (用于历史列表)
+  const [currentPlayback, storedData] = await Promise.all([
+    getCurrentPlayback(accessToken).catch(() => null),
+    getStoredSpotifyDashboardData().catch(() => null)
+  ])
+
+  // 转换 R2 中的最近播放数据格式以适应 NowPlaying 组件
+  const recentTracks: SpotifyNowPlayingRecentTrack[] = (storedData?.recentlyPlayed || []).map(track => ({
+    id: track.id,
+    title: track.title,
+    artist: track.artists.join(', '),
+    album: track.album,
+    albumImageUrl: track.albumImageUrl,
+    songUrl: track.songUrl,
+    playedAt: track.playedAt
+  }))
 
   if (!currentPlayback) {
+    // 如果没有正在播放，且我们有历史记录，则返回最后一次播放的内容
+    if (recentTracks.length > 0) {
+      const lastTrack = recentTracks[0]
+      return {
+        isPlaying: false,
+        isRecentlyPlayed: true,
+        title: lastTrack.title,
+        artist: lastTrack.artist,
+        album: lastTrack.album,
+        albumImageUrl: lastTrack.albumImageUrl,
+        songUrl: lastTrack.songUrl,
+        playedAt: lastTrack.playedAt,
+        recentTracks
+      }
+    }
     return null
   }
 
@@ -834,6 +866,7 @@ export async function getSpotifyNowPlayingData(): Promise<SpotifyNowPlayingData 
     deviceName: currentPlayback.deviceName,
     deviceType: currentPlayback.deviceType,
     bpm,
+    recentTracks // 注入合并后的历史记录
   }
 }
 
