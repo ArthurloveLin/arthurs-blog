@@ -89,8 +89,15 @@ export interface SpotifyPlaylist {
   tracks: SpotifyPlaylistTrack[]
 }
 
+/**
+ * 集合预览文件的存储格式。
+ * - `total`: 用户在 Spotify 上的完整库数量（来自 API，非本文件实际条目数）
+ * - `previewLimit`: 本文件实际存储的 items 上限
+ * - `items`: 前 previewLimit 条预览数据
+ */
 export interface SpotifyCollectionPreview<T> {
   total: number
+  previewLimit?: number
   items: T[]
 }
 

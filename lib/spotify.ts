@@ -52,6 +52,8 @@ export const SPOTIFY_FOLLOWED_ARTISTS_KEY = 'spotify/collection/followed-artists
 const SPOTIFY_PLAYLISTS_KEY = 'spotify/collection/playlists.json'
 const SPOTIFY_PLAYLIST_SHARD_PATH = 'spotify/collection/playlists/'
 const SPOTIFY_RANKINGS_KEY = 'spotify/history/rankings.json'
+// 每个时间范围最多保留的排行快照数（变化触发而非每次同步触发，90条约覆盖数月变化历史）
+const RANKINGS_SNAPSHOTS_LIMIT = 90
 const SPOTIFY_RECENTLY_PLAYED_PATH = 'spotify/history/recently-played/'
 const TEMPO_CACHE = new Map<string, number | null>()
 const CONTEXT_LABEL_CACHE = new Map<string, string>()
@@ -1000,12 +1002,16 @@ function appendTrackSnapshots(
   capturedAt: string
 ) {
   for (const range of SPOTIFY_TIME_RANGES) {
-    const snapshots = history[range]
+    let snapshots = history[range]
     const items = topTracks[range]
     const previous = snapshots[snapshots.length - 1]
 
     if (!areRankedListsEqual(previous, items)) {
       snapshots.push({ capturedAt, items })
+    }
+    if (snapshots.length > RANKINGS_SNAPSHOTS_LIMIT) {
+      snapshots = snapshots.slice(snapshots.length - RANKINGS_SNAPSHOTS_LIMIT)
+      history[range] = snapshots
     }
   }
 }
@@ -1016,12 +1022,16 @@ function appendArtistSnapshots(
   capturedAt: string
 ) {
   for (const range of SPOTIFY_TIME_RANGES) {
-    const snapshots = history[range]
+    let snapshots = history[range]
     const items = topArtists[range]
     const previous = snapshots[snapshots.length - 1]
 
     if (!areRankedListsEqual(previous, items)) {
       snapshots.push({ capturedAt, items })
+    }
+    if (snapshots.length > RANKINGS_SNAPSHOTS_LIMIT) {
+      snapshots = snapshots.slice(snapshots.length - RANKINGS_SNAPSHOTS_LIMIT)
+      history[range] = snapshots
     }
   }
 }
@@ -1175,11 +1185,9 @@ export async function syncSpotifyDashboardToArchive(
   }
 
   const syncedAt = new Date().toISOString()
-  const yearMonth = getYearMonth(new Date(syncedAt))
 
-  const [meta, existingHistoryShard, latestLibrary] = await Promise.all([
+  const [meta, latestLibrary] = await Promise.all([
     readSpotifyMeta(),
-    readRecentlyPlayedShard(yearMonth),
     mode === 'quick' ? readLatestSpotifyLibrary() : Promise.resolve(null),
   ])
 
@@ -1213,15 +1221,33 @@ export async function syncSpotifyDashboardToArchive(
     afterMs,
   })
 
-  // 1. 处理最近播放记录 (增量合并到月度分片)
-  const nextHistoryShard = mergeByKey(
-    existingHistoryShard,
-    liveDashboard.recentlyPlayed,
-    (item) => `${item.id}:${item.playedAt}`
-  )
+  // 1. 处理最近播放记录 (按 playedAt 月份分组写入对应分片，避免跨月边界写错桶)
+  const tracksByMonth = new Map<string, SpotifyRecentlyPlayedTrack[]>()
+  for (const track of liveDashboard.recentlyPlayed) {
+    const month = getYearMonth(new Date(track.playedAt))
+    const group = tracksByMonth.get(month) ?? []
+    group.push(track)
+    tracksByMonth.set(month, group)
+  }
 
   const writePromises: Promise<void>[] = []
-  writePromises.push(writeRecentlyPlayedShard(yearMonth, nextHistoryShard))
+
+  const allMergedRecentlyPlayed: SpotifyRecentlyPlayedTrack[] = []
+
+  if (tracksByMonth.size > 0) {
+    const shardMonths = Array.from(tracksByMonth.keys())
+    const existingShards = await Promise.all(shardMonths.map(readRecentlyPlayedShard))
+    for (let i = 0; i < shardMonths.length; i++) {
+      const month = shardMonths[i]
+      const merged = mergeByKey(
+        existingShards[i],
+        tracksByMonth.get(month)!,
+        (item) => `${item.id}:${item.playedAt}`
+      )
+      allMergedRecentlyPlayed.push(...merged)
+      writePromises.push(writeRecentlyPlayedShard(month, merged))
+    }
+  }
 
   // 2. 处理 Library 板块 (增量合并，仅 full sync)
   let snapshotLibrary: SpotifyStoredDashboardSnapshot['library']
@@ -1229,14 +1255,17 @@ export async function syncSpotifyDashboardToArchive(
   if (mode === 'full') {
     const nextTracks = {
       total: liveDashboard.library.savedTracks.total,
+      previewLimit: SAVED_TRACKS_PREVIEW_LIMIT,
       items: mergeByKey(existingTracks.items, liveDashboard.library.savedTracks.items, (item) => `${item.track.id}:${item.addedAt}`)
     }
     const nextAlbums = {
       total: liveDashboard.library.savedAlbums.total,
+      previewLimit: SAVED_ALBUMS_PREVIEW_LIMIT,
       items: mergeByKey(existingAlbums.items, liveDashboard.library.savedAlbums.items, (item) => `${item.album.id}:${item.addedAt}`)
     }
     const nextArtists = {
       total: liveDashboard.library.followedArtists.total,
+      previewLimit: FOLLOWED_ARTISTS_PREVIEW_LIMIT,
       items: mergeByKey(existingArtists.items, liveDashboard.library.followedArtists.items, (item) => item.id)
     }
     const nextPlaylists = {
@@ -1317,7 +1346,7 @@ export async function syncSpotifyDashboardToArchive(
     }
   }
 
-  const sortedRecentlyPlayed = [...nextHistoryShard].sort(
+  const sortedRecentlyPlayed = [...allMergedRecentlyPlayed].sort(
     (a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
   )
 
