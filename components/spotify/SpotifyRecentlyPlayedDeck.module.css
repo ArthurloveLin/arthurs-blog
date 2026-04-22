@@ -135,6 +135,7 @@
   font-weight: 600;
   line-height: 1.2;
   text-shadow: rgba(0, 0, 0, 0.55) 0 10px 10px;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -233,6 +234,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  position: relative;
+  z-index: 10;
 }
 
 .paginationDots {
@@ -244,17 +247,17 @@
   height: 0.42rem;
   width: 0.42rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.22);
+  background: color-mix(in srgb, var(--muted-foreground) 40%, transparent);
   transition: transform 220ms ease, background-color 220ms ease, width 220ms ease;
 }
 
 .paginationDotActive {
   width: 1.35rem;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--foreground);
 }
 
 .pageLabel {
-  color: rgba(255, 255, 255, 0.68);
+  color: var(--muted-foreground);
   font-size: 0.82rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;

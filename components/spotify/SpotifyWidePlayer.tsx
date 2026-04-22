@@ -1,12 +1,11 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, Clock3, Headphones, Music2, Radio, Sparkles } from 'lucide-react'
+import { ArrowRight, CalendarClock, Clock3, Headphones, Heart, Library, Music2, Radio, Sparkles, Monitor, Smartphone, Speaker, Laptop } from 'lucide-react'
 
 import { useSpotify } from '@/components/SpotifyProvider'
-import AdminOnly from '@/components/AdminOnly'
-import SpotifySyncButton from './SpotifySyncButton'
 import { formatStableDate } from '@/lib/date-format'
 
 function formatRelativeTime(playedAt: string) {
@@ -29,6 +28,20 @@ function formatAbsoluteTime(playedAt: string) {
   })
 }
 
+function formatMs(ms: number) {
+  const seconds = Math.floor(ms / 1000)
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+function getDeviceIcon(deviceType?: string) {
+  if (deviceType === 'Computer') return Laptop
+  if (deviceType === 'Smartphone') return Smartphone
+  if (deviceType === 'Speaker') return Speaker
+  return Monitor
+}
+
 function getDeviceLabel(deviceName?: string, deviceType?: string) {
   if (!deviceName && !deviceType) {
     return '最近设备未知'
@@ -40,10 +53,61 @@ function getDeviceLabel(deviceName?: string, deviceType?: string) {
   return deviceName || deviceType || 'Spotify 设备'
 }
 
-export default function SpotifyWidePlayer() {
+function StatItem({ label, value, icon: Icon, href }: { label: string; value: number; icon: any; href?: string }) {
+  const content = (
+    <div className="group flex items-center justify-between gap-3 lg:flex-col lg:items-end lg:gap-0.5">
+      <div className="flex items-center gap-1.5 opacity-60 transition-opacity group-hover:opacity-100">
+        <Icon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
+        <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-emerald-800 dark:text-emerald-200 whitespace-nowrap">{label}</p>
+      </div>
+      <p className="text-lg font-semibold tabular-nums text-foreground/90 transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400 sm:text-xl lg:text-lg">
+        {value.toLocaleString()}
+      </p>
+    </div>
+  )
+
+  if (href) {
+    return (
+      <Link href={href} className="block transition-transform hover:-translate-x-0.5 active:scale-95">
+        {content}
+      </Link>
+    )
+  }
+
+  return content
+}
+
+export interface SpotifyWidePlayerStats {
+  recentlyPlayed: number
+  likedSongs: number
+  playlists: number
+}
+
+export default function SpotifyWidePlayer({ stats }: { stats?: SpotifyWidePlayerStats }) {
   const {
     state: { data, loading },
   } = useSpotify()
+
+  const [localProgress, setLocalProgress] = useState(0)
+
+  useEffect(() => {
+    if (data?.progressMs) {
+      setLocalProgress(data.progressMs)
+    }
+  }, [data?.progressMs])
+
+  useEffect(() => {
+    if (!data?.isPlaying || !data?.durationMs) return
+
+    const interval = setInterval(() => {
+      setLocalProgress((prev) => {
+        const next = prev + 1000
+        return next > (data.durationMs || 0) ? (data.durationMs || 0) : next
+      })
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [data?.isPlaying, data?.durationMs])
 
   if (loading) {
     return (
@@ -89,126 +153,135 @@ export default function SpotifyWidePlayer() {
     )
   }
 
-  const recentTracks = data.recentTracks ?? []
   const statusLabel = data.isPlaying ? '正在播放' : data.playedAt ? formatRelativeTime(data.playedAt) : '最近播放'
   const absolutePlayedAt = data.playedAt ? formatAbsoluteTime(data.playedAt) : null
+  const DeviceIcon = getDeviceIcon(data.deviceType)
+
+  const progressPercent = data.durationMs ? (localProgress / data.durationMs) * 100 : 0
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-emerald-500/15 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.20),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.96),rgba(236,253,245,0.92))] p-4 sm:p-5 md:p-6 shadow-[0_24px_90px_rgba(16,185,129,0.16)] dark:bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.22),transparent_30%),linear-gradient(135deg,rgba(3,10,8,0.95),rgba(8,24,17,0.95))]">
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[linear-gradient(120deg,transparent,rgba(16,185,129,0.12),transparent)] opacity-80" />
-
-      <div className="relative z-10 grid gap-6 lg:grid-cols-[112px_minmax(0,1fr)_240px] lg:items-center">
-        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[24px] border border-white/50 bg-emerald-950/10 shadow-[0_18px_40px_rgba(0,0,0,0.18)] sm:h-28 sm:w-28 sm:rounded-[28px]">
-          {data.albumImageUrl ? (
-            <Image
-              src={data.albumImageUrl}
-              alt={data.album || data.title || 'Spotify artwork'}
-              fill
-              sizes="112px"
-              className="object-cover"
-              unoptimized
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-emerald-700 dark:text-emerald-300">
-              <Music2 className="h-10 w-10" strokeWidth={1.8} />
-            </div>
-          )}
+    <div className="relative flex min-h-[360px] flex-col justify-center overflow-hidden rounded-[28px] border border-emerald-500/15 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.1),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.8),rgba(240,253,248,0.7))] p-6 sm:p-8 shadow-[0_18px_60_rgba(0,0,0,0.05)] dark:bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_30%),linear-gradient(135deg,rgba(10,20,15,0.7),rgba(5,15,10,0.7))]">
+      {data.albumImageUrl && (
+        <div className="animate-in fade-in mix-blend-multiply transition-opacity duration-1000 dark:mix-blend-screen pointer-events-none absolute inset-0 overflow-hidden opacity-30 dark:opacity-20">
+          <Image
+            src={data.albumImageUrl}
+            alt=""
+            fill
+            sizes="(max-width: 1200px) 100vw, 1200px"
+            className="scale-125 saturate-150 object-cover blur-[80px]"
+            unoptimized
+          />
         </div>
+      )}
 
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-emerald-700/80 dark:text-emerald-300/80 sm:text-[11px]">
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-white/60 px-2 py-0.5 font-mono dark:bg-white/5 sm:px-3 sm:py-1">
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[linear-gradient(120deg,transparent,rgba(16,185,129,0.05),transparent)] opacity-60" />
+
+      <div className="relative z-10">
+        <div className="mb-6 flex flex-wrap items-center gap-2 text-[10.5px] uppercase tracking-[0.2em] text-emerald-700/80 sm:text-[11px] dark:text-emerald-300/80">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-white/60 px-2 py-0.5 font-mono sm:px-3 sm:py-1 dark:bg-white/5">
+            {data.isPlaying ? (
+              <span className="heartbeat text-[10px] leading-none">❤️</span>
+            ) : (
               <Radio className="h-3.5 w-3.5" strokeWidth={1.8} />
-              {statusLabel}
+            )}
+            {statusLabel}
+          </span>
+          {data.bpm ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/15 px-2 py-0.5 font-mono sm:px-3 sm:py-1">
+              <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
+              {Math.round(data.bpm)} BPM
             </span>
-            {data.bpm ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/15 px-2 py-0.5 sm:px-3 sm:py-1">
-                <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
-                {Math.round(data.bpm)} BPM
-              </span>
-            ) : null}
-          </div>
-
-          <h2 className="mt-3 truncate text-2xl font-semibold tracking-tight text-foreground sm:mt-4 sm:text-3xl md:text-[2.6rem]">
-            {data.title}
-          </h2>
-          <p className="mt-1 truncate text-sm text-foreground/80 sm:mt-2 sm:text-base md:text-lg">{data.artist}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground sm:text-sm">
-            <span className="inline-flex items-center gap-1.5">
-              <Headphones className="h-4 w-4" strokeWidth={1.8} />
-              {data.album}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Clock3 className="h-4 w-4" strokeWidth={1.8} />
-              {absolutePlayedAt ? `绝对时间 ${absolutePlayedAt}` : '实时播放中'}
-            </span>
-            <span>{getDeviceLabel(data.deviceName, data.deviceType)}</span>
-          </div>
+          ) : null}
         </div>
 
-        <div className="space-y-3 lg:justify-self-end">
-          <AdminOnly>
-            <SpotifySyncButton />
-          </AdminOnly>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-            <a
-              href="#recently-played"
-              className="rounded-[22px] border border-border/60 bg-background/70 px-4 py-3 text-sm font-medium text-foreground transition hover:border-emerald-500/35 hover:text-emerald-600"
-            >
-              查看 Recently Played
-            </a>
-            <Link
-              href="/spotify#library"
-              className="rounded-[22px] border border-border/60 bg-background/70 px-4 py-3 text-sm font-medium text-foreground transition hover:border-emerald-500/35 hover:text-emerald-600"
-            >
-              跳到曲库概览
-            </Link>
+        <div className="grid gap-8 lg:grid-cols-[440px_1fr_160px] lg:items-stretch xl:grid-cols-[500px_1fr_180px]">
+          {/* Column 1: Album Cover & Info Grouped */}
+          <div className="flex min-w-0 items-center gap-6 md:gap-10">
+            <div className="group relative h-32 w-32 shrink-0 overflow-hidden rounded-[24px] border border-white/50 bg-emerald-950/10 shadow-[0_18px_40px_rgba(0,0,0,0.18)] sm:h-44 sm:w-44 sm:rounded-[36px]">
+              {data.albumImageUrl ? (
+                <>
+                  <Image
+                    src={data.albumImageUrl}
+                    alt={data.album || data.title || 'Spotify artwork'}
+                    fill
+                    sizes="160px"
+                    className="transition-transform duration-700 ease-out object-cover group-hover:scale-105"
+                    unoptimized
+                  />
+                  <div className="ring-1 ring-inset ring-white/20 pointer-events-none absolute inset-0 rounded-[36px]" />
+                </>
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-emerald-700 dark:text-emerald-300">
+                  <Music2 className="h-12 w-12" strokeWidth={1.8} />
+                </div>
+              )}
+            </div>
+
+            <div className="flex min-w-0 flex-col justify-center gap-2">
+              <div className="min-w-0 space-y-1">
+                <div className="relative h-9 sm:h-12 lg:h-14 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+                  <div className="flex w-max animate-[marquee-scroll_20s_linear_infinite] hover:[animation-play-state:paused]">
+                    <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl px-4">
+                      {data.title}
+                    </h2>
+                    <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl px-4">
+                      {data.title}
+                    </h2>
+                  </div>
+                </div>
+                <p className="text-base font-medium text-foreground/80 sm:text-lg lg:text-xl truncate">
+                  {data.artist}
+                </p>
+              </div>
+              <div className="mt-2 flex flex-col gap-y-1 text-[12px] font-medium text-foreground/70 sm:text-sm opacity-80">
+                <span className="inline-flex items-center gap-2">
+                  <Headphones className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+                  <span className="truncate">{data.album}</span>
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <DeviceIcon className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+                  {getDeviceLabel(data.deviceName, data.deviceType)}
+                </span>
+                {absolutePlayedAt && !data.isPlaying && (
+                  <span className="inline-flex items-center gap-2">
+                    <Clock3 className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+                    {absolutePlayedAt}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Bar Column - Centered */}
+          <div className="flex flex-col justify-center items-center px-4">
+            {data.isPlaying && data.durationMs && (
+              <div className="w-full max-w-[320px] space-y-4 text-center">
+                <div className="relative h-2 w-full overflow-hidden rounded-full bg-emerald-500/10 dark:bg-white/5">
+                  <div 
+                    className="absolute inset-y-0 left-0 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-[width] duration-300 ease-linear"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <div className="flex justify-between font-mono text-[12px] tracking-wider text-muted-foreground/70">
+                  <span>{formatMs(localProgress)}</span>
+                  <span>{formatMs(data.durationMs)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Stats Column */}
+          <div className="flex flex-col gap-5 border-emerald-500/10 lg:items-end lg:border-l lg:pl-8">
+            {stats && (
+              <>
+                <StatItem label="Recently Played" value={stats.recentlyPlayed} icon={CalendarClock} href="#recently-played" />
+                <StatItem label="Liked Songs" value={stats.likedSongs} icon={Heart} href="#saved-tracks" />
+                <StatItem label="Playlists" value={stats.playlists} icon={Library} href="#playlists" />
+              </>
+            )}
           </div>
         </div>
       </div>
-
-      {recentTracks.length > 0 ? (
-        <div className="relative z-10 mt-6 border-t border-emerald-500/10 pt-5">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Recent Tail</p>
-            <span className="text-xs text-muted-foreground">顶部卡片保持未展开形态，只预览后续轨迹</span>
-          </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            {recentTracks.slice(0, 3).map((track, index) => (
-              <a
-                key={`${track.id}-${track.playedAt}-${index}`}
-                href={track.songUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="group flex items-center gap-3 rounded-[20px] border border-white/40 bg-white/60 p-3 transition hover:border-emerald-500/30 hover:bg-white dark:border-white/8 dark:bg-white/5 dark:hover:bg-white/10"
-              >
-                <div className="relative h-12 w-12 overflow-hidden rounded-2xl bg-muted">
-                  {track.albumImageUrl ? (
-                    <Image
-                      src={track.albumImageUrl}
-                      alt={track.album}
-                      fill
-                      sizes="48px"
-                      className="object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                      <Music2 className="h-5 w-5" strokeWidth={1.8} />
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground group-hover:text-emerald-600">
-                    {track.title}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">{track.artist}</p>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   )
 }

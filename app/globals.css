@@ -783,6 +783,15 @@ html {
 }
 
 /* Blob animations */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+.heartbeat {
+  animation: heartbeat 1.2s ease-in-out infinite;
+}
+
 @keyframes blob {
   0% {
     transform: translate(0px, 0px) scale(1);
@@ -808,6 +817,11 @@ html {
   100% {
     background-position: 0% center;
   }
+}
+
+@keyframes marquee-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 .animate-blob {
