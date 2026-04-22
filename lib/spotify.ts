@@ -45,6 +45,7 @@ const SAVED_ALBUMS_PREVIEW_LIMIT = 12
 const FOLLOWED_ARTISTS_PREVIEW_LIMIT = 12
 const SPOTIFY_META_KEY = 'spotify/meta.json'
 const SPOTIFY_LATEST_DASHBOARD_KEY = 'spotify/latest/dashboard.json'
+const SPOTIFY_LATEST_LIBRARY_KEY = 'spotify/latest/library.json'
 export const SPOTIFY_SAVED_TRACKS_KEY = 'spotify/collection/saved-tracks.json'
 const SPOTIFY_SAVED_ALBUMS_KEY = 'spotify/collection/saved-albums.json'
 export const SPOTIFY_FOLLOWED_ARTISTS_KEY = 'spotify/collection/followed-artists.json'
@@ -60,11 +61,12 @@ const SPOTIFY_ARCHIVE_SCHEMA_VERSION = 2
 const SPOTIFY_REQUEST_MAX_ATTEMPTS = 3
 
 type SpotifyStoredDashboardSnapshot = Omit<SpotifyDashboardData, 'archiveMeta'>
+type SpotifyStoredDashboardFile = Omit<SpotifyStoredDashboardSnapshot, 'library'>
 
 interface SpotifyLatestDashboardFile {
   schemaVersion: number
   syncedAt: string
-  data: SpotifyStoredDashboardSnapshot
+  data: SpotifyStoredDashboardFile
 }
 
 
@@ -1083,6 +1085,12 @@ async function writeRecentlyPlayedShard(yearMonth: string, items: SpotifyRecentl
   await writeR2Json(bucket, `${SPOTIFY_RECENTLY_PLAYED_PATH}${yearMonth}.json`, items)
 }
 
+async function readLatestSpotifyLibrary(): Promise<SpotifyDashboardData['library'] | null> {
+  const { bucket } = getSpotifyArchiveConfig()
+  if (!bucket) return null
+  return readR2JsonIfExists<SpotifyDashboardData['library']>(bucket, SPOTIFY_LATEST_LIBRARY_KEY)
+}
+
 async function readLatestSpotifyDashboard() {
   const { bucket, publicDomain } = getSpotifyArchiveConfig()
 
@@ -1119,8 +1127,11 @@ export const getStoredSpotifyDashboardData = cache(async function getStoredSpoti
     })
   }
 
-  const [latest, meta] = await Promise.all([readLatestSpotifyDashboard(), readSpotifyMeta()])
-
+  const [latest, meta, library] = await Promise.all([
+    readLatestSpotifyDashboard(),
+    readSpotifyMeta(),
+    readLatestSpotifyLibrary(),
+  ])
 
   if (!latest) {
     return createEmptyDashboardData({
@@ -1137,6 +1148,12 @@ export const getStoredSpotifyDashboardData = cache(async function getStoredSpoti
 
   return {
     ...latest.data,
+    library: library ?? {
+      savedTracks: { total: 0, items: [] },
+      savedAlbums: { total: 0, items: [] },
+      followedArtists: { total: 0, items: [] },
+      playlists: { total: 0, items: [] },
+    },
     archiveMeta: {
       source: 'r2-archive',
       hasStoredSnapshot: true,
@@ -1160,10 +1177,10 @@ export async function syncSpotifyDashboardToArchive(
   const syncedAt = new Date().toISOString()
   const yearMonth = getYearMonth(new Date(syncedAt))
 
-  const [meta, existingHistoryShard, latestDashboard] = await Promise.all([
+  const [meta, existingHistoryShard, latestLibrary] = await Promise.all([
     readSpotifyMeta(),
     readRecentlyPlayedShard(yearMonth),
-    mode === 'quick' ? readLatestSpotifyDashboard() : Promise.resolve(null),
+    mode === 'quick' ? readLatestSpotifyLibrary() : Promise.resolve(null),
   ])
 
   // Full sync: 读取全量集合用于增量合并；Quick sync: 跳过，library 数据从上次快照继承
@@ -1255,9 +1272,10 @@ export async function syncSpotifyDashboardToArchive(
       followedArtists: nextArtists,
       playlists: strippedPlaylists,
     }
+    writePromises.push(writeR2Json(bucket, SPOTIFY_LATEST_LIBRARY_KEY, snapshotLibrary))
   } else {
     // Quick sync: library 直接继承上次全量快照，不重新请求也不重写 R2 集合文件
-    snapshotLibrary = latestDashboard?.data.library ?? {
+    snapshotLibrary = latestLibrary ?? {
       savedTracks: { total: 0, items: [] },
       savedAlbums: { total: 0, items: [] },
       followedArtists: { total: 0, items: [] },
@@ -1303,17 +1321,17 @@ export async function syncSpotifyDashboardToArchive(
     (a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
   )
 
-  const dashboardDataSnapshot: SpotifyStoredDashboardSnapshot = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { library: _library, ...liveDashboardWithoutLibrary } = {
     ...liveDashboard,
-    library: snapshotLibrary,
     recentlyPlayed: sortedRecentlyPlayed.slice(0, RECENTLY_PLAYED_LIMIT),
-    fetchedAt: syncedAt
+    fetchedAt: syncedAt,
   }
 
   const latestFile: SpotifyLatestDashboardFile = {
     schemaVersion: SPOTIFY_ARCHIVE_SCHEMA_VERSION,
     syncedAt,
-    data: dashboardDataSnapshot,
+    data: liveDashboardWithoutLibrary,
   }
   writePromises.push(writeR2Json(bucket, SPOTIFY_LATEST_DASHBOARD_KEY, latestFile))
 
