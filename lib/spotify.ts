@@ -9,7 +9,6 @@ import {
   type SpotifyCollectionPreview,
   type SpotifyContextSource,
   type SpotifyDashboardData,
-  type SpotifyFollowedArtist,
   type SpotifyNowPlayingData,
   type SpotifyNowPlayingRecentTrack,
   type SpotifyPlaylist,
@@ -35,20 +34,17 @@ const SPOTIFY_TOP_TRACKS_ENDPOINT = 'https://api.spotify.com/v1/me/top/tracks'
 const SPOTIFY_TOP_ARTISTS_ENDPOINT = 'https://api.spotify.com/v1/me/top/artists'
 const SPOTIFY_SAVED_TRACKS_ENDPOINT = 'https://api.spotify.com/v1/me/tracks'
 const SPOTIFY_SAVED_ALBUMS_ENDPOINT = 'https://api.spotify.com/v1/me/albums'
-const SPOTIFY_FOLLOWED_ARTISTS_ENDPOINT = 'https://api.spotify.com/v1/me/following'
 const SPOTIFY_PLAYLISTS_ENDPOINT = 'https://api.spotify.com/v1/me/playlists'
 const SPOTIFY_PLAYLIST_DETAILS_ENDPOINT = 'https://api.spotify.com/v1/playlists'
 
 const RECENTLY_PLAYED_LIMIT = 12
 const SAVED_TRACKS_PREVIEW_LIMIT = 24
 const SAVED_ALBUMS_PREVIEW_LIMIT = 12
-const FOLLOWED_ARTISTS_PREVIEW_LIMIT = 12
 const SPOTIFY_META_KEY = 'spotify/meta.json'
 const SPOTIFY_LATEST_DASHBOARD_KEY = 'spotify/latest/dashboard.json'
 const SPOTIFY_LATEST_LIBRARY_KEY = 'spotify/latest/library.json'
 export const SPOTIFY_SAVED_TRACKS_KEY = 'spotify/collection/saved-tracks.json'
 const SPOTIFY_SAVED_ALBUMS_KEY = 'spotify/collection/saved-albums.json'
-export const SPOTIFY_FOLLOWED_ARTISTS_KEY = 'spotify/collection/followed-artists.json'
 const SPOTIFY_PLAYLISTS_KEY = 'spotify/collection/playlists.json'
 const SPOTIFY_PLAYLIST_SHARD_PATH = 'spotify/collection/playlists/'
 const SPOTIFY_RANKINGS_KEY = 'spotify/history/rankings.json'
@@ -81,7 +77,6 @@ interface SpotifySyncResult {
     topArtists: number
     savedTracks: number
     savedAlbums: number
-    followedArtists: number
     playlists: number
     warnings: number
   }
@@ -156,13 +151,6 @@ type SpotifySavedAlbumItem = {
   album: SpotifyAlbumObject
 }
 
-type SpotifyFollowedArtistsResponse = {
-  artists: {
-    items: SpotifyArtistObject[]
-    total: number
-  }
-}
-
 type SpotifyPlaylistObject = {
   id: string
   name: string
@@ -232,7 +220,6 @@ function createEmptyDashboardData(overrides: Partial<SpotifyDashboardData> = {})
     library: {
       savedTracks: { total: 0, items: [] },
       savedAlbums: { total: 0, items: [] },
-      followedArtists: { total: 0, items: [] },
       playlists: { total: 0, items: [] },
     },
     warnings: [],
@@ -480,17 +467,6 @@ function toAlbumSummary(album: SpotifyAlbumObject): SpotifyAlbumSummary {
   }
 }
 
-function toFollowedArtist(artist: SpotifyArtistObject): SpotifyFollowedArtist {
-  return {
-    id: artist.id ?? artist.name,
-    name: artist.name,
-    imageUrl: artist.images?.[0]?.url ?? null,
-    url: artist.external_urls?.spotify ?? '',
-    genres: artist.genres ?? [],
-    followers: artist.followers?.total ?? null,
-  }
-}
-
 async function getCurrentPlayback(accessToken: string) {
   const playback = await requestSpotify<SpotifyCurrentPlaybackResponse | null>(
     accessToken,
@@ -691,18 +667,6 @@ async function getSavedAlbumsPreview(accessToken: string): Promise<SpotifyCollec
   }
 }
 
-async function getFollowedArtistsPreview(accessToken: string): Promise<SpotifyCollectionPreview<SpotifyFollowedArtist>> {
-  const response = await requestSpotify<SpotifyFollowedArtistsResponse>(
-    accessToken,
-    `${SPOTIFY_FOLLOWED_ARTISTS_ENDPOINT}?type=artist&limit=${FOLLOWED_ARTISTS_PREVIEW_LIMIT}`
-  )
-
-  return {
-    total: response.artists.total,
-    items: response.artists.items.map(toFollowedArtist),
-  }
-}
-
 async function getAllPlaylists(accessToken: string) {
   const playlists: SpotifyPlaylistObject[] = []
   let nextUrl: string | null = `${SPOTIFY_PLAYLISTS_ENDPOINT}?limit=50`
@@ -890,7 +854,6 @@ async function fetchSpotifyDashboardDataFromApi(
     topArtistsResult,
     savedTracksResult,
     savedAlbumsResult,
-    followedArtistsResult,
     playlistsResult,
   ] = await Promise.allSettled([
     getRecentlyPlayed(accessToken, RECENTLY_PLAYED_LIMIT, { resolveContext: true, after: options.afterMs }),
@@ -898,7 +861,6 @@ async function fetchSpotifyDashboardDataFromApi(
     mode === 'full' ? getAllTopArtists(accessToken) : Promise.reject('skipped'),
     mode === 'full' ? getSavedTracksPreview(accessToken) : Promise.reject('skipped'),
     mode === 'full' ? getSavedAlbumsPreview(accessToken) : Promise.reject('skipped'),
-    mode === 'full' ? getFollowedArtistsPreview(accessToken) : Promise.reject('skipped'),
     mode === 'full' ? getPlaylists(accessToken, options.archivedPlaylists) : Promise.reject('skipped'),
   ])
 
@@ -929,7 +891,6 @@ async function fetchSpotifyDashboardDataFromApi(
     library: {
       savedTracks: unwrapSettled(savedTracksResult, { total: 0, items: [] }, '已点赞歌曲'),
       savedAlbums: unwrapSettled(savedAlbumsResult, { total: 0, items: [] }, '已收藏专辑'),
-      followedArtists: unwrapSettled(followedArtistsResult, { total: 0, items: [] }, '关注歌手'),
       playlists: unwrapSettled(playlistsResult, { total: 0, items: [] }, '歌单'),
     },
     warnings,
@@ -1161,7 +1122,6 @@ export const getStoredSpotifyDashboardData = cache(async function getStoredSpoti
     library: library ?? {
       savedTracks: { total: 0, items: [] },
       savedAlbums: { total: 0, items: [] },
-      followedArtists: { total: 0, items: [] },
       playlists: { total: 0, items: [] },
     },
     archiveMeta: {
@@ -1195,19 +1155,16 @@ export async function syncSpotifyDashboardToArchive(
   const [
     existingTracks,
     existingAlbums,
-    existingArtists,
     existingPlaylists
   ] = mode === 'full'
     ? await Promise.all([
         readSpotifyCollection<SpotifySavedTrack>(SPOTIFY_SAVED_TRACKS_KEY),
         readSpotifyCollection<SpotifySavedAlbum>(SPOTIFY_SAVED_ALBUMS_KEY),
-        readSpotifyCollection<SpotifyFollowedArtist>(SPOTIFY_FOLLOWED_ARTISTS_KEY),
         readSpotifyCollection<SpotifyPlaylist>(SPOTIFY_PLAYLISTS_KEY),
       ])
     : [
         { total: 0, items: [] as SpotifySavedTrack[] },
         { total: 0, items: [] as SpotifySavedAlbum[] },
-        { total: 0, items: [] as SpotifyFollowedArtist[] },
         { total: 0, items: [] as SpotifyPlaylist[] },
       ]
 
@@ -1263,11 +1220,6 @@ export async function syncSpotifyDashboardToArchive(
       previewLimit: SAVED_ALBUMS_PREVIEW_LIMIT,
       items: mergeByKey(existingAlbums.items, liveDashboard.library.savedAlbums.items, (item) => `${item.album.id}:${item.addedAt}`)
     }
-    const nextArtists = {
-      total: liveDashboard.library.followedArtists.total,
-      previewLimit: FOLLOWED_ARTISTS_PREVIEW_LIMIT,
-      items: mergeByKey(existingArtists.items, liveDashboard.library.followedArtists.items, (item) => item.id)
-    }
     const nextPlaylists = {
       total: liveDashboard.library.playlists.total,
       items: mergePlaylistHistory(existingPlaylists.items, liveDashboard.library.playlists.items as unknown as SpotifyPlaylist[])
@@ -1275,7 +1227,6 @@ export async function syncSpotifyDashboardToArchive(
 
     writePromises.push(writeR2Json(bucket, SPOTIFY_SAVED_TRACKS_KEY, nextTracks))
     writePromises.push(writeR2Json(bucket, SPOTIFY_SAVED_ALBUMS_KEY, nextAlbums))
-    writePromises.push(writeR2Json(bucket, SPOTIFY_FOLLOWED_ARTISTS_KEY, nextArtists))
     writePromises.push(writeR2Json(bucket, SPOTIFY_PLAYLISTS_KEY, nextPlaylists))
 
     // 同步歌单曲目分片 (仅同步本次抓取到的歌单中包含曲目的部分，通常是 snapshot 变动的歌单)
@@ -1298,7 +1249,6 @@ export async function syncSpotifyDashboardToArchive(
     snapshotLibrary = {
       savedTracks: nextTracks,
       savedAlbums: nextAlbums,
-      followedArtists: nextArtists,
       playlists: strippedPlaylists,
     }
     writePromises.push(writeR2Json(bucket, SPOTIFY_LATEST_LIBRARY_KEY, snapshotLibrary))
@@ -1307,7 +1257,6 @@ export async function syncSpotifyDashboardToArchive(
     snapshotLibrary = latestLibrary ?? {
       savedTracks: { total: 0, items: [] },
       savedAlbums: { total: 0, items: [] },
-      followedArtists: { total: 0, items: [] },
       playlists: { total: 0, items: [] },
     }
   }
@@ -1389,7 +1338,6 @@ export async function syncSpotifyDashboardToArchive(
       topArtists: liveDashboard.topArtists.medium_term.length,
       savedTracks: liveDashboard.library.savedTracks.total,
       savedAlbums: liveDashboard.library.savedAlbums.total,
-      followedArtists: liveDashboard.library.followedArtists.total,
       playlists: liveDashboard.library.playlists.total,
       warnings: liveDashboard.warnings.length,
     },
