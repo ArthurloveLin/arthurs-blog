@@ -1,11 +1,10 @@
 import { memo, type ReactNode } from 'react'
-import { AlertTriangle, CalendarClock, Heart, Library, Users2 } from 'lucide-react'
+import { AlertTriangle, CalendarClock, Heart, Library } from 'lucide-react'
 
 import type {
   SpotifyDashboardData,
   SpotifyPlaylistPreview,
 } from '@/lib/spotify-types'
-import SpotifyFollowedArtistsPanel from './SpotifyFollowedArtistsPanel'
 import SpotifyVinylAlbumsPanel from './SpotifyVinylAlbumsPanel'
 import SpotifyLivePlayerPanel from './SpotifyLivePlayerPanel'
 import SpotifyPlaylistDetail from './SpotifyPlaylistDetail'
@@ -76,12 +75,6 @@ export default function SpotifyDashboard({ data }: { data: SpotifyDashboardData 
       icon: Heart,
     },
     {
-      label: 'Followed Artists',
-      value: data.library.followedArtists.total,
-      note: '',
-      icon: Users2,
-    },
-    {
       label: 'Playlists',
       value: data.library.playlists.total,
       note: '',
@@ -95,7 +88,7 @@ export default function SpotifyDashboard({ data }: { data: SpotifyDashboardData 
         <SpotifyLivePlayerPanel />
 
 
-        <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-5 grid grid-cols-2 gap-4 xl:grid-cols-3">
           {overviewCards.map((card) => {
             const Icon = card.icon
 
@@ -124,18 +117,14 @@ export default function SpotifyDashboard({ data }: { data: SpotifyDashboardData 
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <SpotifyTopTracksPanel data={data.topTracks} />
-        <SpotifyTopArtistsPanel data={data.topArtists} />
-      </div>
-
-      <div id="library" className="mt-6 grid gap-6 xl:grid-cols-2">
         <SpotifySavedTracksPanel
           initialItems={data.library.savedTracks.items}
           total={data.library.savedTracks.total}
         />
-        <SpotifyFollowedArtistsPanel
-          initialItems={data.library.followedArtists.items}
-          total={data.library.followedArtists.total}
-        />
+      </div>
+
+      <div className="mt-6">
+        <SpotifyTopArtistsPanel data={data.topArtists} />
       </div>
 
       <div className="mt-6">
