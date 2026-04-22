@@ -1146,9 +1146,10 @@ export async function syncSpotifyDashboardToArchive(
 
   const syncedAt = new Date().toISOString()
 
-  const [meta, latestLibrary] = await Promise.all([
+  const [meta, latestLibrary, existingDashboard] = await Promise.all([
     readSpotifyMeta(),
     mode === 'quick' ? readLatestSpotifyLibrary() : Promise.resolve(null),
+    readLatestSpotifyDashboard(),
   ])
 
   // Full sync: 读取全量集合用于增量合并；Quick sync: 跳过，library 数据从上次快照继承
@@ -1295,9 +1296,13 @@ export async function syncSpotifyDashboardToArchive(
     }
   }
 
-  const sortedRecentlyPlayed = [...allMergedRecentlyPlayed].sort(
-    (a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
-  )
+  // 若本次 quick sync 未拉到任何新曲目（afterMs 过滤后为空），回落到现有 dashboard 中的数据，
+  // 避免用空数组覆盖已归档的 recentlyPlayed。
+  const sortedRecentlyPlayed = allMergedRecentlyPlayed.length > 0
+    ? [...allMergedRecentlyPlayed].sort(
+        (a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
+      )
+    : (existingDashboard?.data?.recentlyPlayed ?? [])
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { library: _library, ...liveDashboardWithoutLibrary } = {

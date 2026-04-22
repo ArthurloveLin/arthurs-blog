@@ -96,20 +96,26 @@
   pointer-events: none;
 }
 
-/* ── Rank — always visible, bottom-center ── */
+/* ── Rank — top-left, fades out on hover ── */
 
 .rankLabel {
   position: absolute;
-  bottom: 0.6rem;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 0.75rem;
+  left: 0.75rem;
   font-family: var(--font-mono, monospace);
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.72);
+  font-size: clamp(0.9rem, 1.6vw, 1.1rem);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: rgba(0, 0, 0, 0.6) 0 1px 4px;
   z-index: 10;
   pointer-events: none;
   white-space: nowrap;
+  transition: opacity 0.4s ease;
+}
+
+.card:hover .rankLabel {
+  opacity: 0;
 }
 
 /* ── Hover-revealed content ── */
@@ -329,6 +335,7 @@
   .card,
   .innerBorder,
   .hoverContent,
+  .rankLabel,
   .navButton,
   .paginationDot {
     transition-duration: 0ms !important;
