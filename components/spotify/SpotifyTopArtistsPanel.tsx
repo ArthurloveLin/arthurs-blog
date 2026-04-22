@@ -1,11 +1,104 @@
 'use client'
 
-import React, { useMemo, useTransition } from 'react'
-import Image from 'next/image'
-import { ExternalLink, Mic2, Users } from 'lucide-react'
+import React, { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { ChevronLeft, ChevronRight, ExternalLink, Mic2, Users } from 'lucide-react'
 
 import type { SpotifyTimeRange, SpotifyTopArtist } from '@/lib/spotify-types'
 import SpotifyTimeRangeTabs from './SpotifyTimeRangeTabs'
+import styles from './SpotifyTopArtistsPanel.module.css'
+
+function chunkArtists(arr: SpotifyTopArtist[], size: number): SpotifyTopArtist[][] {
+  const groups: SpotifyTopArtist[][] = []
+  for (let i = 0; i < arr.length; i += size) {
+    groups.push(arr.slice(i, i + size))
+  }
+  return groups
+}
+
+function useCardsPerPage() {
+  const [cardsPerPage, setCardsPerPage] = useState(4)
+
+  useEffect(() => {
+    const resolve = () => {
+      if (window.matchMedia('(max-width: 639px)').matches) return 2
+      if (window.matchMedia('(max-width: 1023px)').matches) return 3
+      return 4
+    }
+
+    const update = () => setCardsPerPage(resolve())
+    update()
+
+    const mql = window.matchMedia('(max-width: 639px), (max-width: 1023px)')
+    mql.addEventListener('change', update)
+    return () => mql.removeEventListener('change', update)
+  }, [])
+
+  return cardsPerPage
+}
+
+function ArtistCard({ artist }: { artist: SpotifyTopArtist }) {
+  const hasImage = Boolean(artist.imageUrl)
+
+  return (
+    <div
+      className={styles.card}
+      style={hasImage ? { backgroundImage: `url(${artist.imageUrl})` } : undefined}
+      data-no-image={!hasImage ? 'true' : undefined}
+    >
+      {!hasImage && (
+        <div className={styles.fallbackIcon}>
+          <Mic2 className="h-10 w-10" strokeWidth={1.5} />
+        </div>
+      )}
+
+      {/* Gradient shade — always present */}
+      <div className={styles.shade} />
+
+      {/* Inner border (CodePen .border equivalent) */}
+      <div className={styles.innerBorder} />
+
+      {/* Rank — always visible */}
+      <span className={styles.rankLabel}>#{artist.rank}</span>
+
+      {/* Hover-revealed content */}
+      <div className={styles.hoverContent}>
+        <div className={styles.nameRow}>
+          <h4 className={styles.artistName}>{artist.name}</h4>
+          {artist.url ? (
+            <a
+              href={artist.url}
+              target="_blank"
+              rel="noreferrer"
+              className={styles.externalLink}
+              aria-label={`在 Spotify 上查看 ${artist.name}`}
+            >
+              <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.8} />
+            </a>
+          ) : null}
+        </div>
+
+        <div className={styles.metaGroup}>
+          {artist.followers ? (
+            <p className={styles.metaRow}>
+              <Users className="h-3 w-3 shrink-0" strokeWidth={1.8} />
+              {artist.followers.toLocaleString()} followers
+            </p>
+          ) : null}
+          {artist.popularity !== null ? (
+            <p className={styles.metaRow}>Popularity {artist.popularity}</p>
+          ) : null}
+          {artist.genres.length > 0 ? (
+            <div className={styles.genreTags}>
+              {artist.genres.slice(0, 3).map((genre) => (
+                <span key={genre} className={styles.genreTag}>{genre}</span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function SpotifyTopArtistsPanel({
   data,
@@ -14,8 +107,33 @@ export default function SpotifyTopArtistsPanel({
 }) {
   const [isPending, startTransition] = useTransition()
   const [activeRange, setActiveRange] = React.useState<SpotifyTimeRange>('medium_term')
+  const [currentGroupIndex, setCurrentGroupIndex] = useState(0)
+  const cardsPerPage = useCardsPerPage()
+  const prevCardsPerPage = useRef(cardsPerPage)
+  const prevRange = useRef(activeRange)
 
   const activeItems = useMemo(() => data[activeRange] ?? [], [activeRange, data])
+  const groups = useMemo(() => chunkArtists(activeItems, cardsPerPage), [activeItems, cardsPerPage])
+
+  // Reset to first group on range or page-size change
+  useEffect(() => {
+    if (prevCardsPerPage.current !== cardsPerPage || prevRange.current !== activeRange) {
+      setCurrentGroupIndex(0)
+      prevCardsPerPage.current = cardsPerPage
+      prevRange.current = activeRange
+    }
+  }, [cardsPerPage, activeRange])
+
+  const effectiveIndex = Math.min(currentGroupIndex, Math.max(0, groups.length - 1))
+  const currentGroup = groups[effectiveIndex] ?? []
+  const hasMultipleGroups = groups.length > 1
+
+  const handlePrevious = () => {
+    startTransition(() => setCurrentGroupIndex(Math.max(0, effectiveIndex - 1)))
+  }
+  const handleNext = () => {
+    startTransition(() => setCurrentGroupIndex(Math.min(groups.length - 1, effectiveIndex + 1)))
+  }
 
   return (
     <section className="rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60px_rgba(0,0,0,0.05)]">
@@ -28,9 +146,7 @@ export default function SpotifyTopArtistsPanel({
               <SpotifyTimeRangeTabs
                 activeRange={activeRange}
                 onChange={(range) => {
-                  startTransition(() => {
-                    setActiveRange(range)
-                  })
+                  startTransition(() => setActiveRange(range))
                 }}
                 tone="contrast"
               />
@@ -45,85 +161,73 @@ export default function SpotifyTopArtistsPanel({
           <SpotifyTimeRangeTabs
             activeRange={activeRange}
             onChange={(range) => {
-              startTransition(() => {
-                setActiveRange(range)
-              })
+              startTransition(() => setActiveRange(range))
             }}
             tone="contrast"
           />
         </div>
       </div>
 
-      <div className={`mt-6 max-h-[860px] overflow-y-auto scrollbar-none transition ${isPending ? 'opacity-60' : 'opacity-100'}`}>
+      <div className={`mt-6 transition-opacity duration-200 ${isPending ? 'opacity-60' : 'opacity-100'}`}>
         {activeItems.length === 0 ? (
           <div className="rounded-[24px] border border-dashed border-border/70 bg-muted/20 p-6 text-sm text-muted-foreground">
             当前时间跨度没有返回可展示的 Top Artists 数据。
           </div>
         ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {activeItems.map((artist) => (
+          <div className={styles.section}>
+            <div className={styles.viewport}>
+              {hasMultipleGroups ? (
+                <>
+                  <button
+                    type="button"
+                    className={[styles.navButton, styles.navButtonLeft].join(' ')}
+                    onClick={handlePrevious}
+                    disabled={effectiveIndex === 0}
+                    aria-label="查看上一组歌手"
+                  >
+                    <ChevronLeft className="h-5 w-5" strokeWidth={2.2} />
+                  </button>
+                  <button
+                    type="button"
+                    className={[styles.navButton, styles.navButtonRight].join(' ')}
+                    onClick={handleNext}
+                    disabled={effectiveIndex === groups.length - 1}
+                    aria-label="查看下一组歌手"
+                  >
+                    <ChevronRight className="h-5 w-5" strokeWidth={2.2} />
+                  </button>
+                </>
+              ) : null}
+
               <div
-                key={`${activeRange}-${artist.id}-${artist.rank}`}
-                className="rounded-[22px] border border-border/60 bg-background/75 p-4"
+                key={`${activeRange}-${cardsPerPage}-${effectiveIndex}`}
+                className={[styles.grid, 'animate-in fade-in slide-in-from-right-4 duration-500'].join(' ')}
+                style={{ gridTemplateColumns: `repeat(${Math.max(currentGroup.length, 1)}, minmax(0, 1fr))` }}
               >
-                <div className="flex items-start gap-3">
-                  <div className="relative h-16 w-16 overflow-hidden rounded-full bg-muted">
-                    {artist.imageUrl ? (
-                      <Image
-                        src={artist.imageUrl}
-                        alt={artist.name}
-                        fill
-                        sizes="64px"
-                        className="object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                        <Mic2 className="h-5 w-5" strokeWidth={1.8} />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-mono text-xs text-muted-foreground">#{artist.rank}</p>
-                        <h4 className="truncate text-base font-semibold text-foreground">{artist.name}</h4>
-                      </div>
-                      {artist.url ? (
-                        <a href={artist.url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground">
-                          <ExternalLink className="h-4 w-4" strokeWidth={1.8} />
-                        </a>
-                      ) : null}
-                    </div>
-
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      {artist.followers ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1">
-                          <Users className="h-3.5 w-3.5" strokeWidth={1.8} />
-                          {artist.followers.toLocaleString()} followers
-                        </span>
-                      ) : null}
-                      {artist.popularity !== null ? (
-                        <span className="rounded-full bg-muted px-2.5 py-1">Popularity {artist.popularity}</span>
-                      ) : null}
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {artist.genres.length > 0 ? (
-                        artist.genres.slice(0, 5).map((genre) => (
-                          <span key={genre} className="rounded-full border border-border/70 px-2.5 py-1 text-xs text-foreground/80">
-                            {genre}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-xs text-muted-foreground">该歌手未返回 genres 标签</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                {currentGroup.map((artist) => (
+                  <ArtistCard key={`${activeRange}-${artist.id}-${artist.rank}`} artist={artist} />
+                ))}
               </div>
-            ))}
+            </div>
+
+            {hasMultipleGroups ? (
+              <div className={styles.statusBar}>
+                <div className={styles.paginationDots} aria-hidden="true">
+                  {groups.map((_, index) => (
+                    <span
+                      key={`artist-dot-${index}`}
+                      className={[
+                        styles.paginationDot,
+                        index === effectiveIndex ? styles.paginationDotActive : '',
+                      ].filter(Boolean).join(' ')}
+                    />
+                  ))}
+                </div>
+                <p className={styles.pageLabel}>
+                  第 {effectiveIndex + 1} 组 / 共 {groups.length} 组
+                </p>
+              </div>
+            ) : null}
           </div>
         )}
       </div>

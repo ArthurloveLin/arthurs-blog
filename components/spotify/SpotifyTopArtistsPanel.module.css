@@ -1,0 +1,337 @@
+.section {
+  position: relative;
+}
+
+.viewport {
+  position: relative;
+  padding-inline: 2.75rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+/* ── Card ── */
+
+.cardWrap {
+  position: relative;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 18px;
+  background-color: var(--muted);
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  box-shadow:
+    rgba(0, 0, 0, 0.55) 0 30px 60px 0,
+    inset #333 0 0 0 4px,
+    inset rgba(255, 255, 255, 0.45) 0 0 0 5px;
+  cursor: default;
+  transition:
+    background-size 0.8s ease,
+    background-position 0.8s ease,
+    box-shadow 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.card:hover {
+  background-size: 140%;
+  background-position: center 20%;
+  box-shadow:
+    rgba(255, 255, 255, 0.18) 0 0 36px 4px,
+    rgba(255, 255, 255, 0.9) 0 0 0 1px,
+    rgba(0, 0, 0, 0.66) 0 30px 60px 0,
+    inset #333 0 0 0 4px,
+    inset rgba(255, 255, 255, 0.82) 0 0 0 5px;
+}
+
+/* no-image variant: disable bg transitions */
+.card[data-no-image='true']:hover {
+  background-size: cover;
+  background-position: center center;
+}
+
+/* Fallback icon for cards with no image */
+.fallbackIcon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+/* ── Inner border (CodePen .border equivalent) ── */
+
+.innerBorder {
+  position: absolute;
+  inset: 5px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  transition: border-color 1s ease;
+  pointer-events: none;
+}
+
+.card:hover .innerBorder {
+  border-color: rgba(255, 255, 255, 0.72);
+}
+
+/* Gradient overlay — always present, creates depth at bottom */
+.shade {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    to bottom,
+    transparent 40%,
+    rgba(0, 0, 0, 0.72) 100%
+  );
+  pointer-events: none;
+}
+
+/* ── Rank — always visible, bottom-center ── */
+
+.rankLabel {
+  position: absolute;
+  bottom: 0.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.72);
+  z-index: 10;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* ── Hover-revealed content ── */
+
+.hoverContent {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1rem;
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 1s ease;
+  pointer-events: none;
+}
+
+.card:hover .hoverContent {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.artistName {
+  margin: 0;
+  font-size: clamp(0.9rem, 1.6vw, 1.1rem);
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.2;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-shadow: rgba(0, 0, 0, 0.6) 0 2px 6px;
+}
+
+.externalLink {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.72);
+  transition: color 0.2s;
+}
+
+.externalLink:hover {
+  color: #fff;
+}
+
+.metaGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.metaRow {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.88);
+  text-shadow: rgba(0, 0, 0, 0.8) 0 1px 3px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.genreTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
+}
+
+.genreTag {
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(8px);
+  border-radius: 999px;
+  padding: 0.18rem 0.52rem;
+}
+
+/* ── Nav buttons (same as RecentlyPlayedDeck) ── */
+
+.navButton {
+  position: absolute;
+  top: 50%;
+  z-index: 20;
+  display: inline-flex;
+  height: 3rem;
+  width: 3rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 85%, transparent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  color: var(--muted-foreground);
+  backdrop-filter: blur(10px);
+  transform: translateY(-50%);
+  transition: transform 220ms ease, background-color 220ms ease, box-shadow 220ms ease, opacity 220ms ease;
+}
+
+.navButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--card) 95%, var(--foreground));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  color: var(--foreground);
+}
+
+.navButton:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+.navButtonLeft {
+  left: 0;
+}
+
+.navButtonLeft:hover:not(:disabled) {
+  transform: translate(-2px, -50%);
+}
+
+.navButtonRight {
+  right: 0;
+}
+
+.navButtonRight:hover:not(:disabled) {
+  transform: translate(2px, -50%);
+}
+
+/* ── Status bar ── */
+
+.statusBar {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.paginationDots {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.paginationDot {
+  height: 0.42rem;
+  width: 0.42rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted-foreground) 40%, transparent);
+  transition: transform 220ms ease, background-color 220ms ease, width 220ms ease;
+}
+
+.paginationDotActive {
+  width: 1.35rem;
+  background: var(--foreground);
+}
+
+.pageLabel {
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 1023px) {
+  .viewport {
+    padding-inline: 2.25rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .viewport {
+    padding-inline: 0;
+  }
+
+  .navButton {
+    height: 2.6rem;
+    width: 2.6rem;
+    top: auto;
+    bottom: -3.6rem;
+    transform: none;
+  }
+
+  .navButtonLeft {
+    left: calc(50% - 3rem);
+  }
+
+  .navButtonLeft:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+
+  .navButtonRight {
+    right: calc(50% - 3rem);
+  }
+
+  .navButtonRight:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+
+  .statusBar {
+    margin-top: 4.6rem;
+    justify-content: center;
+  }
+
+  .pageLabel {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .innerBorder,
+  .hoverContent,
+  .navButton,
+  .paginationDot {
+    transition-duration: 0ms !important;
+    transition-delay: 0ms !important;
+  }
+}
