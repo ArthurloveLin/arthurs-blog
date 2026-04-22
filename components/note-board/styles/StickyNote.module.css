@@ -9,10 +9,19 @@
 
 .paperFrame {
   transform-origin: center center;
+  perspective: 1600px;
 }
 
 .previewCard {
   transform-origin: center center;
+}
+
+.noteSurface {
+  position: relative;
+  width: 100%;
+  transform-origin: center center;
+  transform-style: preserve-3d;
+  will-change: transform, filter;
 }
 
 .paper {
@@ -25,8 +34,7 @@
   padding: 16px 15px;
   font-family: 'LXGW WenKai Screen', serif;
   transform-origin: center center;
-  transition: transform 180ms ease, box-shadow 180ms ease;
-  will-change: transform, box-shadow;
+  will-change: box-shadow;
   backface-visibility: hidden;
 }
 
