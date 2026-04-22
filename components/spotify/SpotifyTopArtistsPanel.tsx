@@ -202,10 +202,13 @@ export default function SpotifyTopArtistsPanel({
               <div
                 key={`${activeRange}-${cardsPerPage}-${effectiveIndex}`}
                 className={[styles.grid, 'animate-in fade-in slide-in-from-right-4 duration-500'].join(' ')}
-                style={{ gridTemplateColumns: `repeat(${Math.max(currentGroup.length, 1)}, minmax(0, 1fr))` }}
+                style={{ gridTemplateColumns: `repeat(${cardsPerPage}, minmax(0, 1fr))` }}
               >
                 {currentGroup.map((artist) => (
                   <ArtistCard key={`${activeRange}-${artist.id}-${artist.rank}`} artist={artist} />
+                ))}
+                {Array.from({ length: cardsPerPage - currentGroup.length }).map((_, i) => (
+                  <div key={`placeholder-${i}`} aria-hidden="true" />
                 ))}
               </div>
             </div>
