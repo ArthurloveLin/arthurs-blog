@@ -62,15 +62,6 @@ export interface SpotifySavedAlbum {
   album: SpotifyAlbumSummary
 }
 
-export interface SpotifyFollowedArtist {
-  id: string
-  name: string
-  imageUrl: string | null
-  url: string
-  genres: string[]
-  followers: number | null
-}
-
 export interface SpotifyPlaylistTrack {
   addedAt: string | null
   track: SpotifyTrackSummary
@@ -143,7 +134,6 @@ export interface SpotifyDashboardData {
   library: {
     savedTracks: SpotifyCollectionPreview<SpotifySavedTrack>
     savedAlbums: SpotifyCollectionPreview<SpotifySavedAlbum>
-    followedArtists: SpotifyCollectionPreview<SpotifyFollowedArtist>
     playlists: SpotifyCollectionPreview<SpotifyPlaylistPreview>
   }
   warnings: string[]
