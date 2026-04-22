@@ -1,16 +1,12 @@
 'use client'
 
 import { startTransition, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { Playfair_Display, Raleway } from 'next/font/google'
 import { ChevronLeft, ChevronRight, Music2 } from 'lucide-react'
 
 import type { SpotifyRecentlyPlayedTrack } from '@/lib/spotify-types'
 import { formatStableDate } from '@/lib/date-format'
 
 import styles from './SpotifyRecentlyPlayedDeck.module.css'
-
-const playfairDisplay = Playfair_Display({ subsets: ['latin'], weight: '700' })
-const raleway = Raleway({ subsets: ['latin'], weight: ['500', '700'] })
 
 const DEFAULT_CARDS_PER_PAGE = 4
 
@@ -101,8 +97,8 @@ function RecentlyPlayedParallaxCard({ item }: { item: SpotifyRecentlyPlayedTrack
         <div className={styles.cardShade} />
         <div className={styles.infoOverlay} />
 
-        <div className={[styles.cardInfo, raleway.className].join(' ')}>
-          <h3 className={[styles.title, playfairDisplay.className].join(' ')}>{item.title}</h3>
+        <div className={styles.cardInfo}>
+          <h3 className={styles.title}>{item.title}</h3>
 
           <div className={styles.metaGroup}>
             <p className={styles.metaRow}>{item.artists.join(', ')}</p>
@@ -187,16 +183,19 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
         <div
           key={`${cardsPerPage}-${effectiveGroupIndex}`}
           className={[styles.grid, 'animate-in fade-in slide-in-from-right-4 duration-500'].join(' ')}
-          style={{ gridTemplateColumns: `repeat(${Math.max(currentGroup.length, 1)}, minmax(0, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(${cardsPerPage}, minmax(0, 1fr))` }}
         >
           {currentGroup.map((item, index) => (
             <RecentlyPlayedParallaxCard key={`${item.id}-${item.playedAt}-${index}`} item={item} />
+          ))}
+          {Array.from({ length: cardsPerPage - currentGroup.length }).map((_, i) => (
+            <div key={`placeholder-${i}`} aria-hidden="true" />
           ))}
         </div>
       </div>
 
       {hasMultipleGroups ? (
-        <div className={[styles.statusBar, raleway.className].join(' ')}>
+        <div className={styles.statusBar}>
           <div className={styles.paginationDots} aria-hidden="true">
             {groups.map((_, index) => (
               <span
