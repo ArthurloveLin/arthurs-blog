@@ -315,6 +315,102 @@
   padding-top: 1rem;
 }
 
+.backtrackBar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--border) 64%, transparent);
+  border-radius: 1.25rem;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, rgb(16 185 129) 8%, var(--card)) 0%, color-mix(in srgb, var(--card) 94%, transparent) 100%);
+  padding: 0.85rem 0.95rem;
+}
+
+.backtrackControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.backtrackButton,
+.backtrackGhostButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.48rem 0.82rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease, transform 220ms ease, opacity 220ms ease;
+}
+
+.backtrackButton {
+  border: 1px solid color-mix(in srgb, rgb(16 185 129) 55%, transparent);
+  background: color-mix(in srgb, rgb(16 185 129) 18%, var(--card));
+  color: var(--foreground);
+}
+
+.backtrackGhostButton {
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  color: var(--muted-foreground);
+}
+
+.backtrackButton:hover:not(:disabled),
+.backtrackGhostButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.backtrackButton:disabled,
+.backtrackGhostButton:disabled {
+  opacity: 0.45;
+}
+
+.backtrackInputWrap {
+  display: inline-flex;
+  min-width: 13rem;
+  flex: 1 1 14rem;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--background) 90%, transparent);
+  padding: 0.48rem 0.7rem;
+}
+
+.backtrackLabel {
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.backtrackInput {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.backtrackInput:focus {
+  outline: none;
+}
+
+.backtrackSummary {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
 .timelineScroller,
 .segmentScroller {
   display: flex;
@@ -594,6 +690,14 @@
     align-items: flex-start;
   }
 
+  .backtrackControls {
+    align-items: stretch;
+  }
+
+  .backtrackInputWrap {
+    min-width: 100%;
+  }
+
   .chartBars {
     gap: 0.65rem;
     min-height: 13rem;
@@ -622,7 +726,9 @@
   .timelinePill,
   .segmentPill,
   .chartShell,
-  .chartTooltip {
+  .chartTooltip,
+  .backtrackButton,
+  .backtrackGhostButton {
     transition-duration: 0ms !important;
     transition-delay: 0ms !important;
   }

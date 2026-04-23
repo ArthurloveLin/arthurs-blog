@@ -19,6 +19,8 @@ type DaysResponse = {
   days: string[]
 }
 
+type DayStepDirection = 'newer' | 'older'
+
 function resolveCardsPerPage(width: number) {
   if (width < 640) return 1
   if (width < 1024) return 2
@@ -66,6 +68,95 @@ async function readJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   }
 
   return response.json() as Promise<T>
+}
+
+function resolveClosestAvailableDay(days: string[], requestedDay: string) {
+  if (days.length === 0) {
+    return null
+  }
+
+  const exactMatch = days.find((day) => day === requestedDay)
+  if (exactMatch) {
+    return exactMatch
+  }
+
+  const nearestPreviousDay = days.find((day) => day <= requestedDay)
+  if (nearestPreviousDay) {
+    return nearestPreviousDay
+  }
+
+  return days[days.length - 1] ?? null
+}
+
+function DateBacktrackControls({
+  days,
+  selectedDate,
+  onInputDay,
+  onStepDay,
+  onReset,
+}: {
+  days: string[]
+  selectedDate: string | null
+  onInputDay: (day: string) => void
+  onStepDay: (direction: DayStepDirection) => void
+  onReset: () => void
+}) {
+  if (days.length === 0 || !selectedDate) {
+    return null
+  }
+
+  const selectedIndex = days.findIndex((day) => day === selectedDate)
+  const newestDay = days[0] ?? null
+  const oldestDay = days[days.length - 1] ?? null
+
+  return (
+    <div className={styles.backtrackBar}>
+      <div className={styles.backtrackControls}>
+        <button
+          type="button"
+          className={styles.backtrackButton}
+          onClick={() => onStepDay('newer')}
+          disabled={selectedIndex <= 0}
+        >
+          更新
+        </button>
+
+        <label className={styles.backtrackInputWrap}>
+          <span className={styles.backtrackLabel}>日期回溯</span>
+          <input
+            type="date"
+            value={selectedDate}
+            min={oldestDay ?? undefined}
+            max={newestDay ?? undefined}
+            onChange={(event) => onInputDay(event.target.value)}
+            className={styles.backtrackInput}
+          />
+        </label>
+
+        <button
+          type="button"
+          className={styles.backtrackButton}
+          onClick={() => onStepDay('older')}
+          disabled={selectedIndex === -1 || selectedIndex >= days.length - 1}
+        >
+          更早
+        </button>
+
+        <button
+          type="button"
+          className={styles.backtrackGhostButton}
+          onClick={onReset}
+          disabled={selectedIndex === 0}
+        >
+          回到最新
+        </button>
+      </div>
+
+      <p className={styles.backtrackSummary}>
+        第 {selectedIndex + 1} 个归档日 / 共 {days.length} 天，若选中空白日期会自动回退到最近有数据的一天。
+      </p>
+    </div>
+  )
 }
 
 function HistoryDaySelector({
@@ -347,6 +438,7 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
   const currentGroup = groups[effectiveGroupIndex] ?? []
   const hasMultipleGroups = groups.length > 1
   const activeDayLabel = selectedDate ? formatDateLabel(selectedDate) : '最近播放'
+  const selectedDayIndex = selectedDate ? availableDays.findIndex((day) => day === selectedDate) : -1
 
   const handlePrevious = () => {
     startTransition(() => {
@@ -367,6 +459,49 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
 
     startTransition(() => {
       setSelectedDate(day)
+    })
+  }
+
+  const handleInputDay = (day: string) => {
+    if (!day) {
+      return
+    }
+
+    const nextDay = resolveClosestAvailableDay(availableDays, day)
+    if (!nextDay || nextDay === selectedDate) {
+      return
+    }
+
+    startTransition(() => {
+      setSelectedDate(nextDay)
+    })
+  }
+
+  const handleStepDay = (direction: DayStepDirection) => {
+    if (selectedDayIndex === -1) {
+      return
+    }
+
+    const offset = direction === 'older' ? 1 : -1
+    const nextDay = availableDays[selectedDayIndex + offset]
+
+    if (!nextDay || nextDay === selectedDate) {
+      return
+    }
+
+    startTransition(() => {
+      setSelectedDate(nextDay)
+    })
+  }
+
+  const handleResetDay = () => {
+    const latestDay = availableDays[0]
+    if (!latestDay || latestDay === selectedDate) {
+      return
+    }
+
+    startTransition(() => {
+      setSelectedDate(latestDay)
     })
   }
 
@@ -406,6 +541,14 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
 
       {view === 'timeline' ? (
         <>
+          <DateBacktrackControls
+            days={availableDays}
+            selectedDate={selectedDate}
+            onInputDay={handleInputDay}
+            onStepDay={handleStepDay}
+            onReset={handleResetDay}
+          />
+
           <div className={styles.viewportWrap} data-loading={isLoading ? 'true' : 'false'}>
             <div className={styles.viewport}>
               {hasMultipleGroups ? (
@@ -485,6 +628,13 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
         </>
       ) : (
         <div className={styles.chartPanel}>
+          <DateBacktrackControls
+            days={availableDays}
+            selectedDate={selectedDate}
+            onInputDay={handleInputDay}
+            onStepDay={handleStepDay}
+            onReset={handleResetDay}
+          />
           <HistoryDaySelector days={availableDays} selectedDate={selectedDate} onSelect={handleSelectDay} />
           <SpotifyListeningChart
             segmentMap={effectiveSegmentMap}
