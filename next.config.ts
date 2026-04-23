@@ -36,15 +36,6 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Permissions-Policy',
-            value: 'xr-spatial-tracking=(self "https://challenges.cloudflare.com")'
-          }
-        ],
-      },
     ]
   },
   images: {
