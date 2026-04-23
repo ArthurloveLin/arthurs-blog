@@ -95,7 +95,7 @@ export default function SpotifyDashboard({ data }: { data: SpotifyDashboardData 
         />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+      <div className="mt-6 space-y-6">
         <SpotifyTopTracksPanel data={data.topTracks} />
         <SpotifySavedTracksPanel
           initialItems={data.library.savedTracks.items}

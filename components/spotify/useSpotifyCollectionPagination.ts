@@ -1,16 +1,20 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import useSWR from 'swr'
 
-async function fetchCollection<T>(url: string): Promise<T[]> {
-  const response = await fetch(url, { cache: 'no-store' })
+interface CollectionPage<T> {
+  items: T[]
+  total: number
+}
+
+async function fetchCollectionPage<T>(url: string, offset: number, limit: number): Promise<CollectionPage<T>> {
+  const response = await fetch(`${url}?offset=${offset}&limit=${limit}`, { cache: 'no-store' })
 
   if (!response.ok) {
     throw new Error(`Failed to fetch Spotify collection: ${response.status}`)
   }
 
-  return response.json() as Promise<T[]>
+  return response.json() as Promise<CollectionPage<T>>
 }
 
 export function useSpotifyCollectionPagination<T>({
@@ -18,63 +22,49 @@ export function useSpotifyCollectionPagination<T>({
   total,
   pageSize,
   fetchUrl,
-  resetKey,
+  getItemKey,
 }: {
   initialItems: T[]
   total: number
   pageSize: number
   fetchUrl: string
-  resetKey: string
+  getItemKey: (item: T) => string
 }) {
-  const [state, setState] = useState(() => ({
-    displayCount: pageSize,
-    resetKey,
-    shouldLoadFullCollection: false,
-  }))
+  const [visibleItems, setVisibleItems] = useState(initialItems)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
 
-  const isStaleState = state.resetKey !== resetKey
-  const displayCount = isStaleState ? pageSize : state.displayCount
-  const shouldLoadFullCollection = isStaleState ? false : state.shouldLoadFullCollection
-
-  const { data: fullCollection, error, isLoading } = useSWR<T[]>(
-    shouldLoadFullCollection ? fetchUrl : null,
-    fetchCollection,
-    {
-      revalidateOnFocus: false,
-      refreshWhenHidden: false,
-      refreshWhenOffline: false,
-      dedupingInterval: 60 * 60 * 1000,
-      keepPreviousData: true,
-    }
-  )
-
-  const items = fullCollection ?? initialItems
-  const hasMore = items.length < total || displayCount < items.length
+  const hasMore = visibleItems.length < total
 
   const loadMore = useCallback(() => {
-    if (displayCount < items.length) {
-      setState({
-        displayCount: Math.min(displayCount + pageSize, items.length),
-        resetKey,
-        shouldLoadFullCollection,
-      })
+    if (isLoading || !hasMore) {
       return
     }
 
-    if (!shouldLoadFullCollection && items.length < total) {
-      setState({
-        displayCount: displayCount + pageSize,
-        resetKey,
-        shouldLoadFullCollection: true,
+    setIsLoading(true)
+    setError(null)
+
+    void fetchCollectionPage<T>(fetchUrl, visibleItems.length, pageSize)
+      .then((page) => {
+        setVisibleItems((currentItems) => {
+          const knownKeys = new Set(currentItems.map((item) => getItemKey(item)))
+          const nextItems = page.items.filter((item) => !knownKeys.has(getItemKey(item)))
+          return [...currentItems, ...nextItems]
+        })
       })
-    }
-  }, [displayCount, items.length, pageSize, resetKey, shouldLoadFullCollection, total])
+      .catch((nextError: unknown) => {
+        setError(nextError instanceof Error ? nextError : new Error('Failed to fetch Spotify collection'))
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }, [fetchUrl, getItemKey, hasMore, isLoading, pageSize, visibleItems.length])
 
   return {
-    error: error instanceof Error ? error : null,
+    error,
     hasMore,
     isLoading,
     loadMore,
-    visibleItems: items.slice(0, displayCount),
+    visibleItems,
   }
 }
