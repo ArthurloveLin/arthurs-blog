@@ -1058,18 +1058,23 @@ async function writeRecentlyPlayedDayShard(date: string, items: SpotifyRecentlyP
   await writeR2Json(bucket, `${SPOTIFY_RECENTLY_PLAYED_PATH}${date}.json`, items)
 }
 
-export async function listRecentlyPlayedDays(limitDays = 90): Promise<string[]> {
+export async function listRecentlyPlayedDays(limitDays?: number): Promise<string[]> {
   const { bucket } = getSpotifyArchiveConfig()
   if (!bucket) return []
 
   const keys = await listR2Objects(bucket, SPOTIFY_RECENTLY_PLAYED_PATH)
 
-  return keys
+  const days = keys
     .map((key) => key.slice(SPOTIFY_RECENTLY_PLAYED_PATH.length))
     .filter((name) => RECENTLY_PLAYED_DAY_SHARD_PATTERN.test(name))
     .map((name) => name.replace(/\.json$/, ''))
     .sort((a, b) => b.localeCompare(a))
-    .slice(0, Math.max(limitDays, 0))
+
+  if (typeof limitDays === 'number') {
+    return days.slice(0, Math.max(limitDays, 0))
+  }
+
+  return days
 }
 
 async function readLatestSpotifyLibrary(): Promise<SpotifyDashboardData['library'] | null> {

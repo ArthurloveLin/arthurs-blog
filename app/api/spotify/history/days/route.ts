@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const days = await listRecentlyPlayedDays(90)
+    const days = await listRecentlyPlayedDays()
 
     return NextResponse.json(
       { days },
