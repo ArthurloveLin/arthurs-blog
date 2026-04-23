@@ -23,7 +23,10 @@ export default function SpotifyListeningChart({
   isLoading: boolean
 }) {
   const counts = TIME_SEGMENTS.map((segment) => segmentMap.get(segment.id)?.length ?? 0)
-  const maxCount = Math.max(...counts, 1)
+  const rawMax = Math.max(...counts, 1)
+  // 为最高柱状图留出约 15% 的余地，并向上取整到 3 的倍数以获得整洁的坐标轴刻度
+  const paddedMax = Math.ceil(rawMax * 1.15)
+  const maxCount = Math.max(Math.ceil(paddedMax / 3) * 3, 3)
   const ticks = createTickValues(maxCount)
 
   return (
@@ -48,7 +51,7 @@ export default function SpotifyListeningChart({
           {TIME_SEGMENTS.map((segment, index) => {
             const count = counts[index]
             const isActive = segment.id === selectedSegment && count > 0
-            const barHeight = count === 0 ? 8 : Math.max((count / maxCount) * 100, 14)
+            const barHeight = count === 0 ? 4 : Math.max((count / maxCount) * 100, 9)
             const style = {
               '--bar-delay': `${index * 60}ms`,
               '--bar-height': `${barHeight}%`,
@@ -64,15 +67,16 @@ export default function SpotifyListeningChart({
                   aria-pressed={isActive}
                   aria-label={`${segment.label} ${count} 首`}
                 >
-                  <span className={styles.chartTooltip}>{count} 首</span>
-                  <span
-                    className={[
-                      styles.chartBar,
-                      isActive ? styles.chartBarActive : '',
-                      count === 0 ? styles.chartBarMuted : '',
-                    ].filter(Boolean).join(' ')}
-                    style={style}
-                  />
+                  <span className={styles.chartBarWrap} style={style}>
+                    <span className={styles.chartTooltip}>{count} 首</span>
+                    <span
+                      className={[
+                        styles.chartBar,
+                        isActive ? styles.chartBarActive : '',
+                        count === 0 ? styles.chartBarMuted : '',
+                      ].filter(Boolean).join(' ')}
+                    />
+                  </span>
                 </button>
                 <div className={styles.chartLabelGroup}>
                   <span className={styles.chartLabel}>{segment.label}</span>

@@ -1026,6 +1026,20 @@ html:active-view-transition-type(nav-back) {
     350ms cubic-bezier(0.85, 0, 0.15, 1) both vinyl-slide reverse;
 }
 
+/* ── Persistent nav components layering ── */
+::view-transition-group(navbar),
+::view-transition-group(navbar-bottom) {
+  z-index: 100;
+}
+
+::view-transition-old(navbar),
+::view-transition-new(navbar),
+::view-transition-old(navbar-bottom),
+::view-transition-new(navbar-bottom) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),

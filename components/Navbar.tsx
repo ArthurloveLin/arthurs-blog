@@ -239,7 +239,10 @@ function NavMobileBar({
   toggleDrawer: (drawer: Exclude<DrawerType, null>) => void
 }) {
   return (
-    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 md:hidden">
+    <div 
+      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 md:hidden"
+      style={{ viewTransitionName: 'navbar-bottom' } as any}
+    >
       <div className={
         "flex items-center gap-0.5 px-2 py-1.5 " +
         "bg-white/94 border border-black/5 " +
@@ -389,6 +392,7 @@ function NavbarContent() {
         // 深色模式(独立逻辑): 替换为纯黑色，去除磨砂模糊
         "dark:bg-black dark:backdrop-blur-none dark:border-white/10"
       }
+      style={{ viewTransitionName: 'navbar' } as any}
     >
       <div className="site-shell">
         <div className="h-16 flex items-center justify-between gap-4">

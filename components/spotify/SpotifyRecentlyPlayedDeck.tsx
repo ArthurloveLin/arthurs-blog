@@ -3,7 +3,14 @@
 import { startTransition, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ChevronLeft, ChevronRight, Music2 } from 'lucide-react'
 
-import { formatDateLabel, segmentTracksByTime, TIME_SEGMENTS } from '@/lib/spotify-history-utils'
+import {
+  formatCompactDateLabel,
+  formatDateLabel,
+  formatFullDateLabel,
+  formatWeekdayLabel,
+  segmentTracksByTime,
+  TIME_SEGMENTS,
+} from '@/lib/spotify-history-utils'
 import { formatStableDate } from '@/lib/date-format'
 import type { SpotifyRecentlyPlayedTrack, TimeSegmentId } from '@/lib/spotify-types'
 
@@ -12,14 +19,13 @@ import SpotifyListeningChart from './SpotifyListeningChart'
 import styles from './SpotifyRecentlyPlayedDeck.module.css'
 
 const DEFAULT_CARDS_PER_PAGE = 4
+const RECENT_DAY_LIMIT = 7
 
 type RecentlyPlayedView = 'timeline' | 'chart'
 
 type DaysResponse = {
   days: string[]
 }
-
-type DayStepDirection = 'newer' | 'older'
 
 function resolveCardsPerPage(width: number) {
   if (width < 640) return 1
@@ -70,95 +76,6 @@ async function readJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   return response.json() as Promise<T>
 }
 
-function resolveClosestAvailableDay(days: string[], requestedDay: string) {
-  if (days.length === 0) {
-    return null
-  }
-
-  const exactMatch = days.find((day) => day === requestedDay)
-  if (exactMatch) {
-    return exactMatch
-  }
-
-  const nearestPreviousDay = days.find((day) => day <= requestedDay)
-  if (nearestPreviousDay) {
-    return nearestPreviousDay
-  }
-
-  return days[days.length - 1] ?? null
-}
-
-function DateBacktrackControls({
-  days,
-  selectedDate,
-  onInputDay,
-  onStepDay,
-  onReset,
-}: {
-  days: string[]
-  selectedDate: string | null
-  onInputDay: (day: string) => void
-  onStepDay: (direction: DayStepDirection) => void
-  onReset: () => void
-}) {
-  if (days.length === 0 || !selectedDate) {
-    return null
-  }
-
-  const selectedIndex = days.findIndex((day) => day === selectedDate)
-  const newestDay = days[0] ?? null
-  const oldestDay = days[days.length - 1] ?? null
-
-  return (
-    <div className={styles.backtrackBar}>
-      <div className={styles.backtrackControls}>
-        <button
-          type="button"
-          className={styles.backtrackButton}
-          onClick={() => onStepDay('newer')}
-          disabled={selectedIndex <= 0}
-        >
-          更新
-        </button>
-
-        <label className={styles.backtrackInputWrap}>
-          <span className={styles.backtrackLabel}>日期回溯</span>
-          <input
-            type="date"
-            value={selectedDate}
-            min={oldestDay ?? undefined}
-            max={newestDay ?? undefined}
-            onChange={(event) => onInputDay(event.target.value)}
-            className={styles.backtrackInput}
-          />
-        </label>
-
-        <button
-          type="button"
-          className={styles.backtrackButton}
-          onClick={() => onStepDay('older')}
-          disabled={selectedIndex === -1 || selectedIndex >= days.length - 1}
-        >
-          更早
-        </button>
-
-        <button
-          type="button"
-          className={styles.backtrackGhostButton}
-          onClick={onReset}
-          disabled={selectedIndex === 0}
-        >
-          回到最新
-        </button>
-      </div>
-
-      <p className={styles.backtrackSummary}>
-        第 {selectedIndex + 1} 个归档日 / 共 {days.length} 天，若选中空白日期会自动回退到最近有数据的一天。
-      </p>
-    </div>
-  )
-}
-
 function HistoryDaySelector({
   days,
   selectedDate,
@@ -168,26 +85,122 @@ function HistoryDaySelector({
   selectedDate: string | null
   onSelect: (day: string) => void
 }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement | null>(null)
+  const recentDays = useMemo(() => {
+    const slice = days.slice(0, RECENT_DAY_LIMIT)
+    return [...slice].sort((a, b) => {
+      const getSortValue = (d: string) => {
+        const day = new Date(d).getDay()
+        return day === 0 ? 7 : day // Mon=1, ..., Sun=7
+      }
+      return getSortValue(a) - getSortValue(b)
+    })
+  }, [days])
+  const isSelectedInRecentDays = selectedDate ? recentDays.includes(selectedDate) : false
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setIsMenuOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isMenuOpen])
+
+  const handleSelectDay = (day: string) => {
+    onSelect(day)
+    setIsMenuOpen(false)
+  }
+
   if (days.length === 0) {
     return null
   }
 
   return (
-    <div className={styles.timelineScroller}>
-      {days.map((day) => {
-        const isActive = day === selectedDate
+    <div className={styles.dayRail}>
+      <div className={styles.timelineScroller}>
+        {recentDays.map((day) => {
+          const isActive = day === selectedDate
 
-        return (
-          <button
-            key={day}
-            type="button"
-            onClick={() => onSelect(day)}
-            className={[styles.timelinePill, isActive ? styles.timelinePillActive : ''].filter(Boolean).join(' ')}
-          >
-            {formatDateLabel(day)}
-          </button>
-        )
-      })}
+          return (
+            <button
+              key={day}
+              type="button"
+              onClick={() => handleSelectDay(day)}
+              className={[styles.timelinePill, isActive ? styles.timelinePillActive : '']
+                .filter(Boolean)
+                .join(' ')}
+              aria-pressed={isActive}
+            >
+              <span className={styles.timelinePillLabel}>{formatWeekdayLabel(day)}</span>
+              <span className={styles.timelinePillDate}>{formatCompactDateLabel(day)}</span>
+            </button>
+          )
+        })}
+
+        {days.length > RECENT_DAY_LIMIT ? (
+          <div className={styles.dayMenuWrap} ref={menuRef}>
+            <button
+              type="button"
+              className={[styles.timelinePill, !isSelectedInRecentDays && selectedDate ? styles.timelinePillActive : '']
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => setIsMenuOpen((current) => !current)}
+              aria-expanded={isMenuOpen}
+              aria-haspopup="menu"
+            >
+              <span className={styles.timelinePillLabel}>
+                {!isSelectedInRecentDays && selectedDate ? formatWeekdayLabel(selectedDate) : '更多'}
+              </span>
+              <span className={styles.timelinePillDate}>
+                {!isSelectedInRecentDays && selectedDate ? formatCompactDateLabel(selectedDate) : `${days.length} 天`}
+              </span>
+            </button>
+
+            {isMenuOpen ? (
+              <div className={styles.dayMenu} role="menu" aria-label="选择更多历史日期">
+                {days.map((day, index) => {
+                  const isActive = day === selectedDate
+
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={isActive}
+                      onClick={() => handleSelectDay(day)}
+                      className={[styles.dayMenuItem, isActive ? styles.dayMenuItemActive : '']
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      <span className={styles.dayMenuItemTitle}>{formatFullDateLabel(day)}</span>
+                      <span className={styles.dayMenuItemMeta}>{index < RECENT_DAY_LIMIT ? '最近一周' : '历史归档'}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   )
 }
@@ -438,7 +451,6 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
   const currentGroup = groups[effectiveGroupIndex] ?? []
   const hasMultipleGroups = groups.length > 1
   const activeDayLabel = selectedDate ? formatDateLabel(selectedDate) : '最近播放'
-  const selectedDayIndex = selectedDate ? availableDays.findIndex((day) => day === selectedDate) : -1
 
   const handlePrevious = () => {
     startTransition(() => {
@@ -459,49 +471,6 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
 
     startTransition(() => {
       setSelectedDate(day)
-    })
-  }
-
-  const handleInputDay = (day: string) => {
-    if (!day) {
-      return
-    }
-
-    const nextDay = resolveClosestAvailableDay(availableDays, day)
-    if (!nextDay || nextDay === selectedDate) {
-      return
-    }
-
-    startTransition(() => {
-      setSelectedDate(nextDay)
-    })
-  }
-
-  const handleStepDay = (direction: DayStepDirection) => {
-    if (selectedDayIndex === -1) {
-      return
-    }
-
-    const offset = direction === 'older' ? 1 : -1
-    const nextDay = availableDays[selectedDayIndex + offset]
-
-    if (!nextDay || nextDay === selectedDate) {
-      return
-    }
-
-    startTransition(() => {
-      setSelectedDate(nextDay)
-    })
-  }
-
-  const handleResetDay = () => {
-    const latestDay = availableDays[0]
-    if (!latestDay || latestDay === selectedDate) {
-      return
-    }
-
-    startTransition(() => {
-      setSelectedDate(latestDay)
     })
   }
 
@@ -529,26 +498,12 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
   return (
     <div className={styles.section}>
       <div className={styles.viewHeader}>
-        <div>
-          <p className={styles.historyCaption}>{activeDayLabel}</p>
-          <p className={styles.historySummary}>
-            {selectedSegment ? `${TIME_SEGMENTS.find((segment) => segment.id === selectedSegment)?.label ?? '全部时段'} · ` : ''}
-            {activeTracks.length} 首
-          </p>
-        </div>
         <RecentlyPlayedViewToggle view={view} onChange={setView} />
       </div>
 
+
       {view === 'timeline' ? (
         <>
-          <DateBacktrackControls
-            days={availableDays}
-            selectedDate={selectedDate}
-            onInputDay={handleInputDay}
-            onStepDay={handleStepDay}
-            onReset={handleResetDay}
-          />
-
           <div className={styles.viewportWrap} data-loading={isLoading ? 'true' : 'false'}>
             <div className={styles.viewport}>
               {hasMultipleGroups ? (
@@ -589,63 +544,52 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
             </div>
           </div>
 
-          {hasMultipleGroups ? (
-            <div className={styles.statusBar}>
-              <div className={styles.paginationDots} aria-hidden="true">
-                {groups.map((_, index) => (
-                  <span
-                    key={`recently-played-dot-${index}`}
-                    className={[
-                      styles.paginationDot,
-                      index === effectiveGroupIndex ? styles.paginationDotActive : '',
-                    ].filter(Boolean).join(' ')}
-                  />
-                ))}
-              </div>
-              <p className={styles.pageLabel}>
-                第 {effectiveGroupIndex + 1} 页 / 共 {groups.length} 页
-              </p>
+          <div
+            className={styles.statusBar}
+            style={{
+              opacity: hasMultipleGroups ? 1 : 0,
+              visibility: hasMultipleGroups ? 'visible' : 'hidden',
+              pointerEvents: hasMultipleGroups ? 'auto' : 'none',
+            }}
+          >
+            <div className={styles.paginationDots} aria-hidden="true">
+              {groups.map((_, index) => (
+                <span
+                  key={`recently-played-dot-${index}`}
+                  className={[
+                    styles.paginationDot,
+                    index === effectiveGroupIndex ? styles.paginationDotActive : '',
+                  ].filter(Boolean).join(' ')}
+                />
+              ))}
             </div>
-          ) : null}
-
-          <div className={styles.timelineMeta}>
-            <HistoryDaySelector days={availableDays} selectedDate={selectedDate} onSelect={handleSelectDay} />
-            <TimeSegmentSelector
-              segmentMap={effectiveSegmentMap}
-              selectedSegment={selectedSegment}
-              onSelect={handleSelectSegment}
-            />
-            <p className={styles.helperText}>
-              {isLoading
-                ? `正在加载 ${activeDayLabel} 的播放历史...`
-                : selectedDate && isShowingFallback && items.length > 0
-                  ? '该日期尚无日分片归档，暂时显示 dashboard 的最近 12 首记录。'
-                  : selectedDate
-                    ? `${activeDayLabel} 已归档 ${effectiveTracks.length} 首播放记录。`
-                    : '当前展示 dashboard 的最近 12 首记录。'}
+            <p className={styles.pageLabel}>
+              第 {effectiveGroupIndex + 1} 页 / 共 {groups.length} 页
             </p>
           </div>
+
+            <div className={styles.timelineMeta}>
+              <TimeSegmentSelector
+                segmentMap={effectiveSegmentMap}
+                selectedSegment={selectedSegment}
+                onSelect={handleSelectSegment}
+              />
+              <HistoryDaySelector days={availableDays} selectedDate={selectedDate} onSelect={handleSelectDay} />
+            </div>
         </>
       ) : (
-        <div className={styles.chartPanel}>
-          <DateBacktrackControls
-            days={availableDays}
-            selectedDate={selectedDate}
-            onInputDay={handleInputDay}
-            onStepDay={handleStepDay}
-            onReset={handleResetDay}
-          />
-          <HistoryDaySelector days={availableDays} selectedDate={selectedDate} onSelect={handleSelectDay} />
-          <SpotifyListeningChart
-            segmentMap={effectiveSegmentMap}
-            selectedSegment={selectedSegment}
-            onSelectSegment={handleSelectChartSegment}
-            isLoading={isLoading}
-          />
-          <p className={styles.helperText}>
-            点击柱状图可跳回时间轴对应时段。{selectedDate ? `当前日期：${activeDayLabel}。` : ''}
-          </p>
-        </div>
+          <div className={styles.chartPanel}>
+            <SpotifyListeningChart
+              segmentMap={effectiveSegmentMap}
+              selectedSegment={selectedSegment}
+              onSelectSegment={handleSelectChartSegment}
+              isLoading={isLoading}
+            />
+            <HistoryDaySelector days={availableDays} selectedDate={selectedDate} onSelect={handleSelectDay} />
+            <p className={styles.helperText}>
+              点击柱状图可跳回时间轴对应时段。{selectedDate ? `当前日期：${activeDayLabel}。` : ''}
+            </p>
+          </div>
       )}
     </div>
   )
