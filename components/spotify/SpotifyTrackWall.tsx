@@ -1,48 +1,45 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { ExternalLink, Loader2, Music2 } from 'lucide-react'
+import { Fragment, startTransition, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Loader2, Music2 } from 'lucide-react'
 
 import styles from './SpotifyTrackWall.module.css'
 
-const DEFAULT_HOVER_COLOR: [number, number, number] = [16, 185, 129]
-const colorCache = new Map<string, [number, number, number]>()
-const CAMERA_SETTLE_RATE = 9
-const MOTION_EPSILON = 2
+const AUTO_DRIFT_VERTICAL_RATIO = 0.6
+const HOVER_INTENT_DELAY_MS = 120
+const VISIBLE_ORDER_THROTTLE_MS = 180
+const EXTENDED_IRREGULAR_CYCLE = 18
+const MANUAL_PAN_STEP_RATIO = 0.42
 
 type WallPreset = 'default' | 'compact'
+type AxisDirection = -1 | 1
+type MoveDirection = 'up' | 'down' | 'left' | 'right'
 
 interface LayoutOptions {
   baseTileSize: number
   gap: number
-  colStep: number
-  rowStep: number
-  maxPanSpeed: number
-  blurStrength: number
+  gridCols: number
+  driftSpeed: number
   viewportHeight: number
-  edgeThresholdRatio: number
+  blurStrength: number
 }
 
 const LAYOUT_PRESETS: Record<WallPreset, LayoutOptions> = {
   default: {
-    baseTileSize: 118,
-    gap: 18,
-    colStep: 156,
-    rowStep: 126,
-    maxPanSpeed: 520,
-    blurStrength: 14,
-    viewportHeight: 560,
-    edgeThresholdRatio: 0.18,
+    baseTileSize: 148,
+    gap: 12,
+    gridCols: 8,
+    driftSpeed: 11,
+    viewportHeight: 596,
+    blurStrength: 16,
   },
   compact: {
-    baseTileSize: 100,
-    gap: 16,
-    colStep: 136,
-    rowStep: 112,
-    maxPanSpeed: 500,
-    blurStrength: 12,
-    viewportHeight: 520,
-    edgeThresholdRatio: 0.2,
+    baseTileSize: 132,
+    gap: 10,
+    gridCols: 8,
+    driftSpeed: 10,
+    viewportHeight: 552,
+    blurStrength: 13,
   },
 }
 
@@ -87,75 +84,49 @@ interface WallLayout {
   options: LayoutOptions
 }
 
-function tileSize(width: number, height: number) {
+function getTileSpan(order: number, index: number) {
+  if (order <= 3 && index % 3 === 0) {
+    return { width: 2, height: 2 }
+  }
+
+  if (order <= 10 && order % 4 === 1) {
+    return { width: 2, height: 1 }
+  }
+
+  if (order <= 12 && order % 5 === 2) {
+    return { width: 1, height: 2 }
+  }
+
+  if (order <= 25 && order % 7 === 3) {
+    return { width: 2, height: 1 }
+  }
+
+  if (order <= 30 && order % 9 === 4) {
+    return { width: 1, height: 2 }
+  }
+
+  const repeatingOrder = ((order - 31) % EXTENDED_IRREGULAR_CYCLE) + 1
+
+  if (repeatingOrder === 1 || repeatingOrder === 11 || repeatingOrder === 16) {
+    return { width: 2, height: 1 }
+  }
+
+  if (repeatingOrder === 5 || repeatingOrder === 14) {
+    return { width: 1, height: 2 }
+  }
+
+  if (repeatingOrder === 8) {
+    return { width: 2, height: 2 }
+  }
+
+  return { width: 1, height: 1 }
+}
+
+function getTileDimensions(widthUnits: number, heightUnits: number, options: LayoutOptions) {
   return {
-    width: Math.round(width),
-    height: Math.round(height),
+    width: widthUnits * options.baseTileSize + (widthUnits - 1) * options.gap,
+    height: heightUnits * options.baseTileSize + (heightUnits - 1) * options.gap,
   }
-}
-
-function getTileSize(order: number, preset: WallPreset) {
-  const options = LAYOUT_PRESETS[preset]
-
-  if (order === 1) return tileSize(options.baseTileSize * 1.62, options.baseTileSize * 1.62)
-  if (order <= 3) return tileSize(options.baseTileSize * 1.34, options.baseTileSize * 1.34)
-  if (order <= 6) {
-    return order % 2 === 0
-      ? tileSize(options.baseTileSize * 1.42, options.baseTileSize * 1.06)
-      : tileSize(options.baseTileSize * 1.06, options.baseTileSize * 1.42)
-  }
-  if (order <= 12) {
-    return order % 3 === 0
-      ? tileSize(options.baseTileSize * 1.2, options.baseTileSize * 1.2)
-      : tileSize(options.baseTileSize, options.baseTileSize)
-  }
-  if (order <= 18 && order % 5 === 0) {
-    return tileSize(options.baseTileSize * 1.24, options.baseTileSize * 0.94)
-  }
-  if (order <= 18 && order % 4 === 0) {
-    return tileSize(options.baseTileSize * 0.94, options.baseTileSize * 1.24)
-  }
-
-  return tileSize(options.baseTileSize * 0.92, options.baseTileSize * 0.92)
-}
-
-function createHiveCandidates(itemCount: number, options: LayoutOptions) {
-  const radius = Math.max(6, Math.ceil(Math.sqrt(itemCount + 1)) * 4)
-  const candidates = [] as Array<{ centerX: number; centerY: number; distance: number }>
-
-  for (let row = -radius; row <= radius; row += 1) {
-    const rowOffset = Math.abs(row) % 2 === 0 ? 0 : options.colStep / 2
-
-    for (let col = -radius; col <= radius; col += 1) {
-      const centerX = col * options.colStep + rowOffset
-      const centerY = row * options.rowStep
-      candidates.push({
-        centerX,
-        centerY,
-        distance: centerX ** 2 + centerY ** 2,
-      })
-    }
-  }
-
-  candidates.sort(
-    (left, right) =>
-      left.distance - right.distance ||
-      Math.abs(left.centerY) - Math.abs(right.centerY) ||
-      Math.abs(left.centerX) - Math.abs(right.centerX) ||
-      left.centerY - right.centerY ||
-      left.centerX - right.centerX
-  )
-
-  return candidates
-}
-
-function intersects(left: WallLayoutItem, right: WallLayoutItem, gap: number) {
-  return !(
-    left.x + left.width + gap <= right.x ||
-    right.x + right.width + gap <= left.x ||
-    left.y + left.height + gap <= right.y ||
-    right.y + right.height + gap <= left.y
-  )
 }
 
 function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): WallLayout {
@@ -171,62 +142,96 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): 
     }
   }
 
-  const candidates = createHiveCandidates(items.length, options)
+  const occupied: boolean[][] = []
   const layoutItems: WallLayoutItem[] = []
+  const searchRowLimit = Math.max(48, items.length * 6)
+  let maxRow = 0
 
-  items.forEach((item, index) => {
-    const preferredSize = getTileSize(item.order, preset)
-    let placement: WallLayoutItem | null = null
+  const isFree = (row: number, col: number, widthUnits: number, heightUnits: number) => {
+    if (col + widthUnits > options.gridCols) {
+      return false
+    }
 
-    for (const candidate of candidates) {
-      const nextItem = {
-        item,
-        x: candidate.centerX - preferredSize.width / 2,
-        y: candidate.centerY - preferredSize.height / 2,
-        width: preferredSize.width,
-        height: preferredSize.height,
+    for (let currentRow = row; currentRow < row + heightUnits; currentRow += 1) {
+      for (let currentCol = col; currentCol < col + widthUnits; currentCol += 1) {
+        if (occupied[currentRow]?.[currentCol]) {
+          return false
+        }
+      }
+    }
+
+    return true
+  }
+
+  const markOccupied = (row: number, col: number, widthUnits: number, heightUnits: number) => {
+    for (let currentRow = row; currentRow < row + heightUnits; currentRow += 1) {
+      if (!occupied[currentRow]) {
+        occupied[currentRow] = []
       }
 
-      if (layoutItems.every((placedItem) => !intersects(placedItem, nextItem, options.gap))) {
-        placement = nextItem
-        break
+      for (let currentCol = col; currentCol < col + widthUnits; currentCol += 1) {
+        occupied[currentRow][currentCol] = true
+      }
+    }
+
+    maxRow = Math.max(maxRow, row + heightUnits)
+  }
+
+  items.forEach((item, index) => {
+    const preferredSpan = getTileSpan(item.order, index)
+    const candidateSpans = preferredSpan.width === 1 && preferredSpan.height === 1
+      ? [preferredSpan]
+      : [preferredSpan, { width: 1, height: 1 }]
+    let placement: WallLayoutItem | null = null
+
+    for (const span of candidateSpans) {
+      for (let row = 0; row < searchRowLimit && !placement; row += 1) {
+        for (let col = 0; col < options.gridCols && !placement; col += 1) {
+          if (!isFree(row, col, span.width, span.height)) {
+            continue
+          }
+
+          markOccupied(row, col, span.width, span.height)
+          const dimensions = getTileDimensions(span.width, span.height, options)
+
+          placement = {
+            item,
+            x: col * (options.baseTileSize + options.gap),
+            y: row * (options.baseTileSize + options.gap),
+            width: dimensions.width,
+            height: dimensions.height,
+          }
+        }
       }
     }
 
     if (!placement) {
+      const fallbackRow = maxRow
+      markOccupied(fallbackRow, 0, 1, 1)
+
       placement = {
         item,
-        x: (index + 1) * options.colStep - preferredSize.width / 2,
-        y: -preferredSize.height / 2,
-        width: preferredSize.width,
-        height: preferredSize.height,
+        x: 0,
+        y: fallbackRow * (options.baseTileSize + options.gap),
+        width: options.baseTileSize,
+        height: options.baseTileSize,
       }
     }
 
     layoutItems.push(placement)
   })
 
-  const padding = options.gap * 3
-  const minX = Math.min(...layoutItems.map((layoutItem) => layoutItem.x))
-  const minY = Math.min(...layoutItems.map((layoutItem) => layoutItem.y))
-  const maxX = Math.max(...layoutItems.map((layoutItem) => layoutItem.x + layoutItem.width))
-  const maxY = Math.max(...layoutItems.map((layoutItem) => layoutItem.y + layoutItem.height))
-  const shiftX = padding - minX
-  const shiftY = padding - minY
-  const shiftedItems = layoutItems.map((layoutItem) => ({
-    ...layoutItem,
-    x: layoutItem.x + shiftX,
-    y: layoutItem.y + shiftY,
-  }))
-  const focusItem = shiftedItems.find((layoutItem) => layoutItem.item.order === 1) ?? shiftedItems[0]
+  const totalRows = Math.max(maxRow, 1)
+  const totalWidth = options.gridCols * options.baseTileSize + (options.gridCols - 1) * options.gap
+  const totalHeight = totalRows * options.baseTileSize + (totalRows - 1) * options.gap
 
   return {
-    items: shiftedItems,
-    totalWidth: Math.ceil(maxX - minX + padding * 2),
-    totalHeight: Math.ceil(maxY - minY + padding * 2),
+    items: layoutItems,
+    totalWidth,
+    totalHeight,
     focusPoint: {
-      x: focusItem.x + focusItem.width / 2,
-      y: focusItem.y + focusItem.height / 2,
+      x: totalWidth / 2,
+      y: totalHeight / 2,
     },
     options,
   }
@@ -234,6 +239,28 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): 
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
+}
+
+function resolveLoopingAxis(value: number, min: number, max: number, direction: AxisDirection) {
+  if (min === max) {
+    return { value: min, direction }
+  }
+
+  if (value < min) {
+    return {
+      value: clamp(min + (min - value), min, max),
+      direction: 1 as const,
+    }
+  }
+
+  if (value > max) {
+    return {
+      value: clamp(max - (value - max), min, max),
+      direction: -1 as const,
+    }
+  }
+
+  return { value, direction }
 }
 
 function getViewportBounds(viewportWidth: number, viewportHeight: number, layout: WallLayout) {
@@ -261,20 +288,6 @@ function getFocusedOffset(viewportWidth: number, viewportHeight: number, layout:
   }
 }
 
-function getEdgeFactor(position: number, viewportSize: number, thresholdRatio: number) {
-  const threshold = Math.max(72, viewportSize * thresholdRatio)
-
-  if (position <= threshold) {
-    return -(1 - position / threshold)
-  }
-
-  if (position >= viewportSize - threshold) {
-    return (position - (viewportSize - threshold)) / threshold
-  }
-
-  return 0
-}
-
 function getNearestVisibleOrder(
   layout: WallLayout,
   viewportWidth: number,
@@ -300,63 +313,6 @@ function getNearestVisibleOrder(
   return nextVisibleOrder
 }
 
-async function extractDominantColor(url: string) {
-  const cachedColor = colorCache.get(url)
-  if (cachedColor) {
-    return cachedColor
-  }
-
-  return new Promise<[number, number, number]>((resolve) => {
-    const image = new Image()
-    image.crossOrigin = 'anonymous'
-    image.onload = () => {
-      try {
-        const canvas = document.createElement('canvas')
-        const size = 48
-        canvas.width = size
-        canvas.height = size
-        const context = canvas.getContext('2d')
-        if (!context) {
-          resolve(DEFAULT_HOVER_COLOR)
-          return
-        }
-
-        context.drawImage(image, 0, 0, size, size)
-        const samples = [
-          [size / 2, size / 2],
-          [size / 4, size / 4],
-          [(size * 3) / 4, size / 4],
-          [size / 4, (size * 3) / 4],
-          [(size * 3) / 4, (size * 3) / 4],
-        ]
-
-        let bestScore = -1
-        let bestColor = DEFAULT_HOVER_COLOR
-        for (const [x, y] of samples) {
-          const [red, green, blue] = context.getImageData(Math.floor(x), Math.floor(y), 1, 1).data
-          const max = Math.max(red, green, blue)
-          const min = Math.min(red, green, blue)
-          const saturation = max === 0 ? 0 : (max - min) / max
-          const score = saturation * 1.5 + (max / 255) * 0.5
-
-          if (score > bestScore) {
-            bestScore = score
-            bestColor = [red, green, blue]
-          }
-        }
-
-        colorCache.set(url, bestColor)
-        resolve(bestColor)
-      } catch {
-        resolve(DEFAULT_HOVER_COLOR)
-      }
-    }
-
-    image.onerror = () => resolve(DEFAULT_HOVER_COLOR)
-    image.src = url
-  })
-}
-
 export default function SpotifyTrackWall({
   items,
   emptyMessage,
@@ -368,84 +324,91 @@ export default function SpotifyTrackWall({
   const viewportRef = useRef<HTMLDivElement>(null)
   const wallRef = useRef<HTMLDivElement>(null)
   const offsetRef = useRef({ x: 0, y: 0 })
-  const velocityRef = useRef({ x: 0, y: 0 })
-  const pointerRef = useRef({ inside: false, x: 0, y: 0 })
+  const driftDirectionRef = useRef<{ x: AxisDirection; y: AxisDirection }>({ x: -1, y: -1 })
   const animationFrameRef = useRef<number | null>(null)
   const previousFrameRef = useRef<number | null>(null)
-  const pausedRef = useRef(false)
+  const tickRef = useRef<(timestamp: number) => void>(() => {})
+  const hoverIntentTimeoutRef = useRef<number | null>(null)
+  const suppressNextHoverRef = useRef(false)
+  const hoverPausedRef = useRef(false)
+  const manualPausedRef = useRef(false)
   const badgeFrameRef = useRef(0)
   const visibleOrderRef = useRef(1)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [hoverColor, setHoverColor] = useState<[number, number, number] | null>(null)
+  const [isManualNavigation, setIsManualNavigation] = useState(false)
   const [visibleOrder, setVisibleOrder] = useState(1)
   const layout = useMemo(() => generateWallLayout(items, preset), [items, preset])
   const layoutRef = useRef(layout)
   const hoveredItem = useMemo(() => items.find((item) => item.id === hoveredId) ?? null, [hoveredId, items])
+  const activeHoveredId = hoveredItem?.id ?? null
+
+  const clearHoverIntent = useCallback(() => {
+    if (hoverIntentTimeoutRef.current != null) {
+      window.clearTimeout(hoverIntentTimeoutRef.current)
+      hoverIntentTimeoutRef.current = null
+    }
+  }, [])
+
+  const scheduleHoverIntent = useCallback((itemId: string) => {
+    clearHoverIntent()
+    hoverIntentTimeoutRef.current = window.setTimeout(() => {
+      hoverIntentTimeoutRef.current = null
+      hoverPausedRef.current = true
+      previousFrameRef.current = null
+      setHoveredId((currentValue) => (currentValue === itemId ? currentValue : itemId))
+    }, HOVER_INTENT_DELAY_MS)
+  }, [clearHoverIntent])
+
+  const setManualPaused = useCallback((nextPaused: boolean) => {
+    manualPausedRef.current = nextPaused
+    setIsManualNavigation((currentValue) => (currentValue === nextPaused ? currentValue : nextPaused))
+  }, [])
+
+  const syncVisibleOrder = useCallback((
+    activeLayout: WallLayout,
+    viewportWidth: number,
+    viewportHeight: number,
+    offset: { x: number; y: number },
+    shouldTransition = false
+  ) => {
+    const nextVisibleOrder = getNearestVisibleOrder(activeLayout, viewportWidth, viewportHeight, offset)
+
+    if (nextVisibleOrder === visibleOrderRef.current) {
+      return
+    }
+
+    visibleOrderRef.current = nextVisibleOrder
+
+    if (shouldTransition) {
+      startTransition(() => {
+        setVisibleOrder((currentValue) => (currentValue === nextVisibleOrder ? currentValue : nextVisibleOrder))
+      })
+      return
+    }
+
+    setVisibleOrder(nextVisibleOrder)
+  }, [])
+
+  const scheduleAnimation = useCallback(() => {
+    if (
+      animationFrameRef.current != null ||
+      layoutRef.current.items.length === 0 ||
+      hoverPausedRef.current ||
+      manualPausedRef.current
+    ) {
+      return
+    }
+
+    animationFrameRef.current = requestAnimationFrame((timestamp) => {
+      tickRef.current(timestamp)
+    })
+  }, [])
 
   useEffect(() => {
     layoutRef.current = layout
   }, [layout])
 
-  useEffect(() => {
-    const viewport = viewportRef.current
-    const wall = wallRef.current
-    if (!viewport || !wall) {
-      return
-    }
-
-    if (animationFrameRef.current != null) {
-      cancelAnimationFrame(animationFrameRef.current)
-      animationFrameRef.current = null
-    }
-
-    pointerRef.current.inside = false
-    velocityRef.current = { x: 0, y: 0 }
-    previousFrameRef.current = null
-    badgeFrameRef.current = 0
-    offsetRef.current = getFocusedOffset(viewport.clientWidth, viewport.clientHeight, layout)
-    wall.style.transform = `translate3d(${offsetRef.current.x}px, ${offsetRef.current.y}px, 0)`
-
-    const nextVisibleOrder = getNearestVisibleOrder(
-      layout,
-      viewport.clientWidth,
-      viewport.clientHeight,
-      offsetRef.current
-    )
-    visibleOrderRef.current = nextVisibleOrder
-    setVisibleOrder(nextVisibleOrder)
-
-    const handleResize = () => {
-      const resizedViewport = viewportRef.current
-      const resizedWall = wallRef.current
-      if (!resizedViewport || !resizedWall) {
-        return
-      }
-
-      offsetRef.current = getFocusedOffset(resizedViewport.clientWidth, resizedViewport.clientHeight, layoutRef.current)
-      resizedWall.style.transform = `translate3d(${offsetRef.current.x}px, ${offsetRef.current.y}px, 0)`
-      const resizedVisibleOrder = getNearestVisibleOrder(
-        layoutRef.current,
-        resizedViewport.clientWidth,
-        resizedViewport.clientHeight,
-        offsetRef.current
-      )
-      visibleOrderRef.current = resizedVisibleOrder
-      setVisibleOrder(resizedVisibleOrder)
-    }
-
-    window.addEventListener('resize', handleResize)
-
-    return () => {
-      window.removeEventListener('resize', handleResize)
-      if (animationFrameRef.current != null) {
-        cancelAnimationFrame(animationFrameRef.current)
-      }
-      animationFrameRef.current = null
-      previousFrameRef.current = null
-    }
-  }, [layout])
-
-  const tick = (timestamp: number) => {
+  const tick = useCallback((timestamp: number) => {
     animationFrameRef.current = null
 
     const viewport = viewportRef.current
@@ -464,36 +427,27 @@ export default function SpotifyTrackWall({
     const delta = Math.min((timestamp - previousFrameRef.current) / 1000, 0.04)
     previousFrameRef.current = timestamp
     const bounds = getViewportBounds(viewport.clientWidth, viewport.clientHeight, activeLayout)
-    const edgeFactorX = pointerRef.current.inside && !pausedRef.current
-      ? getEdgeFactor(pointerRef.current.x, viewport.clientWidth, activeLayout.options.edgeThresholdRatio)
-      : 0
-    const edgeFactorY = pointerRef.current.inside && !pausedRef.current
-      ? getEdgeFactor(pointerRef.current.y, viewport.clientHeight, activeLayout.options.edgeThresholdRatio)
-      : 0
-    const desiredVelocityX = bounds.hasHorizontalOverflow ? -edgeFactorX * activeLayout.options.maxPanSpeed : 0
-    const desiredVelocityY = bounds.hasVerticalOverflow ? -edgeFactorY * activeLayout.options.maxPanSpeed * 0.88 : 0
-    const easing = Math.min(1, delta * CAMERA_SETTLE_RATE)
+    const centeredOffset = getFocusedOffset(viewport.clientWidth, viewport.clientHeight, activeLayout)
 
-    velocityRef.current.x += (desiredVelocityX - velocityRef.current.x) * easing
-    velocityRef.current.y += (desiredVelocityY - velocityRef.current.y) * easing
+    let nextX = bounds.hasHorizontalOverflow ? offsetRef.current.x : centeredOffset.x
+    let nextY = bounds.hasVerticalOverflow ? offsetRef.current.y : centeredOffset.y
 
-    let nextX = bounds.hasHorizontalOverflow
-      ? offsetRef.current.x + velocityRef.current.x * delta
-      : getFocusedOffset(viewport.clientWidth, viewport.clientHeight, activeLayout).x
-    let nextY = bounds.hasVerticalOverflow
-      ? offsetRef.current.y + velocityRef.current.y * delta
-      : getFocusedOffset(viewport.clientWidth, viewport.clientHeight, activeLayout).y
+    if (!hoverPausedRef.current && !manualPausedRef.current) {
+      if (bounds.hasHorizontalOverflow) {
+        nextX += driftDirectionRef.current.x * activeLayout.options.driftSpeed * delta
+      }
 
-    nextX = clamp(nextX, bounds.minX, bounds.maxX)
-    nextY = clamp(nextY, bounds.minY, bounds.maxY)
-
-    if (nextX === bounds.minX || nextX === bounds.maxX) {
-      velocityRef.current.x *= 0.32
+      if (bounds.hasVerticalOverflow) {
+        nextY += driftDirectionRef.current.y * activeLayout.options.driftSpeed * AUTO_DRIFT_VERTICAL_RATIO * delta
+      }
     }
 
-    if (nextY === bounds.minY || nextY === bounds.maxY) {
-      velocityRef.current.y *= 0.32
-    }
+    const resolvedX = resolveLoopingAxis(nextX, bounds.minX, bounds.maxX, driftDirectionRef.current.x)
+    const resolvedY = resolveLoopingAxis(nextY, bounds.minY, bounds.maxY, driftDirectionRef.current.y)
+    driftDirectionRef.current.x = resolvedX.direction
+    driftDirectionRef.current.y = resolvedY.direction
+    nextX = resolvedX.value
+    nextY = resolvedY.value
 
     const moved =
       Math.abs(nextX - offsetRef.current.x) > 0.08 || Math.abs(nextY - offsetRef.current.y) > 0.08
@@ -504,51 +458,151 @@ export default function SpotifyTrackWall({
       wall.style.transform = `translate3d(${nextX}px, ${nextY}px, 0)`
     }
 
-    if (moved && timestamp - badgeFrameRef.current > 120) {
+    if (moved && timestamp - badgeFrameRef.current > VISIBLE_ORDER_THROTTLE_MS) {
       badgeFrameRef.current = timestamp
-      const nextVisibleOrder = getNearestVisibleOrder(
-        activeLayout,
-        viewport.clientWidth,
-        viewport.clientHeight,
-        offsetRef.current
-      )
-
-      visibleOrderRef.current = nextVisibleOrder
-      setVisibleOrder((currentValue) => (currentValue === nextVisibleOrder ? currentValue : nextVisibleOrder))
+      syncVisibleOrder(activeLayout, viewport.clientWidth, viewport.clientHeight, offsetRef.current, true)
     }
 
-    const hasEdgeInput = Math.abs(edgeFactorX) > 0.001 || Math.abs(edgeFactorY) > 0.001
-    const hasMomentum =
-      Math.abs(velocityRef.current.x) > MOTION_EPSILON || Math.abs(velocityRef.current.y) > MOTION_EPSILON
+    const hasRemainingDrift =
+      !hoverPausedRef.current &&
+      !manualPausedRef.current &&
+      (bounds.hasHorizontalOverflow || bounds.hasVerticalOverflow)
 
-    if (hasEdgeInput || hasMomentum) {
-      animationFrameRef.current = requestAnimationFrame(tick)
+    if (hasRemainingDrift) {
+      animationFrameRef.current = requestAnimationFrame((nextTimestamp) => {
+        tickRef.current(nextTimestamp)
+      })
       return
     }
 
-    velocityRef.current = { x: 0, y: 0 }
     previousFrameRef.current = null
-  }
+  }, [syncVisibleOrder])
 
-  const scheduleAnimation = () => {
-    if (animationFrameRef.current != null || layoutRef.current.items.length === 0) {
+  useEffect(() => {
+    tickRef.current = tick
+  }, [tick])
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    const wall = wallRef.current
+    if (!viewport || !wall) {
       return
     }
 
-    animationFrameRef.current = requestAnimationFrame(tick)
-  }
+    if (animationFrameRef.current != null) {
+      cancelAnimationFrame(animationFrameRef.current)
+      animationFrameRef.current = null
+    }
+
+    clearHoverIntent()
+    suppressNextHoverRef.current = false
+    hoverPausedRef.current = false
+    manualPausedRef.current = false
+    previousFrameRef.current = null
+    badgeFrameRef.current = 0
+    driftDirectionRef.current = { x: -1, y: -1 }
+    offsetRef.current = getFocusedOffset(viewport.clientWidth, viewport.clientHeight, layout)
+    wall.style.transform = `translate3d(${offsetRef.current.x}px, ${offsetRef.current.y}px, 0)`
+    visibleOrderRef.current = getNearestVisibleOrder(
+      layout,
+      viewport.clientWidth,
+      viewport.clientHeight,
+      offsetRef.current
+    )
+
+    const handleResize = () => {
+      const resizedViewport = viewportRef.current
+      const resizedWall = wallRef.current
+      if (!resizedViewport || !resizedWall) {
+        return
+      }
+
+      offsetRef.current = getFocusedOffset(resizedViewport.clientWidth, resizedViewport.clientHeight, layoutRef.current)
+      resizedWall.style.transform = `translate3d(${offsetRef.current.x}px, ${offsetRef.current.y}px, 0)`
+      clearHoverIntent()
+      suppressNextHoverRef.current = false
+      hoverPausedRef.current = false
+      setManualPaused(false)
+      driftDirectionRef.current = { x: -1, y: -1 }
+      previousFrameRef.current = null
+      setHoveredId(null)
+      syncVisibleOrder(layoutRef.current, resizedViewport.clientWidth, resizedViewport.clientHeight, offsetRef.current)
+      scheduleAnimation()
+    }
+
+    window.addEventListener('resize', handleResize)
+    scheduleAnimation()
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      clearHoverIntent()
+      if (animationFrameRef.current != null) {
+        cancelAnimationFrame(animationFrameRef.current)
+      }
+      animationFrameRef.current = null
+      previousFrameRef.current = null
+    }
+  }, [clearHoverIntent, layout, scheduleAnimation, setManualPaused, syncVisibleOrder])
+
+  const moveViewport = useCallback((direction: MoveDirection) => {
+    const viewport = viewportRef.current
+    const wall = wallRef.current
+    const activeLayout = layoutRef.current
+
+    if (!viewport || !wall || activeLayout.items.length === 0) {
+      return
+    }
+
+    clearHoverIntent()
+    suppressNextHoverRef.current = false
+    hoverPausedRef.current = false
+    setHoveredId(null)
+    setManualPaused(true)
+    previousFrameRef.current = null
+
+    if (animationFrameRef.current != null) {
+      cancelAnimationFrame(animationFrameRef.current)
+      animationFrameRef.current = null
+    }
+
+    const bounds = getViewportBounds(viewport.clientWidth, viewport.clientHeight, activeLayout)
+    const centeredOffset = getFocusedOffset(viewport.clientWidth, viewport.clientHeight, activeLayout)
+    const horizontalStep = Math.max(activeLayout.options.baseTileSize * 1.9, viewport.clientWidth * MANUAL_PAN_STEP_RATIO)
+    const verticalStep = Math.max(activeLayout.options.baseTileSize * 1.9, viewport.clientHeight * MANUAL_PAN_STEP_RATIO)
+
+    const deltaX = direction === 'left' ? horizontalStep : direction === 'right' ? -horizontalStep : 0
+    const deltaY = direction === 'up' ? verticalStep : direction === 'down' ? -verticalStep : 0
+
+    const nextOffset = {
+      x: bounds.hasHorizontalOverflow
+        ? clamp(offsetRef.current.x + deltaX, bounds.minX, bounds.maxX)
+        : centeredOffset.x,
+      y: bounds.hasVerticalOverflow
+        ? clamp(offsetRef.current.y + deltaY, bounds.minY, bounds.maxY)
+        : centeredOffset.y,
+    }
+
+    offsetRef.current = nextOffset
+    wall.style.transform = `translate3d(${nextOffset.x}px, ${nextOffset.y}px, 0)`
+    syncVisibleOrder(activeLayout, viewport.clientWidth, viewport.clientHeight, nextOffset)
+  }, [clearHoverIntent, setManualPaused, syncVisibleOrder])
+
+  const resumeAutoDrift = useCallback(() => {
+    clearHoverIntent()
+    suppressNextHoverRef.current = false
+    hoverPausedRef.current = false
+    setHoveredId(null)
+    setManualPaused(false)
+    previousFrameRef.current = null
+    scheduleAnimation()
+  }, [clearHoverIntent, scheduleAnimation, setManualPaused])
 
   const shellClassName = preset === 'compact' ? `${styles.shell} ${styles.shellCompact}` : styles.shell
   const wallStyle = {
     '--wall-height': `${layout.options.viewportHeight}px`,
+    '--tile-blur-strength': `${layout.options.blurStrength}px`,
   } as CSSProperties
-
-  const glowStyle = hoverColor
-    ? {
-        background: `radial-gradient(circle at center, rgba(${hoverColor[0]}, ${hoverColor[1]}, ${hoverColor[2]}, 0.48), rgba(${hoverColor[0]}, ${hoverColor[1]}, ${hoverColor[2]}, 0.12) 35%, transparent 68%)`,
-        opacity: 1,
-      }
-    : undefined
+  const backdropGlowClassName = activeHoveredId ? `${styles.backdropGlow} ${styles.backdropGlowActive}` : styles.backdropGlow
 
   if (items.length === 0) {
     return (
@@ -560,29 +614,26 @@ export default function SpotifyTrackWall({
 
   return (
     <div className={shellClassName} style={wallStyle}>
-      <div className={styles.backdropGlow} style={glowStyle} />
+      <div className={backdropGlowClassName} />
 
       <div
         className={styles.viewport}
         ref={viewportRef}
-        onMouseMove={(event) => {
-          const rect = event.currentTarget.getBoundingClientRect()
-          pointerRef.current = {
-            inside: true,
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top,
-          }
-          scheduleAnimation()
-        }}
         onMouseLeave={() => {
-          pointerRef.current.inside = false
-          scheduleAnimation()
+          clearHoverIntent()
+          suppressNextHoverRef.current = false
+          hoverPausedRef.current = false
+          previousFrameRef.current = null
+          setHoveredId(null)
+          if (!manualPausedRef.current) {
+            scheduleAnimation()
+          }
         }}
       >
         <div className={styles.wall} ref={wallRef} style={{ width: layout.totalWidth, height: layout.totalHeight }}>
           {layout.items.map((layoutItem) => {
-            const isHovered = hoveredId === layoutItem.item.id
-            const isDimmed = hoveredId !== null && hoveredId !== layoutItem.item.id
+            const isHovered = activeHoveredId === layoutItem.item.id
+            const isDimmed = activeHoveredId !== null && activeHoveredId !== layoutItem.item.id
 
             return (
               <div
@@ -598,25 +649,33 @@ export default function SpotifyTrackWall({
                   transform: `translate3d(${layoutItem.x}px, ${layoutItem.y}px, 0)`,
                   width: layoutItem.width,
                   height: layoutItem.height,
-                  ['--wall-blur' as string]: `${layout.options.blurStrength}px`,
                 }}
                 onMouseEnter={() => {
-                  pausedRef.current = true
-                  velocityRef.current = { x: 0, y: 0 }
-                  setHoveredId(layoutItem.item.id)
-                  if (layoutItem.item.imageUrl) {
-                    void extractDominantColor(layoutItem.item.imageUrl).then((nextColor) => {
-                      setHoverColor(nextColor)
-                    })
-                  } else {
-                    setHoverColor(DEFAULT_HOVER_COLOR)
+                  clearHoverIntent()
+
+                  if (activeHoveredId && activeHoveredId !== layoutItem.item.id) {
+                    return
                   }
+
+                  if (suppressNextHoverRef.current) {
+                    suppressNextHoverRef.current = false
+                    return
+                  }
+
+                  scheduleHoverIntent(layoutItem.item.id)
                 }}
                 onMouseLeave={() => {
-                  pausedRef.current = false
-                  setHoveredId((currentValue) => (currentValue === layoutItem.item.id ? null : currentValue))
-                  setHoverColor(null)
-                  scheduleAnimation()
+                  clearHoverIntent()
+
+                  if (activeHoveredId === layoutItem.item.id) {
+                    suppressNextHoverRef.current = true
+                    hoverPausedRef.current = false
+                    previousFrameRef.current = null
+                    setHoveredId(null)
+                    if (!manualPausedRef.current) {
+                      scheduleAnimation()
+                    }
+                  }
                 }}
               >
                 <div className={styles.tileInner}>
@@ -640,21 +699,18 @@ export default function SpotifyTrackWall({
 
                 {isHovered ? (
                   <div className={styles.tileInfo}>
-                    <div className={styles.tileInfoOrder}>Now Focused #{layoutItem.item.order}</div>
+                    <div className={styles.tileInfoOrder}>#{layoutItem.item.order}</div>
                     <div className={styles.tileInfoTitle}>{layoutItem.item.title}</div>
                     <div className={styles.tileInfoArtists}>{layoutItem.item.artists}</div>
                     <div className={styles.tileInfoAlbum}>{layoutItem.item.album}</div>
                     <div className={styles.tileInfoMeta}>
-                      {layoutItem.item.meta.map((value) => (
-                        <span key={`${layoutItem.item.id}-${value}`}>{value}</span>
+                      {layoutItem.item.meta.map((value, index) => (
+                        <Fragment key={`${layoutItem.item.id}-${value}`}>
+                          {index > 0 ? <span className={styles.tileInfoMetaDot}>·</span> : null}
+                          <span>{value}</span>
+                        </Fragment>
                       ))}
                     </div>
-                    {layoutItem.item.href ? (
-                      <a href={layoutItem.item.href} target="_blank" rel="noreferrer" className={styles.tileInfoLink}>
-                        在 Spotify 打开
-                        <ExternalLink size={14} strokeWidth={1.8} />
-                      </a>
-                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -666,6 +722,56 @@ export default function SpotifyTrackWall({
         <div className={`${styles.fade} ${styles.fadeBottom}`} />
         <div className={`${styles.fade} ${styles.fadeLeft}`} />
         <div className={`${styles.fade} ${styles.fadeRight}`} />
+
+        <div className={styles.viewportControls} role="group" aria-label="移动视口">
+          <button
+            type="button"
+            className={`${styles.controlButton} ${styles.controlButtonUp}`}
+            onClick={() => moveViewport('up')}
+            aria-label="向上移动视口"
+          >
+            <ArrowUp size={16} strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            className={`${styles.controlButton} ${styles.controlButtonLeft}`}
+            onClick={() => moveViewport('left')}
+            aria-label="向左移动视口"
+          >
+            <ArrowLeft size={16} strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            className={[
+              styles.controlButton,
+              styles.controlButtonCenter,
+              !isManualNavigation ? styles.controlButtonCenterActive : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            onClick={resumeAutoDrift}
+            aria-label="恢复自动漂移"
+            aria-pressed={!isManualNavigation}
+          >
+            AUTO
+          </button>
+          <button
+            type="button"
+            className={`${styles.controlButton} ${styles.controlButtonRight}`}
+            onClick={() => moveViewport('right')}
+            aria-label="向右移动视口"
+          >
+            <ArrowRight size={16} strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            className={`${styles.controlButton} ${styles.controlButtonDown}`}
+            onClick={() => moveViewport('down')}
+            aria-label="向下移动视口"
+          >
+            <ArrowDown size={16} strokeWidth={2} />
+          </button>
+        </div>
       </div>
 
       <div className={styles.footer}>
@@ -695,7 +801,13 @@ export default function SpotifyTrackWall({
           </div>
         ) : null}
 
-        <div className={styles.footerHint}>{hoveredItem ? `hovering #${hoveredItem.order}` : footerHint ?? `center tile #${visibleOrder}`}</div>
+        <div className={styles.footerHint}>
+          {hoveredItem
+            ? `hovering #${hoveredItem.order}`
+            : isManualNavigation
+              ? 'manual viewport'
+              : footerHint ?? `center tile #${visibleOrder}`}
+        </div>
       </div>
     </div>
   )

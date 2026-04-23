@@ -17,7 +17,6 @@ const RANGE_DESCRIPTIONS: Record<SpotifyTimeRange, string> = {
   medium_term: '近 6 个月',
   long_term: '历史全部',
 }
-const TRACK_WALL_LIMIT = 24
 
 function formatTotalDuration(items: SpotifyTopTrack[]) {
   const totalMinutes = Math.floor(items.reduce((sum, track) => sum + track.durationMs, 0) / 60000)
@@ -39,10 +38,9 @@ export default function SpotifyTopTracksPanel({
   const [activeRange, setActiveRange] = useState<SpotifyTimeRange>('medium_term')
 
   const activeItems = useMemo(() => data[activeRange] ?? [], [activeRange, data])
-  const previewItems = useMemo(() => activeItems.slice(0, TRACK_WALL_LIMIT), [activeItems])
   const wallItems = useMemo(
     () =>
-      previewItems.map((track) => ({
+      activeItems.map((track) => ({
         id: `${activeRange}-${track.id}-${track.rank}`,
         order: track.rank,
         title: track.title,
@@ -52,15 +50,15 @@ export default function SpotifyTopTracksPanel({
         href: track.songUrl,
         meta: [formatDuration(track.durationMs)],
       })),
-    [activeRange, previewItems]
+    [activeRange, activeItems]
   )
   const footerStats = useMemo(
     () => [
-      { label: 'shown', value: `${previewItems.length}/${activeItems.length}` },
+      { label: 'tracks', value: `${activeItems.length}` },
       { label: 'window', value: RANGE_DESCRIPTIONS[activeRange] },
-      { label: 'duration', value: formatTotalDuration(previewItems) },
+      { label: 'duration', value: formatTotalDuration(activeItems) },
     ],
-    [activeItems.length, activeRange, previewItems]
+    [activeItems, activeRange]
   )
 
   return (
@@ -83,7 +81,7 @@ export default function SpotifyTopTracksPanel({
             </div>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            基于收听频率自动生成的单曲排行榜，默认锁定第一名，鼠标逼近边缘时再推动镜头继续探索。
+            基于收听频率自动生成的单曲排行榜，会完整展示 50 首，并以循环缓慢漂移探索更多封面；也可以直接用方向按钮手动移动视口。
           </p>
         </div>
 
@@ -101,7 +99,7 @@ export default function SpotifyTopTracksPanel({
       </div>
 
       <div className={`mt-6 transition ${isPending ? 'opacity-60' : 'opacity-100'}`}>
-        {previewItems.length === 0 ? (
+        {activeItems.length === 0 ? (
           <div className="rounded-[24px] border border-dashed border-border/70 bg-muted/20 p-6 text-sm text-muted-foreground">
             当前时间跨度没有返回可展示的 Top Tracks 数据。
           </div>
@@ -110,7 +108,7 @@ export default function SpotifyTopTracksPanel({
             items={wallItems}
             emptyMessage="当前时间跨度没有返回可展示的 Top Tracks 数据。"
             footerStats={footerStats}
-            footerHint={isPending ? 'switching view' : 'edge-pan viewport'}
+            footerHint={isPending ? 'switching view' : 'loop drift gallery'}
           />
         )}
       </div>

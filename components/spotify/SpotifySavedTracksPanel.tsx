@@ -97,7 +97,7 @@ function SpotifySavedTracksPanelContent({
             </span>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            先显示精简预览批次，默认锁定中央封面，只在鼠标推到边缘时继续探索更多封面，避免一次性铺开太多条目。
+            先显示精简预览批次，默认停在中央封面附近，并通过循环缓慢漂移继续探索更多封面；也可以随时用方向按钮打断并手动移动视口。
           </p>
         </div>
       </div>
@@ -111,7 +111,7 @@ function SpotifySavedTracksPanelContent({
           items={wallItems}
           emptyMessage="没有发现已点赞的歌曲。"
           footerStats={footerStats}
-          footerHint={hasMore ? 'edge-pan preview' : 'preview settled'}
+          footerHint={hasMore ? 'loop drift preview' : 'loop drift library'}
           loadMore={hasMore ? {
             hasMore,
             isLoading,
