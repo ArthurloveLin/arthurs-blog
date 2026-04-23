@@ -1,5 +1,40 @@
 .section {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.viewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.historyCaption {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.historySummary {
+  margin: 0.22rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.viewportWrap {
+  position: relative;
+  transition: opacity 220ms ease;
+}
+
+.viewportWrap[data-loading='true'] {
+  opacity: 0.7;
 }
 
 .viewport {
@@ -271,6 +306,232 @@
   color: var(--muted-foreground);
 }
 
+.timelineMeta,
+.chartPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  padding-top: 1rem;
+}
+
+.timelineScroller,
+.segmentScroller {
+  display: flex;
+  gap: 0.65rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+  scrollbar-width: none;
+}
+
+.timelineScroller::-webkit-scrollbar,
+.segmentScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.timelinePill,
+.segmentPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 86%, transparent);
+  color: var(--muted-foreground);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease, transform 220ms ease;
+}
+
+.timelinePill:hover,
+.segmentPill:hover:not(:disabled) {
+  color: var(--foreground);
+  transform: translateY(-1px);
+}
+
+.timelinePillActive,
+.segmentPillActive {
+  border-color: color-mix(in srgb, rgb(16 185 129) 55%, transparent);
+  background: color-mix(in srgb, rgb(16 185 129) 18%, var(--card));
+  color: var(--foreground);
+}
+
+.segmentPillDisabled {
+  opacity: 0.48;
+}
+
+.segmentCount {
+  display: inline-flex;
+  min-width: 1.35rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
+  padding: 0.18rem 0.42rem;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.helperText {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.chartShell {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  align-items: stretch;
+  min-height: 18rem;
+  transition: opacity 220ms ease;
+}
+
+.chartShell[data-loading='true'] {
+  opacity: 0.7;
+}
+
+.chartYAxis {
+  display: grid;
+  align-items: stretch;
+  align-self: stretch;
+  padding-top: 0.8rem;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+}
+
+.chartYAxis span {
+  transform: translateY(-0.55rem);
+}
+
+.chartPlot {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.4rem;
+  border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+  background:
+    radial-gradient(circle at top, rgba(16, 185, 129, 0.12), transparent 48%),
+    color-mix(in srgb, var(--card) 92%, transparent);
+  padding: 1rem 1rem 1.1rem;
+}
+
+.chartGuide {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  border-top: 1px dashed color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.chartBars {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.9rem;
+  align-items: end;
+  min-height: 16rem;
+}
+
+.chartColumn {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+.chartBarButton {
+  position: relative;
+  display: flex;
+  min-height: 12rem;
+  width: 100%;
+  align-items: flex-end;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.chartBarButton:disabled {
+  cursor: default;
+}
+
+.chartBar {
+  width: min(100%, 3.4rem);
+  height: var(--bar-height, 14%);
+  min-height: 0.75rem;
+  border-radius: 1.1rem 1.1rem 0.45rem 0.45rem;
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.78));
+  box-shadow: 0 16px 30px rgba(16, 185, 129, 0.18);
+  transform-origin: bottom;
+  animation: chart-bar-rise 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--bar-delay, 0ms);
+}
+
+.chartBarActive {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(16, 185, 129, 0.9));
+  box-shadow: 0 20px 36px rgba(15, 23, 42, 0.22);
+}
+
+.chartBarMuted {
+  opacity: 0.28;
+}
+
+.chartTooltip {
+  position: absolute;
+  top: -2.2rem;
+  left: 50%;
+  transform: translate(-50%, 4px);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.92);
+  padding: 0.32rem 0.55rem;
+  color: white;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.chartBarButton:hover .chartTooltip,
+.chartBarButton:focus-visible .chartTooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.chartLabelGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.18rem;
+}
+
+.chartLabel {
+  color: var(--foreground);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.chartValue {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+}
+
+@keyframes chart-bar-rise {
+  from {
+    opacity: 0;
+    transform: scaleY(0.15);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
 @media (max-width: 1279px) {
   .cardInfo {
     transform: translateY(52%);
@@ -280,6 +541,14 @@
 @media (max-width: 1023px) {
   .viewport {
     padding-inline: 2.25rem;
+  }
+
+  .chartShell {
+    grid-template-columns: 1fr;
+  }
+
+  .chartYAxis {
+    display: none;
   }
 
   .cardInfo {
@@ -321,6 +590,19 @@
     justify-content: center;
   }
 
+  .viewHeader {
+    align-items: flex-start;
+  }
+
+  .chartBars {
+    gap: 0.65rem;
+    min-height: 13rem;
+  }
+
+  .chartBarButton {
+    min-height: 10rem;
+  }
+
   .pageLabel {
     display: none;
   }
@@ -335,8 +617,17 @@
   .spotifyBadge,
   .infoOverlay::after,
   .navButton,
-  .paginationDot {
+  .paginationDot,
+  .viewportWrap,
+  .timelinePill,
+  .segmentPill,
+  .chartShell,
+  .chartTooltip {
     transition-duration: 0ms !important;
     transition-delay: 0ms !important;
+  }
+
+  .chartBar {
+    animation: none;
   }
 }
