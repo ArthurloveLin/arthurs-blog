@@ -186,12 +186,6 @@ export default function SpotifyWidePlayer({ stats }: { stats?: SpotifyWidePlayer
             )}
             {statusLabel}
           </span>
-          {data.bpm ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/15 px-2 py-0.5 font-mono sm:px-3 sm:py-1">
-              <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
-              {Math.round(data.bpm)} BPM
-            </span>
-          ) : null}
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[440px_1fr_160px] lg:items-stretch xl:grid-cols-[500px_1fr_180px]">
