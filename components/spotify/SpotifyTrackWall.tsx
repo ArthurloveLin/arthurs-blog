@@ -28,17 +28,17 @@ interface LayoutOptions {
 
 const LAYOUT_PRESETS: Record<WallPreset, LayoutOptions> = {
   default: {
-    baseTileSize: 148,
+    baseTileSize: 196,
     gap: 12,
-    gridCols: 8,
+    gridCols: 6,
     driftSpeed: 11,
     viewportHeight: 596,
     blurStrength: 16,
   },
   compact: {
-    baseTileSize: 132,
+    baseTileSize: 172,
     gap: 10,
-    gridCols: 8,
+    gridCols: 6,
     driftSpeed: 10,
     viewportHeight: 552,
     blurStrength: 13,
@@ -86,13 +86,8 @@ interface WallLayout {
   options: LayoutOptions
 }
 
-function getTileSpan(order: number, _index: number) {
-  // Uniform area (2 grid units²): 4 landscape then 2 portrait per 6-item cycle
-  const cycle = (order - 1) % 6
-  if (cycle === 2 || cycle === 5) {
-    return { width: 1, height: 2 }
-  }
-  return { width: 2, height: 1 }
+function getTileSpan(_order: number, _index: number) {
+  return { width: 1, height: 1 }
 }
 
 function getTileDimensions(widthUnits: number, heightUnits: number, options: LayoutOptions) {
@@ -133,7 +128,7 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): 
   const occupied: boolean[][] = []
   const layoutItems: WallLayoutItem[] = []
   const searchRowLimit = Math.max(48, items.length * 6)
-  const estimatedCenterRow = Math.max(2, Math.round(items.length / options.gridCols))
+  const estimatedCenterRow = Math.max(2, Math.round(items.length / (options.gridCols * 2)))
   const searchCells = buildCenterFirstCells(options.gridCols, searchRowLimit, estimatedCenterRow)
   let maxRow = 0
 
@@ -189,15 +184,14 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): 
 
     if (!placement) {
       const fallbackRow = maxRow
-      const dimensions = getTileDimensions(2, 1, options)
-      markOccupied(fallbackRow, 0, 2, 1)
+      markOccupied(fallbackRow, 0, 1, 1)
 
       placement = {
         item,
         x: 0,
         y: fallbackRow * (options.baseTileSize + options.gap),
-        width: dimensions.width,
-        height: dimensions.height,
+        width: options.baseTileSize,
+        height: options.baseTileSize,
       }
     }
 
@@ -406,11 +400,11 @@ export default function SpotifyTrackWall({
     const halfRangeY = (bounds.maxY - bounds.minY) / 2
     const Ax = Math.min(activeLayout.options.baseTileSize * LISSAJOUS_AMP_X_RATIO, halfRangeX)
     const Ay = Math.min(activeLayout.options.baseTileSize * LISSAJOUS_AMP_Y_RATIO, halfRangeY)
-    const ωx = (2 * Math.PI) / LISSAJOUS_PERIOD_X
-    const ωy = (2 * Math.PI) / LISSAJOUS_PERIOD_Y
+    const freqX = (2 * Math.PI) / LISSAJOUS_PERIOD_X
+    const freqY = (2 * Math.PI) / LISSAJOUS_PERIOD_Y
 
-    const nextX = clamp(centeredOffset.x + Ax * Math.sin(ωx * t), bounds.minX, bounds.maxX)
-    const nextY = clamp(centeredOffset.y + Ay * Math.sin(ωy * t + Math.PI / 4), bounds.minY, bounds.maxY)
+    const nextX = clamp(centeredOffset.x + Ax * Math.sin(freqX * t), bounds.minX, bounds.maxX)
+    const nextY = clamp(centeredOffset.y + Ay * Math.sin(freqY * t + Math.PI / 4), bounds.minY, bounds.maxY)
 
     const moved =
       Math.abs(nextX - offsetRef.current.x) > 0.08 || Math.abs(nextY - offsetRef.current.y) > 0.08
