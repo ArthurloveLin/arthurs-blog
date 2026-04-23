@@ -24,7 +24,7 @@ import {
   type SpotifyTopTrack,
   type SpotifyTrackSummary,
 } from './spotify-types'
-import { getR2Object, putR2Object } from './r2'
+import { getR2Object, listR2Objects, putR2Object } from './r2'
 
 const SPOTIFY_TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
 const SPOTIFY_PLAYER_ENDPOINT = 'https://api.spotify.com/v1/me/player'
@@ -50,6 +50,7 @@ const SPOTIFY_RANKINGS_KEY = 'spotify/history/rankings.json'
 // 每个时间范围最多保留的排行快照数（变化触发而非每次同步触发，90条约覆盖数月变化历史）
 const RANKINGS_SNAPSHOTS_LIMIT = 90
 const SPOTIFY_RECENTLY_PLAYED_PATH = 'spotify/history/recently-played/'
+const RECENTLY_PLAYED_DAY_SHARD_PATTERN = /^\d{4}-\d{2}-\d{2}\.json$/
 const CONTEXT_LABEL_CACHE = new Map<string, string>()
 let _tokenCache: { token: string; expiresAt: number } | null = null
 
@@ -1002,6 +1003,20 @@ async function readRecentlyPlayedShard(yearMonth: string): Promise<SpotifyRecent
   return shard ?? []
 }
 
+export async function readRecentlyPlayedDayShard(date: string): Promise<SpotifyRecentlyPlayedTrack[]> {
+  const { bucket } = getSpotifyArchiveConfig()
+  if (!bucket) return []
+
+  const shard = await readR2JsonIfExists<SpotifyRecentlyPlayedTrack[]>(
+    bucket,
+    `${SPOTIFY_RECENTLY_PLAYED_PATH}${date}.json`
+  )
+
+  return (shard ?? []).toSorted(
+    (a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
+  )
+}
+
 export async function readSpotifyPlaylistShard(id: string): Promise<SpotifyPlaylistTrack[]> {
   const { bucket } = getSpotifyArchiveConfig()
   if (!bucket) return []
@@ -1024,10 +1039,37 @@ function getYearMonth(date: Date = new Date()) {
   return `${y}-${m}`
 }
 
+function getYearMonthDay(date: Date = new Date()) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 async function writeRecentlyPlayedShard(yearMonth: string, items: SpotifyRecentlyPlayedTrack[]) {
   const { bucket } = getSpotifyArchiveConfig()
   if (!bucket) return
   await writeR2Json(bucket, `${SPOTIFY_RECENTLY_PLAYED_PATH}${yearMonth}.json`, items)
+}
+
+async function writeRecentlyPlayedDayShard(date: string, items: SpotifyRecentlyPlayedTrack[]) {
+  const { bucket } = getSpotifyArchiveConfig()
+  if (!bucket) return
+  await writeR2Json(bucket, `${SPOTIFY_RECENTLY_PLAYED_PATH}${date}.json`, items)
+}
+
+export async function listRecentlyPlayedDays(limitDays = 90): Promise<string[]> {
+  const { bucket } = getSpotifyArchiveConfig()
+  if (!bucket) return []
+
+  const keys = await listR2Objects(bucket, SPOTIFY_RECENTLY_PLAYED_PATH)
+
+  return keys
+    .map((key) => key.slice(SPOTIFY_RECENTLY_PLAYED_PATH.length))
+    .filter((name) => RECENTLY_PLAYED_DAY_SHARD_PATTERN.test(name))
+    .map((name) => name.replace(/\.json$/, ''))
+    .sort((a, b) => b.localeCompare(a))
+    .slice(0, Math.max(limitDays, 0))
 }
 
 async function readLatestSpotifyLibrary(): Promise<SpotifyDashboardData['library'] | null> {
@@ -1153,13 +1195,19 @@ export async function syncSpotifyDashboardToArchive(
     afterMs,
   })
 
-  // 1. 处理最近播放记录 (按 playedAt 月份分组写入对应分片，避免跨月边界写错桶)
+  // 1. 处理最近播放记录 (保留月分片兼容，同时补写日分片用于时间轴浏览)
   const tracksByMonth = new Map<string, SpotifyRecentlyPlayedTrack[]>()
+  const tracksByDay = new Map<string, SpotifyRecentlyPlayedTrack[]>()
   for (const track of liveDashboard.recentlyPlayed) {
-    const month = getYearMonth(new Date(track.playedAt))
+    const playedAt = new Date(track.playedAt)
+    const month = getYearMonth(playedAt)
+    const day = getYearMonthDay(playedAt)
     const group = tracksByMonth.get(month) ?? []
+    const dayGroup = tracksByDay.get(day) ?? []
     group.push(track)
+    dayGroup.push(track)
     tracksByMonth.set(month, group)
+    tracksByDay.set(day, dayGroup)
   }
 
   const writePromises: Promise<void>[] = []
@@ -1178,6 +1226,22 @@ export async function syncSpotifyDashboardToArchive(
       )
       allMergedRecentlyPlayed.push(...merged)
       writePromises.push(writeRecentlyPlayedShard(month, merged))
+    }
+  }
+
+  if (tracksByDay.size > 0) {
+    const shardDays = Array.from(tracksByDay.keys())
+    const existingDayShards = await Promise.all(shardDays.map(readRecentlyPlayedDayShard))
+
+    for (let i = 0; i < shardDays.length; i++) {
+      const day = shardDays[i]
+      const merged = mergeByKey(
+        existingDayShards[i],
+        tracksByDay.get(day)!,
+        (item) => `${item.id}:${item.playedAt}`
+      ).toSorted((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime())
+
+      writePromises.push(writeRecentlyPlayedDayShard(day, merged))
     }
   }
 
