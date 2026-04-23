@@ -1,33 +1,31 @@
 .shell {
+  --wall-glow-primary: rgba(16, 185, 129, 0.3);
+  --wall-glow-secondary: rgba(14, 165, 233, 0.16);
   position: relative;
   overflow: hidden;
-  border-radius: 26px;
-  border: 1px solid rgba(16, 185, 129, 0.14);
-  background:
-    radial-gradient(circle at top left, rgba(16, 185, 129, 0.16), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(12, 74, 110, 0.1), transparent 28%),
-    linear-gradient(180deg, color-mix(in srgb, var(--card) 96%, transparent), color-mix(in srgb, var(--background) 88%, transparent));
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.05) inset,
-    0 20px 60px rgba(15, 23, 42, 0.08);
+  border-radius: 22px;
 }
 
 .shellCompact {
-  border-color: rgba(14, 165, 233, 0.14);
-  background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.14), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.1), transparent 24%),
-    linear-gradient(180deg, color-mix(in srgb, var(--card) 96%, transparent), color-mix(in srgb, var(--background) 88%, transparent));
+  --wall-glow-primary: rgba(14, 165, 233, 0.28);
+  --wall-glow-secondary: rgba(16, 185, 129, 0.14);
 }
 
 .backdropGlow {
   position: absolute;
-  inset: -14%;
+  inset: -12%;
   z-index: 0;
   pointer-events: none;
   opacity: 0;
-  filter: blur(44px);
-  transition: opacity 280ms ease, background 280ms ease;
+  background: radial-gradient(circle at center, var(--wall-glow-primary) 0%, var(--wall-glow-secondary) 38%, transparent 74%);
+  filter: blur(48px);
+  transform: scale(1.08);
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.backdropGlowActive {
+  opacity: 1;
+  transform: scale(1.16);
 }
 
 .viewport {
@@ -35,11 +33,78 @@
   z-index: 1;
   height: var(--wall-height, 540px);
   overflow: hidden;
-  margin: 0 18px;
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 22%),
-    rgba(255, 255, 255, 0.02);
+  margin: 0 2px;
+  border-radius: 16px;
+}
+
+.viewportControls {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(3, 42px);
+  grid-template-rows: repeat(3, 42px);
+  gap: 8px;
+}
+
+.controlButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--card) 84%, transparent);
+  color: var(--foreground);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.controlButton:hover {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+}
+
+.controlButton:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.35);
+  outline-offset: 2px;
+}
+
+.controlButtonUp {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.controlButtonLeft {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.controlButtonCenter {
+  grid-column: 2;
+  grid-row: 2;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-indent: 0.18em;
+}
+
+.controlButtonCenterActive {
+  border-color: rgba(16, 185, 129, 0.28);
+  background: rgba(16, 185, 129, 0.16);
+  color: rgb(5, 150, 105);
+}
+
+.controlButtonRight {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.controlButtonDown {
+  grid-column: 2;
+  grid-row: 3;
 }
 
 .wall {
@@ -59,32 +124,32 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 72px;
-  background: linear-gradient(to bottom, var(--card), transparent);
+  height: 76px;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--card) 98%, transparent), color-mix(in srgb, var(--card) 72%, transparent) 44%, transparent 100%);
 }
 
 .fadeBottom {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 72px;
-  background: linear-gradient(to top, var(--card), transparent);
+  height: 76px;
+  background: linear-gradient(to top, color-mix(in srgb, var(--card) 98%, transparent), color-mix(in srgb, var(--card) 72%, transparent) 44%, transparent 100%);
 }
 
 .fadeLeft {
   top: 0;
   bottom: 0;
   left: 0;
-  width: 54px;
-  background: linear-gradient(to right, var(--card), transparent);
+  width: 88px;
+  background: linear-gradient(to right, color-mix(in srgb, var(--card) 98%, transparent), color-mix(in srgb, var(--card) 78%, transparent) 38%, transparent 100%);
 }
 
 .fadeRight {
   top: 0;
   bottom: 0;
   right: 0;
-  width: 54px;
-  background: linear-gradient(to left, var(--card), transparent);
+  width: 88px;
+  background: linear-gradient(to left, color-mix(in srgb, var(--card) 98%, transparent), color-mix(in srgb, var(--card) 78%, transparent) 38%, transparent 100%);
 }
 
 .tile {
@@ -92,8 +157,11 @@
   top: 0;
   left: 0;
   cursor: pointer;
-  transition: opacity 220ms ease, filter 220ms ease;
-  will-change: transform, opacity, filter;
+  transition:
+    filter 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 220ms ease,
+    z-index 0s;
+  will-change: transform, filter;
 }
 
 .tileInner {
@@ -101,15 +169,12 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 30%),
-    rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
   box-shadow:
-    0 6px 20px rgba(15, 23, 42, 0.18),
-    0 1px 0 rgba(255, 255, 255, 0.06) inset;
-  transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 260ms ease, border-color 260ms ease;
+    0 1px 2px rgba(15, 23, 42, 0.32),
+    0 8px 22px rgba(15, 23, 42, 0.2);
+  transition: transform 420ms cubic-bezier(0.2, 0.9, 0.25, 1.1), box-shadow 320ms ease, filter 320ms ease;
 }
 
 .tileMedia {
@@ -134,104 +199,111 @@
   top: 8px;
   left: 8px;
   z-index: 1;
-  padding: 5px 8px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.58);
   color: rgba(255, 255, 255, 0.96);
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  backdrop-filter: blur(8px);
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  opacity: 1;
+  transition: opacity 220ms ease;
 }
 
 .tileMuted {
-  opacity: 0.7;
+  opacity: 0.86;
 }
 
 .tileMuted .tileInner {
-  filter: blur(var(--wall-blur, 12px)) saturate(0.72) brightness(0.55);
+  filter: blur(var(--tile-blur-strength, 14px)) brightness(0.42) saturate(0.66);
 }
 
 .tileHovered {
-  z-index: 6;
+  z-index: 100;
 }
 
 .tileHovered .tileInner {
-  transform: scale(1.44);
-  border-color: rgba(255, 255, 255, 0.18);
+  will-change: transform;
+  transform: scale(1.48);
   box-shadow:
-    0 26px 72px rgba(15, 23, 42, 0.32),
-    0 8px 20px rgba(15, 23, 42, 0.2);
+    0 24px 60px -12px rgba(0, 0, 0, 0.55),
+    0 10px 28px -6px rgba(0, 0, 0, 0.38);
+}
+
+.tileHovered .tileIndex {
+  opacity: 1;
 }
 
 .tileInfo {
   position: absolute;
-  top: calc(100% + 12px);
+  top: calc(100% + 14px);
   left: 50%;
-  z-index: 8;
-  min-width: 260px;
+  z-index: 200;
+  min-width: 280px;
   max-width: min(360px, calc(100vw - 56px));
-  transform: translateX(-50%);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(12, 18, 28, 0.88);
-  padding: 14px 16px;
-  color: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.4);
+  padding: 14px 18px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(20, 20, 24, 0.92);
   backdrop-filter: blur(20px);
+  color: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.55);
+  transform: translate(-50%, 24px);
+  pointer-events: none;
+  animation: tileInfoIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .tileInfoOrder {
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.62);
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .tileInfoTitle {
   font-size: 18px;
-  font-weight: 700;
-  line-height: 1.18;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .tileInfoArtists {
-  margin-top: 4px;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.76);
+  margin-top: 2px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .tileInfoAlbum {
   margin-top: 8px;
-  font-size: 13px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.88);
 }
 
 .tileInfoMeta {
-  margin-top: 10px;
+  margin-top: 8px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.55);
 }
 
-.tileInfoLink {
-  margin-top: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: rgba(167, 243, 208, 0.96);
-  text-decoration: none;
+.tileInfoMetaDot {
+  opacity: 0.5;
 }
 
-.tileInfoLink:hover {
-  color: white;
+@keyframes tileInfoIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 32px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 24px);
+  }
 }
 
 .footer {
@@ -327,8 +399,29 @@
 
 @media (max-width: 640px) {
   .viewport {
-    margin: 0 12px;
-    height: min(68vw, 430px);
+    margin: 0;
+    height: min(78vw, 470px);
+  }
+
+  .viewportControls {
+    right: 12px;
+    bottom: 12px;
+    grid-template-columns: repeat(3, 36px);
+    grid-template-rows: repeat(3, 36px);
+    gap: 6px;
+  }
+
+  .controlButton {
+    border-radius: 12px;
+  }
+
+  .controlButtonCenter {
+    font-size: 8px;
+  }
+
+  .fadeLeft,
+  .fadeRight {
+    width: 58px;
   }
 
   .footer {
@@ -341,18 +434,28 @@
   }
 
   .tileInfo {
-    min-width: min(260px, calc(100vw - 42px));
+    min-width: 0;
+    max-width: min(280px, calc(100vw - 42px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdropGlow,
+  .tile,
+  .tileInner,
+  .loadMoreButton,
+  .controlButton {
+    transition: none;
+  }
+
+  .tileMuted .tileInner,
+  .tileHovered .tileInner {
+    transform: none;
   }
 }
 
 :global(.dark) .viewport {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 22%),
-    rgba(255, 255, 255, 0.015);
-}
-
-:global(.dark) .tileInner {
-  border-color: rgba(255, 255, 255, 0.1);
+  background: transparent;
 }
 
 :global(.light) .tileInfo,
@@ -377,13 +480,6 @@
 :global(.sunset) .tileInfoMeta,
 :global(.forest) .tileInfoMeta {
   color: rgba(15, 23, 42, 0.62);
-}
-
-:global(.light) .tileInfoLink,
-:global(.ocean) .tileInfoLink,
-:global(.sunset) .tileInfoLink,
-:global(.forest) .tileInfoLink {
-  color: rgb(5, 150, 105);
 }
 
 :global(.light) .tileInfoAlbum,
