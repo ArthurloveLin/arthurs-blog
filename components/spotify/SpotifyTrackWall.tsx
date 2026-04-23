@@ -5,14 +5,16 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Loader2, Music2 } from 'luci
 
 import styles from './SpotifyTrackWall.module.css'
 
-const AUTO_DRIFT_VERTICAL_RATIO = 0.6
 const HOVER_INTENT_DELAY_MS = 120
 const VISIBLE_ORDER_THROTTLE_MS = 180
-const EXTENDED_IRREGULAR_CYCLE = 18
 const MANUAL_PAN_STEP_RATIO = 0.42
+const SMOOTH_PAN_DURATION = 480
+const LISSAJOUS_AMP_X_RATIO = 1.4
+const LISSAJOUS_AMP_Y_RATIO = 1.0
+const LISSAJOUS_PERIOD_X = 28
+const LISSAJOUS_PERIOD_Y = 19
 
 type WallPreset = 'default' | 'compact'
-type AxisDirection = -1 | 1
 type MoveDirection = 'up' | 'down' | 'left' | 'right'
 
 interface LayoutOptions {
@@ -84,42 +86,13 @@ interface WallLayout {
   options: LayoutOptions
 }
 
-function getTileSpan(order: number, index: number) {
-  if (order <= 3 && index % 3 === 0) {
-    return { width: 2, height: 2 }
-  }
-
-  if (order <= 10 && order % 4 === 1) {
-    return { width: 2, height: 1 }
-  }
-
-  if (order <= 12 && order % 5 === 2) {
+function getTileSpan(order: number, _index: number) {
+  // Uniform area (2 grid units²): 4 landscape then 2 portrait per 6-item cycle
+  const cycle = (order - 1) % 6
+  if (cycle === 2 || cycle === 5) {
     return { width: 1, height: 2 }
   }
-
-  if (order <= 25 && order % 7 === 3) {
-    return { width: 2, height: 1 }
-  }
-
-  if (order <= 30 && order % 9 === 4) {
-    return { width: 1, height: 2 }
-  }
-
-  const repeatingOrder = ((order - 31) % EXTENDED_IRREGULAR_CYCLE) + 1
-
-  if (repeatingOrder === 1 || repeatingOrder === 11 || repeatingOrder === 16) {
-    return { width: 2, height: 1 }
-  }
-
-  if (repeatingOrder === 5 || repeatingOrder === 14) {
-    return { width: 1, height: 2 }
-  }
-
-  if (repeatingOrder === 8) {
-    return { width: 2, height: 2 }
-  }
-
-  return { width: 1, height: 1 }
+  return { width: 2, height: 1 }
 }
 
 function getTileDimensions(widthUnits: number, heightUnits: number, options: LayoutOptions) {
@@ -127,6 +100,21 @@ function getTileDimensions(widthUnits: number, heightUnits: number, options: Lay
     width: widthUnits * options.baseTileSize + (widthUnits - 1) * options.gap,
     height: heightUnits * options.baseTileSize + (heightUnits - 1) * options.gap,
   }
+}
+
+function buildCenterFirstCells(gridCols: number, rowLimit: number, centerRow: number) {
+  const centerCol = (gridCols - 1) / 2
+  const cells: Array<{ row: number; col: number; dist: number }> = []
+
+  for (let row = 0; row < rowLimit; row++) {
+    for (let col = 0; col < gridCols; col++) {
+      const dist = Math.abs(col - centerCol) + Math.abs(row - centerRow)
+      cells.push({ row, col, dist })
+    }
+  }
+
+  cells.sort((a, b) => a.dist - b.dist)
+  return cells
 }
 
 function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): WallLayout {
@@ -145,6 +133,8 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): 
   const occupied: boolean[][] = []
   const layoutItems: WallLayoutItem[] = []
   const searchRowLimit = Math.max(48, items.length * 6)
+  const estimatedCenterRow = Math.max(2, Math.round(items.length / options.gridCols))
+  const searchCells = buildCenterFirstCells(options.gridCols, searchRowLimit, estimatedCenterRow)
   let maxRow = 0
 
   const isFree = (row: number, col: number, widthUnits: number, heightUnits: number) => {
@@ -178,43 +168,36 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): 
   }
 
   items.forEach((item, index) => {
-    const preferredSpan = getTileSpan(item.order, index)
-    const candidateSpans = preferredSpan.width === 1 && preferredSpan.height === 1
-      ? [preferredSpan]
-      : [preferredSpan, { width: 1, height: 1 }]
+    const span = getTileSpan(item.order, index)
     let placement: WallLayoutItem | null = null
 
-    for (const span of candidateSpans) {
-      for (let row = 0; row < searchRowLimit && !placement; row += 1) {
-        for (let col = 0; col < options.gridCols && !placement; col += 1) {
-          if (!isFree(row, col, span.width, span.height)) {
-            continue
-          }
+    for (const { row, col } of searchCells) {
+      if (isFree(row, col, span.width, span.height)) {
+        markOccupied(row, col, span.width, span.height)
+        const dimensions = getTileDimensions(span.width, span.height, options)
 
-          markOccupied(row, col, span.width, span.height)
-          const dimensions = getTileDimensions(span.width, span.height, options)
-
-          placement = {
-            item,
-            x: col * (options.baseTileSize + options.gap),
-            y: row * (options.baseTileSize + options.gap),
-            width: dimensions.width,
-            height: dimensions.height,
-          }
+        placement = {
+          item,
+          x: col * (options.baseTileSize + options.gap),
+          y: row * (options.baseTileSize + options.gap),
+          width: dimensions.width,
+          height: dimensions.height,
         }
+        break
       }
     }
 
     if (!placement) {
       const fallbackRow = maxRow
-      markOccupied(fallbackRow, 0, 1, 1)
+      const dimensions = getTileDimensions(2, 1, options)
+      markOccupied(fallbackRow, 0, 2, 1)
 
       placement = {
         item,
         x: 0,
         y: fallbackRow * (options.baseTileSize + options.gap),
-        width: options.baseTileSize,
-        height: options.baseTileSize,
+        width: dimensions.width,
+        height: dimensions.height,
       }
     }
 
@@ -225,14 +208,19 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): 
   const totalWidth = options.gridCols * options.baseTileSize + (options.gridCols - 1) * options.gap
   const totalHeight = totalRows * options.baseTileSize + (totalRows - 1) * options.gap
 
+  const firstItem = layoutItems.find(li => li.item.order === 1)
+  const focusPoint = firstItem
+    ? {
+        x: firstItem.x + firstItem.width / 2,
+        y: firstItem.y + firstItem.height / 2,
+      }
+    : { x: totalWidth / 2, y: totalHeight / 2 }
+
   return {
     items: layoutItems,
     totalWidth,
     totalHeight,
-    focusPoint: {
-      x: totalWidth / 2,
-      y: totalHeight / 2,
-    },
+    focusPoint,
     options,
   }
 }
@@ -241,27 +229,6 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
 
-function resolveLoopingAxis(value: number, min: number, max: number, direction: AxisDirection) {
-  if (min === max) {
-    return { value: min, direction }
-  }
-
-  if (value < min) {
-    return {
-      value: clamp(min + (min - value), min, max),
-      direction: 1 as const,
-    }
-  }
-
-  if (value > max) {
-    return {
-      value: clamp(max - (value - max), min, max),
-      direction: -1 as const,
-    }
-  }
-
-  return { value, direction }
-}
 
 function getViewportBounds(viewportWidth: number, viewportHeight: number, layout: WallLayout) {
   const centeredX = (viewportWidth - layout.totalWidth) / 2
@@ -324,7 +291,7 @@ export default function SpotifyTrackWall({
   const viewportRef = useRef<HTMLDivElement>(null)
   const wallRef = useRef<HTMLDivElement>(null)
   const offsetRef = useRef({ x: 0, y: 0 })
-  const driftDirectionRef = useRef<{ x: AxisDirection; y: AxisDirection }>({ x: -1, y: -1 })
+  const oscillationTimeRef = useRef<number>(0)
   const animationFrameRef = useRef<number | null>(null)
   const previousFrameRef = useRef<number | null>(null)
   const tickRef = useRef<(timestamp: number) => void>(() => {})
@@ -426,28 +393,24 @@ export default function SpotifyTrackWall({
 
     const delta = Math.min((timestamp - previousFrameRef.current) / 1000, 0.04)
     previousFrameRef.current = timestamp
+
     const bounds = getViewportBounds(viewport.clientWidth, viewport.clientHeight, activeLayout)
     const centeredOffset = getFocusedOffset(viewport.clientWidth, viewport.clientHeight, activeLayout)
 
-    let nextX = bounds.hasHorizontalOverflow ? offsetRef.current.x : centeredOffset.x
-    let nextY = bounds.hasVerticalOverflow ? offsetRef.current.y : centeredOffset.y
-
     if (!hoverPausedRef.current && !manualPausedRef.current) {
-      if (bounds.hasHorizontalOverflow) {
-        nextX += driftDirectionRef.current.x * activeLayout.options.driftSpeed * delta
-      }
-
-      if (bounds.hasVerticalOverflow) {
-        nextY += driftDirectionRef.current.y * activeLayout.options.driftSpeed * AUTO_DRIFT_VERTICAL_RATIO * delta
-      }
+      oscillationTimeRef.current += delta
     }
 
-    const resolvedX = resolveLoopingAxis(nextX, bounds.minX, bounds.maxX, driftDirectionRef.current.x)
-    const resolvedY = resolveLoopingAxis(nextY, bounds.minY, bounds.maxY, driftDirectionRef.current.y)
-    driftDirectionRef.current.x = resolvedX.direction
-    driftDirectionRef.current.y = resolvedY.direction
-    nextX = resolvedX.value
-    nextY = resolvedY.value
+    const t = oscillationTimeRef.current
+    const halfRangeX = (bounds.maxX - bounds.minX) / 2
+    const halfRangeY = (bounds.maxY - bounds.minY) / 2
+    const Ax = Math.min(activeLayout.options.baseTileSize * LISSAJOUS_AMP_X_RATIO, halfRangeX)
+    const Ay = Math.min(activeLayout.options.baseTileSize * LISSAJOUS_AMP_Y_RATIO, halfRangeY)
+    const ωx = (2 * Math.PI) / LISSAJOUS_PERIOD_X
+    const ωy = (2 * Math.PI) / LISSAJOUS_PERIOD_Y
+
+    const nextX = clamp(centeredOffset.x + Ax * Math.sin(ωx * t), bounds.minX, bounds.maxX)
+    const nextY = clamp(centeredOffset.y + Ay * Math.sin(ωy * t + Math.PI / 4), bounds.minY, bounds.maxY)
 
     const moved =
       Math.abs(nextX - offsetRef.current.x) > 0.08 || Math.abs(nextY - offsetRef.current.y) > 0.08
@@ -500,7 +463,7 @@ export default function SpotifyTrackWall({
     manualPausedRef.current = false
     previousFrameRef.current = null
     badgeFrameRef.current = 0
-    driftDirectionRef.current = { x: -1, y: -1 }
+    oscillationTimeRef.current = 0
     offsetRef.current = getFocusedOffset(viewport.clientWidth, viewport.clientHeight, layout)
     wall.style.transform = `translate3d(${offsetRef.current.x}px, ${offsetRef.current.y}px, 0)`
     visibleOrderRef.current = getNearestVisibleOrder(
@@ -523,7 +486,6 @@ export default function SpotifyTrackWall({
       suppressNextHoverRef.current = false
       hoverPausedRef.current = false
       setManualPaused(false)
-      driftDirectionRef.current = { x: -1, y: -1 }
       previousFrameRef.current = null
       setHoveredId(null)
       syncVisibleOrder(layoutRef.current, resizedViewport.clientWidth, resizedViewport.clientHeight, offsetRef.current)
@@ -559,6 +521,7 @@ export default function SpotifyTrackWall({
     setHoveredId(null)
     setManualPaused(true)
     previousFrameRef.current = null
+    wall.style.transition = ''
 
     if (animationFrameRef.current != null) {
       cancelAnimationFrame(animationFrameRef.current)
@@ -583,11 +546,21 @@ export default function SpotifyTrackWall({
     }
 
     offsetRef.current = nextOffset
+
+    wall.style.transition = `transform ${SMOOTH_PAN_DURATION}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`
     wall.style.transform = `translate3d(${nextOffset.x}px, ${nextOffset.y}px, 0)`
+    wall.addEventListener('transitionend', () => {
+      wall.style.transition = ''
+    }, { once: true })
+
     syncVisibleOrder(activeLayout, viewport.clientWidth, viewport.clientHeight, nextOffset)
   }, [clearHoverIntent, setManualPaused, syncVisibleOrder])
 
   const resumeAutoDrift = useCallback(() => {
+    const wall = wallRef.current
+    if (wall) {
+      wall.style.transition = ''
+    }
     clearHoverIntent()
     suppressNextHoverRef.current = false
     hoverPausedRef.current = false
@@ -723,55 +696,38 @@ export default function SpotifyTrackWall({
         <div className={`${styles.fade} ${styles.fadeLeft}`} />
         <div className={`${styles.fade} ${styles.fadeRight}`} />
 
-        <div className={styles.viewportControls} role="group" aria-label="移动视口">
-          <button
-            type="button"
-            className={`${styles.controlButton} ${styles.controlButtonUp}`}
-            onClick={() => moveViewport('up')}
-            aria-label="向上移动视口"
-          >
-            <ArrowUp size={16} strokeWidth={2} />
-          </button>
-          <button
-            type="button"
-            className={`${styles.controlButton} ${styles.controlButtonLeft}`}
-            onClick={() => moveViewport('left')}
-            aria-label="向左移动视口"
-          >
-            <ArrowLeft size={16} strokeWidth={2} />
-          </button>
-          <button
-            type="button"
-            className={[
-              styles.controlButton,
-              styles.controlButtonCenter,
-              !isManualNavigation ? styles.controlButtonCenterActive : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            onClick={resumeAutoDrift}
-            aria-label="恢复自动漂移"
-            aria-pressed={!isManualNavigation}
-          >
-            AUTO
-          </button>
-          <button
-            type="button"
-            className={`${styles.controlButton} ${styles.controlButtonRight}`}
-            onClick={() => moveViewport('right')}
-            aria-label="向右移动视口"
-          >
-            <ArrowRight size={16} strokeWidth={2} />
-          </button>
-          <button
-            type="button"
-            className={`${styles.controlButton} ${styles.controlButtonDown}`}
-            onClick={() => moveViewport('down')}
-            aria-label="向下移动视口"
-          >
-            <ArrowDown size={16} strokeWidth={2} />
-          </button>
-        </div>
+        <button
+          type="button"
+          className={styles.edgeButtonTop}
+          onClick={() => moveViewport('up')}
+          aria-label="向上移动视口"
+        >
+          <ArrowUp size={16} strokeWidth={2} />
+        </button>
+        <button
+          type="button"
+          className={styles.edgeButtonBottom}
+          onClick={() => moveViewport('down')}
+          aria-label="向下移动视口"
+        >
+          <ArrowDown size={16} strokeWidth={2} />
+        </button>
+        <button
+          type="button"
+          className={styles.edgeButtonLeft}
+          onClick={() => moveViewport('left')}
+          aria-label="向左移动视口"
+        >
+          <ArrowLeft size={16} strokeWidth={2} />
+        </button>
+        <button
+          type="button"
+          className={styles.edgeButtonRight}
+          onClick={() => moveViewport('right')}
+          aria-label="向右移动视口"
+        >
+          <ArrowRight size={16} strokeWidth={2} />
+        </button>
       </div>
 
       <div className={styles.footer}>
@@ -801,6 +757,15 @@ export default function SpotifyTrackWall({
           </div>
         ) : null}
 
+        <button
+          type="button"
+          className={[styles.autoButton, !isManualNavigation ? styles.autoButtonActive : ''].filter(Boolean).join(' ')}
+          onClick={resumeAutoDrift}
+          aria-label="恢复自动漂移"
+          aria-pressed={!isManualNavigation}
+        >
+          AUTO
+        </button>
         <div className={styles.footerHint}>
           {hoveredItem
             ? `hovering #${hoveredItem.order}`
