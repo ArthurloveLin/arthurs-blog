@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
 import { useTheme } from 'next-themes'
 
@@ -47,10 +47,19 @@ export default function Turnstile({
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
   const [token, setToken] = useState<string>('')
-  const { theme, resolvedTheme } = useTheme()
+  const { resolvedTheme } = useTheme()
   const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY
 
-  const currentTheme = (resolvedTheme || theme || 'auto') as 'light' | 'dark' | 'auto'
+  // Keep callbacks in refs so theme/siteKey effect never re-runs due to new fn references
+  const onVerifyRef = useRef(onVerify)
+  const onErrorRef = useRef(onError)
+  const onExpireRef = useRef(onExpire)
+  useEffect(() => { onVerifyRef.current = onVerify }, [onVerify])
+  useEffect(() => { onErrorRef.current = onError }, [onError])
+  useEffect(() => { onExpireRef.current = onExpire }, [onExpire])
+
+  // Stable theme string — only 'light' or 'dark', never 'auto', to avoid flipping on hydration
+  const widgetTheme = resolvedTheme === 'dark' ? 'dark' : 'light'
 
   useEffect(() => {
     if (!siteKey) {
@@ -62,17 +71,17 @@ export default function Turnstile({
       if (window.turnstile && containerRef.current && !widgetIdRef.current) {
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
-          theme: currentTheme === 'dark' ? 'dark' : 'light',
+          theme: widgetTheme,
           callback: (newToken: string) => {
             setToken(newToken)
-            onVerify?.(newToken)
+            onVerifyRef.current?.(newToken)
           },
           'error-callback': (err: unknown) => {
-            onError?.(err)
+            onErrorRef.current?.(err)
           },
           'expired-callback': () => {
             setToken('')
-            onExpire?.()
+            onExpireRef.current?.()
           },
         })
       }
@@ -90,7 +99,7 @@ export default function Turnstile({
         widgetIdRef.current = null
       }
     }
-  }, [siteKey, currentTheme, onVerify, onError, onExpire])
+  }, [siteKey, widgetTheme])
 
   return (
     <div className={className}>

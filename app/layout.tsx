@@ -51,13 +51,13 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${notoSansSC.variable}`}
       suppressHydrationWarning>
         <head>
-          <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} crossOrigin="anonymous" />
-          <link rel="preconnect" href="https://images.arthurlovegrace.top" crossOrigin="anonymous" />
+          <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+          <link rel="preconnect" href="https://images.arthurlovegrace.top" />
           <link rel="dns-prefetch" href="https://obsidian.arthurlovegrace.top" />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           {/* LXGW WenKai Screen: 仅用于便签组件的手写风格（简体中文优化版），不纳入全局字体系统 */}
-          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.1.0/style.css" crossOrigin="anonymous" />
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.1.0/style.css" />
 
         </head>
         <body className="bg-background antialiased pb-24 md:pb-0">
