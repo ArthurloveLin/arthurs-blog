@@ -1,16 +1,33 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import Image from 'next/image'
-import { Clock3, ExternalLink, Music2 } from 'lucide-react'
 
 import type { SpotifyTimeRange, SpotifyTopTrack } from '@/lib/spotify-types'
+import SpotifyTrackWall from './SpotifyTrackWall'
 import SpotifyTimeRangeTabs from './SpotifyTimeRangeTabs'
 
 function formatDuration(durationMs: number) {
   const minutes = Math.floor(durationMs / 60000)
   const seconds = Math.floor((durationMs % 60000) / 1000)
   return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
+
+const RANGE_DESCRIPTIONS: Record<SpotifyTimeRange, string> = {
+  short_term: '近 4 周',
+  medium_term: '近 6 个月',
+  long_term: '历史全部',
+}
+const TRACK_WALL_LIMIT = 24
+
+function formatTotalDuration(items: SpotifyTopTrack[]) {
+  const totalMinutes = Math.floor(items.reduce((sum, track) => sum + track.durationMs, 0) / 60000)
+  if (totalMinutes < 60) {
+    return `${totalMinutes} min`
+  }
+
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return `${hours}h ${minutes}m`
 }
 
 export default function SpotifyTopTracksPanel({
@@ -22,6 +39,29 @@ export default function SpotifyTopTracksPanel({
   const [activeRange, setActiveRange] = useState<SpotifyTimeRange>('medium_term')
 
   const activeItems = useMemo(() => data[activeRange] ?? [], [activeRange, data])
+  const previewItems = useMemo(() => activeItems.slice(0, TRACK_WALL_LIMIT), [activeItems])
+  const wallItems = useMemo(
+    () =>
+      previewItems.map((track) => ({
+        id: `${activeRange}-${track.id}-${track.rank}`,
+        order: track.rank,
+        title: track.title,
+        artists: track.artists.join(', '),
+        album: track.album,
+        imageUrl: track.albumImageUrl,
+        href: track.songUrl,
+        meta: [formatDuration(track.durationMs)],
+      })),
+    [activeRange, previewItems]
+  )
+  const footerStats = useMemo(
+    () => [
+      { label: 'shown', value: `${previewItems.length}/${activeItems.length}` },
+      { label: 'window', value: RANGE_DESCRIPTIONS[activeRange] },
+      { label: 'duration', value: formatTotalDuration(previewItems) },
+    ],
+    [activeItems.length, activeRange, previewItems]
+  )
 
   return (
     <section className="rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60_rgba(0,0,0,0.05)]">
@@ -43,7 +83,7 @@ export default function SpotifyTopTracksPanel({
             </div>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            基于收听频率自动生成的单曲排行榜。
+            基于收听频率自动生成的单曲排行榜，默认锁定第一名，鼠标逼近边缘时再推动镜头继续探索。
           </p>
         </div>
 
@@ -60,57 +100,18 @@ export default function SpotifyTopTracksPanel({
         </div>
       </div>
 
-      <div className={`mt-6 max-h-[860px] overflow-y-auto scrollbar-none transition ${isPending ? 'opacity-60' : 'opacity-100'}`}>
-        {activeItems.length === 0 ? (
+      <div className={`mt-6 transition ${isPending ? 'opacity-60' : 'opacity-100'}`}>
+        {previewItems.length === 0 ? (
           <div className="rounded-[24px] border border-dashed border-border/70 bg-muted/20 p-6 text-sm text-muted-foreground">
             当前时间跨度没有返回可展示的 Top Tracks 数据。
           </div>
         ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {activeItems.map((track) => (
-              <div
-                key={`${activeRange}-${track.id}-${track.rank}`}
-                className="grid grid-cols-[40px_56px_minmax(0,1fr)_auto] items-center gap-3 rounded-[22px] border border-border/60 bg-background/75 p-3"
-              >
-                <div className="text-center font-mono text-sm font-semibold text-muted-foreground">#{track.rank}</div>
-                <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-muted">
-                  {track.albumImageUrl ? (
-                    <Image
-                      src={track.albumImageUrl}
-                      alt={track.album}
-                      fill
-                      sizes="56px"
-                      className="object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                      <Music2 className="h-5 w-5" strokeWidth={1.8} />
-                    </div>
-                  )}
-                </div>
-
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">{track.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">{track.artists.join(', ')}</p>
-                  <p className="mt-1 truncate text-xs text-foreground/70">{track.album}</p>
-                </div>
-
-                <div className="flex flex-col items-end gap-2 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1">
-                    <Clock3 className="h-3.5 w-3.5" strokeWidth={1.8} />
-                    {formatDuration(track.durationMs)}
-                  </span>
-                  {track.songUrl ? (
-                    <a href={track.songUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-emerald-600">
-                      打开
-                      <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.8} />
-                    </a>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
+          <SpotifyTrackWall
+            items={wallItems}
+            emptyMessage="当前时间跨度没有返回可展示的 Top Tracks 数据。"
+            footerStats={footerStats}
+            footerHint={isPending ? 'switching view' : 'edge-pan viewport'}
+          />
         )}
       </div>
     </section>
