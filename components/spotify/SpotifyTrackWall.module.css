@@ -37,74 +37,61 @@
   border-radius: 16px;
 }
 
-.viewportControls {
+.edgeButton {
   position: absolute;
-  right: 18px;
-  bottom: 18px;
   z-index: 4;
-  display: grid;
-  grid-template-columns: repeat(3, 42px);
-  grid-template-rows: repeat(3, 42px);
-  gap: 8px;
-}
-
-.controlButton {
+  width: 40px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--card) 84%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--card) 78%, transparent);
+  backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.12);
   color: var(--foreground);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
-  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, color 180ms ease;
+  opacity: 0.72;
+  transition: transform 180ms ease, background 180ms ease, opacity 180ms ease;
 }
 
-.controlButton:hover {
-  transform: translateY(-1px);
+.edgeButton:hover {
+  transform: scale(1.12);
+  opacity: 1;
   background: color-mix(in srgb, var(--card) 92%, transparent);
 }
 
-.controlButton:focus-visible {
+.edgeButton:focus-visible {
   outline: 2px solid rgba(16, 185, 129, 0.35);
   outline-offset: 2px;
 }
 
-.controlButtonUp {
-  grid-column: 2;
-  grid-row: 1;
+.edgeButtonTop {
+  composes: edgeButton;
+  top: 12px;
+  left: 50%;
+  margin-left: -20px;
 }
 
-.controlButtonLeft {
-  grid-column: 1;
-  grid-row: 2;
+.edgeButtonBottom {
+  composes: edgeButton;
+  bottom: 12px;
+  left: 50%;
+  margin-left: -20px;
 }
 
-.controlButtonCenter {
-  grid-column: 2;
-  grid-row: 2;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-indent: 0.18em;
+.edgeButtonLeft {
+  composes: edgeButton;
+  left: 12px;
+  top: 50%;
+  margin-top: -20px;
 }
 
-.controlButtonCenterActive {
-  border-color: rgba(16, 185, 129, 0.28);
-  background: rgba(16, 185, 129, 0.16);
-  color: rgb(5, 150, 105);
-}
-
-.controlButtonRight {
-  grid-column: 3;
-  grid-row: 2;
-}
-
-.controlButtonDown {
-  grid-column: 2;
-  grid-row: 3;
+.edgeButtonRight {
+  composes: edgeButton;
+  right: 12px;
+  top: 50%;
+  margin-top: -20px;
 }
 
 .wall {
@@ -346,6 +333,29 @@
   flex: 1 1 auto;
 }
 
+.autoButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+  background: color-mix(in srgb, var(--card) 84%, transparent);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-indent: 0.18em;
+  color: var(--muted-foreground);
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.autoButtonActive {
+  border-color: rgba(16, 185, 129, 0.28);
+  background: rgba(16, 185, 129, 0.16);
+  color: rgb(5, 150, 105);
+}
+
 .footerHint {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -403,20 +413,21 @@
     height: min(78vw, 470px);
   }
 
-  .viewportControls {
-    right: 12px;
-    bottom: 12px;
-    grid-template-columns: repeat(3, 36px);
-    grid-template-rows: repeat(3, 36px);
-    gap: 6px;
+  .edgeButton {
+    width: 34px;
+    height: 34px;
+    margin-left: -17px;
+    margin-top: -17px;
   }
 
-  .controlButton {
-    border-radius: 12px;
+  .edgeButtonTop,
+  .edgeButtonBottom {
+    margin-left: -17px;
   }
 
-  .controlButtonCenter {
-    font-size: 8px;
+  .edgeButtonLeft,
+  .edgeButtonRight {
+    margin-top: -17px;
   }
 
   .fadeLeft,
@@ -444,7 +455,8 @@
   .tile,
   .tileInner,
   .loadMoreButton,
-  .controlButton {
+  .edgeButton,
+  .autoButton {
     transition: none;
   }
 
