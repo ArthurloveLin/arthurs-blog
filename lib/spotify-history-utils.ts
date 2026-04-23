@@ -9,6 +9,8 @@ export const TIME_SEGMENTS: TimeSegment[] = [
   { id: 'night', label: '深夜', startHour: 21, endHour: 24 },
 ]
 
+const WEEKDAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
 function parseDayKey(dayKey: string) {
   const [year, month, day] = dayKey.split('-').map(Number)
   return new Date(year, (month ?? 1) - 1, day ?? 1)
@@ -54,4 +56,18 @@ export function formatDateLabel(dateStr: string) {
   }
 
   return `${target.getMonth() + 1}月${target.getDate()}日`
+}
+
+export function formatWeekdayLabel(dateStr: string) {
+  return WEEKDAY_LABELS[parseDayKey(dateStr).getDay()] ?? ''
+}
+
+export function formatCompactDateLabel(dateStr: string) {
+  const target = parseDayKey(dateStr)
+  return `${String(target.getMonth() + 1).padStart(2, '0')}/${String(target.getDate()).padStart(2, '0')}`
+}
+
+export function formatFullDateLabel(dateStr: string) {
+  const target = parseDayKey(dateStr)
+  return `${target.getFullYear()}年${target.getMonth() + 1}月${target.getDate()}日 ${formatWeekdayLabel(dateStr)}`
 }
