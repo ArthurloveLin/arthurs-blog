@@ -6,11 +6,14 @@
 }
 
 .viewHeader {
+  position: absolute;
+  top: -3.85rem;
+  right: 0;
+  z-index: 40;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 1rem;
-  flex-wrap: wrap;
 }
 
 .historyCaption {
@@ -271,6 +274,8 @@
   gap: 1rem;
   position: relative;
   z-index: 10;
+  min-height: 1.5rem;
+  transition: opacity 300ms ease, visibility 300ms ease;
 }
 
 .paginationDots {
@@ -310,105 +315,16 @@
 .chartPanel {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.65rem;
   border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  padding-top: 1rem;
+  padding-top: 0.8rem;
 }
 
-.backtrackBar {
+.dayRail {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
-  border: 1px solid color-mix(in srgb, var(--border) 64%, transparent);
-  border-radius: 1.25rem;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, rgb(16 185 129) 8%, var(--card)) 0%, color-mix(in srgb, var(--card) 94%, transparent) 100%);
-  padding: 0.85rem 0.95rem;
-}
-
-.backtrackControls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.7rem;
-}
-
-.backtrackButton,
-.backtrackGhostButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  padding: 0.48rem 0.82rem;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease, transform 220ms ease, opacity 220ms ease;
-}
-
-.backtrackButton {
-  border: 1px solid color-mix(in srgb, rgb(16 185 129) 55%, transparent);
-  background: color-mix(in srgb, rgb(16 185 129) 18%, var(--card));
-  color: var(--foreground);
-}
-
-.backtrackGhostButton {
-  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  background: color-mix(in srgb, var(--card) 88%, transparent);
-  color: var(--muted-foreground);
-}
-
-.backtrackButton:hover:not(:disabled),
-.backtrackGhostButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.backtrackButton:disabled,
-.backtrackGhostButton:disabled {
-  opacity: 0.45;
-}
-
-.backtrackInputWrap {
-  display: inline-flex;
-  min-width: 13rem;
-  flex: 1 1 14rem;
-  align-items: center;
-  gap: 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  border-radius: 1rem;
-  background: color-mix(in srgb, var(--background) 90%, transparent);
-  padding: 0.48rem 0.7rem;
-}
-
-.backtrackLabel {
-  color: var(--muted-foreground);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.backtrackInput {
-  width: 100%;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  color: var(--foreground);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.backtrackInput:focus {
-  outline: none;
-}
-
-.backtrackSummary {
-  margin: 0;
-  color: var(--muted-foreground);
-  font-size: 0.75rem;
-  line-height: 1.55;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
 }
 
 .timelineScroller,
@@ -416,6 +332,7 @@
   display: flex;
   gap: 0.65rem;
   overflow-x: auto;
+  padding-top: 0.2rem;
   padding-bottom: 0.2rem;
   scrollbar-width: none;
 }
@@ -425,20 +342,46 @@
   display: none;
 }
 
+.dayMenuWrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
 .timelinePill,
 .segmentPill {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--card) 86%, transparent);
   color: var(--muted-foreground);
-  padding: 0.5rem 0.9rem;
+  padding: 0.58rem 0.9rem;
   font-size: 0.78rem;
   font-weight: 600;
   white-space: nowrap;
   transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease, transform 220ms ease;
+}
+
+.timelinePill {
+  min-width: 4.6rem;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.timelinePillLabel {
+  color: var(--foreground);
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.timelinePillDate {
+  color: var(--muted-foreground);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .timelinePill:hover,
@@ -452,6 +395,73 @@
   border-color: color-mix(in srgb, rgb(16 185 129) 55%, transparent);
   background: color-mix(in srgb, rgb(16 185 129) 18%, var(--card));
   color: var(--foreground);
+}
+
+.timelinePillActive .timelinePillDate {
+  color: color-mix(in srgb, var(--foreground) 72%, transparent);
+}
+
+.dayMenu {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  width: min(18rem, calc(100vw - 2rem));
+  max-height: 18rem;
+  flex-direction: column;
+  gap: 0.28rem;
+  overflow-y: auto;
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  padding: 0.45rem;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(18px);
+}
+
+.dayMenuItem {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  border: 1px solid transparent;
+  border-radius: 0.85rem;
+  background: transparent;
+  padding: 0.7rem 0.78rem;
+  text-align: left;
+  transition: background-color 220ms ease, border-color 220ms ease, transform 220ms ease;
+}
+
+.dayMenuItem:hover {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, rgb(16 185 129) 12%, var(--card));
+}
+
+.dayMenuItemActive {
+  border-color: color-mix(in srgb, rgb(16 185 129) 50%, transparent);
+  background: color-mix(in srgb, rgb(16 185 129) 18%, var(--card));
+}
+
+.dayMenuItemTitle {
+  color: var(--foreground);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.dayMenuItemMeta {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dayRailHint {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.73rem;
+  line-height: 1.5;
 }
 
 .segmentPillDisabled {
@@ -492,6 +502,7 @@
 
 .chartYAxis {
   display: grid;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
   align-items: stretch;
   align-self: stretch;
   padding-top: 0.8rem;
@@ -505,6 +516,8 @@
 
 .chartPlot {
   position: relative;
+  height: clamp(18rem, 34vw, 22rem);
+  min-height: 18rem;
   overflow: hidden;
   border-radius: 1.4rem;
   border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
@@ -527,23 +540,25 @@
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0.9rem;
-  align-items: end;
+  align-items: stretch;
   min-height: 16rem;
+  height: 100%;
+  padding-top: 0.9rem;
 }
 
 .chartColumn {
-  display: flex;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   min-width: 0;
-  flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
+  height: 100%;
   gap: 0.65rem;
 }
 
 .chartBarButton {
   position: relative;
   display: flex;
-  min-height: 12rem;
+  height: 100%;
   width: 100%;
   align-items: flex-end;
   justify-content: center;
@@ -556,10 +571,18 @@
   cursor: default;
 }
 
-.chartBar {
-  width: min(100%, 3.4rem);
+.chartBarWrap {
+  position: relative;
+  display: flex;
   height: var(--bar-height, 14%);
-  min-height: 0.75rem;
+  min-height: 0.8rem;
+  width: min(100%, 3.4rem);
+  align-items: flex-end;
+}
+
+.chartBar {
+  width: 100%;
+  height: 100%;
   border-radius: 1.1rem 1.1rem 0.45rem 0.45rem;
   background: linear-gradient(180deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.78));
   box-shadow: 0 16px 30px rgba(16, 185, 129, 0.18);
@@ -579,9 +602,9 @@
 
 .chartTooltip {
   position: absolute;
-  top: -2.2rem;
+  bottom: calc(100% + 0.55rem);
   left: 50%;
-  transform: translate(-50%, 4px);
+  transform: translate(-50%, 6px);
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.92);
   padding: 0.32rem 0.55rem;
@@ -690,12 +713,9 @@
     align-items: flex-start;
   }
 
-  .backtrackControls {
-    align-items: stretch;
-  }
-
-  .backtrackInputWrap {
-    min-width: 100%;
+  .dayMenu {
+    left: 0;
+    right: auto;
   }
 
   .chartBars {
@@ -703,8 +723,18 @@
     min-height: 13rem;
   }
 
+  .chartPlot {
+    height: 16rem;
+    min-height: 16rem;
+  }
+
   .chartBarButton {
     min-height: 10rem;
+  }
+
+  .timelinePill {
+    min-width: 4.1rem;
+    padding-inline: 0.78rem;
   }
 
   .pageLabel {
@@ -727,8 +757,7 @@
   .segmentPill,
   .chartShell,
   .chartTooltip,
-  .backtrackButton,
-  .backtrackGhostButton {
+  .dayMenuItem {
     transition-duration: 0ms !important;
     transition-delay: 0ms !important;
   }
