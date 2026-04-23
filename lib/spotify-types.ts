@@ -169,7 +169,6 @@ export interface SpotifyNowPlayingData {
   deviceName?: string
   deviceType?: string
   playedAt?: string
-  bpm?: number | null
   progressMs?: number | null
   durationMs?: number | null
   recentTracks?: SpotifyNowPlayingRecentTrack[]

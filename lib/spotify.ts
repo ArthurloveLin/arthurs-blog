@@ -29,7 +29,6 @@ import { getR2Object, putR2Object } from './r2'
 const SPOTIFY_TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
 const SPOTIFY_PLAYER_ENDPOINT = 'https://api.spotify.com/v1/me/player'
 const SPOTIFY_RECENTLY_PLAYED_ENDPOINT = 'https://api.spotify.com/v1/me/player/recently-played'
-const SPOTIFY_AUDIO_FEATURES_ENDPOINT = 'https://api.spotify.com/v1/audio-features'
 const SPOTIFY_TOP_TRACKS_ENDPOINT = 'https://api.spotify.com/v1/me/top/tracks'
 const SPOTIFY_TOP_ARTISTS_ENDPOINT = 'https://api.spotify.com/v1/me/top/artists'
 const SPOTIFY_SAVED_TRACKS_ENDPOINT = 'https://api.spotify.com/v1/me/tracks'
@@ -51,7 +50,6 @@ const SPOTIFY_RANKINGS_KEY = 'spotify/history/rankings.json'
 // 每个时间范围最多保留的排行快照数（变化触发而非每次同步触发，90条约覆盖数月变化历史）
 const RANKINGS_SNAPSHOTS_LIMIT = 90
 const SPOTIFY_RECENTLY_PLAYED_PATH = 'spotify/history/recently-played/'
-const TEMPO_CACHE = new Map<string, number | null>()
 const CONTEXT_LABEL_CACHE = new Map<string, string>()
 let _tokenCache: { token: string; expiresAt: number } | null = null
 
@@ -175,9 +173,6 @@ type SpotifyPlaylistTracksResponse = {
   total: number
 }
 
-type SpotifyAudioFeaturesResponse = {
-  tempo?: number
-}
 
 class SpotifyRequestError extends Error {
   status: number
@@ -568,23 +563,6 @@ async function getRecentlyPlayed(
   })
 }
 
-async function getTrackTempo(accessToken: string, trackId: string) {
-  if (TEMPO_CACHE.has(trackId)) {
-    return TEMPO_CACHE.get(trackId) ?? null
-  }
-
-  try {
-    const response = await requestSpotify<SpotifyAudioFeaturesResponse>(
-      accessToken,
-      `${SPOTIFY_AUDIO_FEATURES_ENDPOINT}/${trackId}`
-    )
-    const tempo = response.tempo ?? null
-    TEMPO_CACHE.set(trackId, tempo)
-    return tempo
-  } catch {
-    return null
-  }
-}
 
 async function getTopTracksByRange(accessToken: string, range: SpotifyTimeRange): Promise<SpotifyTopTrack[]> {
   const response = await requestSpotify<SpotifyPagingResponse<SpotifyTrackObject>>(
@@ -818,14 +796,6 @@ export async function getSpotifyNowPlayingData(): Promise<SpotifyNowPlayingData 
 
   const track = currentPlayback.track
 
-  let bpm: number | null = null
-  if (track.id) {
-    if (TEMPO_CACHE.has(track.id)) {
-      bpm = TEMPO_CACHE.get(track.id) ?? null
-    } else {
-      getTrackTempo(accessToken, track.id).catch(() => {})
-    }
-  }
 
   return {
     isPlaying: currentPlayback.isPlaying,
@@ -838,7 +808,6 @@ export async function getSpotifyNowPlayingData(): Promise<SpotifyNowPlayingData 
     deviceType: currentPlayback.deviceType,
     progressMs: currentPlayback.progressMs,
     durationMs: currentPlayback.durationMs,
-    bpm,
     recentTracks // 注入合并后的历史记录
   }
 }
