@@ -27,6 +27,15 @@ export interface SpotifyRecentlyPlayedTrack extends SpotifyTrackSummary {
   context: SpotifyContextSource | null
 }
 
+export type TimeSegmentId = 'dawn' | 'morning' | 'noon' | 'afternoon' | 'evening' | 'night'
+
+export interface TimeSegment {
+  id: TimeSegmentId
+  label: string
+  startHour: number
+  endHour: number
+}
+
 export interface SpotifyTopTrack extends SpotifyTrackSummary {
   rank: number
 }
