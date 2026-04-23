@@ -1,0 +1,394 @@
+.shell {
+  position: relative;
+  overflow: hidden;
+  border-radius: 26px;
+  border: 1px solid rgba(16, 185, 129, 0.14);
+  background:
+    radial-gradient(circle at top left, rgba(16, 185, 129, 0.16), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(12, 74, 110, 0.1), transparent 28%),
+    linear-gradient(180deg, color-mix(in srgb, var(--card) 96%, transparent), color-mix(in srgb, var(--background) 88%, transparent));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 20px 60px rgba(15, 23, 42, 0.08);
+}
+
+.shellCompact {
+  border-color: rgba(14, 165, 233, 0.14);
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.14), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.1), transparent 24%),
+    linear-gradient(180deg, color-mix(in srgb, var(--card) 96%, transparent), color-mix(in srgb, var(--background) 88%, transparent));
+}
+
+.backdropGlow {
+  position: absolute;
+  inset: -14%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  filter: blur(44px);
+  transition: opacity 280ms ease, background 280ms ease;
+}
+
+.viewport {
+  position: relative;
+  z-index: 1;
+  height: var(--wall-height, 540px);
+  overflow: hidden;
+  margin: 0 18px;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 22%),
+    rgba(255, 255, 255, 0.02);
+}
+
+.wall {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.fade {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.fadeTop {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: linear-gradient(to bottom, var(--card), transparent);
+}
+
+.fadeBottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: linear-gradient(to top, var(--card), transparent);
+}
+
+.fadeLeft {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 54px;
+  background: linear-gradient(to right, var(--card), transparent);
+}
+
+.fadeRight {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 54px;
+  background: linear-gradient(to left, var(--card), transparent);
+}
+
+.tile {
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+  transition: opacity 220ms ease, filter 220ms ease;
+  will-change: transform, opacity, filter;
+}
+
+.tileInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 30%),
+    rgba(255, 255, 255, 0.03);
+  box-shadow:
+    0 6px 20px rgba(15, 23, 42, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 260ms ease, border-color 260ms ease;
+}
+
+.tileMedia {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tilePlaceholder {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  color: color-mix(in srgb, var(--foreground) 48%, transparent);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tileIndex {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.58);
+  color: rgba(255, 255, 255, 0.96);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  backdrop-filter: blur(8px);
+}
+
+.tileMuted {
+  opacity: 0.7;
+}
+
+.tileMuted .tileInner {
+  filter: blur(var(--wall-blur, 12px)) saturate(0.72) brightness(0.55);
+}
+
+.tileHovered {
+  z-index: 6;
+}
+
+.tileHovered .tileInner {
+  transform: scale(1.44);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 26px 72px rgba(15, 23, 42, 0.32),
+    0 8px 20px rgba(15, 23, 42, 0.2);
+}
+
+.tileInfo {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  z-index: 8;
+  min-width: 260px;
+  max-width: min(360px, calc(100vw - 56px));
+  transform: translateX(-50%);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(12, 18, 28, 0.88);
+  padding: 14px 16px;
+  color: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(20px);
+}
+
+.tileInfoOrder {
+  margin-bottom: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.tileInfoTitle {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+}
+
+.tileInfoArtists {
+  margin-top: 4px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.tileInfoAlbum {
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.tileInfoMeta {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tileInfoLink {
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(167, 243, 208, 0.96);
+  text-decoration: none;
+}
+
+.tileInfoLink:hover {
+  color: white;
+}
+
+.footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px 22px;
+}
+
+.footerStat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.footerValue {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.footerLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.footerDivider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+}
+
+.footerSpacer {
+  flex: 1 1 auto;
+}
+
+.footerHint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.footerAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loadMoreButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(5, 150, 105);
+  transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.loadMoreButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: rgba(16, 185, 129, 0.16);
+  color: rgb(6, 95, 70);
+}
+
+.loadMoreButton:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.empty {
+  position: relative;
+  z-index: 1;
+  margin: 18px;
+  border-radius: 20px;
+  border: 1px dashed var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 36px 18px;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+
+@media (max-width: 640px) {
+  .viewport {
+    margin: 0 12px;
+    height: min(68vw, 430px);
+  }
+
+  .footer {
+    gap: 10px;
+    padding: 16px 16px 18px;
+  }
+
+  .footerDivider {
+    display: none;
+  }
+
+  .tileInfo {
+    min-width: min(260px, calc(100vw - 42px));
+  }
+}
+
+:global(.dark) .viewport {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 22%),
+    rgba(255, 255, 255, 0.015);
+}
+
+:global(.dark) .tileInner {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:global(.light) .tileInfo,
+:global(.ocean) .tileInfo,
+:global(.sunset) .tileInfo,
+:global(.forest) .tileInfo {
+  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+  color: rgb(15, 23, 42);
+}
+
+:global(.light) .tileInfoOrder,
+:global(.ocean) .tileInfoOrder,
+:global(.sunset) .tileInfoOrder,
+:global(.forest) .tileInfoOrder,
+:global(.light) .tileInfoArtists,
+:global(.ocean) .tileInfoArtists,
+:global(.sunset) .tileInfoArtists,
+:global(.forest) .tileInfoArtists,
+:global(.light) .tileInfoMeta,
+:global(.ocean) .tileInfoMeta,
+:global(.sunset) .tileInfoMeta,
+:global(.forest) .tileInfoMeta {
+  color: rgba(15, 23, 42, 0.62);
+}
+
+:global(.light) .tileInfoLink,
+:global(.ocean) .tileInfoLink,
+:global(.sunset) .tileInfoLink,
+:global(.forest) .tileInfoLink {
+  color: rgb(5, 150, 105);
+}
+
+:global(.light) .tileInfoAlbum,
+:global(.ocean) .tileInfoAlbum,
+:global(.sunset) .tileInfoAlbum,
+:global(.forest) .tileInfoAlbum {
+  color: rgba(15, 23, 42, 0.84);
+}
