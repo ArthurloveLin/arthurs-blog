@@ -7,7 +7,9 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "spotify:backfill-days": "tsx scripts/backfill-spotify-recently-played-days.ts"
+    "spotify:backfill-days": "tsx scripts/backfill-spotify-recently-played-days.ts",
+    "spotify:sync-tags": "tsx scripts/sync-lastfm-tags.ts",
+    "spotify:sync-tags:force": "tsx scripts/sync-lastfm-tags.ts --force"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1023.0",
