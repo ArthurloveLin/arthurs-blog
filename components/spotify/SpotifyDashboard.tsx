@@ -106,7 +106,7 @@ export default function SpotifyDashboard({ data, tagAnalysis }: { data: SpotifyD
         />
       </div>
 
-      <div className="mt-6 space-y-6">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-stretch">
         <SpotifyTagCloudCard analysis={tagAnalysis} />
         <SpotifyTagRadarCard analysis={tagAnalysis} />
       </div>
