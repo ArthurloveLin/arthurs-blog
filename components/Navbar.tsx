@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useCallback, startTransition, useSyncExternalStore, useTransition } from 'react'
+import { useEffect, useCallback, startTransition, useSyncExternalStore, useTransition, type CSSProperties } from 'react'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -47,6 +47,18 @@ const mobileDrawerItems: DrawerToggleItem[] = [
   { key: 'archive', label: '归档', Icon: Archive },
   { key: 'tools', label: '工具', Icon: Wrench },
 ]
+
+type ViewTransitionStyle = CSSProperties & {
+  viewTransitionName: string
+}
+
+const NAVBAR_BOTTOM_TRANSITION_STYLE: ViewTransitionStyle = {
+  viewTransitionName: 'navbar-bottom',
+}
+
+const NAVBAR_TRANSITION_STYLE: ViewTransitionStyle = {
+  viewTransitionName: 'navbar',
+}
 
 function getDrawerButtonClass(isActive: boolean) {
   return `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`
@@ -241,7 +253,7 @@ function NavMobileBar({
   return (
     <div 
       className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 md:hidden"
-      style={{ viewTransitionName: 'navbar-bottom' } as any}
+      style={NAVBAR_BOTTOM_TRANSITION_STYLE}
     >
       <div className={
         "flex items-center gap-0.5 px-2 py-1.5 " +
@@ -392,7 +404,7 @@ function NavbarContent() {
         // 深色模式(独立逻辑): 替换为纯黑色，去除磨砂模糊
         "dark:bg-black dark:backdrop-blur-none dark:border-white/10"
       }
-      style={{ viewTransitionName: 'navbar' } as any}
+      style={NAVBAR_TRANSITION_STYLE}
     >
       <div className="site-shell">
         <div className="h-16 flex items-center justify-between gap-4">
