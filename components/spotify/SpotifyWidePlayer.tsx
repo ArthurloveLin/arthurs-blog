@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, CalendarClock, Clock3, Headphones, Heart, Library, Music2, Radio, Sparkles, Monitor, Smartphone, Speaker, Laptop } from 'lucide-react'
+import { ArrowRight, CalendarClock, Clock3, Headphones, Heart, Library, Music2, Radio, Monitor, Smartphone, Speaker, Laptop, type LucideIcon } from 'lucide-react'
 
 import { useSpotify } from '@/components/SpotifyProvider'
 import { formatStableDate } from '@/lib/date-format'
@@ -35,13 +35,6 @@ function formatMs(ms: number) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-function getDeviceIcon(deviceType?: string) {
-  if (deviceType === 'Computer') return Laptop
-  if (deviceType === 'Smartphone') return Smartphone
-  if (deviceType === 'Speaker') return Speaker
-  return Monitor
-}
-
 function getDeviceLabel(deviceName?: string, deviceType?: string) {
   if (!deviceName && !deviceType) {
     return '最近设备未知'
@@ -53,7 +46,23 @@ function getDeviceLabel(deviceName?: string, deviceType?: string) {
   return deviceName || deviceType || 'Spotify 设备'
 }
 
-function StatItem({ label, value, icon: Icon, href }: { label: string; value: number; icon: any; href?: string }) {
+function DeviceInfoIcon({ deviceType }: { deviceType?: string }) {
+  if (deviceType === 'Computer') {
+    return <Laptop className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+  }
+
+  if (deviceType === 'Smartphone') {
+    return <Smartphone className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+  }
+
+  if (deviceType === 'Speaker') {
+    return <Speaker className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+  }
+
+  return <Monitor className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+}
+
+function StatItem({ label, value, icon: Icon, href }: { label: string; value: number; icon: LucideIcon; href?: string }) {
   const content = (
     <div className="group flex items-center justify-between gap-3 lg:flex-col lg:items-end lg:gap-0.5">
       <div className="flex items-center gap-1.5 opacity-60 transition-opacity group-hover:opacity-100">
@@ -83,31 +92,12 @@ export interface SpotifyWidePlayerStats {
   playlists: number
 }
 
+type SpotifyWidePlayerData = NonNullable<ReturnType<typeof useSpotify>['state']['data']>
+
 export default function SpotifyWidePlayer({ stats }: { stats?: SpotifyWidePlayerStats }) {
   const {
     state: { data, loading },
   } = useSpotify()
-
-  const [localProgress, setLocalProgress] = useState(0)
-
-  useEffect(() => {
-    if (data?.progressMs) {
-      setLocalProgress(data.progressMs)
-    }
-  }, [data?.progressMs])
-
-  useEffect(() => {
-    if (!data?.isPlaying || !data?.durationMs) return
-
-    const interval = setInterval(() => {
-      setLocalProgress((prev) => {
-        const next = prev + 1000
-        return next > (data.durationMs || 0) ? (data.durationMs || 0) : next
-      })
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [data?.isPlaying, data?.durationMs])
 
   if (loading) {
     return (
@@ -153,9 +143,40 @@ export default function SpotifyWidePlayer({ stats }: { stats?: SpotifyWidePlayer
     )
   }
 
+  const playerKey = [
+    data.songUrl ?? data.title ?? 'track',
+    data.artist ?? 'artist',
+    data.isPlaying ? 'playing' : data.playedAt ?? 'paused',
+  ].join('::')
+
+  return <SpotifyWidePlayerContent key={playerKey} data={data} stats={stats} />
+}
+
+function SpotifyWidePlayerContent({
+  data,
+  stats,
+}: {
+  data: SpotifyWidePlayerData
+  stats?: SpotifyWidePlayerStats
+}) {
+  const [localProgress, setLocalProgress] = useState(() => data.progressMs ?? 0)
+
+  useEffect(() => {
+    if (!data.isPlaying || !data.durationMs) return
+
+    const duration = data.durationMs
+    const interval = setInterval(() => {
+      setLocalProgress((prev) => {
+        const next = prev + 1000
+        return next > duration ? duration : next
+      })
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [data.durationMs, data.isPlaying])
+
   const statusLabel = data.isPlaying ? '正在播放' : data.playedAt ? formatRelativeTime(data.playedAt) : '最近播放'
   const absolutePlayedAt = data.playedAt ? formatAbsoluteTime(data.playedAt) : null
-  const DeviceIcon = getDeviceIcon(data.deviceType)
 
   const progressPercent = data.durationMs ? (localProgress / data.durationMs) * 100 : 0
 
@@ -233,7 +254,7 @@ export default function SpotifyWidePlayer({ stats }: { stats?: SpotifyWidePlayer
                   <span className="truncate">{data.album}</span>
                 </span>
                 <span className="inline-flex items-center gap-2">
-                  <DeviceIcon className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+                  <DeviceInfoIcon deviceType={data.deviceType} />
                   {getDeviceLabel(data.deviceName, data.deviceType)}
                 </span>
                 {absolutePlayedAt && !data.isPlaying && (
