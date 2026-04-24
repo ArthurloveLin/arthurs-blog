@@ -9,10 +9,14 @@ const HOVER_INTENT_DELAY_MS = 120
 const VISIBLE_ORDER_THROTTLE_MS = 180
 const MANUAL_PAN_STEP_RATIO = 0.42
 const SMOOTH_PAN_DURATION = 480
+const FEATURED_ORDER_COUNT = 4
 const LISSAJOUS_AMP_X_RATIO = 1.4
 const LISSAJOUS_AMP_Y_RATIO = 1.0
 const LISSAJOUS_PERIOD_X = 28
 const LISSAJOUS_PERIOD_Y = 19
+const DRIFT_WARMUP_SECONDS = 1.1
+const MANUAL_RESUME_IDLE_MS = 4000
+const RESUME_TRANSITION_MS = 680
 
 type WallPreset = 'default' | 'compact'
 type MoveDirection = 'up' | 'down' | 'left' | 'right'
@@ -28,20 +32,20 @@ interface LayoutOptions {
 
 const LAYOUT_PRESETS: Record<WallPreset, LayoutOptions> = {
   default: {
-    baseTileSize: 196,
-    gap: 12,
+    baseTileSize: 144,
+    gap: 14,
     gridCols: 6,
     driftSpeed: 11,
     viewportHeight: 596,
-    blurStrength: 16,
+    blurStrength: 9,
   },
   compact: {
-    baseTileSize: 172,
-    gap: 10,
+    baseTileSize: 128,
+    gap: 12,
     gridCols: 6,
     driftSpeed: 10,
     viewportHeight: 552,
-    blurStrength: 13,
+    blurStrength: 8,
   },
 }
 
@@ -86,8 +90,12 @@ interface WallLayout {
   options: LayoutOptions
 }
 
-function getTileSpan(_order: number, _index: number) {
-  return { width: 1, height: 1 }
+function isFeaturedOrder(order: number) {
+  return order <= FEATURED_ORDER_COUNT
+}
+
+function getTileSpan(order: number, _index: number) {
+  return isFeaturedOrder(order) ? { width: 2, height: 2 } : { width: 1, height: 1 }
 }
 
 function getTileDimensions(widthUnits: number, heightUnits: number, options: LayoutOptions) {
@@ -112,10 +120,20 @@ function buildCenterFirstCells(gridCols: number, rowLimit: number, centerRow: nu
   return cells
 }
 
+function getFeaturedAnchorCells(centerRow: number) {
+  return [
+    { row: centerRow, col: 2 },
+    { row: centerRow, col: 0 },
+    { row: centerRow - 2, col: 2 },
+    { row: centerRow, col: 4 },
+  ]
+}
+
 function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): WallLayout {
   const options = LAYOUT_PRESETS[preset]
+  const rankedItems = [...items].sort((left, right) => left.order - right.order)
 
-  if (items.length === 0) {
+  if (rankedItems.length === 0) {
     return {
       items: [],
       totalWidth: 0,
@@ -127,8 +145,9 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): 
 
   const occupied: boolean[][] = []
   const layoutItems: WallLayoutItem[] = []
-  const searchRowLimit = Math.max(48, items.length * 6)
-  const estimatedCenterRow = Math.max(2, Math.round(items.length / (options.gridCols * 2)))
+  const searchRowLimit = Math.max(48, rankedItems.length * 6)
+  const estimatedCenterRow = Math.max(2, Math.round(rankedItems.length / (options.gridCols * 2)))
+  const featuredAnchorCells = getFeaturedAnchorCells(estimatedCenterRow)
   const searchCells = buildCenterFirstCells(options.gridCols, searchRowLimit, estimatedCenterRow)
   let maxRow = 0
 
@@ -162,11 +181,14 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): 
     maxRow = Math.max(maxRow, row + heightUnits)
   }
 
-  items.forEach((item, index) => {
+  rankedItems.forEach((item, index) => {
     const span = getTileSpan(item.order, index)
     let placement: WallLayoutItem | null = null
+    const preferredCells = isFeaturedOrder(item.order)
+      ? [featuredAnchorCells[item.order - 1], ...searchCells.filter(({ row, col }) => !(row === featuredAnchorCells[item.order - 1].row && col === featuredAnchorCells[item.order - 1].col))]
+      : searchCells
 
-    for (const { row, col } of searchCells) {
+    for (const { row, col } of preferredCells) {
       if (isFree(row, col, span.width, span.height)) {
         markOccupied(row, col, span.width, span.height)
         const dimensions = getTileDimensions(span.width, span.height, options)
@@ -223,6 +245,10 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
 
+function applyWallOffset(wall: HTMLDivElement, offset: { x: number; y: number }) {
+  wall.style.transform = `translate3d(${offset.x}px, ${offset.y}px, 0)`
+}
+
 
 function getViewportBounds(viewportWidth: number, viewportHeight: number, layout: WallLayout) {
   const centeredX = (viewportWidth - layout.totalWidth) / 2
@@ -246,6 +272,31 @@ function getFocusedOffset(viewportWidth: number, viewportHeight: number, layout:
   return {
     x: clamp(viewportWidth / 2 - layout.focusPoint.x, bounds.minX, bounds.maxX),
     y: clamp(viewportHeight / 2 - layout.focusPoint.y, bounds.minY, bounds.maxY),
+  }
+}
+
+function getDriftOffset(
+  viewportWidth: number,
+  viewportHeight: number,
+  layout: WallLayout,
+  timeSeconds: number,
+  strength: number
+) {
+  const bounds = getViewportBounds(viewportWidth, viewportHeight, layout)
+  const centeredOffset = getFocusedOffset(viewportWidth, viewportHeight, layout)
+  const halfRangeX = (bounds.maxX - bounds.minX) / 2
+  const halfRangeY = (bounds.maxY - bounds.minY) / 2
+  const Ax = Math.min(layout.options.baseTileSize * LISSAJOUS_AMP_X_RATIO, halfRangeX) * strength
+  const Ay = Math.min(layout.options.baseTileSize * LISSAJOUS_AMP_Y_RATIO, halfRangeY) * strength
+  const freqX = (2 * Math.PI) / LISSAJOUS_PERIOD_X
+  const freqY = (2 * Math.PI) / LISSAJOUS_PERIOD_Y
+
+  return {
+    bounds,
+    offset: {
+      x: clamp(centeredOffset.x + Ax * Math.sin(freqX * timeSeconds), bounds.minX, bounds.maxX),
+      y: clamp(centeredOffset.y + Ay * Math.sin(freqY * timeSeconds + Math.PI / 4), bounds.minY, bounds.maxY),
+    },
   }
 }
 
@@ -289,7 +340,11 @@ export default function SpotifyTrackWall({
   const animationFrameRef = useRef<number | null>(null)
   const previousFrameRef = useRef<number | null>(null)
   const tickRef = useRef<(timestamp: number) => void>(() => {})
+  const resumeAutoDriftRef = useRef<(fromManual?: boolean) => void>(() => {})
+  const driftStrengthRef = useRef(0)
   const hoverIntentTimeoutRef = useRef<number | null>(null)
+  const manualResumeTimerRef = useRef<number | null>(null)
+  const isResumingRef = useRef(false)
   const suppressNextHoverRef = useRef(false)
   const hoverPausedRef = useRef(false)
   const manualPausedRef = useRef(false)
@@ -355,7 +410,8 @@ export default function SpotifyTrackWall({
       animationFrameRef.current != null ||
       layoutRef.current.items.length === 0 ||
       hoverPausedRef.current ||
-      manualPausedRef.current
+      manualPausedRef.current ||
+      isResumingRef.current
     ) {
       return
     }
@@ -388,23 +444,20 @@ export default function SpotifyTrackWall({
     const delta = Math.min((timestamp - previousFrameRef.current) / 1000, 0.04)
     previousFrameRef.current = timestamp
 
-    const bounds = getViewportBounds(viewport.clientWidth, viewport.clientHeight, activeLayout)
-    const centeredOffset = getFocusedOffset(viewport.clientWidth, viewport.clientHeight, activeLayout)
-
     if (!hoverPausedRef.current && !manualPausedRef.current) {
       oscillationTimeRef.current += delta
+      driftStrengthRef.current = Math.min(1, driftStrengthRef.current + delta / DRIFT_WARMUP_SECONDS)
     }
 
-    const t = oscillationTimeRef.current
-    const halfRangeX = (bounds.maxX - bounds.minX) / 2
-    const halfRangeY = (bounds.maxY - bounds.minY) / 2
-    const Ax = Math.min(activeLayout.options.baseTileSize * LISSAJOUS_AMP_X_RATIO, halfRangeX)
-    const Ay = Math.min(activeLayout.options.baseTileSize * LISSAJOUS_AMP_Y_RATIO, halfRangeY)
-    const freqX = (2 * Math.PI) / LISSAJOUS_PERIOD_X
-    const freqY = (2 * Math.PI) / LISSAJOUS_PERIOD_Y
-
-    const nextX = clamp(centeredOffset.x + Ax * Math.sin(freqX * t), bounds.minX, bounds.maxX)
-    const nextY = clamp(centeredOffset.y + Ay * Math.sin(freqY * t + Math.PI / 4), bounds.minY, bounds.maxY)
+    const { bounds, offset } = getDriftOffset(
+      viewport.clientWidth,
+      viewport.clientHeight,
+      activeLayout,
+      oscillationTimeRef.current,
+      driftStrengthRef.current,
+    )
+    const nextX = offset.x
+    const nextY = offset.y
 
     const moved =
       Math.abs(nextX - offsetRef.current.x) > 0.08 || Math.abs(nextY - offsetRef.current.y) > 0.08
@@ -412,7 +465,7 @@ export default function SpotifyTrackWall({
     offsetRef.current = { x: nextX, y: nextY }
 
     if (moved) {
-      wall.style.transform = `translate3d(${nextX}px, ${nextY}px, 0)`
+      applyWallOffset(wall, offsetRef.current)
     }
 
     if (moved && timestamp - badgeFrameRef.current > VISIBLE_ORDER_THROTTLE_MS) {
@@ -451,15 +504,22 @@ export default function SpotifyTrackWall({
       animationFrameRef.current = null
     }
 
+    if (manualResumeTimerRef.current != null) {
+      window.clearTimeout(manualResumeTimerRef.current)
+      manualResumeTimerRef.current = null
+    }
+
     clearHoverIntent()
     suppressNextHoverRef.current = false
     hoverPausedRef.current = false
     manualPausedRef.current = false
+    isResumingRef.current = false
     previousFrameRef.current = null
     badgeFrameRef.current = 0
     oscillationTimeRef.current = 0
+    driftStrengthRef.current = 0
     offsetRef.current = getFocusedOffset(viewport.clientWidth, viewport.clientHeight, layout)
-    wall.style.transform = `translate3d(${offsetRef.current.x}px, ${offsetRef.current.y}px, 0)`
+    applyWallOffset(wall, offsetRef.current)
     visibleOrderRef.current = getNearestVisibleOrder(
       layout,
       viewport.clientWidth,
@@ -474,11 +534,17 @@ export default function SpotifyTrackWall({
         return
       }
 
+      if (manualResumeTimerRef.current != null) {
+        window.clearTimeout(manualResumeTimerRef.current)
+        manualResumeTimerRef.current = null
+      }
       offsetRef.current = getFocusedOffset(resizedViewport.clientWidth, resizedViewport.clientHeight, layoutRef.current)
-      resizedWall.style.transform = `translate3d(${offsetRef.current.x}px, ${offsetRef.current.y}px, 0)`
+      applyWallOffset(resizedWall, offsetRef.current)
+      driftStrengthRef.current = 0
       clearHoverIntent()
       suppressNextHoverRef.current = false
       hoverPausedRef.current = false
+      isResumingRef.current = false
       setManualPaused(false)
       previousFrameRef.current = null
       setHoveredId(null)
@@ -492,6 +558,10 @@ export default function SpotifyTrackWall({
     return () => {
       window.removeEventListener('resize', handleResize)
       clearHoverIntent()
+      if (manualResumeTimerRef.current != null) {
+        window.clearTimeout(manualResumeTimerRef.current)
+        manualResumeTimerRef.current = null
+      }
       if (animationFrameRef.current != null) {
         cancelAnimationFrame(animationFrameRef.current)
       }
@@ -542,27 +612,65 @@ export default function SpotifyTrackWall({
     offsetRef.current = nextOffset
 
     wall.style.transition = `transform ${SMOOTH_PAN_DURATION}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`
-    wall.style.transform = `translate3d(${nextOffset.x}px, ${nextOffset.y}px, 0)`
+    applyWallOffset(wall, nextOffset)
     wall.addEventListener('transitionend', () => {
       wall.style.transition = ''
     }, { once: true })
 
     syncVisibleOrder(activeLayout, viewport.clientWidth, viewport.clientHeight, nextOffset)
+
+    if (manualResumeTimerRef.current != null) {
+      window.clearTimeout(manualResumeTimerRef.current)
+    }
+    manualResumeTimerRef.current = window.setTimeout(() => {
+      manualResumeTimerRef.current = null
+      resumeAutoDriftRef.current(true)
+    }, MANUAL_RESUME_IDLE_MS)
   }, [clearHoverIntent, setManualPaused, syncVisibleOrder])
 
-  const resumeAutoDrift = useCallback(() => {
+  const resumeAutoDrift = useCallback((fromManual = false) => {
+    const viewport = viewportRef.current
     const wall = wallRef.current
-    if (wall) {
-      wall.style.transition = ''
+
+    if (manualResumeTimerRef.current != null) {
+      window.clearTimeout(manualResumeTimerRef.current)
+      manualResumeTimerRef.current = null
     }
+
     clearHoverIntent()
     suppressNextHoverRef.current = false
     hoverPausedRef.current = false
     setHoveredId(null)
-    setManualPaused(false)
     previousFrameRef.current = null
-    scheduleAnimation()
-  }, [clearHoverIntent, scheduleAnimation, setManualPaused])
+
+    if ((fromManual || manualPausedRef.current) && viewport && wall) {
+      isResumingRef.current = true
+      oscillationTimeRef.current = 0
+      driftStrengthRef.current = 0
+      setManualPaused(false)
+
+      const target = getFocusedOffset(viewport.clientWidth, viewport.clientHeight, layoutRef.current)
+      offsetRef.current = target
+      syncVisibleOrder(layoutRef.current, viewport.clientWidth, viewport.clientHeight, target)
+
+      wall.style.transition = `transform ${RESUME_TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`
+      applyWallOffset(wall, target)
+
+      wall.addEventListener('transitionend', () => {
+        wall.style.transition = ''
+        isResumingRef.current = false
+        scheduleAnimation()
+      }, { once: true })
+    } else {
+      if (wall) wall.style.transition = ''
+      setManualPaused(false)
+      scheduleAnimation()
+    }
+  }, [clearHoverIntent, scheduleAnimation, setManualPaused, syncVisibleOrder])
+
+  useEffect(() => {
+    resumeAutoDriftRef.current = resumeAutoDrift
+  }, [resumeAutoDrift])
 
   const shellClassName = preset === 'compact' ? `${styles.shell} ${styles.shellCompact}` : styles.shell
   const wallStyle = {
@@ -597,92 +705,91 @@ export default function SpotifyTrackWall({
           }
         }}
       >
-        <div className={styles.wall} ref={wallRef} style={{ width: layout.totalWidth, height: layout.totalHeight }}>
-          {layout.items.map((layoutItem) => {
-            const isHovered = activeHoveredId === layoutItem.item.id
-            const isDimmed = activeHoveredId !== null && activeHoveredId !== layoutItem.item.id
+        <div className={styles.wall} style={{ width: layout.totalWidth, height: layout.totalHeight }}>
+          <div className={styles.wallMotion} ref={wallRef}>
+            {layout.items.map((layoutItem) => {
+              const isHovered = activeHoveredId === layoutItem.item.id
+              const isDimmed = activeHoveredId !== null && activeHoveredId !== layoutItem.item.id
 
-            return (
-              <div
-                key={layoutItem.item.id}
-                className={[
-                  styles.tile,
-                  isHovered ? styles.tileHovered : '',
-                  isDimmed ? styles.tileMuted : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                style={{
-                  transform: `translate3d(${layoutItem.x}px, ${layoutItem.y}px, 0)`,
-                  width: layoutItem.width,
-                  height: layoutItem.height,
-                }}
-                onMouseEnter={() => {
-                  clearHoverIntent()
+              return (
+                <div
+                  key={layoutItem.item.id}
+                  className={[
+                    styles.tile,
+                    isFeaturedOrder(layoutItem.item.order) ? styles.tileFeatured : '',
+                    isHovered ? styles.tileHovered : '',
+                    isDimmed ? styles.tileMuted : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  style={{
+                    transform: `translate3d(${layoutItem.x}px, ${layoutItem.y}px, 0)`,
+                    width: layoutItem.width,
+                    height: layoutItem.height,
+                  }}
+                  onMouseEnter={() => {
+                    clearHoverIntent()
 
-                  if (activeHoveredId && activeHoveredId !== layoutItem.item.id) {
-                    return
-                  }
-
-                  if (suppressNextHoverRef.current) {
-                    suppressNextHoverRef.current = false
-                    return
-                  }
-
-                  scheduleHoverIntent(layoutItem.item.id)
-                }}
-                onMouseLeave={() => {
-                  clearHoverIntent()
-
-                  if (activeHoveredId === layoutItem.item.id) {
-                    suppressNextHoverRef.current = true
-                    hoverPausedRef.current = false
-                    previousFrameRef.current = null
-                    setHoveredId(null)
-                    if (!manualPausedRef.current) {
-                      scheduleAnimation()
+                    if (activeHoveredId && activeHoveredId !== layoutItem.item.id) {
+                      return
                     }
-                  }
-                }}
-              >
-                <div className={styles.tileInner}>
-                  {layoutItem.item.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={layoutItem.item.imageUrl}
-                      alt={layoutItem.item.title}
-                      className={styles.tileMedia}
-                      loading="lazy"
-                      decoding="async"
-                      draggable="false"
-                    />
-                  ) : (
-                    <div className={styles.tilePlaceholder}>
-                      <Music2 size={24} strokeWidth={1.8} />
-                    </div>
-                  )}
-                  <span className={styles.tileIndex}>#{layoutItem.item.order}</span>
-                </div>
 
-                {isHovered ? (
-                  <div className={styles.tileInfo}>
-                    <div className={styles.tileInfoOrder}>#{layoutItem.item.order}</div>
-                    <div className={styles.tileInfoTitle}>{layoutItem.item.title}</div>
-                    <div className={styles.tileInfoArtists}>{layoutItem.item.artists}</div>
-                    <div className={styles.tileInfoAlbum}>{layoutItem.item.album}</div>
-                    <div className={styles.tileInfoMeta}>
-                      {layoutItem.item.meta.map((value, index) => (
-                        <Fragment key={`${layoutItem.item.id}-${value}`}>
-                          {index > 0 ? <span className={styles.tileInfoMetaDot}>·</span> : null}
-                          <span>{value}</span>
-                        </Fragment>
-                      ))}
-                    </div>
+                    suppressNextHoverRef.current = false
+                    scheduleHoverIntent(layoutItem.item.id)
+                  }}
+                  onMouseLeave={() => {
+                    clearHoverIntent()
+
+                    if (activeHoveredId === layoutItem.item.id) {
+                      suppressNextHoverRef.current = true
+                      hoverPausedRef.current = false
+                      previousFrameRef.current = null
+                      setHoveredId(null)
+                      if (!manualPausedRef.current) {
+                        scheduleAnimation()
+                      }
+                    }
+                  }}
+                >
+                  <div className={styles.tileInner}>
+                    {layoutItem.item.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={layoutItem.item.imageUrl}
+                        alt={layoutItem.item.title}
+                        className={styles.tileMedia}
+                        loading="lazy"
+                        decoding="async"
+                        draggable="false"
+                      />
+                    ) : (
+                      <div className={styles.tilePlaceholder}>
+                        <Music2 size={24} strokeWidth={1.8} />
+                      </div>
+                    )}
+                    <span className={styles.tileIndex}>#{layoutItem.item.order}</span>
                   </div>
-                ) : null}
-              </div>
-            )
-          })}
+
+                  {isHovered ? (
+                    <div className={styles.tileInfo}>
+                      <div className={styles.tileInfoOrder}>#{layoutItem.item.order}</div>
+                      <div className={styles.tileInfoTitle}>{layoutItem.item.title}</div>
+                      <div className={styles.tileInfoArtists}>{layoutItem.item.artists}</div>
+                      <div className={styles.tileInfoAlbum}>{layoutItem.item.album}</div>
+                      <div className={styles.tileInfoMeta}>
+                        {layoutItem.item.meta.map((value, index) => (
+                          <Fragment key={`${layoutItem.item.id}-${value}`}>
+                            {index > 0 ? <span className={styles.tileInfoMetaDot}>·</span> : null}
+                            <span>{value}</span>
+                          </Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
         </div>
 
         <div className={`${styles.fade} ${styles.fadeTop}`} />
@@ -754,7 +861,7 @@ export default function SpotifyTrackWall({
         <button
           type="button"
           className={[styles.autoButton, !isManualNavigation ? styles.autoButtonActive : ''].filter(Boolean).join(' ')}
-          onClick={resumeAutoDrift}
+          onClick={() => resumeAutoDrift(isManualNavigation)}
           aria-label="恢复自动漂移"
           aria-pressed={!isManualNavigation}
         >
