@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import React, { useEffect, useMemo, useState, useTransition } from 'react'
 import { ChevronLeft, ChevronRight, ExternalLink, Mic2, Users } from 'lucide-react'
 
 import type { SpotifyTimeRange, SpotifyTopArtist } from '@/lib/spotify-types'
@@ -107,33 +107,10 @@ export default function SpotifyTopArtistsPanel({
 }) {
   const [isPending, startTransition] = useTransition()
   const [activeRange, setActiveRange] = React.useState<SpotifyTimeRange>('medium_term')
-  const [currentGroupIndex, setCurrentGroupIndex] = useState(0)
   const cardsPerPage = useCardsPerPage()
-  const prevCardsPerPage = useRef(cardsPerPage)
-  const prevRange = useRef(activeRange)
 
   const activeItems = useMemo(() => data[activeRange] ?? [], [activeRange, data])
   const groups = useMemo(() => chunkArtists(activeItems, cardsPerPage), [activeItems, cardsPerPage])
-
-  // Reset to first group on range or page-size change
-  useEffect(() => {
-    if (prevCardsPerPage.current !== cardsPerPage || prevRange.current !== activeRange) {
-      setCurrentGroupIndex(0)
-      prevCardsPerPage.current = cardsPerPage
-      prevRange.current = activeRange
-    }
-  }, [cardsPerPage, activeRange])
-
-  const effectiveIndex = Math.min(currentGroupIndex, Math.max(0, groups.length - 1))
-  const currentGroup = groups[effectiveIndex] ?? []
-  const hasMultipleGroups = groups.length > 1
-
-  const handlePrevious = () => {
-    startTransition(() => setCurrentGroupIndex(Math.max(0, effectiveIndex - 1)))
-  }
-  const handleNext = () => {
-    startTransition(() => setCurrentGroupIndex(Math.min(groups.length - 1, effectiveIndex + 1)))
-  }
 
   return (
     <section className="rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60_rgba(0,0,0,0.05)]">
@@ -174,66 +151,98 @@ export default function SpotifyTopArtistsPanel({
             当前时间跨度没有返回可展示的 Top Artists 数据。
           </div>
         ) : (
-          <div className={styles.section}>
-            <div className={styles.viewport}>
-              {hasMultipleGroups ? (
-                <>
-                  <button
-                    type="button"
-                    className={[styles.navButton, styles.navButtonLeft].join(' ')}
-                    onClick={handlePrevious}
-                    disabled={effectiveIndex === 0}
-                    aria-label="查看上一组歌手"
-                  >
-                    <ChevronLeft className="h-5 w-5" strokeWidth={2.2} />
-                  </button>
-                  <button
-                    type="button"
-                    className={[styles.navButton, styles.navButtonRight].join(' ')}
-                    onClick={handleNext}
-                    disabled={effectiveIndex === groups.length - 1}
-                    aria-label="查看下一组歌手"
-                  >
-                    <ChevronRight className="h-5 w-5" strokeWidth={2.2} />
-                  </button>
-                </>
-              ) : null}
-
-              <div
-                key={`${activeRange}-${cardsPerPage}-${effectiveIndex}`}
-                className={[styles.grid, 'animate-in fade-in slide-in-from-right-4 duration-500'].join(' ')}
-                style={{ gridTemplateColumns: `repeat(${cardsPerPage}, minmax(0, 1fr))` }}
-              >
-                {currentGroup.map((artist) => (
-                  <ArtistCard key={`${activeRange}-${artist.id}-${artist.rank}`} artist={artist} />
-                ))}
-                {Array.from({ length: cardsPerPage - currentGroup.length }).map((_, i) => (
-                  <div key={`placeholder-${i}`} aria-hidden="true" />
-                ))}
-              </div>
-            </div>
-
-            {hasMultipleGroups ? (
-              <div className={styles.statusBar}>
-                <div className={styles.paginationDots} aria-hidden="true">
-                  {groups.map((_, index) => (
-                    <span
-                      key={`artist-dot-${index}`}
-                      className={[
-                        styles.paginationDot,
-                        index === effectiveIndex ? styles.paginationDotActive : '',
-                      ].filter(Boolean).join(' ')}
-                    />
-                  ))}
-                </div>
-                <p className={styles.pageLabel}>
-                  第 {effectiveIndex + 1} 组 / 共 {groups.length} 组
-                </p>
-              </div>
-            ) : null}
-          </div>
+          <TopArtistsPager
+            key={`${activeRange}-${cardsPerPage}`}
+            activeRange={activeRange}
+            cardsPerPage={cardsPerPage}
+            groups={groups}
+          />
         )}
       </div>
     </section>
+  )
+}
+
+function TopArtistsPager({
+  activeRange,
+  cardsPerPage,
+  groups,
+}: {
+  activeRange: SpotifyTimeRange
+  cardsPerPage: number
+  groups: SpotifyTopArtist[][]
+}) {
+  const [currentGroupIndex, setCurrentGroupIndex] = useState(0)
+  const effectiveIndex = Math.min(currentGroupIndex, Math.max(0, groups.length - 1))
+  const currentGroup = groups[effectiveIndex] ?? []
+  const hasMultipleGroups = groups.length > 1
+
+  const handlePrevious = () => {
+    setCurrentGroupIndex(Math.max(0, effectiveIndex - 1))
+  }
+
+  const handleNext = () => {
+    setCurrentGroupIndex(Math.min(groups.length - 1, effectiveIndex + 1))
+  }
+
+  return (
+    <div className={styles.section}>
+      <div className={styles.viewport}>
+        {hasMultipleGroups ? (
+          <>
+            <button
+              type="button"
+              className={[styles.navButton, styles.navButtonLeft].join(' ')}
+              onClick={handlePrevious}
+              disabled={effectiveIndex === 0}
+              aria-label="查看上一组歌手"
+            >
+              <ChevronLeft className="h-5 w-5" strokeWidth={2.2} />
+            </button>
+            <button
+              type="button"
+              className={[styles.navButton, styles.navButtonRight].join(' ')}
+              onClick={handleNext}
+              disabled={effectiveIndex === groups.length - 1}
+              aria-label="查看下一组歌手"
+            >
+              <ChevronRight className="h-5 w-5" strokeWidth={2.2} />
+            </button>
+          </>
+        ) : null}
+
+        <div
+          key={`${activeRange}-${cardsPerPage}-${effectiveIndex}`}
+          className={[styles.grid, 'animate-in fade-in slide-in-from-right-4 duration-500'].join(' ')}
+          style={{ gridTemplateColumns: `repeat(${cardsPerPage}, minmax(0, 1fr))` }}
+        >
+          {currentGroup.map((artist) => (
+            <ArtistCard key={`${activeRange}-${artist.id}-${artist.rank}`} artist={artist} />
+          ))}
+          {Array.from({ length: cardsPerPage - currentGroup.length }).map((_, i) => (
+            <div key={`placeholder-${i}`} aria-hidden="true" />
+          ))}
+        </div>
+      </div>
+
+      {hasMultipleGroups ? (
+        <div className={styles.statusBar}>
+          <div className={styles.paginationDots} aria-hidden="true">
+            {groups.map((_, index) => (
+              <span
+                key={`artist-dot-${index}`}
+                className={[
+                  styles.paginationDot,
+                  index === effectiveIndex ? styles.paginationDotActive : '',
+                ].filter(Boolean).join(' ')}
+              />
+            ))}
+          </div>
+          <p className={styles.pageLabel}>
+            第 {effectiveIndex + 1} 组 / 共 {groups.length} 组
+          </p>
+        </div>
+      ) : null}
+    </div>
   )
 }
