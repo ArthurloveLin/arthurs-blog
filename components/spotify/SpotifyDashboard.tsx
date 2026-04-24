@@ -4,6 +4,7 @@ import { AlertTriangle } from 'lucide-react'
 import type {
   SpotifyDashboardData,
   SpotifyPlaylistPreview,
+  SpotifyTagAnalysis,
 } from '@/lib/spotify-types'
 import SpotifyVinylAlbumsPanel from './SpotifyVinylAlbumsPanel'
 import SpotifyLivePlayerPanel from './SpotifyLivePlayerPanel'
@@ -12,6 +13,8 @@ import SpotifyRecentlyPlayedDeck from './SpotifyRecentlyPlayedDeck'
 import SpotifySavedTracksPanel from './SpotifySavedTracksPanel'
 import SpotifyTopArtistsPanel from './SpotifyTopArtistsPanel'
 import SpotifyTopTracksPanel from './SpotifyTopTracksPanel'
+import SpotifyTagCloudCard from './SpotifyTagCloudCard'
+import SpotifyTagRadarCard from './SpotifyTagRadarCard'
 
 const SectionCard = memo(function SectionCard({
   eyebrow,
@@ -60,7 +63,7 @@ const PlaylistsBoard = memo(function PlaylistsBoard({ items, total }: { items: S
 })
 
 
-export default function SpotifyDashboard({ data }: { data: SpotifyDashboardData }) {
+export default function SpotifyDashboard({ data, tagAnalysis }: { data: SpotifyDashboardData; tagAnalysis: SpotifyTagAnalysis }) {
   const stats = {
     recentlyPlayed: data.recentlyPlayed.length,
     likedSongs: data.library.savedTracks.total,
@@ -101,6 +104,11 @@ export default function SpotifyDashboard({ data }: { data: SpotifyDashboardData 
           initialItems={data.library.savedTracks.items}
           total={data.library.savedTracks.total}
         />
+      </div>
+
+      <div className="mt-6 space-y-6">
+        <SpotifyTagCloudCard analysis={tagAnalysis} />
+        <SpotifyTagRadarCard analysis={tagAnalysis} />
       </div>
 
       <div className="mt-6">

@@ -3,15 +3,20 @@ import PageHero from '@/components/PageHero'
 import SpotifyDashboard from '@/components/spotify/SpotifyDashboard'
 import { getSiteConfig } from '@/lib/blog'
 import { getStoredSpotifyDashboardData } from '@/lib/spotify'
+import { computeTagAnalysis } from '@/lib/spotify-tag-analysis'
+import { readSpotifyTrackTagStore } from '@/lib/spotify-tags'
 
 export const metadata = { title: 'Spotify Dashboard' }
 export const dynamic = 'force-dynamic'
 
 export default async function SpotifyPage() {
-  const [siteConfig, spotifyDashboard] = await Promise.all([
+  const [siteConfig, spotifyDashboard, tagStore] = await Promise.all([
     getSiteConfig(),
     getStoredSpotifyDashboardData(),
+    readSpotifyTrackTagStore(),
   ])
+
+  const tagAnalysis = computeTagAnalysis(spotifyDashboard, tagStore)
 
   const titleNode = siteConfig.spotify_hero_title_highlight || siteConfig.spotify_hero_title_rest ? (
     <>
@@ -42,7 +47,7 @@ export default async function SpotifyPage() {
         />
 
         {/* ── Body ── */}
-        <SpotifyDashboard data={spotifyDashboard} />
+        <SpotifyDashboard data={spotifyDashboard} tagAnalysis={tagAnalysis} />
       </main>
     </DirectionalTransition>
   )
