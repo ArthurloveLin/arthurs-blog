@@ -14,6 +14,33 @@ export interface SpotifyTrackSummary {
   popularity: number | null
 }
 
+export interface SpotifyTrackTagCandidate {
+  trackId: string
+  title: string
+  artist: string
+}
+
+export interface SpotifyTrackTagValue {
+  name: string
+  count: number
+}
+
+export interface SpotifyTrackTagEntry {
+  trackId: string
+  artist: string
+  title: string
+  fetchedAt: string
+  tagSource?: 'track' | 'artist'
+  tags: SpotifyTrackTagValue[]
+}
+
+export interface SpotifyTrackTagStore {
+  schemaVersion: 1
+  lastUpdatedAt: string
+  tracks: Record<string, SpotifyTrackTagEntry>
+}
+
+
 export interface SpotifyContextSource {
   type: string
   label: string
@@ -99,6 +126,23 @@ export interface SpotifyCollectionPreview<T> {
   total: number
   previewLimit?: number
   items: T[]
+}
+
+export interface SpotifySyncSummary {
+  recentlyPlayed: number
+  topTracks: number
+  topArtists: number
+  savedTracks: number
+  savedAlbums: number
+  playlists: number
+  warnings: number
+  tagsUpdated: number
+}
+
+export interface SpotifySyncResult {
+  syncedAt: string
+  snapshotUrl: string | null
+  summary: SpotifySyncSummary
 }
 
 export interface SpotifySyncMeta {
