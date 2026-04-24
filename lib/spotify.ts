@@ -19,9 +19,11 @@ import {
   type SpotifySavedAlbum,
   type SpotifySavedTrack,
   type SpotifySyncMeta,
+  type SpotifySyncResult,
   type SpotifyTimeRange,
   type SpotifyTopArtist,
   type SpotifyTopTrack,
+  type SpotifyTrackTagCandidate,
   type SpotifyTrackSummary,
 } from './spotify-types'
 import { getR2Object, listR2Objects, putR2Object } from './r2'
@@ -64,21 +66,6 @@ interface SpotifyLatestDashboardFile {
   schemaVersion: number
   syncedAt: string
   data: SpotifyStoredDashboardFile
-}
-
-
-interface SpotifySyncResult {
-  syncedAt: string
-  snapshotUrl: string | null
-  summary: {
-    recentlyPlayed: number
-    topTracks: number
-    topArtists: number
-    savedTracks: number
-    savedAlbums: number
-    playlists: number
-    warnings: number
-  }
 }
 
 type SpotifyImage = { url: string }
@@ -972,6 +959,56 @@ function appendArtistSnapshots(
   }
 }
 
+function toTrackTagCandidate(track: Pick<SpotifyTrackSummary, 'id' | 'title' | 'artists'>): SpotifyTrackTagCandidate | null {
+  const artist = track.artists[0]?.trim()
+  const title = track.title.trim()
+
+  if (!track.id || !artist || !title) {
+    return null
+  }
+
+  return {
+    trackId: track.id,
+    title,
+    artist,
+  }
+}
+
+function collectTrackTagCandidates({
+  recentlyPlayed,
+  topTracks,
+  savedTracks,
+  playlists = [],
+}: {
+  recentlyPlayed: SpotifyRecentlyPlayedTrack[]
+  topTracks: Record<SpotifyTimeRange, SpotifyTopTrack[]>
+  savedTracks: SpotifySavedTrack[]
+  playlists?: SpotifyPlaylist[]
+}) {
+  const seen = new Set<string>()
+  const candidates: SpotifyTrackTagCandidate[] = []
+
+  function push(candidate: SpotifyTrackTagCandidate | null) {
+    if (!candidate || seen.has(candidate.trackId)) return
+    seen.add(candidate.trackId)
+    candidates.push(candidate)
+  }
+
+  for (const track of recentlyPlayed) push(toTrackTagCandidate(track))
+
+  for (const range of SPOTIFY_TIME_RANGES) {
+    for (const track of topTracks[range]) push(toTrackTagCandidate(track))
+  }
+
+  for (const item of savedTracks) push(toTrackTagCandidate(item.track))
+
+  for (const playlist of playlists) {
+    for (const item of playlist.tracks) push(toTrackTagCandidate(item.track))
+  }
+
+  return candidates
+}
+
 async function readSpotifyMeta(): Promise<SpotifySyncMeta> {
   const { bucket } = getSpotifyArchiveConfig()
   if (!bucket) return createEmptySyncMeta()
@@ -1156,6 +1193,32 @@ export const getStoredSpotifyDashboardData = cache(async function getStoredSpoti
 })
 
 
+export async function readSpotifyTagCandidatesFromArchive(): Promise<{
+  bucket: string
+  candidates: import('./spotify-types').SpotifyTrackTagCandidate[]
+}> {
+  const { bucket } = getSpotifyArchiveConfig()
+  if (!bucket) return { bucket: '', candidates: [] }
+
+  const [dashboard, savedTracksCollection, playlistsCollection] = await Promise.all([
+    readLatestSpotifyDashboard(),
+    readSpotifyCollection<SpotifySavedTrack>(SPOTIFY_SAVED_TRACKS_KEY),
+    readSpotifyCollection<SpotifyPlaylist>(SPOTIFY_PLAYLISTS_KEY),
+  ])
+
+  if (!dashboard?.data) return { bucket, candidates: [] }
+
+  return {
+    bucket,
+    candidates: collectTrackTagCandidates({
+      recentlyPlayed: dashboard.data.recentlyPlayed,
+      topTracks: dashboard.data.topTracks,
+      savedTracks: savedTracksCollection.items,
+      playlists: playlistsCollection.items,
+    }),
+  }
+}
+
 export async function syncSpotifyDashboardToArchive(
   options: { mode?: 'quick' | 'full' } = {}
 ): Promise<SpotifySyncResult> {
@@ -1252,6 +1315,7 @@ export async function syncSpotifyDashboardToArchive(
 
   // 2. 处理 Library 板块 (增量合并，仅 full sync)
   let snapshotLibrary: SpotifyStoredDashboardSnapshot['library']
+  let mergedSavedTracksForTagging: SpotifySavedTrack[] = []
 
   if (mode === 'full') {
     const nextTracks = {
@@ -1268,6 +1332,8 @@ export async function syncSpotifyDashboardToArchive(
       total: liveDashboard.library.playlists.total,
       items: mergePlaylistHistory(existingPlaylists.items, liveDashboard.library.playlists.items as unknown as SpotifyPlaylist[])
     }
+
+    mergedSavedTracksForTagging = nextTracks.items
 
     writePromises.push(writeR2Json(bucket, SPOTIFY_SAVED_TRACKS_KEY, nextTracks))
     writePromises.push(writeR2Json(bucket, SPOTIFY_SAVED_ALBUMS_KEY, nextAlbums))
@@ -1388,6 +1454,7 @@ export async function syncSpotifyDashboardToArchive(
       savedAlbums: liveDashboard.library.savedAlbums.total,
       playlists: liveDashboard.library.playlists.total,
       warnings: liveDashboard.warnings.length,
+      tagsUpdated: 0,
     },
   }
 }
