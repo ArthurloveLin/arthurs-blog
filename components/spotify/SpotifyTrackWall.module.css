@@ -219,10 +219,6 @@
   filter: blur(var(--tile-blur-strength, 14px)) brightness(0.42) saturate(0.66);
 }
 
-.tileFeatured .tileInner {
-  border-radius: 12px;
-}
-
 .tileHovered {
   z-index: 100;
 }
@@ -233,10 +229,6 @@
   box-shadow:
     0 24px 60px -12px rgba(0, 0, 0, 0.55),
     0 10px 28px -6px rgba(0, 0, 0, 0.38);
-}
-
-.tileFeatured {
-  --tile-hover-scale: 1.18;
 }
 
 .tileShade {
@@ -301,42 +293,6 @@
 
 .tileHoverMetaDot {
   opacity: 0.5;
-}
-
-.tileFeatured .tileHoverContent {
-  padding: 0.75rem 0.85rem;
-}
-
-.tileFeatured .tileHoverTitle {
-  font-size: 14px;
-}
-
-.tileFeatured .tileHoverArtists {
-  font-size: 11.5px;
-  margin-top: 3px;
-}
-
-.tileFeatured .tileHoverAlbum {
-  display: block;
-  margin-top: 4px;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.62);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
-}
-
-.tileFeatured .tileHoverMeta {
-  display: flex;
-  margin-top: 5px;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 3px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.52);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
 .footer {
