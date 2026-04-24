@@ -35,7 +35,7 @@ export function extractDominantColor(url) {
         const result = { dominant: best, average: avg };
         colorCache.set(url, result);
         resolve(result);
-      } catch (e) {
+      } catch {
         const fallback = { dominant: [80, 80, 80], average: [80, 80, 80] };
         colorCache.set(url, fallback);
         resolve(fallback);
