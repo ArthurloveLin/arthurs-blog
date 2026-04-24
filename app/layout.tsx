@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans_SC } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -94,6 +95,7 @@ export default async function RootLayout({
              data-website-id="ec4e0366-0b25-4529-a142-2fea5492cf32"
              strategy="afterInteractive"
           />
+          <SpeedInsights />
         </body>
     </html>
   );
