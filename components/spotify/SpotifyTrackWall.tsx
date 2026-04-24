@@ -9,6 +9,7 @@ const HOVER_INTENT_DELAY_MS = 120
 const VISIBLE_ORDER_THROTTLE_MS = 180
 const MANUAL_PAN_STEP_RATIO = 0.42
 const SMOOTH_PAN_DURATION = 480
+const FEATURED_ORDER_COUNT = 3
 const LISSAJOUS_AMP_X_RATIO = 1.4
 const LISSAJOUS_AMP_Y_RATIO = 1.0
 const LISSAJOUS_PERIOD_X = 28
@@ -31,7 +32,7 @@ interface LayoutOptions {
 
 const LAYOUT_PRESETS: Record<WallPreset, LayoutOptions> = {
   default: {
-    baseTileSize: 152,
+    baseTileSize: 172,
     gap: 12,
     gridCols: 6,
     driftSpeed: 11,
@@ -39,7 +40,7 @@ const LAYOUT_PRESETS: Record<WallPreset, LayoutOptions> = {
     blurStrength: 9,
   },
   compact: {
-    baseTileSize: 136,
+    baseTileSize: 152,
     gap: 10,
     gridCols: 6,
     driftSpeed: 10,
@@ -89,21 +90,12 @@ interface WallLayout {
   options: LayoutOptions
 }
 
-const SHAPE_SEQUENCE: Array<{ width: number; height: number }> = [
-  { width: 1, height: 1 },
-  { width: 2, height: 1 },
-  { width: 1, height: 1 },
-  { width: 1, height: 2 },
-  { width: 1, height: 1 },
-  { width: 1, height: 1 },
-  { width: 2, height: 1 },
-  { width: 1, height: 1 },
-  { width: 1, height: 2 },
-  { width: 1, height: 1 },
-]
+function isFeaturedOrder(order: number) {
+  return order <= FEATURED_ORDER_COUNT
+}
 
-function getTileSpan(_order: number, index: number) {
-  return SHAPE_SEQUENCE[index % SHAPE_SEQUENCE.length]
+function getTileSpan(order: number, _index: number) {
+  return isFeaturedOrder(order) ? { width: 2, height: 2 } : { width: 1, height: 1 }
 }
 
 function getTileDimensions(widthUnits: number, heightUnits: number, options: LayoutOptions) {
@@ -128,6 +120,13 @@ function buildCenterFirstCells(gridCols: number, rowLimit: number, centerRow: nu
   return cells
 }
 
+function getFeaturedAnchorCells(centerRow: number) {
+  return [
+    { row: centerRow, col: 2 },
+    { row: centerRow, col: 0 },
+    { row: centerRow, col: 4 },
+  ]
+}
 
 function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): WallLayout {
   const options = LAYOUT_PRESETS[preset]
@@ -147,6 +146,7 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): 
   const layoutItems: WallLayoutItem[] = []
   const searchRowLimit = Math.max(48, rankedItems.length * 6)
   const estimatedCenterRow = Math.max(2, Math.round(rankedItems.length / (options.gridCols * 2)))
+  const featuredAnchorCells = getFeaturedAnchorCells(estimatedCenterRow)
   const searchCells = buildCenterFirstCells(options.gridCols, searchRowLimit, estimatedCenterRow)
   let maxRow = 0
 
@@ -183,7 +183,11 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): 
   rankedItems.forEach((item, index) => {
     const span = getTileSpan(item.order, index)
     let placement: WallLayoutItem | null = null
-    for (const { row, col } of searchCells) {
+    const preferredCells = isFeaturedOrder(item.order)
+      ? [featuredAnchorCells[item.order - 1], ...searchCells.filter(({ row, col }) => !(row === featuredAnchorCells[item.order - 1].row && col === featuredAnchorCells[item.order - 1].col))]
+      : searchCells
+
+    for (const { row, col } of preferredCells) {
       if (isFree(row, col, span.width, span.height)) {
         markOccupied(row, col, span.width, span.height)
         const dimensions = getTileDimensions(span.width, span.height, options)
@@ -711,6 +715,7 @@ export default function SpotifyTrackWall({
                   key={layoutItem.item.id}
                   className={[
                     styles.tile,
+                    isFeaturedOrder(layoutItem.item.order) ? styles.tileFeatured : '',
                     isHovered ? styles.tileHovered : '',
                     isDimmed ? styles.tileMuted : '',
                   ]
