@@ -440,7 +440,6 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
   }, [effectiveSegmentMap, effectiveTracks, selectedSegment])
 
   const groups = useMemo(() => chunkItems(activeTracks, cardsPerPage), [activeTracks, cardsPerPage])
-  const isShowingFallback = historyTracks.length === 0
   const hasAnyTracks = effectiveTracks.length > 0
 
   if (!hasAnyTracks) {

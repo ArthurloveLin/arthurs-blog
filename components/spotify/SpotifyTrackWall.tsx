@@ -10,6 +10,7 @@ const VISIBLE_ORDER_THROTTLE_MS = 180
 const MANUAL_PAN_STEP_RATIO = 0.42
 const SMOOTH_PAN_DURATION = 480
 const FEATURED_ORDER_COUNT = 3
+const SEARCH_RING_PADDING = 12
 const LISSAJOUS_AMP_X_RATIO = 1.4
 const LISSAJOUS_AMP_Y_RATIO = 1.0
 const LISSAJOUS_PERIOD_X = 28
@@ -24,28 +25,37 @@ type MoveDirection = 'up' | 'down' | 'left' | 'right'
 interface LayoutOptions {
   baseTileSize: number
   gap: number
-  gridCols: number
   driftSpeed: number
   viewportHeight: number
   blurStrength: number
+  horizontalOverscanTiles: number
+  verticalOverscanTiles: number
+  minimumWallWidth: number
+  minimumWallHeight: number
 }
 
 const LAYOUT_PRESETS: Record<WallPreset, LayoutOptions> = {
   default: {
-    baseTileSize: 172,
-    gap: 12,
-    gridCols: 6,
+    baseTileSize: 124,
+    gap: 10,
     driftSpeed: 11,
     viewportHeight: 680,
     blurStrength: 9,
+    horizontalOverscanTiles: 3,
+    verticalOverscanTiles: 2,
+    minimumWallWidth: 1640,
+    minimumWallHeight: 1080,
   },
   compact: {
-    baseTileSize: 152,
-    gap: 10,
-    gridCols: 6,
+    baseTileSize: 108,
+    gap: 9,
     driftSpeed: 10,
     viewportHeight: 616,
     blurStrength: 8,
+    horizontalOverscanTiles: 3,
+    verticalOverscanTiles: 2,
+    minimumWallWidth: 1460,
+    minimumWallHeight: 960,
   },
 }
 
@@ -75,11 +85,14 @@ interface SpotifyTrackWallProps {
 }
 
 interface WallLayoutItem {
+  key: string
   item: SpotifyTrackWallItem
   x: number
   y: number
   width: number
   height: number
+  span: number
+  isFeatured: boolean
 }
 
 interface WallLayout {
@@ -90,12 +103,44 @@ interface WallLayout {
   options: LayoutOptions
 }
 
+interface LayoutViewport {
+  width: number
+  height: number
+}
+
 function isFeaturedOrder(order: number) {
   return order <= FEATURED_ORDER_COUNT
 }
 
-function getTileSpan(order: number, _index: number) {
-  return isFeaturedOrder(order) ? { width: 2, height: 2 } : { width: 1, height: 1 }
+function getPreferredSquareSpan(order: number, cycleIndex: number) {
+  if (cycleIndex > 0) {
+    return isFeaturedOrder(order) ? 2 : 1
+  }
+
+  if (order === 1) {
+    return 3
+  }
+
+  if (order <= 4) {
+    return 2
+  }
+
+  if (order <= 8) {
+    return order % 2 === 1 ? 2 : 1
+  }
+
+  return 1
+}
+
+function getSquareSpanCandidates(order: number, cycleIndex: number) {
+  const preferredSpan = getPreferredSquareSpan(order, cycleIndex)
+  const candidates: number[] = []
+
+  for (let currentSpan = preferredSpan; currentSpan >= 1; currentSpan -= 1) {
+    candidates.push(currentSpan)
+  }
+
+  return candidates
 }
 
 function getTileDimensions(widthUnits: number, heightUnits: number, options: LayoutOptions) {
@@ -105,30 +150,46 @@ function getTileDimensions(widthUnits: number, heightUnits: number, options: Lay
   }
 }
 
-function buildCenterFirstCells(gridCols: number, rowLimit: number, centerRow: number) {
-  const centerCol = (gridCols - 1) / 2
+function buildRadialCells(colRadius: number, rowRadius: number) {
   const cells: Array<{ row: number; col: number; dist: number }> = []
 
-  for (let row = 0; row < rowLimit; row++) {
-    for (let col = 0; col < gridCols; col++) {
-      const dist = Math.abs(col - centerCol) + Math.abs(row - centerRow)
+  for (let row = -rowRadius; row <= rowRadius; row += 1) {
+    for (let col = -colRadius; col <= colRadius; col += 1) {
+      const dist = Math.abs(col) + Math.abs(row) + Math.abs(Math.abs(col) - Math.abs(row)) * 0.08
       cells.push({ row, col, dist })
     }
   }
 
-  cells.sort((a, b) => a.dist - b.dist)
+  cells.sort((a, b) => a.dist - b.dist || Math.abs(a.row) - Math.abs(b.row) || Math.abs(a.col) - Math.abs(b.col))
   return cells
 }
 
-function getFeaturedAnchorCells(centerRow: number) {
-  return [
-    { row: centerRow, col: 2 },
-    { row: centerRow, col: 0 },
-    { row: centerRow, col: 4 },
-  ]
+function getFeaturedAnchorCell(order: number) {
+  if (order === 1) {
+    return { row: -1, col: -1 }
+  }
+
+  if (order === 2) {
+    return { row: -4, col: 2 }
+  }
+
+  if (order === 3) {
+    return { row: 2, col: -4 }
+  }
+
+  return null
 }
 
-function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): WallLayout {
+function getTargetWallSize(viewportWidth: number, viewportHeight: number, options: LayoutOptions) {
+  const pitch = options.baseTileSize + options.gap
+
+  return {
+    minWidth: Math.max(viewportWidth + pitch * options.horizontalOverscanTiles * 2, options.minimumWallWidth),
+    minHeight: Math.max(viewportHeight + pitch * options.verticalOverscanTiles * 2, options.minimumWallHeight),
+  }
+}
+
+function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset, viewport: LayoutViewport): WallLayout {
   const options = LAYOUT_PRESETS[preset]
   const rankedItems = [...items].sort((left, right) => left.order - right.order)
 
@@ -142,22 +203,35 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): 
     }
   }
 
-  const occupied: boolean[][] = []
-  const layoutItems: WallLayoutItem[] = []
-  const searchRowLimit = Math.max(48, rankedItems.length * 6)
-  const estimatedCenterRow = Math.max(2, Math.round(rankedItems.length / (options.gridCols * 2)))
-  const featuredAnchorCells = getFeaturedAnchorCells(estimatedCenterRow)
-  const searchCells = buildCenterFirstCells(options.gridCols, searchRowLimit, estimatedCenterRow)
-  let maxRow = 0
+  const pitch = options.baseTileSize + options.gap
+  const targetWallSize = getTargetWallSize(
+    viewport.width,
+    viewport.height > 0 ? viewport.height : options.viewportHeight,
+    options
+  )
+  const targetCols = Math.max(9, Math.ceil((targetWallSize.minWidth + options.gap) / pitch))
+  const targetRows = Math.max(7, Math.ceil((targetWallSize.minHeight + options.gap) / pitch))
+  const searchCells = buildRadialCells(
+    Math.ceil(targetCols / 2) + SEARCH_RING_PADDING,
+    Math.ceil(targetRows / 2) + SEARCH_RING_PADDING,
+  )
+  const occupied = new Set<string>()
+  const placements: Array<{
+    key: string
+    item: SpotifyTrackWallItem
+    row: number
+    col: number
+    span: number
+  }> = []
+  let minRow = Number.POSITIVE_INFINITY
+  let minCol = Number.POSITIVE_INFINITY
+  let maxRowExclusive = Number.NEGATIVE_INFINITY
+  let maxColExclusive = Number.NEGATIVE_INFINITY
 
-  const isFree = (row: number, col: number, widthUnits: number, heightUnits: number) => {
-    if (col + widthUnits > options.gridCols) {
-      return false
-    }
-
-    for (let currentRow = row; currentRow < row + heightUnits; currentRow += 1) {
-      for (let currentCol = col; currentCol < col + widthUnits; currentCol += 1) {
-        if (occupied[currentRow]?.[currentCol]) {
+  const isFree = (row: number, col: number, span: number) => {
+    for (let currentRow = row; currentRow < row + span; currentRow += 1) {
+      for (let currentCol = col; currentCol < col + span; currentCol += 1) {
+        if (occupied.has(`${currentRow}:${currentCol}`)) {
           return false
         }
       }
@@ -166,64 +240,113 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset): 
     return true
   }
 
-  const markOccupied = (row: number, col: number, widthUnits: number, heightUnits: number) => {
-    for (let currentRow = row; currentRow < row + heightUnits; currentRow += 1) {
-      if (!occupied[currentRow]) {
-        occupied[currentRow] = []
-      }
-
-      for (let currentCol = col; currentCol < col + widthUnits; currentCol += 1) {
-        occupied[currentRow][currentCol] = true
+  const markOccupied = (row: number, col: number, span: number) => {
+    for (let currentRow = row; currentRow < row + span; currentRow += 1) {
+      for (let currentCol = col; currentCol < col + span; currentCol += 1) {
+        occupied.add(`${currentRow}:${currentCol}`)
       }
     }
 
-    maxRow = Math.max(maxRow, row + heightUnits)
+    minRow = Math.min(minRow, row)
+    minCol = Math.min(minCol, col)
+    maxRowExclusive = Math.max(maxRowExclusive, row + span)
+    maxColExclusive = Math.max(maxColExclusive, col + span)
   }
 
-  rankedItems.forEach((item, index) => {
-    const span = getTileSpan(item.order, index)
-    let placement: WallLayoutItem | null = null
-    const preferredCells = isFeaturedOrder(item.order)
-      ? [featuredAnchorCells[item.order - 1], ...searchCells.filter(({ row, col }) => !(row === featuredAnchorCells[item.order - 1].row && col === featuredAnchorCells[item.order - 1].col))]
-      : searchCells
+  const getCurrentWallSize = () => {
+    if (placements.length === 0) {
+      return { width: 0, height: 0 }
+    }
 
-    for (const { row, col } of preferredCells) {
-      if (isFree(row, col, span.width, span.height)) {
-        markOccupied(row, col, span.width, span.height)
-        const dimensions = getTileDimensions(span.width, span.height, options)
+    return {
+      width: (maxColExclusive - minCol) * pitch - options.gap,
+      height: (maxRowExclusive - minRow) * pitch - options.gap,
+    }
+  }
 
-        placement = {
+  const maxPlacements = Math.max(rankedItems.length * 6, targetCols * targetRows * 3)
+
+  for (let virtualIndex = 0; virtualIndex < maxPlacements; virtualIndex += 1) {
+    const item = rankedItems[virtualIndex % rankedItems.length]
+    const cycleIndex = Math.floor(virtualIndex / rankedItems.length)
+    const spanCandidates = getSquareSpanCandidates(item.order, cycleIndex)
+    const anchorCell = cycleIndex === 0 ? getFeaturedAnchorCell(item.order) : null
+    let didPlace = false
+
+    for (const span of spanCandidates) {
+      if (anchorCell && isFree(anchorCell.row, anchorCell.col, span)) {
+        markOccupied(anchorCell.row, anchorCell.col, span)
+        placements.push({
+          key: `${item.id}::${virtualIndex}`,
           item,
-          x: col * (options.baseTileSize + options.gap),
-          y: row * (options.baseTileSize + options.gap),
-          width: dimensions.width,
-          height: dimensions.height,
+          row: anchorCell.row,
+          col: anchorCell.col,
+          span,
+        })
+        didPlace = true
+        break
+      }
+
+      for (const { row, col } of searchCells) {
+        if (anchorCell && row === anchorCell.row && col === anchorCell.col) {
+          continue
         }
+
+        if (!isFree(row, col, span)) {
+          continue
+        }
+
+        markOccupied(row, col, span)
+        placements.push({
+          key: `${item.id}::${virtualIndex}`,
+          item,
+          row,
+          col,
+          span,
+        })
+        didPlace = true
+        break
+      }
+
+      if (didPlace) {
         break
       }
     }
 
-    if (!placement) {
-      const fallbackRow = maxRow
-      markOccupied(fallbackRow, 0, 1, 1)
-
-      placement = {
-        item,
-        x: 0,
-        y: fallbackRow * (options.baseTileSize + options.gap),
-        width: options.baseTileSize,
-        height: options.baseTileSize,
-      }
+    if (!didPlace) {
+      break
     }
 
-    layoutItems.push(placement)
+    const currentWallSize = getCurrentWallSize()
+    if (
+      virtualIndex + 1 >= rankedItems.length &&
+      currentWallSize.width >= targetWallSize.minWidth &&
+      currentWallSize.height >= targetWallSize.minHeight
+    ) {
+      break
+    }
+  }
+
+  const totalWidth = Math.max(getCurrentWallSize().width, options.baseTileSize)
+  const totalHeight = Math.max(getCurrentWallSize().height, options.baseTileSize)
+  const offsetX = -minCol * pitch
+  const offsetY = -minRow * pitch
+  const layoutItems: WallLayoutItem[] = placements.map((placement) => {
+    const dimensions = getTileDimensions(placement.span, placement.span, options)
+
+    return {
+      key: placement.key,
+      item: placement.item,
+      x: placement.col * pitch + offsetX,
+      y: placement.row * pitch + offsetY,
+      width: dimensions.width,
+      height: dimensions.height,
+      span: placement.span,
+      isFeatured: placement.span > 1,
+    }
   })
 
-  const totalRows = Math.max(maxRow, 1)
-  const totalWidth = options.gridCols * options.baseTileSize + (options.gridCols - 1) * options.gap
-  const totalHeight = totalRows * options.baseTileSize + (totalRows - 1) * options.gap
-
-  const firstItem = layoutItems.find(li => li.item.order === 1)
+  const firstItem = layoutItems.find((layoutItem) => layoutItem.item.order === 1)
   const focusPoint = firstItem
     ? {
         x: firstItem.x + firstItem.width / 2,
@@ -349,13 +472,30 @@ export default function SpotifyTrackWall({
   const manualPausedRef = useRef(false)
   const badgeFrameRef = useRef(0)
   const visibleOrderRef = useRef(1)
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [isManualNavigation, setIsManualNavigation] = useState(false)
+  const [hoveredTileKey, setHoveredTileKey] = useState<string | null>(null)
   const [visibleOrder, setVisibleOrder] = useState(1)
-  const layout = useMemo(() => generateWallLayout(items, preset), [items, preset])
+  const [viewportSize, setViewportSize] = useState<LayoutViewport>({
+    width: 0,
+    height: LAYOUT_PRESETS[preset].viewportHeight,
+  })
+  const interactionResetKey = useMemo(
+    () => `${preset}:${viewportSize.width}:${viewportSize.height}:${items.map((item) => item.id).join('|')}`,
+    [items, preset, viewportSize]
+  )
+  const [manualNavigationState, setManualNavigationState] = useState(() => ({
+    resetKey: interactionResetKey,
+    value: false,
+  }))
+  const layout = useMemo(() => generateWallLayout(items, preset, viewportSize), [items, preset, viewportSize])
   const layoutRef = useRef(layout)
-  const hoveredItem = useMemo(() => items.find((item) => item.id === hoveredId) ?? null, [hoveredId, items])
-  const activeHoveredId = hoveredItem?.id ?? null
+  const hoveredLayoutItem = useMemo(
+    () => layout.items.find((layoutItem) => layoutItem.key === hoveredTileKey) ?? null,
+    [hoveredTileKey, layout.items]
+  )
+  const hoveredItem = hoveredLayoutItem?.item ?? null
+  const activeHoveredKey = hoveredLayoutItem?.key ?? null
+  const isManualNavigation =
+    manualNavigationState.resetKey === interactionResetKey && manualNavigationState.value
 
   const clearHoverIntent = useCallback(() => {
     if (hoverIntentTimeoutRef.current != null) {
@@ -370,14 +510,67 @@ export default function SpotifyTrackWall({
       hoverIntentTimeoutRef.current = null
       hoverPausedRef.current = true
       previousFrameRef.current = null
-      setHoveredId((currentValue) => (currentValue === itemId ? currentValue : itemId))
+      setHoveredTileKey((currentValue) => (currentValue === itemId ? currentValue : itemId))
     }, HOVER_INTENT_DELAY_MS)
   }, [clearHoverIntent])
 
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) {
+      return
+    }
+
+    const updateViewportSize = () => {
+      const nextViewportSize = {
+        width: viewport.clientWidth,
+        height: viewport.clientHeight || LAYOUT_PRESETS[preset].viewportHeight,
+      }
+
+      setViewportSize((currentValue) => (
+        currentValue.width === nextViewportSize.width && currentValue.height === nextViewportSize.height
+          ? currentValue
+          : nextViewportSize
+      ))
+    }
+
+    updateViewportSize()
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateViewportSize)
+
+      return () => {
+        window.removeEventListener('resize', updateViewportSize)
+      }
+    }
+
+    const observer = new ResizeObserver(() => {
+      updateViewportSize()
+    })
+
+    observer.observe(viewport)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [preset])
+
   const setManualPaused = useCallback((nextPaused: boolean) => {
+    if (manualPausedRef.current === nextPaused) {
+      return
+    }
+
     manualPausedRef.current = nextPaused
-    setIsManualNavigation((currentValue) => (currentValue === nextPaused ? currentValue : nextPaused))
-  }, [])
+    setManualNavigationState((currentValue) => {
+      if (currentValue.resetKey === interactionResetKey && currentValue.value === nextPaused) {
+        return currentValue
+      }
+
+      return {
+        resetKey: interactionResetKey,
+        value: nextPaused,
+      }
+    })
+  }, [interactionResetKey])
 
   const syncVisibleOrder = useCallback((
     activeLayout: WallLayout,
@@ -526,36 +719,9 @@ export default function SpotifyTrackWall({
       offsetRef.current
     )
 
-    const handleResize = () => {
-      const resizedViewport = viewportRef.current
-      const resizedWall = wallRef.current
-      if (!resizedViewport || !resizedWall) {
-        return
-      }
-
-      if (manualResumeTimerRef.current != null) {
-        window.clearTimeout(manualResumeTimerRef.current)
-        manualResumeTimerRef.current = null
-      }
-      offsetRef.current = getFocusedOffset(resizedViewport.clientWidth, resizedViewport.clientHeight, layoutRef.current)
-      applyWallOffset(resizedWall, offsetRef.current)
-      driftStrengthRef.current = 0
-      clearHoverIntent()
-      suppressNextHoverRef.current = false
-      hoverPausedRef.current = false
-      isResumingRef.current = false
-      setManualPaused(false)
-      previousFrameRef.current = null
-      setHoveredId(null)
-      syncVisibleOrder(layoutRef.current, resizedViewport.clientWidth, resizedViewport.clientHeight, offsetRef.current)
-      scheduleAnimation()
-    }
-
-    window.addEventListener('resize', handleResize)
     scheduleAnimation()
 
     return () => {
-      window.removeEventListener('resize', handleResize)
       clearHoverIntent()
       if (manualResumeTimerRef.current != null) {
         window.clearTimeout(manualResumeTimerRef.current)
@@ -567,7 +733,7 @@ export default function SpotifyTrackWall({
       animationFrameRef.current = null
       previousFrameRef.current = null
     }
-  }, [clearHoverIntent, layout, scheduleAnimation, setManualPaused, syncVisibleOrder])
+  }, [clearHoverIntent, layout, scheduleAnimation, syncVisibleOrder])
 
   const moveViewport = useCallback((direction: MoveDirection) => {
     const viewport = viewportRef.current
@@ -581,7 +747,7 @@ export default function SpotifyTrackWall({
     clearHoverIntent()
     suppressNextHoverRef.current = false
     hoverPausedRef.current = false
-    setHoveredId(null)
+    setHoveredTileKey(null)
     setManualPaused(true)
     previousFrameRef.current = null
     wall.style.transition = ''
@@ -639,7 +805,7 @@ export default function SpotifyTrackWall({
     clearHoverIntent()
     suppressNextHoverRef.current = false
     hoverPausedRef.current = false
-    setHoveredId(null)
+    setHoveredTileKey(null)
     previousFrameRef.current = null
 
     if ((fromManual || manualPausedRef.current) && viewport && wall) {
@@ -676,7 +842,7 @@ export default function SpotifyTrackWall({
     '--wall-height': `${layout.options.viewportHeight}px`,
     '--tile-blur-strength': `${layout.options.blurStrength}px`,
   } as CSSProperties
-  const backdropGlowClassName = activeHoveredId ? `${styles.backdropGlow} ${styles.backdropGlowActive}` : styles.backdropGlow
+  const backdropGlowClassName = activeHoveredKey ? `${styles.backdropGlow} ${styles.backdropGlowActive}` : styles.backdropGlow
 
   if (items.length === 0) {
     return (
@@ -698,7 +864,7 @@ export default function SpotifyTrackWall({
           suppressNextHoverRef.current = false
           hoverPausedRef.current = false
           previousFrameRef.current = null
-          setHoveredId(null)
+          setHoveredTileKey(null)
           if (!manualPausedRef.current) {
             scheduleAnimation()
           }
@@ -707,15 +873,15 @@ export default function SpotifyTrackWall({
         <div className={styles.wall} style={{ width: layout.totalWidth, height: layout.totalHeight }}>
           <div className={styles.wallMotion} ref={wallRef}>
             {layout.items.map((layoutItem) => {
-              const isHovered = activeHoveredId === layoutItem.item.id
-              const isDimmed = activeHoveredId !== null && activeHoveredId !== layoutItem.item.id
+              const isHovered = activeHoveredKey === layoutItem.key
+              const isDimmed = activeHoveredKey !== null && activeHoveredKey !== layoutItem.key
 
               return (
                 <div
-                  key={layoutItem.item.id}
+                  key={layoutItem.key}
                   className={[
                     styles.tile,
-                    isFeaturedOrder(layoutItem.item.order) ? styles.tileFeatured : '',
+                    layoutItem.isFeatured ? styles.tileFeatured : '',
                     isHovered ? styles.tileHovered : '',
                     isDimmed ? styles.tileMuted : '',
                   ]
@@ -729,21 +895,21 @@ export default function SpotifyTrackWall({
                   onMouseEnter={() => {
                     clearHoverIntent()
 
-                    if (activeHoveredId && activeHoveredId !== layoutItem.item.id) {
+                    if (activeHoveredKey && activeHoveredKey !== layoutItem.key) {
                       return
                     }
 
                     suppressNextHoverRef.current = false
-                    scheduleHoverIntent(layoutItem.item.id)
+                    scheduleHoverIntent(layoutItem.key)
                   }}
                   onMouseLeave={() => {
                     clearHoverIntent()
 
-                    if (activeHoveredId === layoutItem.item.id) {
+                    if (activeHoveredKey === layoutItem.key) {
                       suppressNextHoverRef.current = true
                       hoverPausedRef.current = false
                       previousFrameRef.current = null
-                      setHoveredId(null)
+                      setHoveredTileKey(null)
                       if (!manualPausedRef.current) {
                         scheduleAnimation()
                       }
