@@ -9,7 +9,7 @@ const HOVER_INTENT_DELAY_MS = 120
 const VISIBLE_ORDER_THROTTLE_MS = 180
 const MANUAL_PAN_STEP_RATIO = 0.42
 const SMOOTH_PAN_DURATION = 480
-const FEATURED_ORDER_COUNT = 4
+const FEATURED_ORDER_COUNT = 3
 const LISSAJOUS_AMP_X_RATIO = 1.4
 const LISSAJOUS_AMP_Y_RATIO = 1.0
 const LISSAJOUS_PERIOD_X = 28
@@ -32,19 +32,19 @@ interface LayoutOptions {
 
 const LAYOUT_PRESETS: Record<WallPreset, LayoutOptions> = {
   default: {
-    baseTileSize: 144,
-    gap: 14,
+    baseTileSize: 172,
+    gap: 12,
     gridCols: 6,
     driftSpeed: 11,
-    viewportHeight: 596,
+    viewportHeight: 680,
     blurStrength: 9,
   },
   compact: {
-    baseTileSize: 128,
-    gap: 12,
+    baseTileSize: 152,
+    gap: 10,
     gridCols: 6,
     driftSpeed: 10,
-    viewportHeight: 552,
+    viewportHeight: 616,
     blurStrength: 8,
   },
 }
@@ -124,7 +124,6 @@ function getFeaturedAnchorCells(centerRow: number) {
   return [
     { row: centerRow, col: 2 },
     { row: centerRow, col: 0 },
-    { row: centerRow - 2, col: 2 },
     { row: centerRow, col: 4 },
   ]
 }
@@ -767,25 +766,22 @@ export default function SpotifyTrackWall({
                         <Music2 size={24} strokeWidth={1.8} />
                       </div>
                     )}
+                    <div className={styles.tileShade} />
                     <span className={styles.tileIndex}>#{layoutItem.item.order}</span>
-                  </div>
-
-                  {isHovered ? (
-                    <div className={styles.tileInfo}>
-                      <div className={styles.tileInfoOrder}>#{layoutItem.item.order}</div>
-                      <div className={styles.tileInfoTitle}>{layoutItem.item.title}</div>
-                      <div className={styles.tileInfoArtists}>{layoutItem.item.artists}</div>
-                      <div className={styles.tileInfoAlbum}>{layoutItem.item.album}</div>
-                      <div className={styles.tileInfoMeta}>
+                    <div className={styles.tileHoverContent}>
+                      <div className={styles.tileHoverTitle}>{layoutItem.item.title}</div>
+                      <div className={styles.tileHoverArtists}>{layoutItem.item.artists}</div>
+                      <div className={styles.tileHoverAlbum}>{layoutItem.item.album}</div>
+                      <div className={styles.tileHoverMeta}>
                         {layoutItem.item.meta.map((value, index) => (
                           <Fragment key={`${layoutItem.item.id}-${value}`}>
-                            {index > 0 ? <span className={styles.tileInfoMetaDot}>·</span> : null}
+                            {index > 0 ? <span className={styles.tileHoverMetaDot}>·</span> : null}
                             <span>{value}</span>
                           </Fragment>
                         ))}
                       </div>
                     </div>
-                  ) : null}
+                  </div>
                 </div>
               )
             })}
