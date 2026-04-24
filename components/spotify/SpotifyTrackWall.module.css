@@ -174,6 +174,11 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 600ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.tileHovered .tileMedia {
+  transform: scale(1.08);
 }
 
 .tilePlaceholder {
@@ -190,7 +195,7 @@
   position: absolute;
   top: 8px;
   left: 8px;
-  z-index: 1;
+  z-index: 2;
   color: rgba(255, 255, 255, 0.96);
   font-family: var(--font-mono);
   font-size: 10px;
@@ -198,7 +203,12 @@
   letter-spacing: 0.04em;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
   opacity: 1;
-  transition: opacity 220ms ease;
+  transition: opacity 400ms ease;
+  pointer-events: none;
+}
+
+.tileHovered .tileIndex {
+  opacity: 0;
 }
 
 .tileMuted {
@@ -229,35 +239,37 @@
   --tile-hover-scale: 1.18;
 }
 
-.tileInfo {
+.tileShade {
   position: absolute;
-  top: calc(100% + 14px);
-  left: 50%;
-  z-index: 200;
-  min-width: 280px;
-  max-width: min(360px, calc(100vw - 56px));
-  padding: 14px 18px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(20, 20, 24, 0.92);
-  backdrop-filter: blur(20px);
-  color: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.55);
-  transform: translate(-50%, 24px);
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    to bottom,
+    transparent 44%,
+    rgba(0, 0, 0, 0.74) 100%
+  );
   pointer-events: none;
-  animation: tileInfoIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-.tileInfoOrder {
-  margin-bottom: 2px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.55);
+.tileHoverContent {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0.5rem 0.55rem;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 480ms ease;
+  pointer-events: none;
 }
 
-.tileInfoTitle {
-  font-size: 13px;
+.tileHovered .tileHoverContent {
+  opacity: 1;
+}
+
+.tileHoverTitle {
+  font-size: 10.5px;
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.01em;
@@ -266,51 +278,65 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
 }
 
-.tileInfoArtists {
+.tileHoverArtists {
   margin-top: 2px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.78);
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.82);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
-.tileInfoAlbum {
+.tileHoverAlbum {
+  display: none;
+}
+
+.tileHoverMeta {
+  display: none;
+}
+
+.tileHoverMetaDot {
+  opacity: 0.5;
+}
+
+.tileFeatured .tileHoverContent {
+  padding: 0.75rem 0.85rem;
+}
+
+.tileFeatured .tileHoverTitle {
+  font-size: 14px;
+}
+
+.tileFeatured .tileHoverArtists {
+  font-size: 11.5px;
+  margin-top: 3px;
+}
+
+.tileFeatured .tileHoverAlbum {
+  display: block;
   margin-top: 4px;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.58);
+  color: rgba(255, 255, 255, 0.62);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
-.tileInfoMeta {
-  margin-top: 5px;
+.tileFeatured .tileHoverMeta {
   display: flex;
+  margin-top: 5px;
   flex-wrap: wrap;
   align-items: center;
   gap: 3px;
   font-family: var(--font-mono);
   font-size: 9px;
-  color: rgba(255, 255, 255, 0.48);
-}
-
-.tileInfoMetaDot {
-  opacity: 0.5;
-}
-
-@keyframes tileInfoIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 32px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translate(-50%, 24px);
-  }
+  color: rgba(255, 255, 255, 0.52);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
 .footer {
@@ -464,10 +490,6 @@
     display: none;
   }
 
-  .tileInfo {
-    min-width: 0;
-    max-width: min(280px, calc(100vw - 42px));
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -480,43 +502,10 @@
     transition: none;
   }
 
-  .tileInfo {
-    animation: none;
-  }
 }
 
 :global(.dark) .viewport {
   background: transparent;
 }
 
-:global(.light) .tileInfo,
-:global(.ocean) .tileInfo,
-:global(.sunset) .tileInfo,
-:global(.forest) .tileInfo {
-  border-color: rgba(0, 0, 0, 0.08);
-  background: rgba(255, 255, 255, 0.94);
-  color: rgb(15, 23, 42);
-}
-
-:global(.light) .tileInfoOrder,
-:global(.ocean) .tileInfoOrder,
-:global(.sunset) .tileInfoOrder,
-:global(.forest) .tileInfoOrder,
-:global(.light) .tileInfoArtists,
-:global(.ocean) .tileInfoArtists,
-:global(.sunset) .tileInfoArtists,
-:global(.forest) .tileInfoArtists,
-:global(.light) .tileInfoMeta,
-:global(.ocean) .tileInfoMeta,
-:global(.sunset) .tileInfoMeta,
-:global(.forest) .tileInfoMeta {
-  color: rgba(15, 23, 42, 0.62);
-}
-
-:global(.light) .tileInfoAlbum,
-:global(.ocean) .tileInfoAlbum,
-:global(.sunset) .tileInfoAlbum,
-:global(.forest) .tileInfoAlbum {
-  color: rgba(15, 23, 42, 0.84);
-}
 
