@@ -201,6 +201,32 @@ export interface SpotifyDashboardData {
 
 
 
+export type SpotifyTagSection =
+  | 'short_term'
+  | 'medium_term'
+  | 'long_term'
+  | 'saved'
+  | 'recent'
+
+export interface TagAggregation {
+  name: string
+  totalCount: number
+  trackCount: number
+}
+
+export interface TagRadarAxis {
+  label: string
+  score: number
+}
+
+export interface SpotifyTagSectionResult {
+  topTags: TagAggregation[]
+  radarAxes: TagRadarAxis[]
+  tracksWithTags: number
+}
+
+export type SpotifyTagAnalysis = Record<SpotifyTagSection, SpotifyTagSectionResult>
+
 export interface SpotifyNowPlayingRecentTrack {
   id: string
   title: string
