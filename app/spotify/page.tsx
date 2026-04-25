@@ -5,7 +5,7 @@ import PageHero from '@/components/PageHero'
 import SpotifyDashboard from '@/components/spotify/SpotifyDashboard'
 
 import { getSiteConfig } from '@/lib/blog'
-import { getStoredSpotifyDashboardData } from '@/lib/spotify'
+import { getStoredSpotifyDashboardData, listRecentlyPlayedDays, readRecentlyPlayedDayShard } from '@/lib/spotify'
 import { computeTagAnalysis } from '@/lib/spotify-tag-analysis'
 import { getStoredSpotifyTrackTagStore } from '@/lib/spotify-tags'
 
@@ -13,11 +13,25 @@ export const metadata = { title: 'Spotify Dashboard' }
 export const revalidate = 3600
 
 async function SpotifyDashboardLoader() {
-  const [spotifyDashboard, tagStore] = await Promise.all([
+  const [spotifyDashboard, tagStore, recentDays] = await Promise.all([
     getStoredSpotifyDashboardData(),
     getStoredSpotifyTrackTagStore(),
+    listRecentlyPlayedDays(7),
   ])
-  const tagAnalysis = computeTagAnalysis(spotifyDashboard, tagStore)
+
+  const shards = await Promise.all(recentDays.map(readRecentlyPlayedDayShard))
+  const seenIds = new Set<string>()
+  const recentTracks = shards.flat().filter((t) => {
+    if (seenIds.has(t.id)) return false
+    seenIds.add(t.id)
+    return true
+  })
+
+  const dashboardForRadar = recentTracks.length > 0
+    ? { ...spotifyDashboard, recentlyPlayed: recentTracks }
+    : spotifyDashboard
+
+  const tagAnalysis = computeTagAnalysis(dashboardForRadar, tagStore)
   return <SpotifyDashboard data={spotifyDashboard} tagAnalysis={tagAnalysis} />
 }
 

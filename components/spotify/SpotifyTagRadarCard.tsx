@@ -179,7 +179,7 @@ export default function SpotifyTagRadarCard({ analysis }: { analysis: SpotifyTag
           <div className="min-w-[118px] rounded-2xl border border-slate-200/80 bg-white px-3 py-2 text-right shadow-sm dark:border-white/8 dark:bg-white/6">
             <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">Focus</div>
             <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{activeAxis?.label ?? '暂无数据'}</div>
-            <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{activeAxis ? `${activeAxis.score}/100` : 'No signal'}</div>
+            <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{activeAxis ? `${activeAxis.trackCount} 首` : 'No signal'}</div>
           </div>
         </div>
 
@@ -244,7 +244,10 @@ export default function SpotifyTagRadarCard({ analysis }: { analysis: SpotifyTag
                   />
                   <span className="truncate">{axis.label}</span>
                 </div>
-                <div className="mt-2 text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-100">{axis.score}</div>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-100">{axis.trackCount}</span>
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500">首</span>
+                </div>
               </button>
             )
           })}
