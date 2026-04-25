@@ -181,7 +181,7 @@ function SpotifyWidePlayerContent({
   const progressPercent = data.durationMs ? (localProgress / data.durationMs) * 100 : 0
 
   return (
-    <div className="relative flex min-h-[360px] flex-col justify-center overflow-hidden rounded-[28px] border border-emerald-500/15 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.1),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.8),rgba(240,253,248,0.7))] p-6 sm:p-8 shadow-[0_18px_60_rgba(0,0,0,0.05)] dark:bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_30%),linear-gradient(135deg,rgba(10,20,15,0.7),rgba(5,15,10,0.7))]">
+    <div className="relative flex min-h-[300px] flex-col justify-center overflow-hidden rounded-[28px] border border-emerald-500/15 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.1),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.8),rgba(240,253,248,0.7))] p-5 sm:p-7 shadow-[0_18px_60_rgba(0,0,0,0.05)] dark:bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_30%),linear-gradient(135deg,rgba(10,20,15,0.7),rgba(5,15,10,0.7))]">
       {data.albumImageUrl && (
         <div className="animate-in fade-in mix-blend-multiply transition-opacity duration-1000 dark:mix-blend-screen pointer-events-none absolute inset-0 overflow-hidden opacity-30 dark:opacity-20">
           <Image
@@ -209,17 +209,17 @@ function SpotifyWidePlayerContent({
           </span>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[440px_1fr_160px] lg:items-stretch xl:grid-cols-[500px_1fr_180px]">
+        <div className="grid gap-8 lg:grid-cols-[520px_1fr_160px] lg:items-stretch xl:grid-cols-[580px_1fr_180px]">
           {/* Column 1: Album Cover & Info Grouped */}
-          <div className="flex min-w-0 items-center gap-6 md:gap-10">
-            <div className="group relative h-32 w-32 shrink-0 overflow-hidden rounded-[24px] border border-white/50 bg-emerald-950/10 shadow-[0_18px_40px_rgba(0,0,0,0.18)] sm:h-44 sm:w-44 sm:rounded-[36px]">
+          <div className="flex min-w-0 items-center gap-6 md:gap-8">
+            <div className="group relative h-40 w-40 shrink-0 overflow-hidden rounded-[24px] border border-white/50 bg-emerald-950/10 shadow-[0_18px_40px_rgba(0,0,0,0.18)] sm:h-56 sm:w-56 sm:rounded-[36px]">
               {data.albumImageUrl ? (
                 <>
                   <Image
                     src={data.albumImageUrl}
                     alt={data.album || data.title || 'Spotify artwork'}
                     fill
-                    sizes="160px"
+                    sizes="(max-width: 640px) 160px, 240px"
                     className="transition-transform duration-700 ease-out object-cover group-hover:scale-105"
                     unoptimized
                   />
@@ -286,7 +286,7 @@ function SpotifyWidePlayerContent({
           </div>
 
           {/* Stats Column */}
-          <div className="flex flex-col gap-5 border-emerald-500/10 lg:items-end lg:border-l lg:pl-8">
+          <div className="flex flex-col gap-4 border-emerald-500/10 lg:items-end lg:border-l lg:pl-8">
             {stats && (
               <>
                 <StatItem label="Recently Played" value={stats.recentlyPlayed} icon={CalendarClock} href="#recently-played" />
