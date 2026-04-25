@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, CalendarClock, Clock3, Headphones, Heart, Library, Music2, Radio, Monitor, Smartphone, Speaker, Laptop, type LucideIcon } from 'lucide-react'
+import { ArrowRight, CalendarClock, Clock3, Heart, Library, Music2, Radio, Monitor, Smartphone, Speaker, Laptop, type LucideIcon } from 'lucide-react'
 
 import { useSpotify } from '@/components/SpotifyProvider'
 import { formatStableDate } from '@/lib/date-format'
@@ -162,19 +162,21 @@ function SpotifyWidePlayerContent({
   const [localProgress, setLocalProgress] = useState(() => data.progressMs ?? 0)
 
   useEffect(() => {
-    setLocalProgress(data.progressMs ?? 0)
-
-    if (!data.isPlaying || !data.durationMs) return
-
     let animationFrameId: number
-    const startTime = Date.now()
     const initialProgress = data.progressMs ?? 0
+
+    if (!data.isPlaying || !data.durationMs) {
+      animationFrameId = requestAnimationFrame(() => setLocalProgress(initialProgress))
+      return () => cancelAnimationFrame(animationFrameId)
+    }
+
+    const startTime = Date.now()
     const duration = data.durationMs
 
     const update = () => {
       const elapsed = Date.now() - startTime
       const nextProgress = initialProgress + elapsed
-      
+
       if (nextProgress <= duration) {
         setLocalProgress(nextProgress)
         animationFrameId = requestAnimationFrame(update)

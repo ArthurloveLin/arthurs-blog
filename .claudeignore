@@ -1,11 +1,32 @@
-# 敏感配置
-.env
-.env.local
-.env*.local
-
-# 构建产物
+# 构建与依赖
 .next/
 node_modules/
+dist/
+build/
+out/
+*.tsbuildinfo
 
-# 归档文件
+# AI & Agent Tools
+.agents/
+.claude/
+.gemini/
+
+# 临时与日志文件
+tmp/
+scratch/
+eslint_output.txt
+*.log
+
+# 部署与配置
+.vercel/
+.vscode/
+.github/
+
+# 资产与设计参考 (可选，保持上下文整洁)
+CodePen/
+ClaudeDesign/
 MD/archive/
+
+# 环境与敏感文件
+.env*
+.npmrc

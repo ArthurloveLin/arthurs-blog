@@ -46,6 +46,7 @@ export const SpinningDisc: React.FC<{
         boxShadow: '0 30px 60px rgba(0,0,0,0.5), inset 0 0 40px rgba(0,0,0,0.8)',
       }}
     >
+      {/* eslint-disable-next-line @next/next/no-img-element -- crossOrigin needed for canvas color extraction */}
       <img
         src={src}
         crossOrigin="anonymous"

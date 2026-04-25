@@ -12,7 +12,8 @@ export function extractColors(imgEl: HTMLImageElement, count = 5) {
   ctx.drawImage(imgEl, 0, 0, size, size);
   const data = ctx.getImageData(0, 0, size, size).data;
 
-  const buckets: Record<string, any> = {};
+  type ColorBucket = { r: number; g: number; b: number; count: number }
+  const buckets: Record<string, ColorBucket> = {};
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
     const g = data[i + 1];

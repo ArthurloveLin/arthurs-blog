@@ -54,3 +54,9 @@ tmp/
 
 # vscode local workspace config
 .vscode/
+
+# gemini
+.gemini
+
+# build
+dist/
