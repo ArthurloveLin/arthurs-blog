@@ -263,21 +263,24 @@ function SpotifyWidePlayerContent({
               </h2>
               
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4">
-                <p className="text-lg font-medium text-foreground/70 sm:text-xl lg:text-2xl">
+                <p className="text-lg font-medium text-foreground/70 sm:text-xl lg:text-2xl leading-none">
                   by <span className="text-foreground border-b-2 border-emerald-500/20 pb-0.5">{data.artist}</span>
                 </p>
-                <div className="flex items-center gap-3 text-[10px] font-mono uppercase tracking-widest opacity-50">
-                  <span className="h-1 w-1 rounded-full bg-emerald-500/40" />
-                  <span className="inline-flex items-center gap-1.5">
-                    <DeviceInfoIcon deviceType={data.deviceType} />
-                    {getDeviceLabel(data.deviceName, data.deviceType)}
-                  </span>
-                  {absolutePlayedAt && !data.isPlaying && (
+                <div className="flex items-center gap-3 text-[10px] font-mono uppercase tracking-widest opacity-50 leading-none">
+                  {data.isPlaying ? (
+                    <>
+                      <span className="h-1 w-1 rounded-full bg-emerald-500/40" />
+                      <span className="inline-flex items-center gap-1.5">
+                        <DeviceInfoIcon deviceType={data.deviceType} />
+                        {getDeviceLabel(data.deviceName, data.deviceType)}
+                      </span>
+                    </>
+                  ) : absolutePlayedAt ? (
                     <span className="inline-flex items-center gap-1.5">
                       <Clock3 className="h-3.5 w-3.5" strokeWidth={1.8} />
                       {absolutePlayedAt}
                     </span>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
