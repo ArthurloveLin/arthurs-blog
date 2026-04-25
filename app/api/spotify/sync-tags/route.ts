@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 // Last.fm 请求密集，给足超时时间（Vercel 默认 300s 够用）
 export const maxDuration = 300
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   const headerList = await headers()
   const syncSecret = headerList.get('x-spotify-sync-secret')
   const isValidSecret = syncSecret && syncSecret === process.env.SPOTIFY_SYNC_SECRET
