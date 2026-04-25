@@ -1,0 +1,235 @@
+.container {
+  width: 1040px;
+  height: 480px;
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: #0e0e10;
+  color: #fff;
+}
+
+.placeholder {
+  width: 1040px;
+  height: 480px;
+  background: #0e0e10;
+}
+
+/* 背景光斑 */
+.glow1 {
+  position: absolute;
+  top: -100px;
+  left: -100px;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  filter: blur(40px);
+}
+
+.glow2 {
+  position: absolute;
+  bottom: -120px;
+  right: -80px;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  filter: blur(50px);
+}
+
+/* 噪点纹理 */
+.noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* 网格线装饰 */
+.grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent,
+    black 30%,
+    black 70%,
+    transparent
+  );
+  mask-image: linear-gradient(180deg, transparent, black 30%, black 70%, transparent);
+}
+
+/* 顶部铭牌 */
+.header {
+  position: absolute;
+  top: 28px;
+  left: 36px;
+  right: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.spotifyBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+}
+
+.liveIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  opacity: 0.7;
+}
+
+.trackCounter {
+  font-size: 10px;
+  opacity: 0.5;
+  letter-spacing: 2px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* 主内容区 */
+.mainContent {
+  position: absolute;
+  inset: 84px 36px 120px 36px;
+  display: flex;
+  gap: 48px;
+  align-items: center;
+}
+
+.leftColumn {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.albumCoverWrapper {
+  position: relative;
+  margin-left: -120px;
+  z-index: 2;
+}
+
+.albumCoverGlow {
+  position: absolute;
+  inset: -10px;
+  border-radius: 14px;
+  filter: blur(20px);
+}
+
+.albumCover {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rightColumn {
+  flex: 1;
+  min-width: 0;
+}
+
+.albumLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.accentLine {
+  height: 1px;
+  width: 40px;
+}
+
+.title {
+  font-size: 64px;
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -2px;
+  margin-bottom: 18px;
+  text-wrap: balance;
+  margin: 0 0 18px 0;
+}
+
+.artist {
+  font-size: 20px;
+  opacity: 0.7;
+  margin-bottom: 32px;
+  font-weight: 500;
+  margin: 0 0 32px 0;
+}
+
+.progressSection {
+  margin-bottom: 0;
+}
+
+.progressBar {
+  position: relative;
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: visible;
+  margin-bottom: 10px;
+}
+
+.progressFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 1px;
+}
+
+.progressHandle {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.timings {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+  margin-top: 10px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* 底部统计条 */
+.statsBar {
+  position: absolute;
+  bottom: 28px;
+  left: 36px;
+  right: 36px;
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+}
