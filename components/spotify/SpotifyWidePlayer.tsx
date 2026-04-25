@@ -162,18 +162,31 @@ function SpotifyWidePlayerContent({
   const [localProgress, setLocalProgress] = useState(() => data.progressMs ?? 0)
 
   useEffect(() => {
+    setLocalProgress(data.progressMs ?? 0)
+
     if (!data.isPlaying || !data.durationMs) return
 
+    let animationFrameId: number
+    const startTime = Date.now()
+    const initialProgress = data.progressMs ?? 0
     const duration = data.durationMs
-    const interval = setInterval(() => {
-      setLocalProgress((prev) => {
-        const next = prev + 1000
-        return next > duration ? duration : next
-      })
-    }, 1000)
 
-    return () => clearInterval(interval)
-  }, [data.durationMs, data.isPlaying])
+    const update = () => {
+      const elapsed = Date.now() - startTime
+      const nextProgress = initialProgress + elapsed
+      
+      if (nextProgress <= duration) {
+        setLocalProgress(nextProgress)
+        animationFrameId = requestAnimationFrame(update)
+      } else {
+        setLocalProgress(duration)
+      }
+    }
+
+    animationFrameId = requestAnimationFrame(update)
+    return () => cancelAnimationFrame(animationFrameId)
+  }, [data.progressMs, data.isPlaying, data.durationMs])
+
 
   const statusLabel = data.isPlaying ? '正在播放' : data.playedAt ? formatRelativeTime(data.playedAt) : '最近播放'
   const absolutePlayedAt = data.playedAt ? formatAbsoluteTime(data.playedAt) : null
@@ -209,17 +222,17 @@ function SpotifyWidePlayerContent({
           </span>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[520px_1fr_160px] lg:items-stretch xl:grid-cols-[580px_1fr_180px]">
-          {/* Column 1: Album Cover & Info Grouped */}
-          <div className="flex min-w-0 items-center gap-6 md:gap-8">
-            <div className="group relative h-40 w-40 shrink-0 overflow-hidden rounded-[24px] border border-white/50 bg-emerald-950/10 shadow-[0_18px_40px_rgba(0,0,0,0.18)] sm:h-56 sm:w-56 sm:rounded-[36px]">
+        <div className="grid gap-8 lg:grid-cols-[auto_1fr_180px] lg:items-stretch xl:gap-12">
+          {/* Column 1: Album Cover */}
+          <div className="flex shrink-0 items-center justify-center">
+            <div className="group relative h-40 w-40 overflow-hidden rounded-[24px] border border-white/50 bg-emerald-950/10 shadow-[0_18px_40px_rgba(0,0,0,0.18)] sm:h-56 sm:w-56 lg:h-64 lg:w-64 sm:rounded-[36px]">
               {data.albumImageUrl ? (
                 <>
                   <Image
                     src={data.albumImageUrl}
                     alt={data.album || data.title || 'Spotify artwork'}
                     fill
-                    sizes="(max-width: 640px) 160px, 240px"
+                    sizes="(max-width: 640px) 160px, (max-width: 1024px) 224px, 256px"
                     className="transition-transform duration-700 ease-out object-cover group-hover:scale-105"
                     unoptimized
                   />
@@ -231,62 +244,65 @@ function SpotifyWidePlayerContent({
                 </div>
               )}
             </div>
+          </div>
 
-            <div className="flex min-w-0 flex-col justify-center gap-2">
-              <div className="min-w-0 space-y-1">
-                <div className="relative h-9 sm:h-12 lg:h-14 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
-                  <div className="flex w-max animate-[marquee-scroll_20s_linear_infinite] hover:[animation-play-state:paused]">
-                    <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl px-4">
-                      {data.title}
-                    </h2>
-                    <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl px-4">
-                      {data.title}
-                    </h2>
-                  </div>
-                </div>
-                <p className="text-base font-medium text-foreground/80 sm:text-lg lg:text-xl truncate">
-                  {data.artist}
-                </p>
+          {/* Column 2: Info & Progress Grouped */}
+          <div className="flex min-w-0 flex-col justify-between py-2">
+            <div className="min-w-0 space-y-2">
+              <div className="flex items-center gap-3 opacity-70">
+                <div className="h-[1px] w-8 bg-emerald-500/60" />
+                <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-emerald-700 dark:text-emerald-300 truncate">
+                  {data.album}
+                </span>
               </div>
-              <div className="mt-2 flex flex-col gap-y-1 text-[12px] font-medium text-foreground/70 sm:text-sm opacity-80">
-                <span className="inline-flex items-center gap-2">
-                  <Headphones className="h-4 w-4 shrink-0" strokeWidth={1.8} />
-                  <span className="truncate">{data.album}</span>
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <DeviceInfoIcon deviceType={data.deviceType} />
-                  {getDeviceLabel(data.deviceName, data.deviceType)}
-                </span>
-                {absolutePlayedAt && !data.isPlaying && (
-                  <span className="inline-flex items-center gap-2">
-                    <Clock3 className="h-4 w-4 shrink-0" strokeWidth={1.8} />
-                    {absolutePlayedAt}
+              
+              <h2 className="text-3xl font-black tracking-tighter text-foreground sm:text-5xl lg:text-6xl xl:text-7xl leading-[0.95] py-2 [text-wrap:balance]">
+                {data.title}
+              </h2>
+              
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4">
+                <p className="text-lg font-medium text-foreground/70 sm:text-xl lg:text-2xl">
+                  by <span className="text-foreground border-b-2 border-emerald-500/20 pb-0.5">{data.artist}</span>
+                </p>
+                <div className="flex items-center gap-3 text-[10px] font-mono uppercase tracking-widest opacity-50">
+                  <span className="h-1 w-1 rounded-full bg-emerald-500/40" />
+                  <span className="inline-flex items-center gap-1.5">
+                    <DeviceInfoIcon deviceType={data.deviceType} />
+                    {getDeviceLabel(data.deviceName, data.deviceType)}
                   </span>
-                )}
+                  {absolutePlayedAt && !data.isPlaying && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock3 className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      {absolutePlayedAt}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
+
+            <div className="mt-6 space-y-2">
+              {data.isPlaying && data.durationMs && (
+                <>
+                  <div className="relative h-[2px] w-full overflow-hidden rounded-full bg-emerald-500/10 dark:bg-white/5">
+                    <div 
+                      className="absolute inset-y-0 left-0 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+
+                  </div>
+                  <div className="flex justify-between text-[10px] font-mono uppercase tracking-widest opacity-50">
+                    <span>{formatMs(localProgress)}</span>
+                    <span>{formatMs(data.durationMs)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
           </div>
 
-          {/* Progress Bar Column - Centered */}
-          <div className="flex flex-col justify-center items-center px-4">
-            {data.isPlaying && data.durationMs && (
-              <div className="w-full max-w-[320px] space-y-4 text-center">
-                <div className="relative h-2 w-full overflow-hidden rounded-full bg-emerald-500/10 dark:bg-white/5">
-                  <div 
-                    className="absolute inset-y-0 left-0 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-[width] duration-300 ease-linear"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-                <div className="flex justify-between font-mono text-[12px] tracking-wider text-muted-foreground/70">
-                  <span>{formatMs(localProgress)}</span>
-                  <span>{formatMs(data.durationMs)}</span>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Stats Column */}
-          <div className="flex flex-col gap-4 border-emerald-500/10 lg:items-end lg:border-l lg:pl-8">
+          <div className="flex flex-col justify-center gap-4 border-emerald-500/10 lg:items-end lg:border-l lg:pl-8">
             {stats && (
               <>
                 <StatItem label="Recently Played" value={stats.recentlyPlayed} icon={CalendarClock} href="#recently-played" />
