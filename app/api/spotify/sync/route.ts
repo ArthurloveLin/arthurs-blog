@@ -1,6 +1,6 @@
 import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 
 import { isAdminRequest } from '@/lib/auth'
 import { syncSpotifyDashboardToArchive } from '@/lib/spotify'
@@ -23,6 +23,8 @@ export async function POST(request: Request) {
       mode: mode === 'quick' ? 'quick' : 'full' 
     })
     revalidatePath('/spotify')
+    revalidateTag('spotify', 'max')
+    revalidateTag('spotify-tags', 'max')
     return NextResponse.json(result)
   } catch (error) {
     console.error('Spotify sync failed:', error)

@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { unstable_cache } from 'next/cache'
+
 import { getR2Object, putR2Object } from './r2'
 import {
   type SpotifyTrackTagCandidate,
@@ -161,6 +163,12 @@ export async function readSpotifyTrackTagStore(bucket?: string): Promise<Spotify
     await readR2JsonIfExists<SpotifyTrackTagStore>(getSpotifyBucket(bucket), SPOTIFY_TRACK_TAGS_KEY)
   ) ?? createEmptyTrackTagStore()
 }
+
+export const getStoredSpotifyTrackTagStore = unstable_cache(
+  () => readSpotifyTrackTagStore(),
+  ['spotify-tag-store'],
+  { tags: ['spotify-tags'], revalidate: 3600 }
+)
 
 export function filterSpotifyTrackTagStore(store: SpotifyTrackTagStore, ids: string[]) {
   if (ids.length === 0) {

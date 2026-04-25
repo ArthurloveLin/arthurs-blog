@@ -332,6 +332,7 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
   const [isLoading, setIsLoading] = useState(false)
   const [cardsPerPage, setCardsPerPage] = useState(DEFAULT_CARDS_PER_PAGE)
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0)
+  const isInitialLoadRef = useRef(true)
 
   useEffect(() => {
     const updateCardsPerPage = () => {
@@ -343,38 +344,57 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
     return () => window.removeEventListener('resize', updateCardsPerPage)
   }, [])
 
+  // Initial load: fetch days then immediately fetch first day's tracks without
+  // waiting for a React re-render cycle between the two requests.
   useEffect(() => {
     let isCancelled = false
+    const controller = new AbortController()
 
-    async function loadAvailableDays() {
+    async function loadInitialHistory() {
+      setIsLoading(true)
       try {
         const data = await readJson<DaysResponse>('/api/spotify/history/days')
+        if (isCancelled) return
 
-        if (isCancelled) {
-          return
-        }
-
+        const latestDay = data.days[0] ?? null
         startTransition(() => {
           setAvailableDays(data.days)
-          setSelectedDate((current) => current ?? data.days[0] ?? null)
+          setSelectedDate(latestDay)
         })
+
+        if (latestDay) {
+          const params = new URLSearchParams({ date: latestDay })
+          const tracks = await readJson<SpotifyRecentlyPlayedTrack[]>(
+            `/api/spotify/history?${params.toString()}`,
+            controller.signal
+          )
+          if (!isCancelled) {
+            startTransition(() => setHistoryTracks(tracks))
+          }
+        }
       } catch (error) {
+        if (!isCancelled && !controller.signal.aborted) {
+          console.error('Failed to load Spotify history:', error)
+        }
+      } finally {
         if (!isCancelled) {
-          console.error('Failed to load Spotify history days:', error)
+          setIsLoading(false)
+          isInitialLoadRef.current = false
         }
       }
     }
 
-    void loadAvailableDays()
+    void loadInitialHistory()
 
     return () => {
       isCancelled = true
+      controller.abort()
     }
   }, [])
 
+  // Subsequent user-selected date changes (skip the initial mount).
   useEffect(() => {
-    if (!selectedDate) {
-      setHistoryTracks([])
+    if (isInitialLoadRef.current || !selectedDate) {
       return
     }
 
