@@ -492,7 +492,6 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: 1rem;
   align-items: stretch;
-  min-height: 18rem;
   transition: opacity 220ms ease;
 }
 
@@ -514,17 +513,24 @@
   transform: translateY(-0.55rem);
 }
 
+.chartPlotWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
 .chartPlot {
   position: relative;
-  height: clamp(18rem, 34vw, 22rem);
-  min-height: 18rem;
+  height: clamp(16rem, 30vw, 20rem);
   overflow: hidden;
-  border-radius: 1.4rem;
+  border-radius: 1.4rem 1.4rem 0 0;
   border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+  border-bottom: none;
   background:
-    radial-gradient(circle at top, rgba(16, 185, 129, 0.12), transparent 48%),
+    radial-gradient(circle at top, rgba(16, 185, 129, 0.08), transparent 48%),
     color-mix(in srgb, var(--card) 92%, transparent);
-  padding: 1rem 1rem 1.1rem;
+  padding: 1rem 1rem 0;
 }
 
 .chartGuide {
@@ -534,25 +540,65 @@
   border-top: 1px dashed color-mix(in srgb, var(--border) 60%, transparent);
 }
 
+/* segment background highlight overlay */
+.chartSegmentHighlight {
+  position: absolute;
+  top: 0.4rem;
+  bottom: 0;
+  border-radius: 0.6rem 0.6rem 0 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease, left 160ms ease, width 160ms ease;
+}
+
+.chartSegmentHighlight[data-visible='true'] {
+  opacity: 1;
+}
+
+/* "xx 时刻" floating label */
+.chartMomentLabel {
+  position: absolute;
+  top: 0.75rem;
+  transform: translateX(-50%) translateY(-4px);
+  z-index: 10;
+  background: color-mix(in srgb, var(--card) 90%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  border-radius: 999px;
+  padding: 0.32rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--foreground);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.chartMomentLabel[data-visible='true'] {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 .chartBars {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.9rem;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  gap: 0.2rem;
   align-items: stretch;
-  min-height: 16rem;
   height: 100%;
-  padding-top: 0.9rem;
+  padding-top: 2.6rem;
 }
 
 .chartColumn {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   align-items: center;
   height: 100%;
-  gap: 0.65rem;
 }
 
 .chartBarButton {
@@ -565,6 +611,7 @@
   background: none;
   border: none;
   padding: 0;
+  cursor: pointer;
 }
 
 .chartBarButton:disabled {
@@ -575,74 +622,120 @@
   position: relative;
   display: flex;
   height: var(--bar-height, 14%);
-  min-height: 0.8rem;
-  width: min(100%, 3.4rem);
+  min-height: 0.5rem;
+  width: 100%;
   align-items: flex-end;
 }
 
+/* base bar style — overridden by data-segment colors */
 .chartBar {
   width: 100%;
   height: 100%;
-  border-radius: 1.1rem 1.1rem 0.45rem 0.45rem;
+  border-radius: 0.35rem 0.35rem 0.15rem 0.15rem;
   background: linear-gradient(180deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.78));
-  box-shadow: 0 16px 30px rgba(16, 185, 129, 0.18);
   transform-origin: bottom;
   animation: chart-bar-rise 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   animation-delay: var(--bar-delay, 0ms);
+  transition: filter 180ms ease, opacity 180ms ease, box-shadow 180ms ease;
 }
 
+/* per-segment bar colors */
+.chartBar[data-segment='dawn'] {
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.9), rgba(67, 56, 202, 0.72));
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.12);
+}
+.chartBar[data-segment='morning'] {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.9), rgba(217, 119, 6, 0.72));
+  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.12);
+}
+.chartBar[data-segment='noon'] {
+  background: linear-gradient(180deg, rgba(132, 204, 22, 0.9), rgba(101, 163, 13, 0.72));
+  box-shadow: 0 8px 20px rgba(132, 204, 22, 0.12);
+}
+.chartBar[data-segment='afternoon'] {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.78));
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.15);
+}
+.chartBar[data-segment='evening'] {
+  background: linear-gradient(180deg, rgba(249, 115, 22, 0.9), rgba(234, 88, 12, 0.72));
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.12);
+}
+.chartBar[data-segment='night'] {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.9), rgba(109, 40, 217, 0.72));
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.12);
+}
+
+/* active (selected in timeline) state */
 .chartBarActive {
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(16, 185, 129, 0.9));
-  box-shadow: 0 20px 36px rgba(15, 23, 42, 0.22);
+  filter: brightness(1.15) saturate(1.2);
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.35) inset, 0 12px 28px rgba(0, 0, 0, 0.18) !important;
+}
+
+/* hovered segment bars */
+.chartBarHovered {
+  filter: brightness(1.22) saturate(1.15);
+}
+
+/* bars in other segments when something is hovered */
+.chartBarDimmed {
+  opacity: 0.35;
+  filter: saturate(0.5);
 }
 
 .chartBarMuted {
-  opacity: 0.28;
+  opacity: 0.2;
 }
 
-.chartTooltip {
-  position: absolute;
-  bottom: calc(100% + 0.55rem);
-  left: 50%;
-  transform: translate(-50%, 6px);
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.92);
-  padding: 0.32rem 0.55rem;
-  color: white;
-  font-size: 0.7rem;
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity 200ms ease, transform 200ms ease;
+/* X-axis segment labels */
+.chartSegmentLabels {
+  display: flex;
+  border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+  border-top: none;
+  border-radius: 0 0 1.4rem 1.4rem;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
 }
 
-.chartBarButton:hover .chartTooltip,
-.chartBarButton:focus-visible .chartTooltip {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-
-.chartLabelGroup {
+.chartSegmentLabelItem {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.18rem;
+  justify-content: center;
+  padding: 0.5rem 0.25rem 0.6rem;
+  gap: 0.12rem;
+  transition: background 200ms ease;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.chartLabel {
-  color: var(--foreground);
-  font-size: 0.78rem;
+.chartSegmentLabelItem + .chartSegmentLabelItem {
+  border-left: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+
+.chartSegmentLabelItemActive {
+  background: color-mix(in srgb, var(--muted) 60%, transparent);
+}
+
+.chartSegmentName {
+  font-size: 0.72rem;
   font-weight: 600;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
-.chartValue {
+.chartSegmentHours {
+  font-size: 0.62rem;
   color: var(--muted-foreground);
-  font-size: 0.7rem;
+  white-space: nowrap;
 }
 
 @keyframes chart-bar-rise {
   from {
     opacity: 0;
-    transform: scaleY(0.15);
+    transform: scaleY(0.08);
   }
 
   to {

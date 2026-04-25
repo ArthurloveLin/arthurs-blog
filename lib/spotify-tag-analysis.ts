@@ -19,7 +19,7 @@ const RADAR_CLUSTERS: Record<string, string[]> = {
   '金属 / 硬核':  ['metal', 'heavy metal', 'hard rock', 'hardcore', 'metalcore', 'death metal', 'black metal', 'thrash'],
 }
 
-function aggregateTags(trackIds: string[], store: SpotifyTrackTagStore): TagAggregation[] {
+export function aggregateTags(trackIds: string[], store: SpotifyTrackTagStore): TagAggregation[] {
   const map = new Map<string, { totalCount: number; trackCount: number }>()
 
   for (const id of trackIds) {
