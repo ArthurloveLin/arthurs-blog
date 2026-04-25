@@ -1315,7 +1315,6 @@ export async function syncSpotifyDashboardToArchive(
 
   // 2. 处理 Library 板块 (增量合并，仅 full sync)
   let snapshotLibrary: SpotifyStoredDashboardSnapshot['library']
-  let mergedSavedTracksForTagging: SpotifySavedTrack[] = []
 
   if (mode === 'full') {
     const nextTracks = {
@@ -1332,8 +1331,6 @@ export async function syncSpotifyDashboardToArchive(
       total: liveDashboard.library.playlists.total,
       items: mergePlaylistHistory(existingPlaylists.items, liveDashboard.library.playlists.items as unknown as SpotifyPlaylist[])
     }
-
-    mergedSavedTracksForTagging = nextTracks.items
 
     writePromises.push(writeR2Json(bucket, SPOTIFY_SAVED_TRACKS_KEY, nextTracks))
     writePromises.push(writeR2Json(bucket, SPOTIFY_SAVED_ALBUMS_KEY, nextAlbums))
