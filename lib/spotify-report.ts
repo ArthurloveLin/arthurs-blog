@@ -92,7 +92,9 @@ function computeStats(
     if (e) { e.count++ } else { ctxMap.set(key, { label: t.context.label, type: t.context.type, count: 1 }) }
   }
   const topContextEntry = [...ctxMap.values()].sort((a, b) => b.count - a.count)[0]
-  const topContext = topContextEntry ?? null
+  const topContext: MusicReportTopContext | null = topContextEntry
+    ? { label: topContextEntry.label, type: topContextEntry.type, playCount: topContextEntry.count }
+    : null
 
   // Top tag
   const uniqueIds = [...new Set(tracks.map((t) => t.id))]
