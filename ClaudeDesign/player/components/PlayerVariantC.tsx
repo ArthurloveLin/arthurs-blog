@@ -106,6 +106,7 @@ export const PlayerVariantC: React.FC<PlayerVariantCProps> = ({
                 background: `linear-gradient(135deg, ${rgb(accent, 0.6)}, transparent)`,
               }}
             />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={track.cover}
               alt={track.album}

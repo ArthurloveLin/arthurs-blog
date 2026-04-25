@@ -6,7 +6,6 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Loader2, Music2 } from 'luci
 import styles from './SpotifyTrackWall.module.css'
 
 const HOVER_INTENT_DELAY_MS = 120
-const VISIBLE_ORDER_THROTTLE_MS = 180
 const MANUAL_PAN_STEP_RATIO = 0.42
 const SMOOTH_PAN_DURATION = 480
 const FEATURED_ORDER_COUNT = 3
@@ -428,7 +427,6 @@ export default function SpotifyTrackWall({
   const offsetRef = useRef({ x: 0, y: 0 })
   const hoverIntentTimeoutRef = useRef<number | null>(null)
   const suppressNextHoverRef = useRef(false)
-  const isVisibleRef = useRef(true)
   const badgeFrameRef = useRef(0)
   const visibleOrderRef = useRef(1)
   const [hoveredTileKey, setHoveredTileKey] = useState<string | null>(null)
@@ -437,10 +435,6 @@ export default function SpotifyTrackWall({
     width: 0,
     height: LAYOUT_PRESETS[preset].viewportHeight,
   })
-  const interactionResetKey = useMemo(
-    () => `${preset}:${viewportSize.width}:${viewportSize.height}:${items.map((item) => item.id).join('|')}`,
-    [items, preset, viewportSize]
-  )
   const layout = useMemo(() => generateWallLayout(items, preset, viewportSize), [items, preset, viewportSize])
   const layoutRef = useRef(layout)
   const hoveredLayoutItem = useMemo(

@@ -29,7 +29,6 @@ export interface PlayerVariantCLightProps {
 const INK = '#15131a';
 const INK_SOFT = 'rgba(21, 19, 26, 0.6)';
 const INK_FAINT = 'rgba(21, 19, 26, 0.35)';
-const PAPER = '#f5f1ea';
 
 /**
  * Now Playing 组件 - 日间版编辑杂志风
@@ -116,6 +115,7 @@ export const PlayerVariantCLight: React.FC<PlayerVariantCLightProps> = ({
                 background: `linear-gradient(135deg, ${rgb(accent, 0.35)}, transparent)`,
               }}
             />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={track.cover}
               alt={track.album}

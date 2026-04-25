@@ -60,3 +60,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# ==========================================
+# 7. Local Config & External Assets
+# ==========================================
+.vscode/
+.gemini/
+CodePen/
+ClaudeDesign/
+
