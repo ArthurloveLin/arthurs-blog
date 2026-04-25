@@ -72,11 +72,10 @@ export default function SpotifyDashboard({ data, tagAnalysis }: { data: SpotifyD
 
   return (
     <div className="site-shell py-10 pb-24">
-      <div className="rounded-[32px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(0,0,0,0.05),transparent_34%)] p-4 sm:p-5 md:p-6">
-        <SpotifyLivePlayerPanel stats={stats} />
-      </div>
+      <SpotifyLivePlayerPanel stats={stats} />
 
-      <div className="mt-6">
+
+      <div className="mt-4">
         <SectionCard
           id="recently-played"
           eyebrow="Recently Played"
@@ -87,18 +86,18 @@ export default function SpotifyDashboard({ data, tagAnalysis }: { data: SpotifyD
         </SectionCard>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-4">
         <SpotifyTopArtistsPanel data={data.topArtists} />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-4">
         <SpotifyVinylAlbumsPanel
           items={data.library.savedAlbums.items}
           total={data.library.savedAlbums.total}
         />
       </div>
 
-      <div className="mt-6 space-y-6">
+      <div className="mt-4 space-y-4">
         <SpotifyTopTracksPanel data={data.topTracks} />
         <SpotifySavedTracksPanel
           initialItems={data.library.savedTracks.items}
@@ -106,12 +105,12 @@ export default function SpotifyDashboard({ data, tagAnalysis }: { data: SpotifyD
         />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-stretch">
+      <div className="mt-4 grid gap-4 lg:grid-cols-2 lg:items-stretch">
         <SpotifyTagCloudCard analysis={tagAnalysis} />
         <SpotifyTagRadarCard analysis={tagAnalysis} />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-4">
         <SectionCard
           eyebrow="Playlists"
           id="playlists"
