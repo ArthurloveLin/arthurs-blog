@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { cache } from 'react'
+import { unstable_cache } from 'next/cache'
 
 import {
   SPOTIFY_TIME_RANGES,
@@ -1140,7 +1140,7 @@ async function readLatestSpotifyDashboard() {
   }
 }
 
-export const getStoredSpotifyDashboardData = cache(async function getStoredSpotifyDashboardData(): Promise<SpotifyDashboardData> {
+export const getStoredSpotifyDashboardData = unstable_cache(async function (): Promise<SpotifyDashboardData> {
   const { bucket, publicDomain } = getSpotifyArchiveConfig()
 
   if (!bucket) {
@@ -1190,7 +1190,7 @@ export const getStoredSpotifyDashboardData = cache(async function getStoredSpoti
       syncCount: meta.syncCount,
     },
   }
-})
+}, ['spotify-dashboard'], { tags: ['spotify'], revalidate: 3600 })
 
 
 export async function readSpotifyTagCandidatesFromArchive(): Promise<{

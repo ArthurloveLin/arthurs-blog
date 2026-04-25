@@ -1,22 +1,38 @@
+import { Suspense } from 'react'
+
 import DirectionalTransition from '@/components/DirectionalTransition'
 import PageHero from '@/components/PageHero'
 import SpotifyDashboard from '@/components/spotify/SpotifyDashboard'
+
 import { getSiteConfig } from '@/lib/blog'
 import { getStoredSpotifyDashboardData } from '@/lib/spotify'
 import { computeTagAnalysis } from '@/lib/spotify-tag-analysis'
-import { readSpotifyTrackTagStore } from '@/lib/spotify-tags'
+import { getStoredSpotifyTrackTagStore } from '@/lib/spotify-tags'
 
 export const metadata = { title: 'Spotify Dashboard' }
-export const dynamic = 'force-dynamic'
+export const revalidate = 3600
+
+async function SpotifyDashboardLoader() {
+  const [spotifyDashboard, tagStore] = await Promise.all([
+    getStoredSpotifyDashboardData(),
+    getStoredSpotifyTrackTagStore(),
+  ])
+  const tagAnalysis = computeTagAnalysis(spotifyDashboard, tagStore)
+  return <SpotifyDashboard data={spotifyDashboard} tagAnalysis={tagAnalysis} />
+}
+
+function SpotifyDashboardSkeleton() {
+  return (
+    <div className="site-shell py-10 pb-24">
+      <div className="h-48 rounded-[32px] border border-border/60 bg-card/60 animate-pulse" />
+      <div className="mt-6 h-96 rounded-[28px] border border-border/60 bg-card/60 animate-pulse" />
+      <div className="mt-6 h-64 rounded-[28px] border border-border/60 bg-card/60 animate-pulse" />
+    </div>
+  )
+}
 
 export default async function SpotifyPage() {
-  const [siteConfig, spotifyDashboard, tagStore] = await Promise.all([
-    getSiteConfig(),
-    getStoredSpotifyDashboardData(),
-    readSpotifyTrackTagStore(),
-  ])
-
-  const tagAnalysis = computeTagAnalysis(spotifyDashboard, tagStore)
+  const siteConfig = await getSiteConfig()
 
   const titleNode = siteConfig.spotify_hero_title_highlight || siteConfig.spotify_hero_title_rest ? (
     <>
@@ -47,7 +63,9 @@ export default async function SpotifyPage() {
         />
 
         {/* ── Body ── */}
-        <SpotifyDashboard data={spotifyDashboard} tagAnalysis={tagAnalysis} />
+        <Suspense fallback={<SpotifyDashboardSkeleton />}>
+          <SpotifyDashboardLoader />
+        </Suspense>
       </main>
     </DirectionalTransition>
   )
