@@ -8,11 +8,12 @@ import {
   formatDateLabel,
   formatFullDateLabel,
   formatWeekdayLabel,
+  groupTracksByHour,
   segmentTracksByTime,
   TIME_SEGMENTS,
 } from '@/lib/spotify-history-utils'
 import { formatStableDate } from '@/lib/date-format'
-import type { SpotifyRecentlyPlayedTrack, TimeSegmentId } from '@/lib/spotify-types'
+import type { SpotifyRecentlyPlayedTrack, SpotifyTrackTagStore, TimeSegmentId } from '@/lib/spotify-types'
 
 import RecentlyPlayedViewToggle from './RecentlyPlayedViewToggle'
 import SpotifyListeningChart from './SpotifyListeningChart'
@@ -330,6 +331,7 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
   const [selectedSegment, setSelectedSegment] = useState<TimeSegmentId | null>(null)
   const [historyTracks, setHistoryTracks] = useState<SpotifyRecentlyPlayedTrack[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [tagStore, setTagStore] = useState<SpotifyTrackTagStore | null>(null)
   const [cardsPerPage, setCardsPerPage] = useState(DEFAULT_CARDS_PER_PAGE)
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0)
   const isInitialLoadRef = useRef(true)
@@ -434,6 +436,25 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
 
   const effectiveTracks = historyTracks.length > 0 ? historyTracks : items
   const effectiveSegmentMap = useMemo(() => segmentTracksByTime(effectiveTracks), [effectiveTracks])
+  const effectiveHourMap = useMemo(() => groupTracksByHour(effectiveTracks), [effectiveTracks])
+
+  useEffect(() => {
+    const ids = effectiveTracks.map((t) => t.id)
+    if (ids.length === 0) {
+      setTagStore(null)
+      return
+    }
+
+    const controller = new AbortController()
+    const params = new URLSearchParams({ ids: ids.join(',') })
+    readJson<SpotifyTrackTagStore>(`/api/spotify/tags?${params.toString()}`, controller.signal)
+      .then(setTagStore)
+      .catch(() => setTagStore(null))
+
+    return () => {
+      controller.abort()
+    }
+  }, [effectiveTracks])
 
   useEffect(() => {
     const firstAvailableSegment = getFirstAvailableSegmentId(effectiveSegmentMap)
@@ -599,7 +620,8 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
       ) : (
           <div className={styles.chartPanel}>
             <SpotifyListeningChart
-              segmentMap={effectiveSegmentMap}
+              hourMap={effectiveHourMap}
+              tagStore={tagStore}
               selectedSegment={selectedSegment}
               onSelectSegment={handleSelectChartSegment}
               isLoading={isLoading}
