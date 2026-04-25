@@ -7,7 +7,7 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "check": "tsc --noEmit && next lint --dir .",
+    "check": "tsc --noEmit && eslint .",
     "spotify:backfill-days": "tsx scripts/backfill-spotify-recently-played-days.ts",
     "spotify:sync-tags": "tsx scripts/sync-lastfm-tags.ts",
     "spotify:sync-tags:force": "tsx scripts/sync-lastfm-tags.ts --force"
