@@ -29,6 +29,19 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
 
-      - name: Deploy to Vercel
+      - name: Check if app code changed
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- . \
+            ':!.github' ':!supabase' ':!scripts' ':!.agents' ':!.claude' \
+            ':!docs' ':!workers' ':!tmp' ':!scratch' ':!**.md')
+          if [ -n "$CHANGED" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to Vercel
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.changes.outputs.changed == 'true'
         run: curl --fail -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"
