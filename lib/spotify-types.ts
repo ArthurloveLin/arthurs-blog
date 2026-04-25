@@ -217,6 +217,7 @@ export interface TagAggregation {
 export interface TagRadarAxis {
   label: string
   score: number
+  trackCount: number
 }
 
 export interface SpotifyTagSectionResult {
