@@ -10,7 +10,7 @@
  */
 
 const worker = {
-  async scheduled(event, env, _ctx) {
+  async scheduled(event, env) {
     console.log(`[tags-sync] cron 触发: ${event.cron}`)
 
     const response = await fetch(env.SYNC_URL, {
