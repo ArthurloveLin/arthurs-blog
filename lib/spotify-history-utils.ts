@@ -1,5 +1,15 @@
 import type { SpotifyRecentlyPlayedTrack, TimeSegment, TimeSegmentId } from './spotify-types'
 
+export function groupTracksByHour(tracks: SpotifyRecentlyPlayedTrack[]): Map<number, SpotifyRecentlyPlayedTrack[]> {
+  const map = new Map<number, SpotifyRecentlyPlayedTrack[]>()
+  for (let h = 0; h < 24; h++) map.set(h, [])
+  for (const track of tracks) {
+    const hour = new Date(track.playedAt).getHours()
+    map.get(hour)?.push(track)
+  }
+  return map
+}
+
 export const TIME_SEGMENTS: TimeSegment[] = [
   { id: 'dawn', label: '凌晨', startHour: 0, endHour: 6 },
   { id: 'morning', label: '早晨', startHour: 6, endHour: 10 },
