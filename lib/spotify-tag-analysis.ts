@@ -43,25 +43,34 @@ function aggregateTags(trackIds: string[], store: SpotifyTrackTagStore): TagAggr
     .slice(0, 60)
 }
 
-function computeRadarAxes(aggregations: TagAggregation[]): TagRadarAxis[] {
+function computeRadarAxes(aggregations: TagAggregation[], trackIds: string[], store: SpotifyTrackTagStore): TagRadarAxis[] {
   const tagMap = new Map(aggregations.map((t) => [t.name, t.totalCount]))
 
   const rawScores: Record<string, number> = {}
+  const clusterTrackCounts: Record<string, number> = {}
   for (const [label, keywords] of Object.entries(RADAR_CLUSTERS)) {
     rawScores[label] = keywords.reduce((sum, kw) => sum + (tagMap.get(kw) ?? 0), 0)
+    const kwSet = new Set(keywords)
+    let count = 0
+    for (const id of trackIds) {
+      const entry = store.tracks[id]
+      if (entry?.tags.some((t) => kwSet.has(t.name.toLowerCase()))) count++
+    }
+    clusterTrackCounts[label] = count
   }
 
   const max = Math.max(...Object.values(rawScores), 1)
   return Object.entries(rawScores).map(([label, raw]) => ({
     label,
     score: Math.round((raw / max) * 100),
+    trackCount: clusterTrackCounts[label],
   }))
 }
 
 function computeSectionResult(trackIds: string[], store: SpotifyTrackTagStore): SpotifyTagSectionResult {
   const tracksWithTags = trackIds.filter((id) => !!store.tracks[id]).length
   const topTags = aggregateTags(trackIds, store)
-  const radarAxes = computeRadarAxes(topTags)
+  const radarAxes = computeRadarAxes(topTags, trackIds, store)
   return { topTags, radarAxes, tracksWithTags }
 }
 

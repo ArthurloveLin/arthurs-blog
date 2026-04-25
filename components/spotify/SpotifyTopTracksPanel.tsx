@@ -81,7 +81,7 @@ export default function SpotifyTopTracksPanel({
             </div>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            基于收听频率自动生成的单曲排行榜，会完整展示 50 首，并以循环缓慢漂移探索更多封面；也可以直接用方向按钮手动移动视口。
+            基于收听频率自动生成的单曲排行榜，会完整展示 50 首；可以用方向按钮手动移动视口探索更多封面。
           </p>
         </div>
 
@@ -108,7 +108,6 @@ export default function SpotifyTopTracksPanel({
             items={wallItems}
             emptyMessage="当前时间跨度没有返回可展示的 Top Tracks 数据。"
             footerStats={footerStats}
-            footerHint={isPending ? 'switching view' : 'loop drift gallery'}
           />
         )}
       </div>
