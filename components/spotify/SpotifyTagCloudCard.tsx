@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { SpotifyTagAnalysis, SpotifyTagSection } from '@/lib/spotify-types'
 
 const SECTIONS: { id: SpotifyTagSection; label: string; sub: string }[] = [
@@ -11,40 +11,277 @@ const SECTIONS: { id: SpotifyTagSection; label: string; sub: string }[] = [
   { id: 'recent',      label: '最近收听',  sub: '近期播放记录' },
 ]
 
-function scaleFont(count: number, min: number, max: number): number {
-  if (max === min) return 16
-  const normalized = (count - min) / (max - min)
-  return Math.round(11 + normalized * 20)
+// ─── Geometry (ported from WORDLEJS.Rectangle) ───────────────────────────────
+
+interface Rect {
+  x: number
+  y: number
+  width: number
+  height: number
 }
 
-function scaleOpacity(count: number, min: number, max: number): number {
-  if (max === min) return 0.85
-  const normalized = (count - min) / (max - min)
-  return 0.45 + normalized * 0.55
+function intersects(a: Rect, b: Rect): boolean {
+  return !(
+    b.x > a.x + a.width  ||
+    b.x + b.width  < a.x ||
+    b.y > a.y + a.height ||
+    b.y + b.height < a.y
+  )
 }
 
-function getTagSignature(tagName: string) {
-  let hash = 0
+// ─── Random utils (ported from CodePen Random) ───────────────────────────────
 
-  for (const character of tagName) {
-    hash = (hash * 33 + character.charCodeAt(0)) % 9973
+function randomInt(min: number, max: number): number {
+  return min + Math.floor(Math.random() * (max - min + 1))
+}
+
+function randomColor(): string {
+  const ch = () => randomInt(0x44, 0xff).toString(16).padStart(2, '0')
+  return `#${ch()}${ch()}${ch()}`
+}
+
+// ─── Wordle layout (ported from WORDLEJS.Wordle.doLayout / layoutNextWord) ───
+
+const BIGGEST_SIZE  = 36
+const SMALLEST_SIZE = 11
+const D_RADIUS      = 6
+const D_DEG         = 10
+
+interface WordInput {
+  text:   string
+  weight: number
+  title:  string
+}
+
+interface PlacedWord {
+  text:       string
+  renderX:    number   // left  value for CSS (container-relative)
+  renderY:    number   // top   value for CSS (container-relative)
+  fontSize:   number
+  color:      string
+  fontFamily: string
+  rotated:    boolean
+  opacity:    number
+  title:      string
+}
+
+/**
+ * Compute the wordle spiral layout.
+ * All intermediate bounds are kept in "wordle space" (origin = container centre),
+ * matching the CodePen's coordinate model exactly.
+ */
+function computeLayout(
+  inputWords: WordInput[],
+  containerW: number,
+  containerH: number,
+): PlacedWord[] {
+  if (inputWords.length === 0) return []
+
+  // Sort biggest → smallest (same as CodePen demo default)
+  const sorted = [...inputWords].sort((a, b) => b.weight - a.weight)
+
+  let high = -Infinity, low = Infinity
+  for (const w of sorted) {
+    if (w.weight > high) high = w.weight
+    if (w.weight < low)  low  = w.weight
   }
 
+  // Build per-word data (canvas measureText, random attrs)
+  const canvas = document.createElement('canvas')
+  const ctx    = canvas.getContext('2d')!
+
+  interface WordData {
+    text:       string
+    weight:     number
+    title:      string
+    fontSize:   number
+    fontFamily: string
+    rotated:    boolean
+    color:      string
+    opacity:    number
+    bounds:     Rect   // in wordle space; x/y = top-left relative to origin
+  }
+
+  const words: WordData[] = sorted.map(w => {
+    const fontSize = high === low
+      ? (BIGGEST_SIZE + SMALLEST_SIZE) / 2
+      : (w.weight - low) / (high - low) * (BIGGEST_SIZE - SMALLEST_SIZE) + SMALLEST_SIZE
+
+    const rotated    = Math.random() >= 0.5
+    const fontFamily = Math.random() >= 0.5 ? 'sans-serif' : 'serif'
+    const color      = randomColor()
+    const opacity    = high === low ? 0.85 : 0.45 + ((w.weight - low) / (high - low)) * 0.55
+
+    ctx.font = `${fontSize}px ${fontFamily}`
+    const tw = ctx.measureText(w.text).width
+
+    // Bounds width/height swap when rotated (same as CodePen Word.calculate)
+    const bw = rotated ? fontSize : tw
+    const bh = rotated ? tw       : fontSize
+
+    return {
+      text: w.text, weight: w.weight, title: w.title,
+      fontSize, fontFamily, rotated, color, opacity,
+      bounds: { x: -bw / 2, y: -bh / 2, width: bw, height: bh },
+    }
+  })
+
+  // Container centre offset for final rendering
+  const ox = containerW / 2
+  const oy = containerH / 2
+
+  // Placed bounds (in wordle space) for collision detection
+  const placed: Rect[]       = []
+  const result: PlacedWord[] = []
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i]
+
+    // ── First word: centre at origin ──────────────────────────────────────
+    if (i === 0) {
+      placed.push({ ...word.bounds })
+      result.push(makeEntry(word, word.bounds, ox, oy))
+      continue
+    }
+
+    // ── Subsequent words: spiral out from weighted mass centre ─────────────
+
+    // Weighted mass centre of all placed words (in wordle space)
+    let massCx = 0, massCy = 0, totalW = 0
+    for (let j = 0; j < i; j++) {
+      const pb = placed[j]
+      massCx += (pb.x + pb.width  / 2) * words[j].weight
+      massCy += (pb.y + pb.height / 2) * words[j].weight
+      totalW += words[j].weight
+    }
+    massCx /= totalW
+    massCy /= totalW
+
+    // Starting radius (CodePen: half the smallest dimension of the first word)
+    const firstBounds = placed[0]
+    let radius     = 0.5 * Math.min(firstBounds.width, firstBounds.height)
+    let done       = false
+    let guardLoop  = 0
+
+    while (!done) {
+      if (++guardLoop > 100_000) break
+
+      const startDeg = Math.floor(Math.random() * 360)
+      let prevX = -1, prevY = -1
+
+      // Sweep 360° in steps of D_DEG — CodePen uses rad = deg / π * 180
+      // (effectively deg * 57.3), which causes angles to cycle non-sequentially.
+      // Kept verbatim for faithfulness.
+      for (let deg = startDeg; deg < startDeg + 360; deg += D_DEG) {
+        const rad = deg / Math.PI * 180.0
+        const tx  = Math.floor(massCx + radius * Math.cos(rad))
+        const ty  = Math.floor(massCy + radius * Math.sin(rad))
+
+        if (tx === prevX && ty === prevY) continue
+        prevX = tx; prevY = ty
+
+        const candidate: Rect = {
+          x:      word.bounds.x + tx,
+          y:      word.bounds.y + ty,
+          width:  word.bounds.width,
+          height: word.bounds.height,
+        }
+
+        let collision = false
+        for (let j = 0; j < i; j++) {
+          if (intersects(candidate, placed[j])) { collision = true; break }
+        }
+
+        if (!collision) {
+          placed.push(candidate)
+          result.push(makeEntry(word, candidate, ox, oy))
+          done = true
+          break
+        }
+      }
+
+      radius += D_RADIUS
+    }
+  }
+
+  return result
+}
+
+/**
+ * Convert wordle-space bounds to a PlacedWord with CSS left/top values.
+ * Rotated words need the same position correction as CodePen (Word.renderText).
+ */
+function makeEntry(
+  word: { text: string; fontSize: number; color: string; fontFamily: string;
+          rotated: boolean; opacity: number; title: string },
+  bounds: Rect,
+  ox: number,
+  oy: number,
+): PlacedWord {
+  let rx = bounds.x + ox
+  let ry = bounds.y + oy
+  if (word.rotated) {
+    // CodePen: adjust so CSS rotate(90deg) lands on the collision rectangle
+    rx = rx - bounds.height / 2 + bounds.width / 2
+    ry = ry + bounds.height / 2 - bounds.width / 2
+  }
   return {
-    angle: ((hash % 5) - 2) * 6,
-    offsetY: ((Math.floor(hash / 5) % 5) - 2) * 3,
-    hue: 144 + (hash % 42),
+    text: word.text, fontSize: word.fontSize, color: word.color,
+    fontFamily: word.fontFamily, rotated: word.rotated,
+    opacity: word.opacity, title: word.title,
+    renderX: rx, renderY: ry,
   }
 }
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function SpotifyTagCloudCard({ analysis }: { analysis: SpotifyTagAnalysis }) {
-  const [section, setSection] = useState<SpotifyTagSection>('long_term')
-  const result = analysis[section]
-  const tags = result.topTags
+  const [section, setSection]           = useState<SpotifyTagSection>('long_term')
+  const [displayedWords, setDisplayed]  = useState<PlacedWord[]>([])
+  const containerRef                    = useRef<HTMLDivElement>(null)
+  const rafRef                          = useRef<number | null>(null)
+  const layoutIdRef                     = useRef(0)
 
-  const counts = tags.map((t) => t.totalCount)
-  const min = Math.min(...counts, 0)
-  const max = Math.max(...counts, 1)
+  const result = analysis[section]
+  const tags   = result.topTags
+
+  // Re-run layout whenever tags change (section switch)
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const containerW = containerRef.current.clientWidth
+    const containerH = containerRef.current.clientHeight
+    if (containerW === 0 || containerH === 0) return
+
+    const inputWords: WordInput[] = tags.map(t => ({
+      text:   t.name,
+      weight: t.totalCount,
+      title:  `${t.name} · ${t.trackCount} 首 · 累计热度 ${t.totalCount}`,
+    }))
+
+    const allWords = computeLayout(inputWords, containerW, containerH)
+
+    // Cancel any in-flight animation
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    const myId = ++layoutIdRef.current
+
+    setDisplayed([])
+
+    let idx = 0
+    const step = () => {
+      if (myId !== layoutIdRef.current) return   // superseded layout
+      if (idx >= allWords.length) return
+
+      const word = allWords[idx++]
+      setDisplayed(prev => [...prev, word])
+      rafRef.current = requestAnimationFrame(step)
+    }
+    rafRef.current = requestAnimationFrame(step)
+
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [tags])   // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section className="relative h-full overflow-hidden rounded-[30px] border border-emerald-400/20 bg-[linear-gradient(160deg,#06110d_0%,#0d1b16_45%,#040706_100%)] p-5 text-slate-100 shadow-[0_28px_80px_rgba(3,14,11,0.52)] sm:p-6">
@@ -56,7 +293,7 @@ export default function SpotifyTagCloudCard({ analysis }: { analysis: SpotifyTag
           <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-emerald-100/65">Tag Cloud</p>
           <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white">音乐标签画像</h3>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-emerald-50/68">
-            借用 wordle 式暗底排版与发光字重，字号映射热度，hover 强调当前标签。
+            螺旋碰撞检测放置算法 · 字号映射热度 · 忠于 html5-wordle-tag-cloud 实现
           </p>
         </div>
 
@@ -65,6 +302,7 @@ export default function SpotifyTagCloudCard({ analysis }: { analysis: SpotifyTag
         </div>
       </div>
 
+      {/* Section tabs */}
       <div className="relative mt-5 flex flex-wrap gap-2">
         {SECTIONS.map((s) => (
           <button
@@ -83,37 +321,52 @@ export default function SpotifyTagCloudCard({ analysis }: { analysis: SpotifyTag
         ))}
       </div>
 
-      <div className="relative mt-6 overflow-hidden rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_center,rgba(30,41,34,0.86),rgba(8,14,12,0.98))] px-4 py-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_18px_48px_rgba(0,0,0,0.32)] sm:px-6">
+      {/* Wordle canvas area */}
+      <div className="relative mt-6 overflow-hidden rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_center,rgba(30,41,34,0.86),rgba(8,14,12,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_18px_48px_rgba(0,0,0,0.32)]">
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-emerald-200/10" />
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-300/8 blur-3xl" />
 
-        <div className="relative flex min-h-[260px] flex-wrap items-center justify-center gap-x-3 gap-y-3 sm:min-h-[320px]">
+        <div
+          ref={containerRef}
+          className="relative h-[360px] overflow-hidden"
+        >
           {tags.length === 0 ? (
-            <p className="text-sm text-emerald-50/62">暂无标签数据</p>
+            <p className="absolute inset-0 flex items-center justify-center text-sm text-emerald-50/62">
+              暂无标签数据
+            </p>
           ) : (
-            tags.map((tagEntry) => {
-              const fontSize = scaleFont(tagEntry.totalCount, min, max)
-              const opacity = scaleOpacity(tagEntry.totalCount, min, max)
-              const signature = getTagSignature(tagEntry.name)
-              const colorLightness = 68 + Math.round(((fontSize - 11) / 20) * 14)
-
-              return (
-                <span
-                  key={tagEntry.name}
-                  title={`${tagEntry.name} · ${tagEntry.trackCount} 首 · 累计热度 ${tagEntry.totalCount}`}
-                  style={{
-                    fontSize: `${fontSize}px`,
-                    opacity,
-                    color: `hsl(${signature.hue} 70% ${colorLightness}%)`,
-                    textShadow: '-1px -1px 0 rgba(0, 0, 0, 0.9), 1px 1px 0 rgba(240, 253, 250, 0.18)',
-                    transform: `translateY(${signature.offsetY}px) rotate(${signature.angle}deg)`,
-                  }}
-                  className="cursor-default select-none rounded-sm border border-transparent px-2 py-1 font-medium transition duration-300 hover:-translate-y-1 hover:scale-105 hover:border-dashed hover:border-amber-200/70 hover:bg-white/6 hover:opacity-100"
-                >
-                  {tagEntry.name}
-                </span>
-              )
-            })
+            displayedWords.map((word, i) => (
+              <span
+                key={`${word.text}-${i}`}
+                title={word.title}
+                style={{
+                  position:   'absolute',
+                  left:       `${word.renderX}px`,
+                  top:        `${word.renderY}px`,
+                  fontSize:   `${word.fontSize}px`,
+                  lineHeight: `${word.fontSize}px`,
+                  fontFamily: word.fontFamily,
+                  color:      word.color,
+                  opacity:    word.opacity,
+                  textShadow: '-1px -1px 0 #000, 1px 1px 0 #555',
+                  whiteSpace: 'nowrap',
+                  border:     '1px solid transparent',
+                  transform:  word.rotated ? 'rotate(90deg)' : undefined,
+                  cursor:     'default',
+                  userSelect: 'none',
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLElement
+                  el.style.border = '1px dashed #ffff00'
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLElement
+                  el.style.border = '1px solid transparent'
+                }}
+              >
+                {word.text}
+              </span>
+            ))
           )}
         </div>
       </div>
