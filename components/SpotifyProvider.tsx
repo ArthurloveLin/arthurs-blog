@@ -4,7 +4,7 @@ import React, { createContext, use, ReactNode } from 'react'
 import useSWR from 'swr'
 import type { SpotifyNowPlayingData } from '@/lib/spotify-types'
 
-const DEFAULT_REFRESH_INTERVAL_MS = 30000
+const DEFAULT_REFRESH_INTERVAL_MS = 60000
 
 type SpotifyLiveData = SpotifyNowPlayingData | { isPlaying: false }
 

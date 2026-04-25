@@ -470,6 +470,7 @@ export default function SpotifyTrackWall({
   const suppressNextHoverRef = useRef(false)
   const hoverPausedRef = useRef(false)
   const manualPausedRef = useRef(false)
+  const isVisibleRef = useRef(true)
   const badgeFrameRef = useRef(0)
   const visibleOrderRef = useRef(1)
   const [hoveredTileKey, setHoveredTileKey] = useState<string | null>(null)
@@ -603,7 +604,8 @@ export default function SpotifyTrackWall({
       layoutRef.current.items.length === 0 ||
       hoverPausedRef.current ||
       manualPausedRef.current ||
-      isResumingRef.current
+      isResumingRef.current ||
+      !isVisibleRef.current
     ) {
       return
     }
@@ -612,6 +614,24 @@ export default function SpotifyTrackWall({
       tickRef.current(timestamp)
     })
   }, [])
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport || typeof IntersectionObserver === 'undefined') return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisibleRef.current = entry.isIntersecting
+        if (entry.isIntersecting) {
+          scheduleAnimation()
+        }
+      },
+      { threshold: 0 }
+    )
+
+    observer.observe(viewport)
+    return () => observer.disconnect()
+  }, [scheduleAnimation])
 
   useEffect(() => {
     layoutRef.current = layout
