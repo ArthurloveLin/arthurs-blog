@@ -51,3 +51,6 @@ tmp/
 
 # npm config
 .npmrc
+
+# vscode local workspace config
+.vscode/
