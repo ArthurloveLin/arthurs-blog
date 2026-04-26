@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo } from 'react'
 
+import type { SpotifySectionCopy } from '@/lib/spotify-page-copy'
 import type { SpotifySavedTrack } from '@/lib/spotify-types'
 import { formatStableDate } from '@/lib/date-format'
 import SpotifyTrackWall from './SpotifyTrackWall'
@@ -32,21 +33,25 @@ function buildTracksResetKey(items: SpotifySavedTrack[], total: number) {
 export default function SpotifySavedTracksPanel({
   initialItems,
   total,
+  copy,
 }: {
   initialItems: SpotifySavedTrack[]
   total: number
+  copy: SpotifySectionCopy
 }) {
   const resetKey = buildTracksResetKey(initialItems, total)
 
-  return <SpotifySavedTracksPanelContent key={resetKey} initialItems={initialItems} total={total} />
+  return <SpotifySavedTracksPanelContent key={resetKey} initialItems={initialItems} total={total} copy={copy} />
 }
 
 function SpotifySavedTracksPanelContent({
   initialItems,
   total,
+  copy,
 }: {
   initialItems: SpotifySavedTrack[]
   total: number
+  copy: SpotifySectionCopy
 }) {
   const { error, hasMore, isLoading, loadMore, visibleItems } = useSpotifyCollectionPagination({
     initialItems,
@@ -89,15 +94,15 @@ function SpotifySavedTracksPanelContent({
     <section id="saved-tracks" className="scroll-mt-24 rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60_rgba(0,0,0,0.05)]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Library Data</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{copy.eyebrow}</p>
           <div className="mt-1 flex items-center gap-3">
-            <h3 className="text-2xl font-semibold tracking-tight text-foreground">已点赞的歌曲</h3>
+            <h3 className="text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h3>
             <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600">
               {total} 首
             </span>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            先显示精简预览批次，默认停在中央封面附近；也可以随时用方向按钮手动移动视口探索更多。
+            {copy.description}
           </p>
         </div>
       </div>

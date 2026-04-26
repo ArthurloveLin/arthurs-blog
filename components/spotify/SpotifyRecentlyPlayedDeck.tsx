@@ -4,6 +4,7 @@ import { startTransition, useEffect, useMemo, useRef, useState, type CSSProperti
 import { ChevronLeft, ChevronRight, Music2 } from 'lucide-react'
 
 import {
+  buildWeekDayKeys,
   formatCompactDateLabel,
   formatDateLabel,
   formatFullDateLabel,
@@ -20,7 +21,6 @@ import SpotifyListeningChart from './SpotifyListeningChart'
 import styles from './SpotifyRecentlyPlayedDeck.module.css'
 
 const DEFAULT_CARDS_PER_PAGE = 4
-const RECENT_DAY_LIMIT = 7
 
 type RecentlyPlayedView = 'timeline' | 'chart'
 
@@ -88,17 +88,19 @@ function HistoryDaySelector({
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
-  const recentDays = useMemo(() => {
-    const slice = days.slice(0, RECENT_DAY_LIMIT)
-    return [...slice].sort((a, b) => {
-      const getSortValue = (d: string) => {
-        const day = new Date(d).getDay()
-        return day === 0 ? 7 : day // Mon=1, ..., Sun=7
-      }
-      return getSortValue(a) - getSortValue(b)
-    })
-  }, [days])
-  const isSelectedInRecentDays = selectedDate ? recentDays.includes(selectedDate) : false
+  const availableDaySet = useMemo(() => new Set(days), [days])
+  const weekDays = useMemo(
+    () => buildWeekDayKeys(selectedDate ?? days[0] ?? null).map((day) => ({
+      day,
+      hasData: availableDaySet.has(day),
+    })),
+    [availableDaySet, days, selectedDate]
+  )
+  const visibleWeekSet = useMemo(() => new Set(weekDays.map(({ day }) => day)), [weekDays])
+  const extraDayCount = useMemo(
+    () => days.filter((day) => !visibleWeekSet.has(day)).length,
+    [days, visibleWeekSet]
+  )
 
   useEffect(() => {
     if (!isMenuOpen) {
@@ -138,18 +140,24 @@ function HistoryDaySelector({
   return (
     <div className={styles.dayRail}>
       <div className={styles.timelineScroller}>
-        {recentDays.map((day) => {
+        {weekDays.map(({ day, hasData }) => {
           const isActive = day === selectedDate
 
           return (
             <button
               key={day}
               type="button"
+              disabled={!hasData}
               onClick={() => handleSelectDay(day)}
-              className={[styles.timelinePill, isActive ? styles.timelinePillActive : '']
+              className={[
+                styles.timelinePill,
+                isActive ? styles.timelinePillActive : '',
+                !hasData ? styles.timelinePillDisabled : '',
+              ]
                 .filter(Boolean)
                 .join(' ')}
               aria-pressed={isActive}
+              title={hasData ? formatFullDateLabel(day) : `${formatFullDateLabel(day)} · 暂无记录`}
             >
               <span className={styles.timelinePillLabel}>{formatWeekdayLabel(day)}</span>
               <span className={styles.timelinePillDate}>{formatCompactDateLabel(day)}</span>
@@ -157,50 +165,48 @@ function HistoryDaySelector({
           )
         })}
 
-        {days.length > RECENT_DAY_LIMIT ? (
-          <div className={styles.dayMenuWrap} ref={menuRef}>
-            <button
-              type="button"
-              className={[styles.timelinePill, !isSelectedInRecentDays && selectedDate ? styles.timelinePillActive : '']
-                .filter(Boolean)
-                .join(' ')}
-              onClick={() => setIsMenuOpen((current) => !current)}
-              aria-expanded={isMenuOpen}
-              aria-haspopup="menu"
-            >
-              <span className={styles.timelinePillLabel}>
-                {!isSelectedInRecentDays && selectedDate ? formatWeekdayLabel(selectedDate) : '更多'}
-              </span>
-              <span className={styles.timelinePillDate}>
-                {!isSelectedInRecentDays && selectedDate ? formatCompactDateLabel(selectedDate) : `${days.length} 天`}
-              </span>
-            </button>
+        <div className={styles.dayMenuWrap} ref={menuRef}>
+          <button
+            type="button"
+            className={[
+              styles.timelinePill,
+              styles.timelinePillMore,
+              isMenuOpen ? styles.timelinePillActive : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            onClick={() => setIsMenuOpen((current) => !current)}
+            aria-expanded={isMenuOpen}
+            aria-haspopup="menu"
+          >
+            <span className={styles.timelinePillLabel}>更多日期</span>
+            <span className={styles.timelinePillDate}>{extraDayCount > 0 ? `另 ${extraDayCount} 天` : `${days.length} 天`}</span>
+          </button>
 
-            {isMenuOpen ? (
-              <div className={styles.dayMenu} role="menu" aria-label="选择更多历史日期">
-                {days.map((day, index) => {
-                  const isActive = day === selectedDate
+          {isMenuOpen ? (
+            <div className={styles.dayMenu} role="menu" aria-label="选择更多历史日期">
+              {days.map((day) => {
+                const isActive = day === selectedDate
 
-                  return (
-                    <button
-                      key={day}
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={isActive}
-                      onClick={() => handleSelectDay(day)}
-                      className={[styles.dayMenuItem, isActive ? styles.dayMenuItemActive : '']
-                        .filter(Boolean)
-                        .join(' ')}
-                    >
-                      <span className={styles.dayMenuItemTitle}>{formatFullDateLabel(day)}</span>
-                      <span className={styles.dayMenuItemMeta}>{index < RECENT_DAY_LIMIT ? '最近一周' : '历史归档'}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={isActive}
+                    onClick={() => handleSelectDay(day)}
+                    className={[styles.dayMenuItem, isActive ? styles.dayMenuItemActive : '']
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    <span className={styles.dayMenuItemTitle}>{formatFullDateLabel(day)}</span>
+                    <span className={styles.dayMenuItemMeta}>{visibleWeekSet.has(day) ? '本周轨迹' : '历史归档'}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   )
@@ -434,7 +440,9 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
     }
   }, [selectedDate])
 
-  const effectiveTracks = historyTracks.length > 0 ? historyTracks : items
+  const effectiveTracks = selectedDate && availableDays.length > 0
+    ? (historyTracks.length > 0 || !isLoading ? historyTracks : items)
+    : items
   const effectiveSegmentMap = useMemo(() => segmentTracksByTime(effectiveTracks), [effectiveTracks])
   const effectiveHourMap = useMemo(() => groupTracksByHour(effectiveTracks), [effectiveTracks])
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import type { SpotifySectionCopy } from '@/lib/spotify-page-copy'
 import type { SpotifyTagAnalysis, SpotifyTagSection } from '@/lib/spotify-types'
 
 const SECTIONS: { id: SpotifyTagSection; label: string; sub: string }[] = [
@@ -235,7 +236,13 @@ function makeEntry(
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function SpotifyTagCloudCard({ analysis }: { analysis: SpotifyTagAnalysis }) {
+export default function SpotifyTagCloudCard({
+  analysis,
+  copy,
+}: {
+  analysis: SpotifyTagAnalysis
+  copy: SpotifySectionCopy
+}) {
   const [section, setSection]           = useState<SpotifyTagSection>('long_term')
   const [displayedWords, setDisplayed]  = useState<PlacedWord[]>([])
   const containerRef                    = useRef<HTMLDivElement>(null)
@@ -290,10 +297,10 @@ export default function SpotifyTagCloudCard({ analysis }: { analysis: SpotifyTag
 
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-emerald-100/65">Tag Cloud</p>
-          <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white">音乐标签画像</h3>
+          <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-emerald-100/65">{copy.eyebrow}</p>
+          <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white">{copy.title}</h3>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-emerald-50/68">
-            螺旋碰撞检测放置算法 · 字号映射热度 · 忠于 html5-wordle-tag-cloud 实现
+            {copy.description}
           </p>
         </div>
 

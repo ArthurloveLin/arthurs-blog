@@ -3,6 +3,7 @@ import 'server-only'
 import { aggregateTags } from './spotify-tag-analysis'
 import { getStoredSpotifyDashboardData, listRecentlyPlayedDays, readRecentlyPlayedDayShard } from './spotify'
 import { readSpotifyTrackTagStore } from './spotify-tags'
+import { buildWeekDayKeys } from './spotify-history-utils'
 import type { SpotifyRecentlyPlayedTrack, SpotifyTrackTagStore } from './spotify-types'
 
 export interface MusicReportTopTrack {
@@ -65,6 +66,11 @@ function toYM(date: Date) {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
   return `${y}-${m}`
+}
+
+function formatMonthDay(dateKey: string) {
+  const [, month = '01', day = '01'] = dateKey.split('-')
+  return `${month}/${day}`
 }
 
 function computeStats(
@@ -179,8 +185,7 @@ export async function buildMusicReport(): Promise<MusicReport> {
   // Day: today's shard
   const dayTracksPromise = readRecentlyPlayedDayShard(todayStr)
 
-  // Week: last 7 day shards merged
-  const daysPromise = listRecentlyPlayedDays(7)
+  const weekDays = buildWeekDayKeys(todayStr).filter((day) => day <= todayStr)
 
   // Month: current month shards
   const monthDaysPromise = listRecentlyPlayedDays(31)
@@ -188,14 +193,13 @@ export async function buildMusicReport(): Promise<MusicReport> {
   // Dashboard for artist images
   const dashboardPromise = getStoredSpotifyDashboardData().catch(() => null)
 
-  const [dayTracks, days, monthDays, dashboard] = await Promise.all([
+  const [dayTracks, monthDays, dashboard] = await Promise.all([
     dayTracksPromise,
-    daysPromise,
     monthDaysPromise,
     dashboardPromise,
   ])
 
-  const weekShards = await Promise.all(days.map((d) => readRecentlyPlayedDayShard(d)))
+  const weekShards = await Promise.all(weekDays.map((day) => readRecentlyPlayedDayShard(day)))
   const weekTracks = weekShards.flat()
 
   const currentMonthDays = monthDays.filter((d) => d.startsWith(yearMonthStr))
@@ -234,10 +238,8 @@ export async function buildMusicReport(): Promise<MusicReport> {
 
   // Date range strings
   const dayRange = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`
-  const weekStart = days[days.length - 1] ?? todayStr
-  const [, , wsd] = weekStart.split('-')
-  const [, , wed] = todayStr.split('-')
-  const weekRange = `${String(now.getMonth() + 1).padStart(2, '0')}/${wsd}–${wed}`
+  const weekStart = weekDays[0] ?? todayStr
+  const weekRange = `${formatMonthDay(weekStart)}–${formatMonthDay(todayStr)}`
   const monthRange = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`
 
   return {

@@ -7,9 +7,12 @@ import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
 import { Loader2 } from 'lucide-react'
 import 'react-image-crop/dist/ReactCrop.css'
 
+import { SPOTIFY_SITE_CONFIG_DEFAULTS } from '@/lib/spotify-page-copy'
+
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 
 interface ConfigData {
+  [key: string]: string | undefined
   author_avatar_url?: string
   author_name?: string
   author_bio?: string
@@ -104,6 +107,59 @@ const STATUS_OPTIONS = [
   { emoji: '💡', label: '沉思中', value: '沉思中' },
   { emoji: '💤', label: '挂机中', value: '挂机中' },
 ]
+
+const SPOTIFY_SECTION_SETTINGS = [
+  {
+    key: 'spotify_recent',
+    label: '最近听歌',
+    note: '最近播放记录卡片的副标题、主标题和介绍。',
+  },
+  {
+    key: 'spotify_report',
+    label: '听歌报告',
+    note: '纸本海报报告区的副标题、主标题和介绍。',
+  },
+  {
+    key: 'spotify_top_artists',
+    label: '常听歌手',
+    note: 'Top Artists 区块文案。',
+  },
+  {
+    key: 'spotify_saved_albums',
+    label: '收藏专辑',
+    note: 'Saved Albums 区块文案。',
+  },
+  {
+    key: 'spotify_top_tracks',
+    label: '单曲热榜',
+    note: 'Top Tracks 区块文案。',
+  },
+  {
+    key: 'spotify_saved_tracks',
+    label: '点赞歌曲',
+    note: '已点赞歌曲区块文案。',
+  },
+  {
+    key: 'spotify_tag_cloud',
+    label: '音乐标签画像',
+    note: '标签词云卡片文案。',
+  },
+  {
+    key: 'spotify_tag_radar',
+    label: '音乐风格雷达',
+    note: '雷达图卡片文案。',
+  },
+  {
+    key: 'spotify_playlists',
+    label: '歌单收藏',
+    note: '歌单区块文案。',
+  },
+  {
+    key: 'spotify_warnings',
+    label: '同步提示',
+    note: '数据降级提示区块文案。',
+  },
+] as const
 
 function HeroSettingsGroup({
   title,
@@ -213,9 +269,80 @@ function HeroSettingsGroup({
   )
 }
 
+function SpotifyPageSectionsSettingsGroup({
+  data,
+  onChange,
+}: {
+  data: ConfigData
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
+}) {
+  return (
+    <div className="bg-card text-card-foreground border border-border shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 md:p-8">
+      <div className="mb-6">
+        <h2 className="text-sm font-bold tracking-widest text-muted-foreground uppercase">Spotify 页面分区文案</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          统一管理 Spotify 页面各个区块的副标题、标题和介绍文案。
+        </p>
+      </div>
+
+      <div className="space-y-5">
+        {SPOTIFY_SECTION_SETTINGS.map((section) => {
+          const eyebrowKey = `${section.key}_eyebrow`
+          const titleKey = `${section.key}_title`
+          const descriptionKey = `${section.key}_description`
+
+          return (
+            <div key={section.key} className="rounded-2xl border border-border/70 bg-background/60 p-5">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-foreground">{section.label}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{section.note}</p>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)]">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">副标题 / Eyebrow</label>
+                  <input
+                    type="text"
+                    name={eyebrowKey}
+                    value={data[eyebrowKey] || ''}
+                    onChange={onChange}
+                    className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">主标题 / Title</label>
+                  <input
+                    type="text"
+                    name={titleKey}
+                    value={data[titleKey] || ''}
+                    onChange={onChange}
+                    className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-xs font-medium text-foreground mb-1.5 ml-1">介绍 / Description</label>
+                <textarea
+                  name={descriptionKey}
+                  value={data[descriptionKey] || ''}
+                  onChange={onChange}
+                  rows={2}
+                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all resize-y"
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function SiteSettingsForm({ initialData }: { initialData: Record<string, string> }) {
   const router = useRouter()
-  const [data, setData] = useState<ConfigData>(initialData)
+  const [data, setData] = useState<ConfigData>({ ...SPOTIFY_SITE_CONFIG_DEFAULTS, ...initialData })
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
@@ -587,6 +714,9 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
 
         {/* ── 音乐库文案模块 ── */}
         <HeroSettingsGroup title="音乐库头图文案 (Spotify Hero)" prefix="spotify" data={data} onChange={handleChange} />
+
+        {/* ── Spotify 页面分区文案 ── */}
+        <SpotifyPageSectionsSettingsGroup data={data} onChange={handleChange} />
 
         {/* ── Live2D 看板娘配置 ── */}
         <div className="bg-card text-card-foreground border border-border shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 md:p-8">

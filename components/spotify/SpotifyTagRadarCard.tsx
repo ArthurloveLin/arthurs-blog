@@ -1,19 +1,22 @@
 'use client'
 
 import { useId, useState } from 'react'
+
+import type { SpotifySectionCopy } from '@/lib/spotify-page-copy'
 import type { SpotifyTagAnalysis, SpotifyTagSection, TagRadarAxis } from '@/lib/spotify-types'
 
 const SECTIONS: { id: SpotifyTagSection; label: string; sub: string }[] = [
-  { id: 'short_term',  label: '近期喜爱',  sub: '最近 4 周 Top Tracks' },
-  { id: 'medium_term', label: '半年喜爱',  sub: '近 6 个月 Top Tracks' },
-  { id: 'long_term',   label: '长期喜爱',  sub: '所有时间 Top Tracks' },
-  { id: 'saved',       label: '点赞歌曲',  sub: '已收藏曲目' },
-  { id: 'recent',      label: '最近收听',  sub: '近期播放记录' },
+  { id: 'short_term', label: '近期喜爱', sub: '最近 4 周 Top Tracks' },
+  { id: 'medium_term', label: '半年喜爱', sub: '近 6 个月 Top Tracks' },
+  { id: 'long_term', label: '长期喜爱', sub: '所有时间 Top Tracks' },
+  { id: 'saved', label: '点赞歌曲', sub: '已收藏曲目' },
+  { id: 'recent', label: '最近收听', sub: '近期播放记录' },
 ]
 
-const SIZE = 280
-const CENTER = SIZE / 2
-const RADIUS = 108
+const VIEW_SIZE = 340
+const CENTER = VIEW_SIZE / 2
+const RADIUS = 96
+const LABEL_RADIUS = 122
 const RINGS = [0.25, 0.5, 0.75, 1]
 
 function polarToCart(angleDeg: number, r: number): [number, number] {
@@ -23,13 +26,62 @@ function polarToCart(angleDeg: number, r: number): [number, number] {
 
 function buildPolygon(axes: TagRadarAxis[]): string {
   return axes
-    .map((axis, i) => {
-      const angle = (360 / axes.length) * i
+    .map((axis, index) => {
+      const angle = (360 / axes.length) * index
       const r = (axis.score / 100) * RADIUS
       const [x, y] = polarToCart(angle, r)
       return `${x},${y}`
     })
     .join(' ')
+}
+
+function splitAxisLabel(label: string) {
+  const trimmed = label.trim()
+
+  if (trimmed.length <= 6) {
+    return [trimmed]
+  }
+
+  if (trimmed.includes(' ')) {
+    const words = trimmed.split(/\s+/)
+    const lines: string[] = []
+    let current = ''
+
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word
+      if (candidate.length <= 8) {
+        current = candidate
+        continue
+      }
+
+      if (current) {
+        lines.push(current)
+      }
+
+      current = word
+
+      if (lines.length === 1) {
+        break
+      }
+    }
+
+    if (current) {
+      lines.push(current)
+    }
+
+    return lines.slice(0, 2).map((line, index, arr) => {
+      if (index === arr.length - 1 && arr.length === 2 && words.join(' ').length > arr.join(' ').length) {
+        return `${line.slice(0, 7)}…`
+      }
+      return line
+    })
+  }
+
+  if (trimmed.length <= 10) {
+    return [trimmed.slice(0, Math.ceil(trimmed.length / 2)), trimmed.slice(Math.ceil(trimmed.length / 2))]
+  }
+
+  return [trimmed.slice(0, 6), `${trimmed.slice(6, 11)}…`]
 }
 
 function RadarChart({
@@ -41,14 +93,16 @@ function RadarChart({
   hoveredAxis: string | null
   onHoverAxis: (label: string | null) => void
 }) {
-  const n = axes.length
+  const count = axes.length
   const gradientId = useId().replace(/:/g, '')
   const shadowId = useId().replace(/:/g, '')
 
-  if (n === 0) return null
+  if (count === 0) {
+    return null
+  }
 
   return (
-    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="mx-auto w-full max-w-[320px] overflow-visible">
+    <svg viewBox={`0 0 ${VIEW_SIZE} ${VIEW_SIZE}`} className="mx-auto w-full max-w-[360px]">
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#fb7185" stopOpacity="0.88" />
@@ -60,15 +114,16 @@ function RadarChart({
       </defs>
 
       {RINGS.map((ratio) => {
-        const pts = Array.from({ length: n }, (_, i) => {
-          const angle = (360 / n) * i
+        const points = Array.from({ length: count }, (_, index) => {
+          const angle = (360 / count) * index
           const [x, y] = polarToCart(angle, RADIUS * ratio)
           return `${x},${y}`
         }).join(' ')
+
         return (
           <polygon
             key={ratio}
-            points={pts}
+            points={points}
             fill={ratio === 1 ? 'rgba(244, 114, 182, 0.04)' : 'none'}
             stroke="rgba(148, 163, 184, 0.32)"
             strokeWidth="0.9"
@@ -76,14 +131,17 @@ function RadarChart({
         )
       })}
 
-      {axes.map((_, i) => {
-        const angle = (360 / n) * i
+      {axes.map((_, index) => {
+        const angle = (360 / count) * index
         const [x, y] = polarToCart(angle, RADIUS)
+
         return (
           <line
-            key={i}
-            x1={CENTER} y1={CENTER}
-            x2={x} y2={y}
+            key={index}
+            x1={CENTER}
+            y1={CENTER}
+            x2={x}
+            y2={y}
             stroke="rgba(148, 163, 184, 0.26)"
             strokeWidth="0.9"
           />
@@ -108,8 +166,8 @@ function RadarChart({
         strokeLinejoin="round"
       />
 
-      {axes.map((axis, i) => {
-        const angle = (360 / n) * i
+      {axes.map((axis, index) => {
+        const angle = (360 / count) * index
         const r = (axis.score / 100) * RADIUS
         const [x, y] = polarToCart(angle, r)
         const isActive = hoveredAxis === axis.label
@@ -130,25 +188,35 @@ function RadarChart({
         )
       })}
 
-      {axes.map((axis, i) => {
-        const angle = (360 / n) * i
-        const [x, y] = polarToCart(angle, RADIUS + 22)
-        const textAnchor = x < CENTER - 4 ? 'end' : x > CENTER + 4 ? 'start' : 'middle'
+      {axes.map((axis, index) => {
+        const angle = (360 / count) * index
+        const [x, y] = polarToCart(angle, LABEL_RADIUS)
+        const textAnchor = x < CENTER - 6 ? 'end' : x > CENTER + 6 ? 'start' : 'middle'
         const isActive = hoveredAxis === axis.label
+        const lines = splitAxisLabel(axis.label)
 
         return (
           <text
-            key={axis.label}
-            x={x} y={y}
+            key={`${axis.label}-label`}
+            x={x}
+            y={y}
             textAnchor={textAnchor}
             dominantBaseline="middle"
-            fontSize={isActive ? '10' : '9'}
+            fontSize={isActive ? '10' : '8.8'}
             fill={isActive ? 'rgba(15,23,42,0.95)' : 'rgba(71,85,105,0.85)'}
             className="font-mono transition-all duration-200"
             onMouseEnter={() => onHoverAxis(axis.label)}
             onMouseLeave={() => onHoverAxis(null)}
           >
-            {axis.label}
+            {lines.map((line, lineIndex) => (
+              <tspan
+                key={`${axis.label}-${lineIndex}`}
+                x={x}
+                dy={lineIndex === 0 ? `${-(lines.length - 1) * 0.55}em` : '1.08em'}
+              >
+                {line}
+              </tspan>
+            ))}
           </text>
         )
       })}
@@ -156,7 +224,13 @@ function RadarChart({
   )
 }
 
-export default function SpotifyTagRadarCard({ analysis }: { analysis: SpotifyTagAnalysis }) {
+export default function SpotifyTagRadarCard({
+  analysis,
+  copy,
+}: {
+  analysis: SpotifyTagAnalysis
+  copy: SpotifySectionCopy
+}) {
   const [section, setSection] = useState<SpotifyTagSection>('long_term')
   const [hoveredAxis, setHoveredAxis] = useState<string | null>(null)
   const result = analysis[section]
@@ -166,44 +240,44 @@ export default function SpotifyTagRadarCard({ analysis }: { analysis: SpotifyTag
     <section className="relative h-full overflow-hidden rounded-[30px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,247,251,0.94))] p-5 shadow-[0_22px_70px_rgba(15,23,42,0.08)] sm:p-6 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(20,23,30,0.98),rgba(12,16,22,0.98))]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(129,140,248,0.12),transparent_28%),radial-gradient(circle_at_top_left,rgba(244,114,182,0.12),transparent_24%)]" />
 
-      <div className="relative rounded-[24px] border border-slate-200/80 bg-white/80 p-4 shadow-[0_12px_35px_rgba(15,23,42,0.05)] backdrop-blur-sm dark:border-white/8 dark:bg-white/4">
-        <div className="flex items-start justify-between gap-4">
+      <div className="relative flex h-full flex-col gap-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-slate-500 dark:text-slate-400">Radar Chart</p>
-            <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">音乐风格雷达</h3>
+            <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-slate-500 dark:text-slate-400">{copy.eyebrow}</p>
+            <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">{copy.title}</h3>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-              借用 demo 的信息卡和渐变面视觉，把标签聚类结果压成更有层次感的风格分布图。
+              {copy.description}
             </p>
           </div>
 
-          <div className="min-w-[118px] rounded-2xl border border-slate-200/80 bg-white px-3 py-2 text-right shadow-sm dark:border-white/8 dark:bg-white/6">
+          <div className="w-full max-w-[150px] shrink-0 rounded-[24px] border border-slate-200/80 bg-white/85 px-3 py-3 text-right shadow-[0_12px_32px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-white/6">
             <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">Focus</div>
             <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{activeAxis?.label ?? '暂无数据'}</div>
             <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{activeAxis ? `${activeAxis.trackCount} 首` : 'No signal'}</div>
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-2">
-        {SECTIONS.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => setSection(s.id)}
-            className={[
-              'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-              section === s.id
-                ? 'border-pink-300/70 bg-pink-100 text-pink-700 shadow-sm dark:border-pink-400/40 dark:bg-pink-500/12 dark:text-pink-200'
-                : 'border-slate-200 bg-slate-100/80 text-slate-500 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800 dark:border-white/8 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
-            ].join(' ')}
-          >
-            {s.label}
-          </button>
-        ))}
+        <div className="flex flex-wrap gap-2">
+          {SECTIONS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setSection(item.id)}
+              className={[
+                'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                section === item.id
+                  ? 'border-pink-300/70 bg-pink-100 text-pink-700 shadow-sm dark:border-pink-400/40 dark:bg-pink-500/12 dark:text-pink-200'
+                  : 'border-slate-200 bg-slate-100/80 text-slate-500 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800 dark:border-white/8 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
+              ].join(' ')}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
 
-        <div className="mt-6 rounded-[26px] bg-[linear-gradient(180deg,rgba(247,248,251,0.95),rgba(237,242,247,0.92))] px-3 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] sm:px-5">
+        <div className="rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(247,248,251,0.96),rgba(237,242,247,0.92))] px-2 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-white/8 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] sm:px-4 sm:py-5">
           {result.tracksWithTags === 0 ? (
-            <div className="flex min-h-[280px] items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+            <div className="flex min-h-[320px] items-center justify-center text-sm text-slate-500 dark:text-slate-400">
               暂无标签数据
             </div>
           ) : (
@@ -215,7 +289,7 @@ export default function SpotifyTagRadarCard({ analysis }: { analysis: SpotifyTag
           )}
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {result.radarAxes.map((axis) => {
             const isActive = hoveredAxis === axis.label
 
@@ -253,8 +327,8 @@ export default function SpotifyTagRadarCard({ analysis }: { analysis: SpotifyTag
           })}
         </div>
 
-        <p className="mt-4 text-center font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
-          {SECTIONS.find((s) => s.id === section)?.sub} · {result.tracksWithTags} 首有标签数据
+        <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+          {SECTIONS.find((item) => item.id === section)?.sub} · {result.tracksWithTags} 首有标签数据
         </p>
       </div>
     </section>

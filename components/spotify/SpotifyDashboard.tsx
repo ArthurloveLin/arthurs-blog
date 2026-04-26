@@ -6,6 +6,7 @@ import type {
   SpotifyPlaylistPreview,
   SpotifyTagAnalysis,
 } from '@/lib/spotify-types'
+import type { SpotifyPageCopy } from '@/lib/spotify-page-copy'
 import SpotifyVinylAlbumsPanel from './SpotifyVinylAlbumsPanel'
 import SpotifyLivePlayerPanel from './SpotifyLivePlayerPanel'
 import SpotifyMusicReportSection from './SpotifyMusicReportSection'
@@ -64,7 +65,15 @@ const PlaylistsBoard = memo(function PlaylistsBoard({ items, total }: { items: S
 })
 
 
-export default function SpotifyDashboard({ data, tagAnalysis }: { data: SpotifyDashboardData; tagAnalysis: SpotifyTagAnalysis }) {
+export default function SpotifyDashboard({
+  data,
+  tagAnalysis,
+  copy,
+}: {
+  data: SpotifyDashboardData
+  tagAnalysis: SpotifyTagAnalysis
+  copy: SpotifyPageCopy
+}) {
   const stats = {
     recentlyPlayed: data.recentlyPlayed.length,
     likedSongs: data.library.savedTracks.total,
@@ -79,48 +88,50 @@ export default function SpotifyDashboard({ data, tagAnalysis }: { data: SpotifyD
       <div className="mt-4">
         <SectionCard
           id="recently-played"
-          eyebrow="Recently Played"
-          title="最近播放记录"
-          description="悬停卡片可查看艺人、时间和播放来源。"
+          eyebrow={copy.recent.eyebrow}
+          title={copy.recent.title}
+          description={copy.recent.description}
         >
           <SpotifyRecentlyPlayedDeck items={data.recentlyPlayed} />
         </SectionCard>
       </div>
 
       <div className="mt-4">
-        <SpotifyMusicReportSection />
+        <SpotifyMusicReportSection copy={copy.report} />
       </div>
 
       <div className="mt-4">
-        <SpotifyTopArtistsPanel data={data.topArtists} />
+        <SpotifyTopArtistsPanel data={data.topArtists} copy={copy.topArtists} />
       </div>
 
       <div className="mt-4">
         <SpotifyVinylAlbumsPanel
           items={data.library.savedAlbums.items}
           total={data.library.savedAlbums.total}
+          copy={copy.savedAlbums}
         />
       </div>
 
       <div className="mt-4 space-y-4">
-        <SpotifyTopTracksPanel data={data.topTracks} />
+        <SpotifyTopTracksPanel data={data.topTracks} copy={copy.topTracks} />
         <SpotifySavedTracksPanel
           initialItems={data.library.savedTracks.items}
           total={data.library.savedTracks.total}
+          copy={copy.savedTracks}
         />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2 lg:items-stretch">
-        <SpotifyTagCloudCard analysis={tagAnalysis} />
-        <SpotifyTagRadarCard analysis={tagAnalysis} />
+        <SpotifyTagCloudCard analysis={tagAnalysis} copy={copy.tagCloud} />
+        <SpotifyTagRadarCard analysis={tagAnalysis} copy={copy.tagRadar} />
       </div>
 
       <div className="mt-4">
         <SectionCard
-          eyebrow="Playlists"
+          eyebrow={copy.playlists.eyebrow}
           id="playlists"
-          title="用户歌单"
-          description="保存的个人及推荐歌单。"
+          title={copy.playlists.title}
+          description={copy.playlists.description}
         >
           <PlaylistsBoard items={data.library.playlists.items} total={data.library.playlists.total} />
         </SectionCard>
@@ -128,9 +139,9 @@ export default function SpotifyDashboard({ data, tagAnalysis }: { data: SpotifyD
 
       {data.warnings.length > 0 ? (
         <SectionCard
-          eyebrow="Data Warnings"
-          title="部分数据暂时不可用"
-          description="如果某些接口临时超时或 Spotify 返回异常，下面会列出降级项。"
+          eyebrow={copy.warnings.eyebrow}
+          title={copy.warnings.title}
+          description={copy.warnings.description}
         >
           <div className="space-y-3">
             {data.warnings.map((warning) => (

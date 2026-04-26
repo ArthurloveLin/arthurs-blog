@@ -5,6 +5,7 @@ import PageHero from '@/components/PageHero'
 import SpotifyDashboard from '@/components/spotify/SpotifyDashboard'
 
 import { getSiteConfig } from '@/lib/blog'
+import { getSpotifyPageCopy, type SpotifyPageCopy } from '@/lib/spotify-page-copy'
 import { getStoredSpotifyDashboardData, listRecentlyPlayedDays, readRecentlyPlayedDayShard } from '@/lib/spotify'
 import { computeTagAnalysis } from '@/lib/spotify-tag-analysis'
 import { getStoredSpotifyTrackTagStore } from '@/lib/spotify-tags'
@@ -12,7 +13,7 @@ import { getStoredSpotifyTrackTagStore } from '@/lib/spotify-tags'
 export const metadata = { title: 'Spotify Dashboard' }
 export const revalidate = 3600
 
-async function SpotifyDashboardLoader() {
+async function SpotifyDashboardLoader({ copy }: { copy: SpotifyPageCopy }) {
   const [spotifyDashboard, tagStore, recentDays] = await Promise.all([
     getStoredSpotifyDashboardData(),
     getStoredSpotifyTrackTagStore(),
@@ -32,7 +33,7 @@ async function SpotifyDashboardLoader() {
     : spotifyDashboard
 
   const tagAnalysis = computeTagAnalysis(dashboardForRadar, tagStore)
-  return <SpotifyDashboard data={spotifyDashboard} tagAnalysis={tagAnalysis} />
+  return <SpotifyDashboard data={spotifyDashboard} tagAnalysis={tagAnalysis} copy={copy} />
 }
 
 function SpotifyDashboardSkeleton() {
@@ -47,12 +48,13 @@ function SpotifyDashboardSkeleton() {
 
 export default async function SpotifyPage() {
   const siteConfig = await getSiteConfig()
+  const spotifyCopy = getSpotifyPageCopy(siteConfig)
 
-  const titleNode = siteConfig.spotify_hero_title_highlight || siteConfig.spotify_hero_title_rest ? (
+  const titleNode = spotifyCopy.hero.titleHighlight || spotifyCopy.hero.titleRest ? (
     <>
-      {siteConfig.spotify_hero_title_highlight && <span className="block text-gradient-primary">{siteConfig.spotify_hero_title_highlight}</span>}
-      {siteConfig.spotify_hero_title_highlight_2 && <span className="block text-gradient-primary">{siteConfig.spotify_hero_title_highlight_2}</span>}
-      {siteConfig.spotify_hero_title_rest}
+      {spotifyCopy.hero.titleHighlight && <span className="block text-gradient-primary">{spotifyCopy.hero.titleHighlight}</span>}
+      {spotifyCopy.hero.titleHighlight2 && <span className="block text-gradient-primary">{spotifyCopy.hero.titleHighlight2}</span>}
+      {spotifyCopy.hero.titleRest}
     </>
   ) : (
     <>
@@ -67,18 +69,18 @@ export default async function SpotifyPage() {
         {/* ── Hero ── */}
         <PageHero 
           title={titleNode}
-          subtitle={siteConfig.spotify_hero_subtitle || "METRICS & MELODIES"}
-          description={siteConfig.spotify_hero_description || "Tracing the rhythms that define my journey. A real-time audit of my listening habits and personal soundtracks."}
+          subtitle={spotifyCopy.hero.subtitle}
+          description={spotifyCopy.hero.description}
           slogan={{ 
-            text1: siteConfig.spotify_slogan_1 || "Where words fail,", 
-            text2: siteConfig.spotify_slogan_2 || "music speaks." 
+            text1: spotifyCopy.hero.slogan1,
+            text2: spotifyCopy.hero.slogan2,
           }}
           blobColors={['bg-emerald-400/10', 'bg-green-400/10']}
         />
 
         {/* ── Body ── */}
         <Suspense fallback={<SpotifyDashboardSkeleton />}>
-          <SpotifyDashboardLoader />
+          <SpotifyDashboardLoader copy={spotifyCopy} />
         </Suspense>
       </main>
     </DirectionalTransition>
