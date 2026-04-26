@@ -1,0 +1,96 @@
+/* ─── Single Poster Wrapper ───────────────────────────────────────────────── */
+
+.posterWrap {
+  position: relative;
+  flex-shrink: 0;
+  perspective: 1200px;
+}
+
+/* Push-pin */
+.pin {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  z-index: 20;
+  pointer-events: none;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    0 0 0 1.5px rgba(0, 0, 0, 0.18),
+    inset 0 1px 2px rgba(255, 120, 120, 0.4);
+}
+
+.pin::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 6px;
+  border-radius: 0 0 2px 2px;
+  background: linear-gradient(180deg, #888, #555);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Tape strip */
+.tape {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 56px;
+  height: 24px;
+  z-index: 10;
+  pointer-events: none;
+  border-radius: 1px;
+  opacity: 0.55;
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0.12) 48%,
+    rgba(0, 0, 0, 0.04) 100%
+  );
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 2px 6px rgba(15, 10, 0, 0.16);
+}
+
+/* Surface with 3D transform */
+.posterSurface {
+  transform-origin: top center;
+  transform-style: preserve-3d;
+  will-change: transform, filter;
+}
+
+/* ─── Poster Paper ────────────────────────────────────────────────────────── */
+
+.poster {
+  position: relative;
+  background-color: #f5edd8;
+  border-radius: 2px;
+  overflow: hidden;
+  will-change: box-shadow;
+
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.018) 0px,
+      transparent 1px,
+      transparent 22px
+    );
+
+  box-shadow:
+    0 14px 22px -10px rgba(15, 10, 0, 0.28),
+    inset 0 20px 28px -10px rgba(0, 0, 0, 0.22);
+}
+
+/* ─── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .posterWrap {
+    transform: none !important;
+  }
+}

@@ -1,0 +1,260 @@
+.poster {
+  display: flex;
+  flex-direction: column;
+  height: 253px;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.poster.transitioning {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.accentBar {
+  width: 100%;
+  height: 5px;
+  background: linear-gradient(90deg, #1a7a4a, #28b06e);
+  flex-shrink: 0;
+}
+
+/* ─── Hero area 30% ───────────────────────────────────────────────────────── */
+
+.heroArea {
+  position: relative;
+  flex: 0 0 30%;
+  overflow: hidden;
+  background: #111;
+}
+
+.heroSkeleton {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(40,25,8,0.1) 0%, rgba(40,25,8,0.18) 50%, rgba(40,25,8,0.1) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease infinite;
+}
+
+/* 2×2 collage grid */
+.collageGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  width: 100%;
+  height: 100%;
+}
+
+.collageImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.collagePlaceholder {
+  width: 100%;
+  height: 100%;
+  background:
+    repeating-conic-gradient(rgba(255,255,255,0.03) 0% 25%, transparent 0% 50%) 0 0 / 8px 8px,
+    #1a1a1a;
+}
+
+/* Bottom gradient on hero */
+.heroGradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(to top, rgba(245,237,216,0.85) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+/* Date along left edge — vertical text */
+.dateEdge {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  bottom: 4px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 0.52rem;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  text-transform: uppercase;
+  white-space: nowrap;
+  z-index: 2;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+/* ─── Two-column ranked list 50% ─────────────────────────────────────────── */
+
+.listsArea {
+  flex: 0 0 50%;
+  overflow: hidden;
+}
+
+.twoColumns {
+  display: flex;
+  height: 100%;
+  padding: 0.5rem 0;
+}
+
+.column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 0.65rem;
+  min-width: 0;
+  gap: 0.18rem;
+}
+
+.columnHeader {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.44rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(40, 25, 8, 0.35);
+  margin-bottom: 0.2rem;
+}
+
+.columnDivider {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(40, 25, 8, 0.1);
+  flex-shrink: 0;
+  margin: 0.4rem 0;
+}
+
+.rankRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.rankNum {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.44rem;
+  font-weight: 700;
+  color: rgba(40, 25, 8, 0.3);
+  flex-shrink: 0;
+  width: 0.7rem;
+  text-align: right;
+}
+
+.rankName {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #1a0e03;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+
+.rankNameEmpty {
+  font-size: 0.6rem;
+  color: rgba(40, 25, 8, 0.2);
+}
+
+/* ─── Empty state ─────────────────────────────────────────────────────────── */
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 0.5rem;
+  opacity: 0.5;
+}
+
+.restStamp {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: rgba(40, 25, 8, 0.3);
+  border: 2px solid rgba(40, 25, 8, 0.2);
+  border-radius: 3px;
+  padding: 0.2rem 0.5rem;
+  transform: rotate(-8deg);
+}
+
+.emptyLabel {
+  font-size: 0.6rem;
+  color: rgba(40, 25, 8, 0.35);
+}
+
+/* ─── Bottom stats 20% ────────────────────────────────────────────────────── */
+
+.bottomArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 0.65rem 0.5rem;
+  min-height: 0;
+}
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(40, 25, 8, 0.1);
+  margin-bottom: 0.4rem;
+}
+
+.statsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.statItem {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.48rem;
+  color: rgba(40, 25, 8, 0.42);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.statNum {
+  font-weight: 700;
+  color: rgba(40, 25, 8, 0.7);
+}
+
+.vibeTag {
+  font-size: 0.48rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  padding: 0.12rem 0.42rem;
+  border-radius: 999px;
+  border: 1px solid rgba(26, 122, 74, 0.3);
+  color: #1a7a4a;
+  background: rgba(26, 122, 74, 0.08);
+  white-space: nowrap;
+}
+
+/* ─── Skeleton ────────────────────────────────────────────────────────────── */
+
+.skeleton {
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(40,25,8,0.07) 0%, rgba(40,25,8,0.13) 50%, rgba(40,25,8,0.07) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
