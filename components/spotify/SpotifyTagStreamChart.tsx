@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import * as d3 from 'd3'
 import useSWR from 'swr'
 
@@ -35,6 +35,14 @@ export default function SpotifyTagStreamChart() {
   const [tooltip, setTooltip] = useState<{ xi: number, xPx: number, leftPct: string, tag: typeof TAGS[0], value: number, label: string } | null>(null)
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [mouseX, setMouseX] = useState<number | null>(null)
+
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const data = allData ? allData[activeDim] : null
 
@@ -238,8 +246,8 @@ export default function SpotifyTagStreamChart() {
           </g>
         </svg>
 
-        {/* Tooltip */}
-        {tooltip && (
+        {/* Desktop Tooltip */}
+        {!isMobile && tooltip && (
           <div 
             className="absolute z-10 bg-[#1a1a1a] dark:bg-[#222] rounded-xl p-3 pointer-events-none shadow-[0_4px_20px_rgba(0,0,0,0.18)]"
             style={{
@@ -273,6 +281,46 @@ export default function SpotifyTagStreamChart() {
           </div>
         )}
       </div>
+
+      {/* Mobile Tooltip Card */}
+      {isMobile && tooltip && (
+        <div className="mt-4 bg-[#1a1a1a] dark:bg-[#222] rounded-2xl p-4 shadow-sm border border-white/5 relative mx-1 pointer-events-auto">
+          <button 
+            type="button"
+            className="absolute top-3 right-3 text-[#666] p-1.5 hover:text-white transition-colors"
+            onClick={() => { setTooltip(null); setMouseX(null) }}
+            aria-label="关闭卡片"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          <div className="text-xs text-[#888] mb-1.5">{tooltip.label}</div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: tooltip.tag.color }}></div>
+            <span className="text-[16px] font-semibold text-white tracking-wide">{tooltip.tag.label}</span>
+            <span className="text-[14px] text-[#aaa] ml-auto pr-8">{tooltip.value} 首</span>
+          </div>
+          
+          <div className="mt-2 border-t border-white/10 pt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+            {TAGS.map((t, ti) => ({ ...t, val: data.raw[ti][tooltip.xi] }))
+              .filter(t => t.val > 0)
+              .sort((a, b) => b.val - a.val)
+              .slice(0, 6)
+              .map(t => (
+                <div key={t.key} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-[2px]" style={{ background: t.color }}></div>
+                    <span className="text-xs text-[#aaa] font-medium">{t.label}</span>
+                  </div>
+                  <span className="text-xs text-[#666] font-semibold">{t.val}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 px-1">
