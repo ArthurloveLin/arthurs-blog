@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
 import { useTheme } from 'next-themes'
+import { isTurnstileBypassed } from '@/app/actions/turnstile'
 
 interface TurnstileProps {
   onVerify?: (token: string) => void
@@ -47,6 +48,7 @@ export default function Turnstile({
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
   const [token, setToken] = useState<string>('')
+  const [isBypassed, setIsBypassed] = useState<boolean | null>(null)
   const { resolvedTheme } = useTheme()
   const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY
 
@@ -62,10 +64,21 @@ export default function Turnstile({
   const widgetTheme = resolvedTheme === 'dark' ? 'dark' : 'light'
 
   useEffect(() => {
+    isTurnstileBypassed().then(bypassed => {
+      setIsBypassed(bypassed)
+      if (bypassed) {
+        setToken('bypass')
+        onVerifyRef.current?.('bypass')
+      }
+    })
+  }, [])
+
+  useEffect(() => {
     if (!siteKey) {
       console.warn('Turnstile Site Key is missing')
       return
     }
+    if (isBypassed === true) return // 如果被 bypassed，则不加载 widget
 
     const renderWidget = () => {
       if (window.turnstile && containerRef.current && !widgetIdRef.current) {
@@ -99,7 +112,11 @@ export default function Turnstile({
         widgetIdRef.current = null
       }
     }
-  }, [siteKey, widgetTheme])
+  }, [siteKey, widgetTheme, isBypassed])
+
+  if (isBypassed === true) {
+    return <input type="hidden" name="cf-turnstile-response" value="bypass" />
+  }
 
   return (
     <div className={className}>

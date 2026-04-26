@@ -3,6 +3,8 @@
  * 参考: https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
  */
 
+import { isTurnstileBypassed } from '@/app/actions/turnstile';
+
 export interface TurnstileVerificationResponse {
   success: boolean;
   'error-codes'?: string[];
@@ -25,6 +27,18 @@ export async function verifyTurnstile(token: string, remoteip?: string): Promise
 
   // 如果没有 token，直接返回失败
   if (!token) {
+    return false;
+  }
+
+  // 检查是否是被豁免的 CN 用户
+  if (token === 'bypass') {
+    const bypassed = await isTurnstileBypassed();
+    if (bypassed) {
+      console.log('Turnstile successfully bypassed for CN user on the server');
+      return true;
+    }
+    // 如果 token 是 bypass 但 IP 不是 CN，这可能是恶意绕过，拒绝
+    console.warn('Blocked attempt to bypass turnstile from non-CN IP');
     return false;
   }
 
