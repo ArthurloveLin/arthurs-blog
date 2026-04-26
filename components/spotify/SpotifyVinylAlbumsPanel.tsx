@@ -32,7 +32,7 @@ function VinylAlbum({ album, addedAt }: { album: SpotifySavedAlbum['album']; add
       <div className={styles.album}>
         <div className={styles.cover}>
           {album.imageUrl ? (
-            <Image src={album.imageUrl} alt={album.name} fill sizes="200px" className="object-cover" unoptimized />
+            <Image src={album.imageUrl} alt={album.name} fill sizes="200px" className="object-cover" loading="lazy" unoptimized />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
               <Music2 className="h-8 w-8" strokeWidth={1.6} />

@@ -17,6 +17,93 @@ import SpotifyTopTracksPanel from './SpotifyTopTracksPanel'
 import SpotifyTagCloudCard from './SpotifyTagCloudCard'
 import SpotifyTagRadarCard from './SpotifyTagRadarCard'
 
+export function SpotifyAboveFold({ data, tagAnalysis }: { data: SpotifyDashboardData; tagAnalysis: SpotifyTagAnalysis }) {
+  const stats = {
+    recentlyPlayed: data.recentlyPlayed.length,
+    likedSongs: data.library.savedTracks.total,
+    playlists: data.library.playlists.total,
+  }
+
+  return (
+    <div className="site-shell py-10">
+      <SpotifyLivePlayerPanel stats={stats} />
+
+      <div className="mt-4">
+        <SectionCard
+          id="recently-played"
+          eyebrow="Recently Played"
+          title="最近播放记录"
+          description="悬停卡片可查看艺人、时间和播放来源。"
+        >
+          <SpotifyRecentlyPlayedDeck items={data.recentlyPlayed} />
+        </SectionCard>
+      </div>
+
+      <div className="mt-4">
+        <SpotifyMusicReportSection />
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2 lg:items-stretch">
+        <SpotifyTagCloudCard analysis={tagAnalysis} />
+        <SpotifyTagRadarCard analysis={tagAnalysis} />
+      </div>
+    </div>
+  )
+}
+
+export function SpotifyLeaderboards({ data }: { data: SpotifyDashboardData }) {
+  return (
+    <div className="site-shell pb-24">
+      <div className="mt-4">
+        <SpotifyTopArtistsPanel data={data.topArtists} />
+      </div>
+
+      <div className="mt-4">
+        <SpotifyVinylAlbumsPanel
+          items={data.library.savedAlbums.items}
+          total={data.library.savedAlbums.total}
+        />
+      </div>
+
+      <div className="mt-4 space-y-4">
+        <SpotifyTopTracksPanel data={data.topTracks} />
+        <SpotifySavedTracksPanel
+          initialItems={data.library.savedTracks.items}
+          total={data.library.savedTracks.total}
+        />
+      </div>
+
+      <div className="mt-4">
+        <SectionCard
+          eyebrow="Playlists"
+          id="playlists"
+          title="用户歌单"
+          description="保存的个人及推荐歌单。"
+        >
+          <PlaylistsBoard items={data.library.playlists.items} total={data.library.playlists.total} />
+        </SectionCard>
+      </div>
+
+      {data.warnings.length > 0 ? (
+        <SectionCard
+          eyebrow="Data Warnings"
+          title="部分数据暂时不可用"
+          description="如果某些接口临时超时或 Spotify 返回异常，下面会列出降级项。"
+        >
+          <div className="space-y-3">
+            {data.warnings.map((warning) => (
+              <div key={warning} className="flex items-center gap-3 rounded-[20px] border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm text-foreground/85">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" strokeWidth={1.8} />
+                <span>{warning}</span>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      ) : null}
+    </div>
+  )
+}
+
 const SectionCard = memo(function SectionCard({
   eyebrow,
   title,
@@ -65,83 +152,10 @@ const PlaylistsBoard = memo(function PlaylistsBoard({ items, total }: { items: S
 
 
 export default function SpotifyDashboard({ data, tagAnalysis }: { data: SpotifyDashboardData; tagAnalysis: SpotifyTagAnalysis }) {
-  const stats = {
-    recentlyPlayed: data.recentlyPlayed.length,
-    likedSongs: data.library.savedTracks.total,
-    playlists: data.library.playlists.total,
-  }
-
   return (
-    <div className="site-shell py-10 pb-24">
-      <SpotifyLivePlayerPanel stats={stats} />
-
-
-      <div className="mt-4">
-        <SectionCard
-          id="recently-played"
-          eyebrow="Recently Played"
-          title="最近播放记录"
-          description="悬停卡片可查看艺人、时间和播放来源。"
-        >
-          <SpotifyRecentlyPlayedDeck items={data.recentlyPlayed} />
-        </SectionCard>
-      </div>
-
-      <div className="mt-4">
-        <SpotifyMusicReportSection />
-      </div>
-
-      <div className="mt-4">
-        <SpotifyTopArtistsPanel data={data.topArtists} />
-      </div>
-
-      <div className="mt-4">
-        <SpotifyVinylAlbumsPanel
-          items={data.library.savedAlbums.items}
-          total={data.library.savedAlbums.total}
-        />
-      </div>
-
-      <div className="mt-4 space-y-4">
-        <SpotifyTopTracksPanel data={data.topTracks} />
-        <SpotifySavedTracksPanel
-          initialItems={data.library.savedTracks.items}
-          total={data.library.savedTracks.total}
-        />
-      </div>
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-2 lg:items-stretch">
-        <SpotifyTagCloudCard analysis={tagAnalysis} />
-        <SpotifyTagRadarCard analysis={tagAnalysis} />
-      </div>
-
-      <div className="mt-4">
-        <SectionCard
-          eyebrow="Playlists"
-          id="playlists"
-          title="用户歌单"
-          description="保存的个人及推荐歌单。"
-        >
-          <PlaylistsBoard items={data.library.playlists.items} total={data.library.playlists.total} />
-        </SectionCard>
-      </div>
-
-      {data.warnings.length > 0 ? (
-        <SectionCard
-          eyebrow="Data Warnings"
-          title="部分数据暂时不可用"
-          description="如果某些接口临时超时或 Spotify 返回异常，下面会列出降级项。"
-        >
-          <div className="space-y-3">
-            {data.warnings.map((warning) => (
-              <div key={warning} className="flex items-center gap-3 rounded-[20px] border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm text-foreground/85">
-                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" strokeWidth={1.8} />
-                <span>{warning}</span>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      ) : null}
-    </div>
+    <>
+      <SpotifyAboveFold data={data} tagAnalysis={tagAnalysis} />
+      <SpotifyLeaderboards data={data} />
+    </>
   )
 }

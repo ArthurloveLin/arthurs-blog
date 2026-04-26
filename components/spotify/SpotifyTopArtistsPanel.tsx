@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState, useTransition } from 'react'
+import Image from 'next/image'
 import { ChevronLeft, ChevronRight, ExternalLink, Mic2, Users } from 'lucide-react'
 
 import type { SpotifyTimeRange, SpotifyTopArtist } from '@/lib/spotify-types'
@@ -42,10 +43,19 @@ function ArtistCard({ artist }: { artist: SpotifyTopArtist }) {
   return (
     <div
       className={styles.card}
-      style={hasImage ? { backgroundImage: `url(${artist.imageUrl})` } : undefined}
       data-no-image={!hasImage ? 'true' : undefined}
     >
-      {!hasImage && (
+      {hasImage ? (
+        <Image
+          src={artist.imageUrl!}
+          alt={artist.name}
+          fill
+          sizes="(max-width:639px) 50vw, (max-width:1023px) 33vw, 25vw"
+          loading="lazy"
+          className={styles.cardImage}
+          unoptimized
+        />
+      ) : (
         <div className={styles.fallbackIcon}>
           <Mic2 className="h-10 w-10" strokeWidth={1.5} />
         </div>

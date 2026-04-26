@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 
 import DirectionalTransition from '@/components/DirectionalTransition'
 import PageHero from '@/components/PageHero'
-import SpotifyDashboard from '@/components/spotify/SpotifyDashboard'
+import { SpotifyAboveFold, SpotifyLeaderboards } from '@/components/spotify/SpotifyDashboard'
 
 import { getSiteConfig } from '@/lib/blog'
 import { getStoredSpotifyDashboardData, listRecentlyPlayedDays, readRecentlyPlayedDayShard } from '@/lib/spotify'
@@ -12,7 +12,7 @@ import { getStoredSpotifyTrackTagStore } from '@/lib/spotify-tags'
 export const metadata = { title: 'Spotify Dashboard' }
 export const revalidate = 3600
 
-async function SpotifyDashboardLoader() {
+async function AboveFoldLoader() {
   const [spotifyDashboard, tagStore, recentDays] = await Promise.all([
     getStoredSpotifyDashboardData(),
     getStoredSpotifyTrackTagStore(),
@@ -32,15 +32,29 @@ async function SpotifyDashboardLoader() {
     : spotifyDashboard
 
   const tagAnalysis = computeTagAnalysis(dashboardForRadar, tagStore)
-  return <SpotifyDashboard data={spotifyDashboard} tagAnalysis={tagAnalysis} />
+  return <SpotifyAboveFold data={spotifyDashboard} tagAnalysis={tagAnalysis} />
 }
 
-function SpotifyDashboardSkeleton() {
+async function LeaderboardLoader() {
+  const data = await getStoredSpotifyDashboardData()
+  return <SpotifyLeaderboards data={data} />
+}
+
+function AboveFoldSkeleton() {
   return (
-    <div className="site-shell py-10 pb-24">
+    <div className="site-shell py-10">
       <div className="h-48 rounded-[32px] border border-border/60 bg-card/60 animate-pulse" />
       <div className="mt-6 h-96 rounded-[28px] border border-border/60 bg-card/60 animate-pulse" />
       <div className="mt-6 h-64 rounded-[28px] border border-border/60 bg-card/60 animate-pulse" />
+    </div>
+  )
+}
+
+function LeaderboardSkeleton() {
+  return (
+    <div className="site-shell pb-24">
+      <div className="mt-4 h-80 rounded-[28px] border border-border/60 bg-card/60 animate-pulse" />
+      <div className="mt-4 h-72 rounded-[28px] border border-border/60 bg-card/60 animate-pulse" />
     </div>
   )
 }
@@ -65,20 +79,25 @@ export default async function SpotifyPage() {
     <DirectionalTransition>
       <main className="min-h-screen bg-background">
         {/* ── Hero ── */}
-        <PageHero 
+        <PageHero
           title={titleNode}
           subtitle={siteConfig.spotify_hero_subtitle || "METRICS & MELODIES"}
           description={siteConfig.spotify_hero_description || "Tracing the rhythms that define my journey. A real-time audit of my listening habits and personal soundtracks."}
-          slogan={{ 
-            text1: siteConfig.spotify_slogan_1 || "Where words fail,", 
-            text2: siteConfig.spotify_slogan_2 || "music speaks." 
+          slogan={{
+            text1: siteConfig.spotify_slogan_1 || "Where words fail,",
+            text2: siteConfig.spotify_slogan_2 || "music speaks."
           }}
           blobColors={['bg-emerald-400/10', 'bg-green-400/10']}
         />
 
-        {/* ── Body ── */}
-        <Suspense fallback={<SpotifyDashboardSkeleton />}>
-          <SpotifyDashboardLoader />
+        {/* ── Above fold: LivePlayer + RecentlyPlayed + MusicReport + Tags ── */}
+        <Suspense fallback={<AboveFoldSkeleton />}>
+          <AboveFoldLoader />
+        </Suspense>
+
+        {/* ── Leaderboards: TopArtists + Albums + Tracks + Playlists ── */}
+        <Suspense fallback={<LeaderboardSkeleton />}>
+          <LeaderboardLoader />
         </Suspense>
       </main>
     </DirectionalTransition>
