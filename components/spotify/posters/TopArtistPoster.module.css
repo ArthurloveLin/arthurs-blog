@@ -2,7 +2,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 253px;
+  height: 310px;
   overflow: hidden;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
@@ -12,22 +12,30 @@
   transform: translateY(4px);
 }
 
-/* Blurred album art background */
-.blurBg {
+.bgImage {
   position: absolute;
-  inset: -12px;
+  inset: 0;
   background-size: cover;
-  background-position: center;
-  filter: blur(20px) saturate(1.6) brightness(0.45);
+  background-position: center top;
   z-index: 0;
+  opacity: 0.18;
 }
 
-/* Dark overlay */
+.bgBlur {
+  filter: blur(16px) saturate(1.4);
+  transform: scale(1.1);
+  opacity: 0.25;
+}
+
 .overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(160deg, rgba(26, 31, 94, 0.75) 0%, rgba(10, 8, 40, 0.88) 100%);
+  background: linear-gradient(160deg, rgba(26, 31, 94, 0.55) 0%, rgba(10, 8, 40, 0.78) 100%);
   z-index: 1;
+}
+
+.overlayDark {
+  background: linear-gradient(160deg, #1a1f5e 0%, #0a0828 100%);
 }
 
 .accentBar {
@@ -39,39 +47,101 @@
   flex-shrink: 0;
 }
 
-.content {
+/* ─── Artist cover image 50% ──────────────────────────────────────────────── */
+
+.coverArea {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 50%;
+  overflow: hidden;
+  background: rgba(0,0,0,0.3);
+}
+
+.coverImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+.coverPlaceholder {
+  width: 100%;
+  height: 100%;
+  background:
+    repeating-conic-gradient(rgba(255,255,255,0.03) 0% 25%, transparent 0% 50%) 0 0 / 10px 10px,
+    rgba(26,31,94,0.6);
+}
+
+.coverSkeleton {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(180,190,255,0.06) 0%, rgba(180,190,255,0.12) 50%, rgba(180,190,255,0.06) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease infinite;
+}
+
+.coverGradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: linear-gradient(to top, rgba(10, 8, 40, 0.9) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.coverLabel {
+  position: absolute;
+  bottom: 7px;
+  left: 8px;
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.44rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(180, 190, 255, 0.6);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
+
+/* ─── Info area ───────────────────────────────────────────────────────────── */
+
+.infoArea {
   position: relative;
   z-index: 2;
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 0.9rem 0.85rem 0.6rem;
+  padding: 0.6rem 0.85rem 0.6rem;
   min-height: 0;
 }
 
-.eyebrow {
-  font-family: ui-monospace, 'SF Mono', monospace;
-  font-size: 0.48rem;
-  font-weight: 700;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: rgba(180, 190, 255, 0.55);
-}
-
 .artistName {
-  font-size: clamp(1.2rem, 9vw, 1.9rem);
+  font-size: clamp(1.05rem, 7vw, 1.5rem);
   font-weight: 900;
   letter-spacing: -0.03em;
   text-transform: uppercase;
   color: #f5c842;
   line-height: 1.05;
-  margin: 0.5rem 0 0;
-  word-break: break-word;
-  /* Two-line clamp */
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  margin: 0;
+}
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(180, 190, 255, 0.15);
+  margin: 0.42rem 0 0.38rem;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
 .playsCount {
@@ -79,48 +149,53 @@
   font-size: 0.55rem;
   font-weight: 600;
   color: rgba(180, 190, 255, 0.7);
-  letter-spacing: 0.08em;
-  margin-top: 0.5rem;
+  letter-spacing: 0.06em;
 }
 
 .genreTag {
-  display: inline-block;
-  margin-top: 0.5rem;
   font-size: 0.52rem;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: lowercase;
-  padding: 0.15rem 0.55rem;
+  padding: 0.14rem 0.45rem;
   border-radius: 999px;
-  border: 1px solid rgba(180, 190, 255, 0.25);
+  border: 1px solid rgba(180, 190, 255, 0.22);
   color: rgba(180, 190, 255, 0.65);
   background: rgba(255, 255, 255, 0.06);
-  align-self: flex-start;
 }
 
-.emptyLabel {
-  font-size: 0.62rem;
-  color: rgba(180, 190, 255, 0.45);
-  margin-top: 0.8rem;
-}
-
-.footer {
+.statRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: auto;
   padding-top: 0.3rem;
 }
 
-.footerMeta {
+.statItem {
   font-family: ui-monospace, 'SF Mono', monospace;
-  font-size: 0.5rem;
-  color: rgba(180, 190, 255, 0.3);
-  letter-spacing: 0.06em;
+  font-size: 0.48rem;
+  color: rgba(180, 190, 255, 0.45);
+  letter-spacing: 0.04em;
 }
 
-/* ─── Skeletons ───────────────────────────────────────────────────────────── */
+.statNum {
+  font-weight: 700;
+  color: rgba(180, 190, 255, 0.75);
+}
+
+.emptyLabel {
+  font-size: 0.62rem;
+  color: rgba(180, 190, 255, 0.4);
+  margin-top: 0.8rem;
+}
+
+/* ─── Skeleton ────────────────────────────────────────────────────────────── */
 
 .skeleton {
+  display: block;
   border-radius: 3px;
-  background: linear-gradient(90deg, rgba(180,190,255,0.08) 0%, rgba(180,190,255,0.16) 50%, rgba(180,190,255,0.08) 100%);
+  background: linear-gradient(90deg, rgba(180,190,255,0.06) 0%, rgba(180,190,255,0.13) 50%, rgba(180,190,255,0.06) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.6s ease infinite;
 }
