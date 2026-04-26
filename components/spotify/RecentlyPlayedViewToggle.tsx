@@ -15,7 +15,7 @@ export default function RecentlyPlayedViewToggle({
   onChange: (view: RecentlyPlayedView) => void
 }) {
   return (
-    <div className="inline-flex flex-nowrap gap-1 overflow-x-auto scrollbar-none rounded-full border border-border/70 bg-background/80 p-0.5">
+    <div className="inline-flex gap-1 rounded-full border border-border/70 bg-background/80 p-0.5">
       {VIEW_OPTIONS.map((option) => {
         const isActive = option.id === view
 

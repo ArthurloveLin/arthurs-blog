@@ -117,12 +117,12 @@ export default function SpotifyTopArtistsPanel({
 
   return (
     <section className="rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60_rgba(0,0,0,0.05)]">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4">
         <div className="w-full">
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{copy.eyebrow}</p>
           <div className="mt-1 flex items-center justify-between gap-4">
             <h3 className="text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h3>
-            <div className="hidden shrink-0 sm:block">
+            <div className="shrink-0">
               <SpotifyTimeRangeTabs
                 activeRange={activeRange}
                 onChange={(range) => {
@@ -135,16 +135,6 @@ export default function SpotifyTopArtistsPanel({
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             {copy.description}
           </p>
-        </div>
-
-        <div className="sm:hidden">
-          <SpotifyTimeRangeTabs
-            activeRange={activeRange}
-            onChange={(range) => {
-              startTransition(() => setActiveRange(range))
-            }}
-            tone="contrast"
-          />
         </div>
       </div>
 

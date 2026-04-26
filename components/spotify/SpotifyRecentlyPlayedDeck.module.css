@@ -5,17 +5,6 @@
   gap: 1rem;
 }
 
-.viewHeader {
-  position: absolute;
-  top: -3.85rem;
-  right: 0;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
 .historyCaption {
   margin: 0;
   color: var(--foreground);
@@ -319,6 +308,8 @@
 
 .timelineMeta,
 .chartPanel {
+  position: relative;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
@@ -327,19 +318,21 @@
 }
 
 .dayRail {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
   padding: 0.4rem 0;
 }
-
 .timelineScroller,
 .segmentScroller {
   display: flex;
   gap: 0.65rem;
   overflow-x: auto;
-  padding-top: 0.2rem;
-  padding-bottom: 0.2rem;
+  padding: 1.2rem 0.2rem 1.8rem;
+  margin: -1.2rem -0.2rem -1.8rem;
+  scroll-padding-inline: 0.25rem;
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
 }
 
@@ -356,6 +349,7 @@
 .timelinePill,
 .segmentPill {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 0.3rem;
   border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
@@ -374,25 +368,28 @@
 }
 
 .timelinePill {
-  min-width: 5rem;
-  min-height: 4.15rem;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  justify-content: center;
+  min-height: 2.7rem;
+  scroll-snap-align: start;
 }
+
+.segmentPill {
+  min-height: 2.7rem;
+  scroll-snap-align: start;
+}
+
+
 
 .timelinePillLabel {
   color: var(--foreground);
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 600;
   line-height: 1;
 }
 
 .timelinePillDate {
   color: var(--muted-foreground);
-  font-size: 0.66rem;
-  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
@@ -449,21 +446,148 @@
 
 .dayMenu {
   position: absolute;
-  top: calc(100% + 0.55rem);
-  right: 0;
-  z-index: 30;
+  bottom: calc(100% + 0.8rem);
+  z-index: 999;
   display: flex;
-  width: min(18rem, calc(100vw - 2rem));
-  max-height: 18rem;
+  width: 19.5rem;
   flex-direction: column;
-  gap: 0.28rem;
-  overflow-y: auto;
+  overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
-  border-radius: 1.1rem;
+  border-radius: 1.25rem;
   background: color-mix(in srgb, var(--card) 96%, transparent);
-  padding: 0.55rem;
-  box-shadow: 0 22px 56px rgba(15, 23, 42, 0.16);
-  backdrop-filter: blur(18px);
+  padding: 1rem;
+  box-shadow: 0 22px 56px rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 0 0.2rem;
+}
+
+.calendarTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.calendarNav {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.calendarNavBtn {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  background: color-mix(in srgb, var(--muted) 30%, transparent);
+  color: var(--muted-foreground);
+  transition: all 200ms ease;
+}
+
+.calendarNavBtn:hover {
+  background: color-mix(in srgb, var(--muted) 60%, transparent);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+}
+
+.calendarWeekday {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  text-align: center;
+  padding-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.calendarDay {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border-radius: 0.6rem;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  transition: all 180ms ease;
+  cursor: default;
+}
+
+.calendarDayHasData {
+  color: var(--foreground);
+  cursor: pointer;
+  background: color-mix(in srgb, var(--muted) 20%, transparent);
+}
+
+.calendarDayHasData:hover {
+  background: color-mix(in srgb, rgb(16 185 129) 12%, var(--card));
+  transform: translateY(-1px);
+}
+
+.calendarDayActive {
+  background: rgb(16 185 129) !important;
+  color: white !important;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.calendarDayToday::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.calendarDayOutside {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.calendarFooter {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.calendarLegend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+  color: var(--muted-foreground);
+}
+
+.calendarLegendDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgb(16 185 129);
 }
 
 .dayMenuItem {
@@ -578,13 +702,19 @@
   background:
     radial-gradient(circle at top, rgba(16, 185, 129, 0.08), transparent 48%),
     color-mix(in srgb, var(--card) 92%, transparent);
-  padding: 1rem 1rem 0;
+  padding: 0;
+}
+
+.chartPlotInner {
+  position: absolute;
+  inset: 0 1rem;
+  padding-top: 1rem;
 }
 
 .chartGuide {
   position: absolute;
-  left: 1rem;
-  right: 1rem;
+  left: 0;
+  right: 0;
   border-top: 1px dashed color-mix(in srgb, var(--border) 60%, transparent);
 }
 
@@ -593,6 +723,8 @@
   position: absolute;
   top: 0.4rem;
   bottom: 0;
+  left: 0;
+  right: 0;
   border-radius: 0.6rem 0.6rem 0 0;
   pointer-events: none;
   opacity: 0;
@@ -675,6 +807,31 @@
   align-items: flex-end;
 }
 
+.chartBarTooltip {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--foreground);
+  pointer-events: none;
+  animation: tooltip-fade-in 180ms ease forwards;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+@keyframes tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
 /* base bar style — overridden by data-segment colors */
 .chartBar {
   width: 100%;
@@ -736,7 +893,10 @@
 
 /* X-axis segment labels */
 .chartSegmentLabels {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  gap: 0.2rem;
+  padding: 0 1rem;
   border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
   border-top: none;
   border-radius: 0 0 1.4rem 1.4rem;
@@ -817,6 +977,10 @@
 }
 
 @media (max-width: 767px) {
+  .section {
+    gap: 1.15rem;
+  }
+
   .viewport {
     padding-inline: 0;
   }
@@ -850,18 +1014,53 @@
     justify-content: center;
   }
 
-  .viewHeader {
-    align-items: flex-start;
+  .timelineMeta,
+  .chartPanel {
+    gap: 0.8rem;
   }
 
   .dayMenu {
-    left: 0;
-    right: auto;
+    width: min(19.5rem, calc(100vw - 2rem));
+    left: 0 !important;
+    right: auto !important;
+    transform: none !important;
+  }
+
+  .timelineScroller {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .timelinePill {
+    min-width: 0;
+    min-height: 2.9rem;
+    padding-inline: 0.82rem;
+  }
+
+  .timelinePillLabel {
+    font-size: 0.76rem;
+  }
+
+  .timelinePillDate {
+    font-size: 0.66rem;
+  }
+
+  .segmentScroller {
+    gap: 0.5rem;
+  }
+
+  .segmentPill {
+    min-height: 2.9rem;
+    padding-inline: 0.82rem;
   }
 
   .chartBars {
     gap: 0.65rem;
     min-height: 13rem;
+  }
+
+  .chartSegmentLabels {
+    gap: 0.65rem;
   }
 
   .chartPlot {
@@ -873,10 +1072,6 @@
     min-height: 10rem;
   }
 
-  .timelinePill {
-    min-width: 4.1rem;
-    padding-inline: 0.78rem;
-  }
 
   .pageLabel {
     display: none;
