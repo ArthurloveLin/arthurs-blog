@@ -102,7 +102,7 @@ function RadarChart({
   }
 
   return (
-    <svg viewBox={`0 0 ${VIEW_SIZE} ${VIEW_SIZE}`} className="mx-auto w-full max-w-[360px]">
+    <svg viewBox={`0 0 ${VIEW_SIZE} ${VIEW_SIZE}`} className="mx-auto w-full max-w-[280px] overflow-visible sm:max-w-[320px]">
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#fb7185" stopOpacity="0.88" />
@@ -202,7 +202,8 @@ function RadarChart({
             y={y}
             textAnchor={textAnchor}
             dominantBaseline="middle"
-            fontSize={isActive ? '10' : '8.8'}
+            fontSize={isActive ? '12.5' : '11'}
+            fontWeight={isActive ? '700' : '600'}
             fill={isActive ? 'rgba(15,23,42,0.95)' : 'rgba(71,85,105,0.85)'}
             className="font-mono transition-all duration-200"
             onMouseEnter={() => onHoverAxis(axis.label)}
@@ -278,9 +279,9 @@ export default function SpotifyTagRadarCard({
           ))}
         </div>
 
-        <div className="rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(247,248,251,0.96),rgba(237,242,247,0.92))] px-2 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-white/8 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] sm:px-4 sm:py-5">
+        <div className="rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(247,248,251,0.96),rgba(237,242,247,0.92))] px-2 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-white/8 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] sm:px-4 sm:py-4">
           {result.tracksWithTags === 0 ? (
-            <div className="flex min-h-[320px] items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+            <div className="flex min-h-[280px] items-center justify-center text-sm text-slate-500 dark:text-slate-400">
               暂无标签数据
             </div>
           ) : (
@@ -311,7 +312,7 @@ export default function SpotifyTagRadarCard({
                     : 'border-slate-200/80 bg-white/65 hover:border-slate-300 hover:bg-white dark:border-white/8 dark:bg-white/5 dark:hover:bg-white/8',
                 ].join(' ')}
               >
-                <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
                   <span
                     className="inline-block h-2 w-2 rounded-full"
                     style={{

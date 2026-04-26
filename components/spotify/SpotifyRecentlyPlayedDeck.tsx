@@ -1,6 +1,6 @@
 'use client'
 
-import { startTransition, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ChevronLeft, ChevronRight, Music2 } from 'lucide-react'
 
 import {
@@ -132,7 +132,7 @@ function HistoryDaySelector({
     })
   }, [viewDate, availableDaySet, selectedDate])
 
-  const updateMenuPosition = () => {
+  const updateMenuPosition = useCallback(() => {
     if (!isMenuOpen || !buttonRef.current || !menuRef.current) return
 
     const buttonRect = buttonRef.current.getBoundingClientRect()
@@ -167,11 +167,11 @@ function HistoryDaySelector({
       transform: 'translateX(-50%)',
       right: 'auto',
     })
-  }
+  }, [isMenuOpen])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isMenuOpen) {
-      updateMenuPosition()
+      const handle = requestAnimationFrame(updateMenuPosition)
       
       const scroller = scrollerRef.current
       if (scroller) {
@@ -180,13 +180,14 @@ function HistoryDaySelector({
       window.addEventListener('resize', updateMenuPosition)
       
       return () => {
+        cancelAnimationFrame(handle)
         if (scroller) {
           scroller.removeEventListener('scroll', updateMenuPosition)
         }
         window.removeEventListener('resize', updateMenuPosition)
       }
     }
-  }, [isMenuOpen])
+  }, [isMenuOpen, updateMenuPosition])
 
   useEffect(() => {
     if (!isMenuOpen) {
