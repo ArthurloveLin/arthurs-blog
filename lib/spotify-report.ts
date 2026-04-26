@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { aggregateTags } from './spotify-tag-analysis'
-import { listRecentlyPlayedDays, readRecentlyPlayedDayShard } from './spotify'
+import { getStoredSpotifyDashboardData, listRecentlyPlayedDays, readRecentlyPlayedDayShard } from './spotify'
 import { readSpotifyTrackTagStore } from './spotify-tags'
 import type { SpotifyRecentlyPlayedTrack, SpotifyTrackTagStore } from './spotify-types'
 
@@ -10,6 +10,13 @@ export interface MusicReportTopTrack {
   artist: string
   albumImageUrl: string | null
   playCount: number
+  durationMs: number
+}
+
+export interface MusicReportTopArtist {
+  name: string
+  playCount: number
+  imageUrl: string | null
 }
 
 export interface MusicReportTopContext {
@@ -23,9 +30,9 @@ export interface MusicReportStats {
   periodLabel: string
   dateRange: string
   topTrack: MusicReportTopTrack | null
-  topArtist: { name: string; playCount: number } | null
+  topArtist: MusicReportTopArtist | null
   top5Tracks: MusicReportTopTrack[]
-  top5Artists: { name: string; playCount: number }[]
+  top5Artists: MusicReportTopArtist[]
   topContext: MusicReportTopContext | null
   topTag: string | null
   totalPlays: number
@@ -56,6 +63,7 @@ function toYM(date: Date) {
 function computeStats(
   tracks: SpotifyRecentlyPlayedTrack[],
   tagStore: SpotifyTrackTagStore | null,
+  artistImageMap: Map<string, string>,
   period: 'day' | 'week' | 'month',
   periodLabel: string,
   dateRange: string
@@ -76,10 +84,11 @@ function computeStats(
     artist: e.track.artists[0] ?? '',
     albumImageUrl: e.track.albumImageUrl,
     playCount: e.count,
+    durationMs: e.track.durationMs,
   }))
   const topTrack: MusicReportTopTrack | null = top5Tracks[0] ?? null
 
-  // Top artists
+  // Top artists (with image lookup from dashboard)
   const artistMap = new Map<string, number>()
   for (const t of tracks) {
     for (const a of t.artists) {
@@ -87,8 +96,12 @@ function computeStats(
     }
   }
   const sortedArtists = [...artistMap.entries()].sort((a, b) => b[1] - a[1])
-  const top5Artists = sortedArtists.slice(0, 5).map(([name, playCount]) => ({ name, playCount }))
-  const topArtist = top5Artists[0] ?? null
+  const top5Artists: MusicReportTopArtist[] = sortedArtists.slice(0, 5).map(([name, playCount]) => ({
+    name,
+    playCount,
+    imageUrl: artistImageMap.get(name) ?? null,
+  }))
+  const topArtist: MusicReportTopArtist | null = top5Artists[0] ?? null
 
   // Top context (loyalty)
   const ctxMap = new Map<string, { label: string; type: string; count: number }>()
@@ -112,14 +125,13 @@ function computeStats(
   const totalPlays = tracks.length
   const totalMinutes = Math.round(tracks.reduce((sum, t) => sum + t.durationMs, 0) / 60000)
 
-  // Peak hour
+  // Peak hour — convert UTC to CST (UTC+8)
   const hourMap = new Map<number, number>()
   for (const t of tracks) {
-    const h = new Date(t.playedAt).getHours()
+    const h = new Date(t.playedAt).getUTCHours()
     hourMap.set(h, (hourMap.get(h) ?? 0) + 1)
   }
   const peakHourEntry = [...hourMap.entries()].sort((a, b) => b[1] - a[1])[0]
-  // Convert UTC peak hour to CST (UTC+8)
   const peakHour = peakHourEntry ? (peakHourEntry[0] + 8) % 24 : null
 
   return { period, periodLabel, dateRange, topTrack, topArtist, top5Tracks, top5Artists, topContext, topTag, totalPlays, totalMinutes, peakHour }
@@ -131,19 +143,45 @@ export async function buildMusicReport(): Promise<MusicReport> {
   const yearMonthStr = toYM(now)
 
   // Day: today's shard
-  const dayTracks = await readRecentlyPlayedDayShard(todayStr)
+  const dayTracksPromise = readRecentlyPlayedDayShard(todayStr)
 
   // Week: last 7 day shards merged
-  const days = await listRecentlyPlayedDays(7)
+  const daysPromise = listRecentlyPlayedDays(7)
+
+  // Month: current month shards
+  const monthDaysPromise = listRecentlyPlayedDays(31)
+
+  // Dashboard for artist images
+  const dashboardPromise = getStoredSpotifyDashboardData().catch(() => null)
+
+  const [dayTracks, days, monthDays, dashboard] = await Promise.all([
+    dayTracksPromise,
+    daysPromise,
+    monthDaysPromise,
+    dashboardPromise,
+  ])
+
   const weekShards = await Promise.all(days.map((d) => readRecentlyPlayedDayShard(d)))
   const weekTracks = weekShards.flat()
 
-  // Month: current month shard (already maintained by sync)
-  // Fallback: use all available weekly shards for the current month
-  const monthDays = await listRecentlyPlayedDays(31)
   const currentMonthDays = monthDays.filter((d) => d.startsWith(yearMonthStr))
   const monthShards = await Promise.all(currentMonthDays.map((d) => readRecentlyPlayedDayShard(d)))
   const monthTracks = monthShards.flat()
+
+  // Build artist name → imageUrl lookup from dashboard data across all time ranges
+  const artistImageMap = new Map<string, string>()
+  if (dashboard) {
+    const allArtists = [
+      ...(dashboard.topArtists?.short_term ?? []),
+      ...(dashboard.topArtists?.medium_term ?? []),
+      ...(dashboard.topArtists?.long_term ?? []),
+    ]
+    for (const a of allArtists) {
+      if (a.imageUrl && !artistImageMap.has(a.name)) {
+        artistImageMap.set(a.name, a.imageUrl)
+      }
+    }
+  }
 
   // Fetch tags for all unique track IDs across all periods
   const allIds = [...new Set([...dayTracks, ...weekTracks, ...monthTracks].map((t) => t.id))]
@@ -158,9 +196,9 @@ export async function buildMusicReport(): Promise<MusicReport> {
   const monthRange = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`
 
   return {
-    day: computeStats(dayTracks, tagStore, 'day', '今天', dayRange),
-    week: computeStats(weekTracks, tagStore, 'week', '本周', weekRange),
-    month: computeStats(monthTracks, tagStore, 'month', '本月', monthRange),
+    day: computeStats(dayTracks, tagStore, artistImageMap, 'day', '今天', dayRange),
+    week: computeStats(weekTracks, tagStore, artistImageMap, 'week', '本周', weekRange),
+    month: computeStats(monthTracks, tagStore, artistImageMap, 'month', '本月', monthRange),
     generatedAt: now.toISOString(),
   }
 }

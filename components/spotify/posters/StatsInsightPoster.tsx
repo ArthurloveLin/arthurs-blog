@@ -19,7 +19,7 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
   const hours = Math.floor(totalMinutes / 60)
   const mins = totalMinutes % 60
 
-  // Pick up to 4 unique album images for the collage
+  // Up to 4 unique album images for the collage
   const collageImages: (string | null)[] = []
   for (const t of top5Tracks) {
     if (collageImages.length >= 4) break
@@ -33,10 +33,9 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
 
   return (
     <div className={`${styles.poster} ${isTransitioning ? styles.transitioning : ''}`}>
-      {/* Accent bar */}
       <div className={styles.accentBar} />
 
-      {/* ── Hero area 30% ── */}
+      {/* ── Hero 30% ── */}
       <div className={styles.heroArea}>
         {isLoading ? (
           <div className={styles.heroSkeleton} />
@@ -45,25 +44,24 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
             <div className={styles.collageGrid}>
               {collageImages.map((url, i) =>
                 url ? (
-                  <img key={i} src={url} className={styles.collageImg} alt="" width={79} height={37} />
+                  <img key={i} src={url} className={styles.collageImg} alt="" width={98} height={46} />
                 ) : (
                   <div key={i} className={styles.collagePlaceholder} />
                 )
               )}
             </div>
-            {/* Date label along left edge */}
             <span className={styles.dateEdge}>{dateRange}</span>
             <div className={styles.heroGradient} />
           </>
         )}
       </div>
 
-      {/* ── Ranked list area 50% ── */}
+      {/* ── Ranked lists 50% ── */}
       <div className={styles.listsArea}>
         {isLoading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', padding: '0.6rem 0.7rem' }}>
+          <div className={styles.skeletonBlock}>
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className={styles.skeleton} style={{ height: '10px', width: `${85 - i * 8}%` } as CSSProperties} />
+              <div key={i} className={styles.skeleton} style={{ height: '10px', width: `${88 - i * 8}%` } as CSSProperties} />
             ))}
           </div>
         ) : isEmpty ? (
@@ -75,7 +73,10 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
           <div className={styles.twoColumns}>
             {/* Left: Top 5 Artists */}
             <div className={styles.column}>
-              <div className={styles.columnHeader}>歌手</div>
+              <div className={styles.columnHeader}>
+                <span className={styles.columnHeaderTop}>歌手</span>
+                <span className={styles.columnHeaderSub}>Top 5</span>
+              </div>
               {top5Artists.slice(0, 5).map((a, i) => (
                 <div key={a.name} className={styles.rankRow}>
                   <span className={styles.rankNum}>{i + 1}</span>
@@ -83,7 +84,7 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
                 </div>
               ))}
               {Array.from({ length: Math.max(0, 5 - top5Artists.length) }).map((_, i) => (
-                <div key={`empty-a-${i}`} className={styles.rankRow}>
+                <div key={`ea-${i}`} className={styles.rankRow}>
                   <span className={styles.rankNum}>{top5Artists.length + i + 1}</span>
                   <span className={styles.rankNameEmpty}>—</span>
                 </div>
@@ -94,7 +95,10 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
 
             {/* Right: Top 5 Tracks */}
             <div className={styles.column}>
-              <div className={styles.columnHeader}>单曲</div>
+              <div className={styles.columnHeader}>
+                <span className={styles.columnHeaderTop}>单曲</span>
+                <span className={styles.columnHeaderSub}>Top 5</span>
+              </div>
               {top5Tracks.slice(0, 5).map((t, i) => (
                 <div key={`${t.title}-${i}`} className={styles.rankRow}>
                   <span className={styles.rankNum}>{i + 1}</span>
@@ -102,7 +106,7 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
                 </div>
               ))}
               {Array.from({ length: Math.max(0, 5 - top5Tracks.length) }).map((_, i) => (
-                <div key={`empty-t-${i}`} className={styles.rankRow}>
+                <div key={`et-${i}`} className={styles.rankRow}>
                   <span className={styles.rankNum}>{top5Tracks.length + i + 1}</span>
                   <span className={styles.rankNameEmpty}>—</span>
                 </div>
@@ -120,7 +124,7 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
             {isLoading ? (
               <span className={styles.skeleton} style={{ display: 'inline-block', width: '48px', height: '10px' } as CSSProperties} />
             ) : (
-              <><span className={styles.statNum}>{hours > 0 ? `${hours}h ` : ''}{mins}min</span></>
+              <>{hours > 0 ? <><span className={styles.statNum}>{hours}</span>h </> : null}<span className={styles.statNum}>{mins}</span>min</>
             )}
           </span>
           {topTag && !isLoading && (
@@ -128,7 +132,7 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
           )}
           {peakHour !== null && !isLoading && (
             <span className={styles.statItem}>
-              peak <span className={styles.statNum}>{formatHour(peakHour)}</span>
+              峰值 <span className={styles.statNum}>{formatHour(peakHour)}</span>
             </span>
           )}
         </div>

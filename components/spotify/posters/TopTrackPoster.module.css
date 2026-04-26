@@ -1,7 +1,7 @@
 .poster {
   display: flex;
   flex-direction: column;
-  height: 253px;
+  height: 310px;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
@@ -17,11 +17,11 @@
   flex-shrink: 0;
 }
 
-/* ─── Cover area (58%) ────────────────────────────────────────────────────── */
+/* ─── Cover area ~55% ─────────────────────────────────────────────────────── */
 
 .coverArea {
   position: relative;
-  flex: 0 0 58%;
+  flex: 0 0 55%;
   overflow: hidden;
   background: #1a0e03;
 }
@@ -54,90 +54,131 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 60%;
+  height: 55%;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, transparent 100%);
   pointer-events: none;
 }
 
 .playBadge {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 7px;
+  right: 7px;
   font-family: ui-monospace, 'SF Mono', monospace;
   font-size: 0.5rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
   color: rgba(255, 255, 255, 0.9);
   background: rgba(0, 0, 0, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
-  padding: 0.12rem 0.4rem;
+  padding: 0.12rem 0.42rem;
   backdrop-filter: blur(4px);
 }
 
-/* ─── Info area (42%) ─────────────────────────────────────────────────────── */
+.coverLabel {
+  position: absolute;
+  bottom: 7px;
+  left: 8px;
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.44rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+/* ─── Info area ~45% ──────────────────────────────────────────────────────── */
 
 .infoArea {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 0.6rem 0.8rem 0.5rem;
+  padding: 0.65rem 0.85rem 0.6rem;
   min-height: 0;
-}
-
-.eyebrow {
-  font-family: ui-monospace, 'SF Mono', monospace;
-  font-size: 0.48rem;
-  font-weight: 700;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: rgba(40, 25, 8, 0.4);
+  gap: 0;
 }
 
 .trackTitle {
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-weight: 800;
   line-height: 1.2;
   color: #1a0e03;
   letter-spacing: -0.01em;
-  margin: 0.25rem 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.artistName {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: rgba(40, 25, 8, 0.58);
+  margin: 0.14rem 0 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.artistName {
-  font-size: 0.65rem;
-  font-weight: 500;
-  color: rgba(40, 25, 8, 0.58);
-  margin: 0.12rem 0 0;
+.divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(40, 25, 8, 0.1);
+  margin: 0.45rem 0 0.4rem;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.4rem;
+}
+
+.metaChip {
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.14rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(196, 88, 15, 0.28);
+  color: #c4580f;
+  background: rgba(196, 88, 15, 0.07);
+  text-transform: lowercase;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.statRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem;
+  margin-top: auto;
+}
+
+.statItem {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.48rem;
+  color: rgba(40, 25, 8, 0.42);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.statNum {
+  font-weight: 700;
+  color: rgba(40, 25, 8, 0.68);
 }
 
 .emptyLabel {
   font-size: 0.62rem;
   color: rgba(40, 25, 8, 0.35);
-  margin-top: 0.4rem;
+  margin-top: 0.5rem;
 }
 
-.footer {
-  margin-top: auto;
-  padding-top: 0.3rem;
-}
-
-.footerMeta {
-  font-family: ui-monospace, 'SF Mono', monospace;
-  font-size: 0.5rem;
-  color: rgba(40, 25, 8, 0.3);
-  letter-spacing: 0.06em;
-}
-
-/* ─── Skeletons ───────────────────────────────────────────────────────────── */
+/* ─── Skeleton ────────────────────────────────────────────────────────────── */
 
 .skeleton {
   border-radius: 3px;
+  display: block;
   background: linear-gradient(90deg, rgba(40,25,8,0.07) 0%, rgba(40,25,8,0.13) 50%, rgba(40,25,8,0.07) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.6s ease infinite;
