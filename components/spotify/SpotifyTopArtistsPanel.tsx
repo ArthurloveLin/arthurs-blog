@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState, useTransition } from 'react'
 import { ChevronLeft, ChevronRight, ExternalLink, Mic2, Users } from 'lucide-react'
 
+import type { SpotifySectionCopy } from '@/lib/spotify-page-copy'
 import type { SpotifyTimeRange, SpotifyTopArtist } from '@/lib/spotify-types'
 import SpotifyTimeRangeTabs from './SpotifyTimeRangeTabs'
 import styles from './SpotifyTopArtistsPanel.module.css'
@@ -102,8 +103,10 @@ function ArtistCard({ artist }: { artist: SpotifyTopArtist }) {
 
 export default function SpotifyTopArtistsPanel({
   data,
+  copy,
 }: {
   data: Record<SpotifyTimeRange, SpotifyTopArtist[]>
+  copy: SpotifySectionCopy
 }) {
   const [isPending, startTransition] = useTransition()
   const [activeRange, setActiveRange] = React.useState<SpotifyTimeRange>('medium_term')
@@ -116,9 +119,9 @@ export default function SpotifyTopArtistsPanel({
     <section className="rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60_rgba(0,0,0,0.05)]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="w-full">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Top Artists</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{copy.eyebrow}</p>
           <div className="mt-1 flex items-center justify-between gap-4">
-            <h3 className="text-2xl font-semibold tracking-tight text-foreground">最爱歌手排行</h3>
+            <h3 className="text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h3>
             <div className="hidden shrink-0 sm:block">
               <SpotifyTimeRangeTabs
                 activeRange={activeRange}
@@ -130,7 +133,7 @@ export default function SpotifyTopArtistsPanel({
             </div>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            基于收听频率自动生成的歌手排行榜。
+            {copy.description}
           </p>
         </div>
 

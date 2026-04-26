@@ -26,6 +26,13 @@ function parseDayKey(dayKey: string) {
   return new Date(year, (month ?? 1) - 1, day ?? 1)
 }
 
+function toDayKey(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export function segmentTracksByTime(
   tracks: SpotifyRecentlyPlayedTrack[],
   segments: TimeSegment[] = TIME_SEGMENTS
@@ -80,4 +87,18 @@ export function formatCompactDateLabel(dateStr: string) {
 export function formatFullDateLabel(dateStr: string) {
   const target = parseDayKey(dateStr)
   return `${target.getFullYear()}年${target.getMonth() + 1}月${target.getDate()}日 ${formatWeekdayLabel(dateStr)}`
+}
+
+export function buildWeekDayKeys(anchorDateStr: string | null) {
+  const anchor = anchorDateStr ? parseDayKey(anchorDateStr) : new Date()
+  const normalizedAnchor = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate())
+  const weekday = normalizedAnchor.getDay() === 0 ? 7 : normalizedAnchor.getDay()
+  const monday = new Date(normalizedAnchor)
+  monday.setDate(normalizedAnchor.getDate() - (weekday - 1))
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const current = new Date(monday)
+    current.setDate(monday.getDate() + index)
+    return toDayKey(current)
+  })
 }

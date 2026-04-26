@@ -109,7 +109,7 @@
 
 @media (max-width: 767px) {
   .board {
-    padding: 1.6rem 1.2rem 2rem;
+    padding: 1.4rem 0.95rem 1.8rem;
   }
 
   .titleRow {
@@ -120,8 +120,12 @@
 
   .posters {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2.4rem 1rem;
+    grid-template-columns: 1fr;
+    gap: 2.1rem;
     justify-items: center;
+  }
+
+  .posters > * {
+    max-width: 100%;
   }
 }

@@ -4,6 +4,7 @@ import { ViewTransition, addTransitionType, startTransition, useEffect, useState
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight, Music2 } from 'lucide-react'
 
+import type { SpotifySectionCopy } from '@/lib/spotify-page-copy'
 import type { SpotifySavedAlbum } from '@/lib/spotify-types'
 import { formatStableDate } from '@/lib/date-format'
 import styles from './SpotifyVinylAlbumsPanel.module.css'
@@ -59,9 +60,11 @@ function VinylAlbum({ album, addedAt }: { album: SpotifySavedAlbum['album']; add
 export default function SpotifyVinylAlbumsPanel({
   items,
   total,
+  copy,
 }: {
   items: SpotifySavedAlbum[]
   total: number
+  copy: SpotifySectionCopy
 }) {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [page, setPage] = useState(0)
@@ -86,10 +89,10 @@ export default function SpotifyVinylAlbumsPanel({
 
   return (
     <section className="scroll-mt-24 rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60_rgba(0,0,0,0.05)] overflow-visible">
-      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Saved Albums</p>
-      <h3 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">已收藏的专辑</h3>
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{copy.eyebrow}</p>
+      <h3 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        {rangeLabel}，共 {total} 张
+        {copy.description} {items.length > 0 ? `${rangeLabel}，共 ${total} 张。` : ''}
       </p>
 
       {items.length === 0 ? (

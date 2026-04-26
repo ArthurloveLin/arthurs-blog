@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react'
 
+import type { SpotifySectionCopy } from '@/lib/spotify-page-copy'
 import type { SpotifyTimeRange, SpotifyTopTrack } from '@/lib/spotify-types'
 import SpotifyTrackWall from './SpotifyTrackWall'
 import SpotifyTimeRangeTabs from './SpotifyTimeRangeTabs'
@@ -31,8 +32,10 @@ function formatTotalDuration(items: SpotifyTopTrack[]) {
 
 export default function SpotifyTopTracksPanel({
   data,
+  copy,
 }: {
   data: Record<SpotifyTimeRange, SpotifyTopTrack[]>
+  copy: SpotifySectionCopy
 }) {
   const [isPending, startTransition] = useTransition()
   const [activeRange, setActiveRange] = useState<SpotifyTimeRange>('medium_term')
@@ -65,9 +68,9 @@ export default function SpotifyTopTracksPanel({
     <section className="rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60_rgba(0,0,0,0.05)]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="w-full">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Top Tracks</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{copy.eyebrow}</p>
           <div className="mt-1 flex items-center justify-between gap-4">
-            <h3 className="text-2xl font-semibold tracking-tight text-foreground">最爱单曲排行</h3>
+            <h3 className="text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h3>
             <div className="hidden shrink-0 sm:block">
               <SpotifyTimeRangeTabs
                 activeRange={activeRange}
@@ -81,7 +84,7 @@ export default function SpotifyTopTracksPanel({
             </div>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            基于收听频率自动生成的单曲排行榜，会完整展示 50 首；可以用方向按钮手动移动视口探索更多封面。
+            {copy.description}
           </p>
         </div>
 
