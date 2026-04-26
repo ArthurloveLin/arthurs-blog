@@ -2,8 +2,8 @@
 
 .board {
   position: relative;
-  border-radius: 1.4rem;
-  padding: 2rem 2.4rem 2.8rem;
+  border-radius: 1.6rem;
+  padding: 2.2rem 3rem 3.2rem;
   overflow: visible;
 
   background-color: #b07d3a;
@@ -86,14 +86,24 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 1.6rem;
+  gap: 2rem;
 }
 
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
 
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .posters {
-    gap: 1rem;
+    gap: 1.2rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .board {
+    padding: 2rem 1.8rem 2.4rem;
+  }
+
+  .posters {
+    gap: 0.8rem;
   }
 }
 
@@ -111,7 +121,7 @@
   .posters {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 2.2rem 1rem;
+    gap: 2.4rem 1rem;
     justify-items: center;
   }
 }
