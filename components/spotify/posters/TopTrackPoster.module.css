@@ -1,0 +1,149 @@
+.poster {
+  display: flex;
+  flex-direction: column;
+  height: 253px;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.poster.transitioning {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.accentBar {
+  width: 100%;
+  height: 5px;
+  background: linear-gradient(90deg, #c4580f, #e8842a);
+  flex-shrink: 0;
+}
+
+/* ─── Cover area (58%) ────────────────────────────────────────────────────── */
+
+.coverArea {
+  position: relative;
+  flex: 0 0 58%;
+  overflow: hidden;
+  background: #1a0e03;
+}
+
+.coverImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.coverPlaceholder {
+  width: 100%;
+  height: 100%;
+  background:
+    repeating-conic-gradient(rgba(255,255,255,0.04) 0% 25%, transparent 0% 50%) 0 0 / 12px 12px,
+    linear-gradient(135deg, #2a1505, #1a0e03);
+}
+
+.coverSkeleton {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(40,25,8,0.1) 0%, rgba(40,25,8,0.18) 50%, rgba(40,25,8,0.1) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease infinite;
+}
+
+.coverGradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.playBadge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 0.12rem 0.4rem;
+  backdrop-filter: blur(4px);
+}
+
+/* ─── Info area (42%) ─────────────────────────────────────────────────────── */
+
+.infoArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.6rem 0.8rem 0.5rem;
+  min-height: 0;
+}
+
+.eyebrow {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.48rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(40, 25, 8, 0.4);
+}
+
+.trackTitle {
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #1a0e03;
+  letter-spacing: -0.01em;
+  margin: 0.25rem 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.artistName {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: rgba(40, 25, 8, 0.58);
+  margin: 0.12rem 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.emptyLabel {
+  font-size: 0.62rem;
+  color: rgba(40, 25, 8, 0.35);
+  margin-top: 0.4rem;
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: 0.3rem;
+}
+
+.footerMeta {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.5rem;
+  color: rgba(40, 25, 8, 0.3);
+  letter-spacing: 0.06em;
+}
+
+/* ─── Skeletons ───────────────────────────────────────────────────────────── */
+
+.skeleton {
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(40,25,8,0.07) 0%, rgba(40,25,8,0.13) 50%, rgba(40,25,8,0.07) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
