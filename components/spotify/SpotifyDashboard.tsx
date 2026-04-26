@@ -11,7 +11,7 @@ import SpotifyVinylAlbumsPanel from './SpotifyVinylAlbumsPanel'
 import SpotifyLivePlayerPanel from './SpotifyLivePlayerPanel'
 import SpotifyMusicReportSection from './SpotifyMusicReportSection'
 import SpotifyPlaylistDetail from './SpotifyPlaylistDetail'
-import SpotifyRecentlyPlayedDeck from './SpotifyRecentlyPlayedDeck'
+import SpotifyRecentlyPlayedSection from './SpotifyRecentlyPlayedSection'
 import SpotifySavedTracksPanel from './SpotifySavedTracksPanel'
 import SpotifyTopArtistsPanel from './SpotifyTopArtistsPanel'
 import SpotifyTopTracksPanel from './SpotifyTopTracksPanel'
@@ -86,14 +86,7 @@ export default function SpotifyDashboard({
 
 
       <div className="mt-4">
-        <SectionCard
-          id="recently-played"
-          eyebrow={copy.recent.eyebrow}
-          title={copy.recent.title}
-          description={copy.recent.description}
-        >
-          <SpotifyRecentlyPlayedDeck items={data.recentlyPlayed} />
-        </SectionCard>
+        <SpotifyRecentlyPlayedSection items={data.recentlyPlayed} copy={copy.recent} />
       </div>
 
       <div className="mt-4">

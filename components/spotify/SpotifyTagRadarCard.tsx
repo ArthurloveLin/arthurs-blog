@@ -241,21 +241,24 @@ export default function SpotifyTagRadarCard({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(129,140,248,0.12),transparent_28%),radial-gradient(circle_at_top_left,rgba(244,114,182,0.12),transparent_24%)]" />
 
       <div className="relative flex h-full flex-col gap-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-slate-500 dark:text-slate-400">{copy.eyebrow}</p>
             <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">{copy.title}</h3>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+            <p className="mt-2 hidden max-w-xl text-sm leading-relaxed text-slate-500 dark:text-slate-400 sm:block">
               {copy.description}
             </p>
           </div>
 
-          <div className="w-full max-w-[150px] shrink-0 rounded-[24px] border border-slate-200/80 bg-white/85 px-3 py-3 text-right shadow-[0_12px_32px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-white/6">
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">Focus</div>
-            <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{activeAxis?.label ?? '暂无数据'}</div>
-            <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{activeAxis ? `${activeAxis.trackCount} 首` : 'No signal'}</div>
+          <div className="shrink-0 rounded-[20px] border border-slate-200/80 bg-white/85 px-2.5 py-2 text-right shadow-[0_12px_32px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-white/6 sm:rounded-[24px] sm:px-3 sm:py-3">
+            <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-slate-400 sm:text-[10px]">Focus</div>
+            <div className="mt-0.5 text-xs font-semibold text-slate-900 dark:text-slate-100 sm:mt-1 sm:text-sm">{activeAxis?.label ?? '暂无数据'}</div>
+            <div className="mt-0 text-[10px] text-slate-500 dark:text-slate-400 sm:mt-0.5 sm:text-[11px]">{activeAxis ? `${activeAxis.trackCount} 首` : 'No signal'}</div>
           </div>
         </div>
+        <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400 sm:hidden">
+          {copy.description}
+        </p>
 
         <div className="flex flex-wrap gap-2">
           {SECTIONS.map((item) => (

@@ -16,7 +16,6 @@ import {
 import { formatStableDate } from '@/lib/date-format'
 import type { SpotifyRecentlyPlayedTrack, SpotifyTrackTagStore, TimeSegmentId } from '@/lib/spotify-types'
 
-import RecentlyPlayedViewToggle from './RecentlyPlayedViewToggle'
 import SpotifyListeningChart from './SpotifyListeningChart'
 import styles from './SpotifyRecentlyPlayedDeck.module.css'
 
@@ -88,6 +87,20 @@ function HistoryDaySelector({
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const scrollerRef = useRef<HTMLDivElement | null>(null)
+  const buttonRef = useRef<HTMLButtonElement | null>(null)
+  const menuContentRef = useRef<HTMLDivElement | null>(null)
+  const [menuStyle, setMenuStyle] = useState<CSSProperties>({})
+  
+  // Use the selected date or current date as the initial month view
+  const initialViewDate = useMemo(() => {
+    if (selectedDate) return new Date(selectedDate)
+    if (days.length > 0) return new Date(days[0])
+    return new Date()
+  }, [selectedDate, days])
+
+  const [viewDate, setViewDate] = useState(new Date(initialViewDate.getFullYear(), initialViewDate.getMonth(), 1))
+
   const availableDaySet = useMemo(() => new Set(days), [days])
   const weekDays = useMemo(
     () => buildWeekDayKeys(selectedDate ?? days[0] ?? null).map((day) => ({
@@ -96,11 +109,84 @@ function HistoryDaySelector({
     })),
     [availableDaySet, days, selectedDate]
   )
-  const visibleWeekSet = useMemo(() => new Set(weekDays.map(({ day }) => day)), [weekDays])
-  const extraDayCount = useMemo(
-    () => days.filter((day) => !visibleWeekSet.has(day)).length,
-    [days, visibleWeekSet]
-  )
+
+  const calendarGrid = useMemo(() => {
+    const year = viewDate.getFullYear()
+    const month = viewDate.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const startOffset = firstDay.getDay()
+    const startDate = new Date(year, month, 1 - startOffset)
+    
+    return Array.from({ length: 42 }, (_, i) => {
+      const d = new Date(startDate)
+      d.setDate(startDate.getDate() + i)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      return {
+        date: d,
+        key,
+        isCurrentMonth: d.getMonth() === month,
+        hasData: availableDaySet.has(key),
+        isToday: key === `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`,
+        isActive: key === selectedDate
+      }
+    })
+  }, [viewDate, availableDaySet, selectedDate])
+
+  const updateMenuPosition = () => {
+    if (!isMenuOpen || !buttonRef.current || !menuRef.current) return
+
+    const buttonRect = buttonRef.current.getBoundingClientRect()
+    const railRect = menuRef.current.getBoundingClientRect()
+    
+    // We want to center the menu above the button
+    let left = buttonRect.left - railRect.left + buttonRect.width / 2
+    
+    // Default menu width is 19.5rem = 312px (approx)
+    // If menuContentRef is available, we use its real width
+    const menuWidth = menuContentRef.current?.getBoundingClientRect().width ?? 312
+    const halfMenuWidth = menuWidth / 2
+    
+    // Clamp the position to ensure it stays within the rail
+    const minLeft = halfMenuWidth
+    const maxLeft = railRect.width - halfMenuWidth
+    
+    // If the rail is narrower than the menu, just align to the left
+    if (railRect.width < menuWidth) {
+      setMenuStyle({
+        left: '0',
+        transform: 'none',
+        right: 'auto',
+      })
+      return
+    }
+
+    left = Math.max(minLeft, Math.min(maxLeft, left))
+
+    setMenuStyle({
+      left: `${left}px`,
+      transform: 'translateX(-50%)',
+      right: 'auto',
+    })
+  }
+
+  useEffect(() => {
+    if (isMenuOpen) {
+      updateMenuPosition()
+      
+      const scroller = scrollerRef.current
+      if (scroller) {
+        scroller.addEventListener('scroll', updateMenuPosition, { passive: true })
+      }
+      window.addEventListener('resize', updateMenuPosition)
+      
+      return () => {
+        if (scroller) {
+          scroller.removeEventListener('scroll', updateMenuPosition)
+        }
+        window.removeEventListener('resize', updateMenuPosition)
+      }
+    }
+  }, [isMenuOpen])
 
   useEffect(() => {
     if (!isMenuOpen) {
@@ -133,13 +219,17 @@ function HistoryDaySelector({
     setIsMenuOpen(false)
   }
 
+  const changeMonth = (offset: number) => {
+    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + offset, 1))
+  }
+
   if (days.length === 0) {
     return null
   }
 
   return (
-    <div className={styles.dayRail}>
-      <div className={styles.timelineScroller}>
+    <div className={styles.dayRail} ref={menuRef}>
+      <div className={styles.timelineScroller} ref={scrollerRef}>
         {weekDays.map(({ day, hasData }) => {
           const isActive = day === selectedDate
 
@@ -165,8 +255,9 @@ function HistoryDaySelector({
           )
         })}
 
-        <div className={styles.dayMenuWrap} ref={menuRef}>
+        <div className={styles.dayMenuWrap}>
           <button
+            ref={buttonRef}
             type="button"
             className={[
               styles.timelinePill,
@@ -179,35 +270,75 @@ function HistoryDaySelector({
             aria-expanded={isMenuOpen}
             aria-haspopup="menu"
           >
-            <span className={styles.timelinePillLabel}>更多日期</span>
-            <span className={styles.timelinePillDate}>{extraDayCount > 0 ? `另 ${extraDayCount} 天` : `${days.length} 天`}</span>
+            <span className={styles.timelinePillLabel}>全部日期</span>
+            <span className={styles.timelinePillDate}>{days.length} 天记录</span>
           </button>
-
-          {isMenuOpen ? (
-            <div className={styles.dayMenu} role="menu" aria-label="选择更多历史日期">
-              {days.map((day) => {
-                const isActive = day === selectedDate
-
-                return (
-                  <button
-                    key={day}
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={isActive}
-                    onClick={() => handleSelectDay(day)}
-                    className={[styles.dayMenuItem, isActive ? styles.dayMenuItemActive : '']
-                      .filter(Boolean)
-                      .join(' ')}
-                  >
-                    <span className={styles.dayMenuItemTitle}>{formatFullDateLabel(day)}</span>
-                    <span className={styles.dayMenuItemMeta}>{visibleWeekSet.has(day) ? '本周轨迹' : '历史归档'}</span>
-                  </button>
-                )
-              })}
-            </div>
-          ) : null}
         </div>
       </div>
+
+      {isMenuOpen ? (
+        <div 
+          className={styles.dayMenu} 
+          role="dialog" 
+          aria-label="日期选择器" 
+          ref={menuContentRef}
+          style={menuStyle}
+        >
+          <header className={styles.calendarHeader}>
+            <h4 className={styles.calendarTitle}>
+              {viewDate.getFullYear()}年 {viewDate.getMonth() + 1}月
+            </h4>
+            <div className={styles.calendarNav}>
+              <button 
+                type="button" 
+                className={styles.calendarNavBtn} 
+                onClick={() => changeMonth(-1)}
+                aria-label="上个月"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button 
+                type="button" 
+                className={styles.calendarNavBtn} 
+                onClick={() => changeMonth(1)}
+                aria-label="下个月"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </header>
+
+          <div className={styles.calendarGrid}>
+            {['日', '一', '二', '三', '四', '五', '六'].map(w => (
+              <span key={w} className={styles.calendarWeekday}>{w}</span>
+            ))}
+            {calendarGrid.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                disabled={!item.hasData}
+                onClick={() => handleSelectDay(item.key)}
+                className={[
+                  styles.calendarDay,
+                  !item.isCurrentMonth ? styles.calendarDayOutside : '',
+                  item.hasData ? styles.calendarDayHasData : '',
+                  item.isActive ? styles.calendarDayActive : '',
+                  item.isToday ? styles.calendarDayToday : '',
+                ].filter(Boolean).join(' ')}
+              >
+                {item.date.getDate()}
+              </button>
+            ))}
+          </div>
+
+          <footer className={styles.calendarFooter}>
+            <div className={styles.calendarLegend}>
+              <span className={styles.calendarLegendDot} />
+              <span>有数据</span>
+            </div>
+          </footer>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -330,8 +461,16 @@ function RecentlyPlayedParallaxCard({ item }: { item: SpotifyRecentlyPlayedTrack
   )
 }
 
-export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRecentlyPlayedTrack[] }) {
-  const [view, setView] = useState<RecentlyPlayedView>('timeline')
+export default function SpotifyRecentlyPlayedDeck({
+  items,
+  view: controlledView,
+  onViewChange,
+}: {
+  items: SpotifyRecentlyPlayedTrack[]
+  view?: RecentlyPlayedView
+  onViewChange?: (view: RecentlyPlayedView) => void
+}) {
+  const [uncontrolledView, setUncontrolledView] = useState<RecentlyPlayedView>('timeline')
   const [availableDays, setAvailableDays] = useState<string[]>([])
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedSegment, setSelectedSegment] = useState<TimeSegmentId | null>(null)
@@ -341,6 +480,16 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
   const [cardsPerPage, setCardsPerPage] = useState(DEFAULT_CARDS_PER_PAGE)
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0)
   const isInitialLoadRef = useRef(true)
+  const view = controlledView ?? uncontrolledView
+
+  const setView = (nextView: RecentlyPlayedView) => {
+    if (onViewChange) {
+      onViewChange(nextView)
+      return
+    }
+
+    setUncontrolledView(nextView)
+  }
 
   useEffect(() => {
     const updateCardsPerPage = () => {
@@ -545,11 +694,6 @@ export default function SpotifyRecentlyPlayedDeck({ items }: { items: SpotifyRec
 
   return (
     <div className={styles.section}>
-      <div className={styles.viewHeader}>
-        <RecentlyPlayedViewToggle view={view} onChange={setView} />
-      </div>
-
-
       {view === 'timeline' ? (
         <>
           <div className={styles.viewportWrap} data-loading={isLoading ? 'true' : 'false'}>

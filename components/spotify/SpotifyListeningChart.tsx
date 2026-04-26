@@ -58,6 +58,7 @@ export default function SpotifyListeningChart({
   isLoading: boolean
 }) {
   const [hoveredSegmentId, setHoveredSegmentId] = useState<TimeSegmentId | null>(null)
+  const [hoveredHour, setHoveredHour] = useState<number | null>(null)
 
   const hourCounts = Array.from({ length: 24 }, (_, h) => hourMap.get(h)?.length ?? 0)
   const rawMax = Math.max(...hourCounts, 1)
@@ -88,86 +89,99 @@ export default function SpotifyListeningChart({
       <div className={styles.chartPlotWrap}>
         <div
           className={styles.chartPlot}
-          onMouseLeave={() => setHoveredSegmentId(null)}
+          onMouseLeave={() => {
+            setHoveredSegmentId(null)
+            setHoveredHour(null)
+          }}
         >
-          {ticks.map((tick, index) => (
-            <span
-              key={`guide-${tick}-${index}`}
-              className={styles.chartGuide}
-              style={{ top: `${(index / Math.max(ticks.length - 1, 1)) * 100}%` }}
+          <div className={styles.chartPlotInner}>
+            {ticks.map((tick, index) => (
+              <span
+                key={`guide-${tick}-${index}`}
+                className={styles.chartGuide}
+                style={{ top: `${(index / Math.max(ticks.length - 1, 1)) * 100}%` }}
+                aria-hidden="true"
+              />
+            ))}
+
+            {/* segment background highlight */}
+            <div
+              className={styles.chartSegmentHighlight}
+              data-visible={activeSegment ? 'true' : 'false'}
+              style={{
+                left: highlightLeft,
+                width: highlightWidth,
+                background: activeSegment ? SEGMENT_HIGHLIGHT_COLOR[activeSegment] : 'transparent',
+              }}
               aria-hidden="true"
             />
-          ))}
 
-          {/* segment background highlight */}
-          <div
-            className={styles.chartSegmentHighlight}
-            data-visible={activeSegment ? 'true' : 'false'}
-            style={{
-              left: highlightLeft,
-              width: highlightWidth,
-              background: activeSegment ? SEGMENT_HIGHLIGHT_COLOR[activeSegment] : 'transparent',
-            }}
-            aria-hidden="true"
-          />
+            {/* "xx 时刻" floating label */}
+            <div
+              className={styles.chartMomentLabel}
+              data-visible={activeSegment ? 'true' : 'false'}
+              style={{ left: momentCenterLeft }}
+              aria-hidden="true"
+            >
+              {momentLabel}
+            </div>
 
-          {/* "xx 时刻" floating label */}
-          <div
-            className={styles.chartMomentLabel}
-            data-visible={activeSegment ? 'true' : 'false'}
-            style={{ left: momentCenterLeft }}
-            aria-hidden="true"
-          >
-            {momentLabel}
-          </div>
+            <div className={styles.chartBars}>
+              {Array.from({ length: 24 }, (_, hour) => {
+                const segment = getSegmentForHour(hour)
+                const count = hourCounts[hour] ?? 0
+                const isActive = segment.id === selectedSegment && count > 0
+                const isHovered = hoveredSegmentId === segment.id
+                const isDimmed = hoveredSegmentId !== null && !isHovered
+                const barHeight = count === 0 ? 4 : Math.max((count / maxCount) * 100, 6)
+                const barStyle = {
+                  '--bar-delay': `${hour * 25}ms`,
+                  '--bar-height': `${barHeight}%`,
+                } as CSSProperties
 
-          <div className={styles.chartBars}>
-            {Array.from({ length: 24 }, (_, hour) => {
-              const segment = getSegmentForHour(hour)
-              const count = hourCounts[hour] ?? 0
-              const isActive = segment.id === selectedSegment && count > 0
-              const isHovered = hoveredSegmentId === segment.id
-              const isDimmed = hoveredSegmentId !== null && !isHovered
-              const barHeight = count === 0 ? 4 : Math.max((count / maxCount) * 100, 6)
-              const barStyle = {
-                '--bar-delay': `${hour * 25}ms`,
-                '--bar-height': `${barHeight}%`,
-              } as CSSProperties
-
-              return (
-                <div key={hour} className={styles.chartColumn}>
-                  <button
-                    type="button"
-                    className={styles.chartBarButton}
-                    onClick={() => onSelectSegment(segment.id)}
-                    onMouseEnter={() => setHoveredSegmentId(segment.id)}
-                    disabled={count === 0}
-                    aria-pressed={isActive}
-                    aria-label={`${hour}时 ${count} 首`}
-                  >
-                    <span className={styles.chartBarWrap} style={barStyle}>
-                      <span
-                        className={[
-                          styles.chartBar,
-                          isActive ? styles.chartBarActive : '',
-                          count === 0 ? styles.chartBarMuted : '',
-                          isHovered ? styles.chartBarHovered : '',
-                          isDimmed ? styles.chartBarDimmed : '',
-                        ].filter(Boolean).join(' ')}
-                        data-segment={segment.id}
-                      />
-                    </span>
-                  </button>
-                </div>
-              )
-            })}
+                return (
+                  <div key={hour} className={styles.chartColumn}>
+                    <button
+                      type="button"
+                      className={styles.chartBarButton}
+                      onClick={() => onSelectSegment(segment.id)}
+                      onMouseEnter={() => {
+                        setHoveredSegmentId(segment.id)
+                        setHoveredHour(hour)
+                      }}
+                      disabled={count === 0}
+                      aria-pressed={isActive}
+                      aria-label={`${hour}时 ${count} 首`}
+                    >
+                      <span className={styles.chartBarWrap} style={barStyle}>
+                        {hoveredHour === hour && count > 0 && (
+                          <span className={styles.chartBarTooltip}>
+                            {count}
+                          </span>
+                        )}
+                        <span
+                          className={[
+                            styles.chartBar,
+                            isActive ? styles.chartBarActive : '',
+                            count === 0 ? styles.chartBarMuted : '',
+                            isHovered ? styles.chartBarHovered : '',
+                            isDimmed ? styles.chartBarDimmed : '',
+                          ].filter(Boolean).join(' ')}
+                          data-segment={segment.id}
+                        />
+                      </span>
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
 
         {/* X-axis segment labels row */}
         <div className={styles.chartSegmentLabels} aria-hidden="true">
           {TIME_SEGMENTS.map((seg) => {
-            const widthPct = ((seg.endHour - seg.startHour) / 24) * 100
+            const span = seg.endHour - seg.startHour
             return (
               <div
                 key={seg.id}
@@ -175,7 +189,7 @@ export default function SpotifyListeningChart({
                   styles.chartSegmentLabelItem,
                   hoveredSegmentId === seg.id ? styles.chartSegmentLabelItemActive : '',
                 ].filter(Boolean).join(' ')}
-                style={{ width: `${widthPct}%` }}
+                style={{ gridColumn: `span ${span}` }}
               >
                 <span className={styles.chartSegmentName}>{seg.label}</span>
                 <span className={styles.chartSegmentHours}>{seg.startHour}–{seg.endHour}时</span>

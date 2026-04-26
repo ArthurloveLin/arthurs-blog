@@ -34,9 +34,9 @@ export default function SpotifyMusicReportSection({ copy }: { copy: SpotifySecti
     >
       <div className="flex flex-col gap-1">
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{copy.eyebrow}</p>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between gap-4">
           <h3 className="text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h3>
-          <div className="inline-flex flex-nowrap gap-0.5 rounded-full border border-border/50 bg-muted/60 p-0.5 flex-shrink-0">
+          <div className="inline-flex w-fit flex-nowrap gap-1 rounded-full border border-border/70 bg-background/80 p-0.5 flex-shrink-0">
             {(['day', 'week', 'month'] as Period[]).map((p) => (
               <button
                 key={p}
@@ -44,7 +44,7 @@ export default function SpotifyMusicReportSection({ copy }: { copy: SpotifySecti
                 onClick={() => handlePeriodChange(p)}
                 className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all ${
                   activePeriod === p
-                    ? 'bg-foreground/90 text-background shadow-sm'
+                    ? 'bg-foreground text-background shadow-[0_4px_12px_rgba(0,0,0,0.12)]'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
