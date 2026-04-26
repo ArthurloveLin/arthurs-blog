@@ -281,7 +281,7 @@ export default function SpotifyTagCloudCard({ analysis }: { analysis: SpotifyTag
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     }
-  }, [tags])   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tags])
 
   return (
     <section className="relative h-full overflow-hidden rounded-[30px] border border-emerald-400/20 bg-[linear-gradient(160deg,#06110d_0%,#0d1b16_45%,#040706_100%)] p-5 text-slate-100 shadow-[0_28px_80px_rgba(3,14,11,0.52)] sm:p-6">

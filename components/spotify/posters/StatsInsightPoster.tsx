@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import type { CSSProperties } from 'react'
 import type { MusicReportStats } from '@/lib/spotify-report'
 import styles from './StatsInsightPoster.module.css'
@@ -40,7 +41,7 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
             <div className={styles.collageGrid}>
               {collageImages.map((url, i) =>
                 url ? (
-                  <img key={i} src={url} className={styles.collageImg} alt="" width={146} height={90} />
+                  <Image key={i} src={url} className={styles.collageImg} alt="" width={146} height={90} unoptimized />
                 ) : (
                   <div key={i} className={styles.collagePlaceholder} />
                 )
