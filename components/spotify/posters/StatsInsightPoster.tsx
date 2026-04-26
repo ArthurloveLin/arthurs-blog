@@ -19,15 +19,11 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
   const hours = Math.floor(totalMinutes / 60)
   const mins = totalMinutes % 60
 
-  // Up to 4 unique album images for the collage
-  const collageImages: (string | null)[] = []
-  for (const t of top5Tracks) {
-    if (collageImages.length >= 4) break
-    if (t.albumImageUrl && !collageImages.includes(t.albumImageUrl)) {
-      collageImages.push(t.albumImageUrl)
-    }
-  }
-  while (collageImages.length < 4) collageImages.push(null)
+  // 2 images: Top Artist avatar (left) and Top Track cover (right)
+  const collageImages = [
+    stats.topArtist?.imageUrl ?? null,
+    stats.topTrack?.albumImageUrl ?? null,
+  ]
 
   const isEmpty = stats.totalPlays === 0
 
@@ -44,7 +40,7 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
             <div className={styles.collageGrid}>
               {collageImages.map((url, i) =>
                 url ? (
-                  <img key={i} src={url} className={styles.collageImg} alt="" width={98} height={46} />
+                  <img key={i} src={url} className={styles.collageImg} alt="" width={146} height={90} />
                 ) : (
                   <div key={i} className={styles.collagePlaceholder} />
                 )

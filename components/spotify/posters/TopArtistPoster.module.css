@@ -2,7 +2,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 368px;
+  min-height: 200px;
   overflow: hidden;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
@@ -124,6 +124,7 @@
   color: #f5c842;
   line-height: 1.05;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -174,7 +175,7 @@
 
 .statItem {
   font-family: ui-monospace, 'SF Mono', monospace;
-  font-size: 0.58rem;
+  font-size: 0.65rem;
   color: rgba(180,190,255,0.45);
   letter-spacing: 0.04em;
 }

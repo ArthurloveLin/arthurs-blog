@@ -11,12 +11,17 @@ export interface MusicReportTopTrack {
   albumImageUrl: string | null
   playCount: number
   durationMs: number
+  tags: string[]
+  peakHour: number | null
 }
 
 export interface MusicReportTopArtist {
   name: string
   playCount: number
+  totalMinutes: number
   imageUrl: string | null
+  tags: string[]
+  peakHour: number | null
 }
 
 export interface MusicReportTopContext {
@@ -88,6 +93,16 @@ function computeStats(
     albumImageUrl: e.track.albumImageUrl,
     playCount: e.count,
     durationMs: e.track.durationMs,
+    tags: tagStore?.tracks[e.track.id]?.tags.map(t => t.name) ?? [],
+    peakHour: (function() {
+      const hMap = new Map<number, number>()
+      for (const t of tracks.filter(x => x.id === e.track.id)) {
+        const h = new Date(t.playedAt).getUTCHours()
+        hMap.set(h, (hMap.get(h) ?? 0) + 1)
+      }
+      const topH = [...hMap.entries()].sort((a, b) => b[1] - a[1])[0]
+      return topH ? (topH[0] + 8) % 24 : null
+    })(),
   }))
   const topTrack: MusicReportTopTrack | null = top5Tracks[0] ?? null
 
@@ -102,7 +117,18 @@ function computeStats(
   const top5Artists: MusicReportTopArtist[] = sortedArtists.slice(0, 5).map(([name, playCount]) => ({
     name,
     playCount,
+    totalMinutes: Math.round(tracks.filter(t => t.artists.includes(name)).reduce((sum, t) => sum + t.durationMs, 0) / 60000),
     imageUrl: artistImageMap.get(name) ?? null,
+    tags: tagStore ? aggregateTags(tracks.filter(t => t.artists.includes(name)).map(t => t.id), tagStore).slice(0, 5).map(t => t.name) : [],
+    peakHour: (function() {
+      const hMap = new Map<number, number>()
+      for (const t of tracks.filter(x => x.artists.includes(name))) {
+        const h = new Date(t.playedAt).getUTCHours()
+        hMap.set(h, (hMap.get(h) ?? 0) + 1)
+      }
+      const topH = [...hMap.entries()].sort((a, b) => b[1] - a[1])[0]
+      return topH ? (topH[0] + 8) % 24 : null
+    })(),
   }))
   const topArtist: MusicReportTopArtist | null = top5Artists[0] ?? null
 

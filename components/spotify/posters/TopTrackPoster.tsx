@@ -58,11 +58,11 @@ export default function TopTrackPoster({ stats, isLoading, isTransitioning }: Pr
 
             <div className={styles.metaRow}>
               {track.durationMs > 0 && (
-                <span className={styles.metaChip}>{formatDuration(track.durationMs)}</span>
+                <span className={styles.durationLabel}>{formatDuration(track.durationMs)}</span>
               )}
-              {stats.topTag && (
-                <span className={styles.metaChip}>{stats.topTag}</span>
-              )}
+              {track.tags.map(tag => (
+                <span key={tag} className={styles.metaChip}>{tag}</span>
+              ))}
             </div>
 
             <div className={styles.statRow}>
@@ -74,9 +74,9 @@ export default function TopTrackPoster({ stats, isLoading, isTransitioning }: Pr
                   <span className={styles.statNum}>{Math.round(track.playCount * track.durationMs / 60000)}</span>min
                 </span>
               )}
-              {stats.peakHour !== null && (
+              {track.peakHour !== null && (
                 <span className={styles.statItem}>
-                  峰值 <span className={styles.statNum}>{String(stats.peakHour).padStart(2,'0')}:00</span>
+                  峰值 <span className={styles.statNum}>{String(track.peakHour).padStart(2,'0')}:00</span>
                 </span>
               )}
             </div>
