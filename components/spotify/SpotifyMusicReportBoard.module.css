@@ -84,7 +84,7 @@
 
 .posters {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: center;
   gap: 2rem;
 }

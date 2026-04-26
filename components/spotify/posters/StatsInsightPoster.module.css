@@ -1,7 +1,7 @@
 .poster {
   display: flex;
   flex-direction: column;
-  height: 390px;
+  min-height: 200px;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
@@ -37,7 +37,6 @@
 .collageGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
   width: 100%;
   height: 100%;
 }
@@ -244,7 +243,7 @@
 
 .statItem {
   font-family: ui-monospace, 'SF Mono', monospace;
-  font-size: 0.58rem;
+  font-size: 0.65rem;
   color: rgba(40,25,8,0.42);
   letter-spacing: 0.04em;
   white-space: nowrap;

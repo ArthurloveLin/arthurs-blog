@@ -68,22 +68,21 @@ export default function TopArtistPoster({ stats, isLoading, isTransitioning }: P
             <div className={styles.divider} />
 
             <div className={styles.metaRow}>
-              <span className={styles.playsCount}>{artist.playCount} plays</span>
-              {stats.topTag && (
-                <span className={styles.genreTag}>{stats.topTag}</span>
-              )}
+              {artist.tags.map(tag => (
+                <span key={tag} className={styles.genreTag}>{tag}</span>
+              ))}
             </div>
 
             <div className={styles.statRow}>
               <span className={styles.statItem}>
-                <span className={styles.statNum}>{stats.totalPlays}</span> 首
+                ×<span className={styles.statNum}>{artist.playCount}</span> 次
               </span>
               <span className={styles.statItem}>
-                <span className={styles.statNum}>{stats.totalMinutes}</span> min
+                <span className={styles.statNum}>{artist.totalMinutes}</span> min
               </span>
-              {stats.peakHour !== null && (
+              {artist.peakHour !== null && (
                 <span className={styles.statItem}>
-                  峰值 <span className={styles.statNum}>{String(stats.peakHour).padStart(2, '0')}:00</span>
+                  峰值 <span className={styles.statNum}>{String(artist.peakHour).padStart(2, '0')}:00</span>
                 </span>
               )}
             </div>
