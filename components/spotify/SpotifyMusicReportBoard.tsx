@@ -27,6 +27,7 @@ const EMPTY_STATS = (period: Period): MusicReportStats => ({
   top5Tracks: [],
   top5Artists: [],
   topContext: null,
+  top2Contexts: [],
   topTag: null,
   totalPlays: 0,
   totalMinutes: 0,
