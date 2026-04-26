@@ -60,6 +60,14 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'obsidian.arthurlovegrace.top',
       },
+      {
+        protocol: 'https',
+        hostname: '*.scdn.co',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.spotifycdn.com',
+      },
     ],
   },
 };

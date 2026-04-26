@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import type { CSSProperties } from 'react'
 import type { MusicReportStats } from '@/lib/spotify-report'
 import styles from './TopTrackPoster.module.css'
@@ -28,7 +29,7 @@ export default function TopTrackPoster({ stats, isLoading, isTransitioning }: Pr
         {isLoading ? (
           <div className={styles.coverSkeleton} />
         ) : track?.albumImageUrl ? (
-          <img className={styles.coverImg} src={track.albumImageUrl} alt={track.title} width={195} height={107} />
+          <Image className={styles.coverImg} src={track.albumImageUrl} alt={track.title} width={195} height={107} unoptimized />
         ) : (
           <div className={styles.coverPlaceholder} />
         )}

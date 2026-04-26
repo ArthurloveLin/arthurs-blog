@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
+import Image from 'next/image'
 import gsap from 'gsap'
 
 import type { MusicReportStats } from '@/lib/spotify-report'
@@ -173,12 +174,13 @@ export default function SpotifyMusicReportPoster({ stats, isLoading }: Props) {
                 {stats.topTrack && (
                   <div className={styles.headlineWrap}>
                     {stats.topTrack.albumImageUrl ? (
-                      <img
+                      <Image
                         className={styles.albumThumb}
                         src={stats.topTrack.albumImageUrl}
                         alt={stats.topTrack.title}
                         width={44}
                         height={44}
+                        unoptimized
                       />
                     ) : (
                       <div className={styles.albumThumbPlaceholder} />

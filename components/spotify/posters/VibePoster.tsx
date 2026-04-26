@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import type { CSSProperties } from 'react'
 import type { MusicReportStats, MusicReportTopContext } from '@/lib/spotify-report'
 import styles from './VibePoster.module.css'
@@ -47,7 +48,7 @@ function ContextRow({ ctx, palette }: { ctx: MusicReportTopContext; palette: Tag
       {/* Cover image or emoji fallback */}
       <div className={styles.contextCover}>
         {ctx.imageUrl ? (
-          <img src={ctx.imageUrl} alt={ctx.label} className={styles.contextCoverImg} width={40} height={40} />
+          <Image src={ctx.imageUrl} alt={ctx.label} className={styles.contextCoverImg} width={40} height={40} unoptimized />
         ) : (
           <span className={styles.contextCoverFallback}>{contextTypeIcon(ctx.type)}</span>
         )}
