@@ -201,13 +201,38 @@ export default function SpotifyTagStreamChart() {
               if (!show) return null
               
               const anchor = i === 0 ? 'start' : i === data.n - 1 ? 'end' : 'middle'
+              const parts = lbl.split(' ')
+              const isTwoParts = parts.length === 2
+
               return (
-                <text key={`xlbl-${i}`}
-                  x={xScale(i)} y={innerH + 20}
-                  textAnchor={anchor}
-                  className="fill-muted-foreground font-semibold"
-                  fontSize={8}
-                >{lbl}</text>
+                <g key={`xlbl-${i}`}>
+                  {/* Mobile version */}
+                  {isTwoParts ? (
+                    <text
+                      textAnchor={anchor}
+                      className="fill-muted-foreground font-bold text-[19px] sm:hidden"
+                    >
+                      <tspan x={xScale(i)} y={innerH + 12}>{parts[0]}</tspan>
+                      <tspan x={xScale(i)} y={innerH + 34} className="text-[15px] font-semibold opacity-85">{parts[1]}</tspan>
+                    </text>
+                  ) : (
+                    <text
+                      x={xScale(i)} y={innerH + 20}
+                      textAnchor={anchor}
+                      className="fill-muted-foreground font-bold text-[19px] sm:hidden"
+                    >
+                      {lbl}
+                    </text>
+                  )}
+                  {/* PC version */}
+                  <text
+                    x={xScale(i)} y={innerH + 20}
+                    textAnchor={anchor}
+                    className="hidden sm:inline fill-muted-foreground font-bold sm:text-[13px] md:text-[10px]"
+                  >
+                    {lbl}
+                  </text>
+                </g>
               )
             })}
           </g>
