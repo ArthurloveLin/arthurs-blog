@@ -2,8 +2,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  /* 比其他卡片略矮，内容紧凑 */
-  height: 318px;
+  min-height: 200px;
   background-color: var(--vibe-bg);
   overflow: hidden;
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -191,7 +190,7 @@
 }
 
 .footer {
-  margin-top: auto;
+  margin-top: 0.5rem;
   padding-top: 0.3rem;
 }
 

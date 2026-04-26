@@ -8,7 +8,7 @@ import type {
 } from '@/lib/spotify-types'
 import SpotifyVinylAlbumsPanel from './SpotifyVinylAlbumsPanel'
 import SpotifyLivePlayerPanel from './SpotifyLivePlayerPanel'
-import SpotifyMusicReportBoard from './SpotifyMusicReportBoard'
+import SpotifyMusicReportSection from './SpotifyMusicReportSection'
 import SpotifyPlaylistDetail from './SpotifyPlaylistDetail'
 import SpotifyRecentlyPlayedDeck from './SpotifyRecentlyPlayedDeck'
 import SpotifySavedTracksPanel from './SpotifySavedTracksPanel'
@@ -88,14 +88,7 @@ export default function SpotifyDashboard({ data, tagAnalysis }: { data: SpotifyD
       </div>
 
       <div className="mt-4">
-        <SectionCard
-          id="music-report"
-          eyebrow="Music Report"
-          title="听歌报告"
-          description="日报、周报、月报 · 悬停海报可查看详情"
-        >
-          <SpotifyMusicReportBoard />
-        </SectionCard>
+        <SpotifyMusicReportSection />
       </div>
 
       <div className="mt-4">

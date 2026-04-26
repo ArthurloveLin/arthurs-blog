@@ -115,12 +115,13 @@ function computeStats(
     if (e) { e.count++ } else { ctxMap.set(key, { label: t.context.label, type: t.context.type, count: 1 }) }
   }
   const sortedContexts = [...ctxMap.values()].sort((a, b) => b.count - a.count)
-  const top2Contexts: MusicReportTopContext[] = sortedContexts.slice(0, 2).map(e => ({
+  // For artist-type contexts, fall back to artistImageMap
+  const top2Contexts: MusicReportTopContext[] = sortedContexts.slice(0, 4).map(e => ({
     label: e.label,
     type: e.type,
     playCount: e.count,
-    imageUrl: contextImageMap.get(e.label) ?? null,
-  }))
+    imageUrl: contextImageMap.get(e.label) ?? artistImageMap.get(e.label) ?? null,
+  })).filter(c => c.imageUrl !== null).slice(0, 3)
   const topContext: MusicReportTopContext | null = top2Contexts[0] ?? null
 
   // Top tag
