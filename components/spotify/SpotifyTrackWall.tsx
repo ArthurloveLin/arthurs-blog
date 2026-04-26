@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, startTransition, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import Image from 'next/image'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Loader2, Music2 } from 'lucide-react'
 
 import styles from './SpotifyTrackWall.module.css'
@@ -670,14 +671,15 @@ export default function SpotifyTrackWall({
                 >
                   <div className={styles.tileInner}>
                     {layoutItem.item.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={layoutItem.item.imageUrl}
                         alt={layoutItem.item.title}
                         className={styles.tileMedia}
+                        width={layoutItem.width}
+                        height={layoutItem.height}
                         loading="lazy"
-                        decoding="async"
                         draggable="false"
+                        unoptimized
                       />
                     ) : (
                       <div className={styles.tilePlaceholder}>

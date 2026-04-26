@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import type { CSSProperties } from 'react'
 import type { MusicReportStats } from '@/lib/spotify-report'
 import styles from './TopArtistPoster.module.css'
@@ -35,15 +36,16 @@ export default function TopArtistPoster({ stats, isLoading, isTransitioning }: P
         {isLoading ? (
           <div className={styles.coverSkeleton} />
         ) : artistImageUrl ? (
-          <img className={styles.coverImg} src={artistImageUrl} alt={artist?.name ?? ''} width={195} height={98} />
+          <Image className={styles.coverImg} src={artistImageUrl} alt={artist?.name ?? ''} width={195} height={98} unoptimized />
         ) : fallbackImageUrl ? (
-          <img
+          <Image
             className={styles.coverImg}
             src={fallbackImageUrl}
             alt=""
             width={195}
             height={98}
             style={{ filter: 'blur(8px) saturate(1.4) brightness(0.6)', transform: 'scale(1.1)' } as CSSProperties}
+            unoptimized
           />
         ) : (
           <div className={styles.coverPlaceholder} />
