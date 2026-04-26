@@ -17,7 +17,7 @@ async function SpotifyDashboardLoader({ copy }: { copy: SpotifyPageCopy }) {
   const [spotifyDashboard, tagStore, recentDays] = await Promise.all([
     getStoredSpotifyDashboardData(),
     getStoredSpotifyTrackTagStore(),
-    listRecentlyPlayedDays(7),
+    listRecentlyPlayedDays(1),
   ])
 
   const shards = await Promise.all(recentDays.map(readRecentlyPlayedDayShard))

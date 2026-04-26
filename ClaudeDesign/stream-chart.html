@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>最近听歌 · 标签流</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #f0f0ee;
+    font-family: 'Noto Sans SC', -apple-system, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 32px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 32px 24px;
+    width: 900px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
+    position: relative;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useEffect, useMemo } = React;
+
+// ── Tag colors ──
+const TAGS = [
+  { key: 'pop',       label: '流行',  color: '#6ee7b7' },
+  { key: 'rock',      label: '摇滚',  color: '#f97316' },
+  { key: 'rnb',       label: 'R&B',   color: '#a78bfa' },
+  { key: 'electronic',label: '电子',  color: '#38bdf8' },
+  { key: 'folk',      label: '民谣',  color: '#fbbf24' },
+  { key: 'classical', label: '古典',  color: '#34d399' },
+  { key: 'hiphop',    label: '嘻哈',  color: '#fb7185' },
+  { key: 'jazz',      label: '爵士',  color: '#c084fc' },
+];
+
+// ── Data generators ──
+function seeded(seed) {
+  let s = seed;
+  return () => { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
+}
+
+function genData(dimKey) {
+  const configs = {
+    hour:  { n: 24, labelFn: i => `${i}:00`, groupLabel: '今日·按小时' },
+    day:   { n: 7,  labelFn: i => ['周一','周二','周三','周四','周五','周六','周日'][i], groupLabel: '本周·按天' },
+    week:  { n: 5,  labelFn: i => `第${i+1}周`, groupLabel: '本月·按周' },
+    month: { n: 12, labelFn: i => `${i+1}月`, groupLabel: '今年·按月' },
+  };
+  const { n, labelFn, groupLabel } = configs[dimKey];
+
+  // Generate shapes with seeded rand so stable
+  const rand = seeded(dimKey.charCodeAt(0) * 31 + n);
+  const raw = TAGS.map((t, ti) => {
+    return Array.from({ length: n }, (_, xi) => {
+      // each tag has a "peak zone" creating interesting shapes
+      const center = ((ti * 3 + 2) % n);
+      const spread = n * 0.35;
+      const base = Math.exp(-0.5 * Math.pow((xi - center) / spread, 2)) * (4 + rand() * 8);
+      return Math.max(0, base + (rand() - 0.5) * 2);
+    });
+  });
+
+  const labels = Array.from({ length: n }, (_, i) => labelFn(i));
+  return { raw, labels, n, groupLabel };
+}
+
+// ── Streamgraph layout (d3-shape stack + wiggle offset) ──
+function computeStream(raw, n) {
+  const stack = d3.stack()
+    .keys(d3.range(TAGS.length))
+    .offset(d3.stackOffsetWiggle)
+    .order(d3.stackOrderInsideOut);
+
+  const tableData = d3.range(n).map(xi => {
+    const row = { i: xi };
+    TAGS.forEach((_, ti) => { row[ti] = raw[ti][xi]; });
+    return row;
+  });
+
+  return stack(tableData);
+}
+
+// ── Main card ──
+function RecentlyPlayedCard() {
+  const TABS = ['时间轴', '分布图', '标签流'];
+  const [activeTab, setActiveTab] = useState(2);
+  const DIMS = [
+    { key: 'hour',  label: '24h' },
+    { key: 'day',   label: '周' },
+    { key: 'week',  label: '月' },
+    { key: 'month', label: '年' },
+  ];
+  const [activeDim, setActiveDim] = useState('day');
+  const [hovered, setHovered] = useState(null); // { xi, tagI }
+  const [tooltip, setTooltip] = useState(null);
+  const svgRef = useRef(null);
+
+  const data = useMemo(() => genData(activeDim), [activeDim]);
+  const series = useMemo(() => computeStream(data.raw, data.n), [data]);
+
+  // SVG dimensions
+  const W = 820, H = 260, PL = 0, PR = 16, PT = 24, PB = 40;
+  const innerW = W - PL - PR;
+  const innerH = H - PT - PB;
+
+  const xScale = d3.scaleLinear().domain([0, data.n - 1]).range([0, innerW]);
+  const allVals = series.flatMap(s => s.flatMap(d => [d[0], d[1]]));
+  const yMin = d3.min(allVals), yMax = d3.max(allVals);
+  const yScale = d3.scaleLinear().domain([yMin, yMax]).range([innerH, 0]).nice();
+
+  const area = d3.area()
+    .x((d, i) => xScale(i))
+    .y0(d => yScale(d[0]))
+    .y1(d => yScale(d[1]))
+    .curve(d3.curveCatmullRom.alpha(0.5));
+
+  // Hover vertical line position
+  const [mouseX, setMouseX] = useState(null);
+
+  function handleSvgMove(e) {
+    const rect = svgRef.current.getBoundingClientRect();
+    const relX = e.clientX - rect.left - PL;
+    const xi = Math.round(xScale.invert(relX));
+    if (xi >= 0 && xi < data.n) {
+      setMouseX(xScale(xi));
+      // find tag with largest band at this xi
+      let maxBand = -Infinity, maxTi = 0;
+      series.forEach((s, ti) => {
+        const band = s[xi][1] - s[xi][0];
+        if (band > maxBand) { maxBand = band; maxTi = ti; }
+      });
+      setTooltip({ xi, xPx: xScale(xi), tag: TAGS[maxTi], value: Math.round(data.raw[maxTi][xi] * 10) / 10, label: data.labels[xi] });
+    }
+  }
+  function handleSvgLeave() { setMouseX(null); setTooltip(null); }
+
+  return (
+    <div className="card">
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ fontSize: 10, letterSpacing: '0.12em', color: '#aaa', fontWeight: 500, textTransform: 'uppercase', marginBottom: 4 }}>RECENTLY PLAYED</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: '#111', letterSpacing: '-0.02em', lineHeight: 1.2 }}>最近听歌</div>
+          <div style={{ fontSize: 13, color: '#999', marginTop: 6, fontWeight: 400 }}>
+            查看不同时段里各音乐风格的流动比例，感受你的口味变化。
+          </div>
+        </div>
+        {/* Capsule toggle */}
+        <div style={{
+          display: 'flex', alignItems: 'center',
+          background: '#f3f3f1', borderRadius: 999,
+          padding: '3px', gap: 2,
+          flexShrink: 0,
+          marginTop: 4,
+        }}>
+          {TABS.map((t, i) => (
+            <button key={t} onClick={() => setActiveTab(i)} style={{
+              border: 'none', cursor: 'pointer',
+              borderRadius: 999,
+              padding: '5px 14px',
+              fontSize: 13, fontWeight: 500,
+              fontFamily: 'inherit',
+              transition: 'all 0.18s ease',
+              background: activeTab === i ? '#1a1a1a' : 'transparent',
+              color: activeTab === i ? '#fff' : '#888',
+              letterSpacing: activeTab === i ? '-0.01em' : 0,
+            }}>{t}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Time dim switcher */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginTop: 20, marginBottom: 4 }}>
+        <span style={{ fontSize: 12, color: '#bbb', marginRight: 10, fontWeight: 400 }}>时间维度</span>
+        <div style={{ display: 'flex', background: '#f5f5f3', borderRadius: 8, padding: '2px', gap: 2 }}>
+          {DIMS.map(d => (
+            <button key={d.key} onClick={() => setActiveDim(d.key)} style={{
+              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              borderRadius: 6, padding: '4px 14px',
+              fontSize: 12, fontWeight: 500,
+              transition: 'all 0.15s',
+              background: activeDim === d.key ? '#fff' : 'transparent',
+              color: activeDim === d.key ? '#111' : '#aaa',
+              boxShadow: activeDim === d.key ? '0 1px 3px rgba(0,0,0,0.10)' : 'none',
+            }}>{d.label}</button>
+          ))}
+        </div>
+        <span style={{ fontSize: 11, color: '#ccc', marginLeft: 12 }}>{data.groupLabel}</span>
+      </div>
+
+      {/* Stream chart */}
+      <div style={{ position: 'relative', marginTop: 8 }}>
+        <svg
+          ref={svgRef}
+          width={W} height={H}
+          onMouseMove={handleSvgMove}
+          onMouseLeave={handleSvgLeave}
+          style={{ cursor: 'crosshair', display: 'block' }}
+        >
+          <g transform={`translate(${PL},${PT})`}>
+            {/* Grid lines */}
+            {yScale.ticks(4).map(t => (
+              <line key={t}
+                x1={0} x2={innerW}
+                y1={yScale(t)} y2={yScale(t)}
+                stroke="#f0f0ee" strokeWidth={1}
+              />
+            ))}
+
+            {/* Stream paths */}
+            {series.map((s, ti) => {
+              const tag = TAGS[ti];
+              const isHov = tooltip && tooltip.tag.key === tag.key;
+              return (
+                <path
+                  key={tag.key}
+                  d={area(s)}
+                  fill={tag.color}
+                  fillOpacity={isHov ? 0.92 : 0.72}
+                  stroke={tag.color}
+                  strokeWidth={isHov ? 1.5 : 0.5}
+                  strokeOpacity={0.4}
+                  style={{ transition: 'fill-opacity 0.15s, stroke-width 0.15s' }}
+                />
+              );
+            })}
+
+            {/* Hover vertical line */}
+            {mouseX !== null && (
+              <line
+                x1={mouseX} x2={mouseX}
+                y1={0} y2={innerH}
+                stroke="#1a1a1a" strokeWidth={1}
+                strokeDasharray="3 3" opacity={0.35}
+              />
+            )}
+
+            {/* X axis labels */}
+            {data.labels.map((lbl, i) => {
+              // show subset to avoid crowding
+              const show = data.n <= 12 ? true : data.n <= 24 ? i % 3 === 0 : i % 2 === 0;
+              if (!show) return null;
+              return (
+                <text key={i}
+                  x={xScale(i)} y={innerH + 20}
+                  textAnchor="middle"
+                  fontSize={10} fill="#bbb" fontFamily="inherit"
+                >{lbl}</text>
+              );
+            })}
+          </g>
+        </svg>
+
+        {/* Tooltip */}
+        {tooltip && (() => {
+          const tx = Math.min(Math.max(tooltip.xPx + PL + 12, 0), W - 140);
+          return (
+            <div style={{
+              position: 'absolute',
+              top: PT - 8,
+              left: tx,
+              background: '#1a1a1a',
+              borderRadius: 10,
+              padding: '8px 13px',
+              pointerEvents: 'none',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+            }}>
+              <div style={{ fontSize: 11, color: '#666', marginBottom: 2 }}>{tooltip.label}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: tooltip.tag.color, flexShrink: 0 }}></div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{tooltip.tag.label}</span>
+                <span style={{ fontSize: 12, color: '#aaa', marginLeft: 4 }}>{tooltip.value} 首</span>
+              </div>
+              <AllTagsAtSlice series={series} xi={tooltip.xi} xScaleFn={xScale} rawData={data.raw} />
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Legend */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', marginTop: 4, paddingLeft: 0 }}>
+        {TAGS.map(t => (
+          <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: t.color, opacity: 0.85 }}></div>
+            <span style={{ fontSize: 11, color: '#999', fontWeight: 400 }}>{t.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer note */}
+      <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f0f0ee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: '#ccc' }}>悬停查看各标签播放量 · 流宽度代表比例占比</span>
+        <span style={{ fontSize: 11, color: '#ddd' }}>共 {TAGS.length} 个标签 · 近期数据</span>
+      </div>
+    </div>
+  );
+}
+
+function AllTagsAtSlice({ series, xi, rawData }) {
+  const sorted = TAGS.map((t, ti) => ({ ...t, val: Math.round(rawData[ti][xi] * 10) / 10 }))
+    .filter(t => t.val > 0.1)
+    .sort((a, b) => b.val - a.val)
+    .slice(0, 4);
+  return (
+    <div style={{ marginTop: 6, borderTop: '1px solid #333', paddingTop: 5, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {sorted.map(t => (
+        <div key={t.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ width: 6, height: 6, borderRadius: 1, background: t.color }}></div>
+            <span style={{ fontSize: 11, color: '#aaa' }}>{t.label}</span>
+          </div>
+          <span style={{ fontSize: 11, color: '#666' }}>{t.val}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<RecentlyPlayedCard />);
+</script>
+</body>
+</html>
