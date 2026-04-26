@@ -18,8 +18,6 @@ function formatDuration(ms: number) {
 
 export default function TopTrackPoster({ stats, isLoading, isTransitioning }: Props) {
   const track = stats.topTrack
-  const hours = Math.floor(stats.totalMinutes / 60)
-  const mins = stats.totalMinutes % 60
 
   return (
     <div className={`${styles.poster} ${isTransitioning ? styles.transitioning : ''}`}>
@@ -69,12 +67,13 @@ export default function TopTrackPoster({ stats, isLoading, isTransitioning }: Pr
 
             <div className={styles.statRow}>
               <span className={styles.statItem}>
-                <span className={styles.statNum}>{stats.totalPlays}</span> 首
+                ×<span className={styles.statNum}>{track.playCount}</span> 次
               </span>
-              <span className={styles.statItem}>
-                {hours > 0 ? <><span className={styles.statNum}>{hours}</span>h </> : null}
-                <span className={styles.statNum}>{mins}</span>min
-              </span>
+              {track.durationMs > 0 && (
+                <span className={styles.statItem}>
+                  <span className={styles.statNum}>{Math.round(track.playCount * track.durationMs / 60000)}</span>min
+                </span>
+              )}
               {stats.peakHour !== null && (
                 <span className={styles.statItem}>
                   峰值 <span className={styles.statNum}>{String(stats.peakHour).padStart(2,'0')}:00</span>

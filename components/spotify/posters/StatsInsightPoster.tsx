@@ -15,7 +15,7 @@ function formatHour(h: number) {
 }
 
 export default function StatsInsightPoster({ stats, isLoading, isTransitioning }: Props) {
-  const { top5Tracks, top5Artists, totalMinutes, peakHour, topTag, dateRange, period } = stats
+  const { top5Tracks, top5Artists, totalMinutes, totalPlays, peakHour, dateRange, period } = stats
   const hours = Math.floor(totalMinutes / 60)
   const mins = totalMinutes % 60
 
@@ -122,14 +122,18 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
         <div className={styles.statsRow}>
           <span className={styles.statItem}>
             {isLoading ? (
+              <span className={styles.skeleton} style={{ display: 'inline-block', width: '32px', height: '10px' } as CSSProperties} />
+            ) : (
+              <><span className={styles.statNum}>{totalPlays}</span> 首</>
+            )}
+          </span>
+          <span className={styles.statItem}>
+            {isLoading ? (
               <span className={styles.skeleton} style={{ display: 'inline-block', width: '48px', height: '10px' } as CSSProperties} />
             ) : (
               <>{hours > 0 ? <><span className={styles.statNum}>{hours}</span>h </> : null}<span className={styles.statNum}>{mins}</span>min</>
             )}
           </span>
-          {topTag && !isLoading && (
-            <span className={styles.vibeTag}>{topTag}</span>
-          )}
           {peakHour !== null && !isLoading && (
             <span className={styles.statItem}>
               峰值 <span className={styles.statNum}>{formatHour(peakHour)}</span>

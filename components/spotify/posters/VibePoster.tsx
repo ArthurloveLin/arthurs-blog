@@ -68,9 +68,18 @@ interface Props {
 
 export default function VibePoster({ stats, isLoading, isTransitioning }: Props) {
   const palette = getPalette(stats.topTag)
-  const { topTag, top2Contexts, topArtist, period, totalPlays, totalMinutes, peakHour } = stats
-  const hours = Math.floor(totalMinutes / 60)
-  const mins = totalMinutes % 60
+  const { topTag, top2Contexts, period } = stats
+
+  // Show one context row per type: artist, album, playlist
+  const displayContexts: MusicReportTopContext[] = []
+  const typeSeen = new Set<string>()
+  for (const ctx of top2Contexts) {
+    const t = ctx.type
+    if ((t === 'artist' || t === 'album' || t === 'playlist') && !typeSeen.has(t)) {
+      typeSeen.add(t)
+      displayContexts.push(ctx)
+    }
+  }
 
   const posterStyle: CSSProperties = {
     '--vibe-bg': palette.bg,
@@ -95,62 +104,25 @@ export default function VibePoster({ stats, isLoading, isTransitioning }: Props)
             <div className={styles.skeleton} style={{ height: '40px', width: '80%', marginTop: '0.6rem' } as CSSProperties} />
             <div className={styles.skeleton} style={{ height: '48px', width: '100%', marginTop: '0.7rem', borderRadius: '6px' } as CSSProperties} />
             <div className={styles.skeleton} style={{ height: '48px', width: '100%', marginTop: '0.4rem', borderRadius: '6px' } as CSSProperties} />
+            <div className={styles.skeleton} style={{ height: '48px', width: '100%', marginTop: '0.4rem', borderRadius: '6px' } as CSSProperties} />
           </>
         ) : (
           <>
             {/* Vibe tag */}
             <div className={styles.vibeTagBanner}>
-              {topTag ?? 'MUSIC'}
+              {topTag ?? (period === 'day' ? '今日' : period === 'week' ? '本周' : '本月')}
             </div>
 
-            <div className={styles.divider} />
+            {displayContexts.length > 0 && <div className={styles.divider} />}
 
-            {/* Up to 2 context items */}
-            {top2Contexts.length > 0 ? (
+            {/* Up to 3 context items (one per type: artist / album / playlist) */}
+            {displayContexts.length > 0 && (
               <div className={styles.contextList}>
-                {top2Contexts.map((ctx, i) => (
+                {displayContexts.map((ctx, i) => (
                   <ContextRow key={`${ctx.type}:${ctx.label}:${i}`} ctx={ctx} palette={palette} />
                 ))}
-                {/* If only 1 context and we have topArtist, fill the gap */}
-                {top2Contexts.length === 1 && topArtist && (
-                  <div className={styles.artistRow}>
-                    <span className={styles.artistEmoji}>🎤</span>
-                    <div className={styles.contextInfo}>
-                      <div className={styles.contextName}>{topArtist.name}</div>
-                      <div className={styles.contextCount} style={{ color: palette.dimText }}>{topArtist.playCount} plays</div>
-                    </div>
-                  </div>
-                )}
               </div>
-            ) : topArtist ? (
-              <div className={styles.contextList}>
-                <div className={styles.artistRow}>
-                  <span className={styles.artistEmoji}>🎤</span>
-                  <div className={styles.contextInfo}>
-                    <div className={styles.contextName}>{topArtist.name}</div>
-                    <div className={styles.contextCount} style={{ color: palette.dimText }}>{topArtist.playCount} plays</div>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            {/* Bottom stats */}
-            <div className={styles.statsRow}>
-              <span className={styles.statItem}>
-                <span className={styles.statNum}>{totalPlays}</span> 首
-              </span>
-              {totalMinutes > 0 && (
-                <span className={styles.statItem}>
-                  {hours > 0 ? <><span className={styles.statNum}>{hours}</span>h </> : null}
-                  <span className={styles.statNum}>{mins}</span>min
-                </span>
-              )}
-              {peakHour !== null && (
-                <span className={styles.statItem}>
-                  峰值 <span className={styles.statNum}>{String(peakHour).padStart(2, '0')}:00</span>
-                </span>
-              )}
-            </div>
+            )}
           </>
         )}
 
