@@ -1,7 +1,7 @@
 .poster {
   display: flex;
   flex-direction: column;
-  height: 390px;
+  min-height: 200px;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
@@ -146,6 +146,23 @@
   white-space: nowrap;
 }
 
+.durationLabel {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #c4580f;
+  margin-right: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.durationLabel::before {
+  content: '🕒';
+  font-size: 0.62rem;
+  opacity: 0.8;
+}
+
 .statRow {
   display: flex;
   align-items: center;
@@ -156,7 +173,7 @@
 
 .statItem {
   font-family: ui-monospace, 'SF Mono', monospace;
-  font-size: 0.58rem;
+  font-size: 0.65rem;
   color: rgba(40,25,8,0.42);
   letter-spacing: 0.04em;
   white-space: nowrap;
