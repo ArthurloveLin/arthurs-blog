@@ -81,6 +81,11 @@ export default function TopArtistPoster({ stats, isLoading, isTransitioning }: P
               <span className={styles.statItem}>
                 <span className={styles.statNum}>{stats.totalMinutes}</span> min
               </span>
+              {stats.peakHour !== null && (
+                <span className={styles.statItem}>
+                  峰值 <span className={styles.statNum}>{String(stats.peakHour).padStart(2, '0')}:00</span>
+                </span>
+              )}
             </div>
           </>
         ) : (
