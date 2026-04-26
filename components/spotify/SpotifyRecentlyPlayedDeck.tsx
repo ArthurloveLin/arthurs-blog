@@ -17,11 +17,12 @@ import { formatStableDate } from '@/lib/date-format'
 import type { SpotifyRecentlyPlayedTrack, SpotifyTrackTagStore, TimeSegmentId } from '@/lib/spotify-types'
 
 import SpotifyListeningChart from './SpotifyListeningChart'
+import SpotifyTagStreamChart from './SpotifyTagStreamChart'
 import styles from './SpotifyRecentlyPlayedDeck.module.css'
 
 const DEFAULT_CARDS_PER_PAGE = 4
 
-type RecentlyPlayedView = 'timeline' | 'chart'
+type RecentlyPlayedView = 'timeline' | 'chart' | 'stream'
 
 type DaysResponse = {
   days: string[]
@@ -770,7 +771,7 @@ export default function SpotifyRecentlyPlayedDeck({
               <HistoryDaySelector days={availableDays} selectedDate={selectedDate} onSelect={handleSelectDay} />
             </div>
         </>
-      ) : (
+      ) : view === 'chart' ? (
           <div className={styles.chartPanel}>
             <SpotifyListeningChart
               hourMap={effectiveHourMap}
@@ -784,6 +785,8 @@ export default function SpotifyRecentlyPlayedDeck({
               点击柱状图可跳回时间轴对应时段。{selectedDate ? `当前日期：${activeDayLabel}。` : ''}
             </p>
           </div>
+      ) : (
+        <SpotifyTagStreamChart />
       )}
     </div>
   )

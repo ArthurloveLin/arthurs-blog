@@ -1,10 +1,11 @@
 'use client'
 
-type RecentlyPlayedView = 'timeline' | 'chart'
+type RecentlyPlayedView = 'timeline' | 'chart' | 'stream'
 
 const VIEW_OPTIONS: Array<{ id: RecentlyPlayedView; label: string }> = [
   { id: 'timeline', label: '时间轴' },
   { id: 'chart', label: '分布图' },
+  { id: 'stream', label: '标签流' },
 ]
 
 export default function RecentlyPlayedViewToggle({

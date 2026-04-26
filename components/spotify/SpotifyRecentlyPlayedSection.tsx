@@ -8,7 +8,7 @@ import type { SpotifyRecentlyPlayedTrack } from '@/lib/spotify-types'
 import RecentlyPlayedViewToggle from './RecentlyPlayedViewToggle'
 import SpotifyRecentlyPlayedDeck from './SpotifyRecentlyPlayedDeck'
 
-type RecentlyPlayedView = 'timeline' | 'chart'
+type RecentlyPlayedView = 'timeline' | 'chart' | 'stream'
 
 export default function SpotifyRecentlyPlayedSection({
   items,

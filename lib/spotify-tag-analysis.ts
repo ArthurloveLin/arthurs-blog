@@ -9,14 +9,14 @@ import type {
 } from './spotify-types'
 
 const RADAR_CLUSTERS: Record<string, string[]> = {
-  '电子 / 舞曲': ['electronic', 'edm', 'dance', 'techno', 'house', 'electropop', 'synth-pop', 'synth pop', 'ambient', 'electronica', 'idm', 'trance'],
-  '摇滚 / 另类': ['rock', 'indie', 'alternative', 'punk', 'post-rock', 'indie rock', 'alternative rock', 'shoegaze', 'grunge', 'emo', 'post-punk'],
-  '流行':        ['pop', 'k-pop', 'j-pop', 'dream pop', 'synth pop', 'power pop', 'chamber pop', 'art pop', 'indie pop'],
-  '嘻哈 / R&B':  ['hip-hop', 'hip hop', 'r&b', 'rap', 'soul', 'rnb', 'trap', 'urban', 'neo-soul'],
-  '情绪 / 氛围':  ['chill', 'melancholic', 'sad', 'happy', 'romantic', 'relaxing', 'atmospheric', 'chillout', 'lo-fi', 'lofi'],
-  '原声 / 民谣':  ['acoustic', 'folk', 'singer-songwriter', 'country', 'americana', 'bluegrass', 'celtic'],
-  '古典 / 爵士':  ['classical', 'jazz', 'orchestral', 'piano', 'instrumental', 'blues', 'swing', 'bossa nova'],
-  '金属 / 硬核':  ['metal', 'heavy metal', 'hard rock', 'hardcore', 'metalcore', 'death metal', 'black metal', 'thrash'],
+  '流行': ['pop', 'k-pop', 'j-pop', 'dream pop', 'synth pop', 'power pop', 'chamber pop', 'art pop', 'indie pop'],
+  '摇滚': ['rock', 'indie', 'alternative', 'punk', 'post-rock', 'indie rock', 'alternative rock', 'shoegaze', 'grunge', 'emo', 'post-punk', 'metal', 'heavy metal'],
+  'R&B': ['r&b', 'rnb', 'soul', 'neo-soul'],
+  '电子': ['electronic', 'edm', 'dance', 'techno', 'house', 'electropop', 'ambient', 'electronica', 'idm', 'trance'],
+  '民谣': ['acoustic', 'folk', 'singer-songwriter', 'country', 'americana', 'bluegrass', 'celtic'],
+  '古典': ['classical', 'orchestral', 'piano', 'instrumental'],
+  '嘻哈': ['hip-hop', 'hip hop', 'rap', 'trap', 'urban'],
+  '爵士': ['jazz', 'blues', 'swing', 'bossa nova'],
 }
 
 export function aggregateTags(trackIds: string[], store: SpotifyTrackTagStore): TagAggregation[] {
