@@ -934,6 +934,9 @@
 }
 
 .chartSegmentName {
+  display: block;
+  width: 100%;
+  text-align: center;
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--foreground);
@@ -1083,6 +1086,10 @@
 
 
   .pageLabel {
+    display: none;
+  }
+
+  .chartSegmentHours {
     display: none;
   }
 }

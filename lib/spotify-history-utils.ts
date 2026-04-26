@@ -12,8 +12,8 @@ export function groupTracksByHour(tracks: SpotifyRecentlyPlayedTrack[]): Map<num
 
 export const TIME_SEGMENTS: TimeSegment[] = [
   { id: 'dawn', label: '凌晨', startHour: 0, endHour: 6 },
-  { id: 'morning', label: '早晨', startHour: 6, endHour: 10 },
-  { id: 'noon', label: '上午', startHour: 10, endHour: 12 },
+  { id: 'morning', label: '早晨', startHour: 6, endHour: 9 },
+  { id: 'noon', label: '上午', startHour: 9, endHour: 12 },
   { id: 'afternoon', label: '下午', startHour: 12, endHour: 18 },
   { id: 'evening', label: '傍晚', startHour: 18, endHour: 21 },
   { id: 'night', label: '深夜', startHour: 21, endHour: 24 },
