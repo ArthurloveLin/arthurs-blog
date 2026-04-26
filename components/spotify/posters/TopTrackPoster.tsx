@@ -10,28 +10,27 @@ interface Props {
   isTransitioning?: boolean
 }
 
+function formatDuration(ms: number) {
+  const m = Math.floor(ms / 60000)
+  const s = Math.floor((ms % 60000) / 1000)
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
 export default function TopTrackPoster({ stats, isLoading, isTransitioning }: Props) {
   const track = stats.topTrack
+  const hours = Math.floor(stats.totalMinutes / 60)
+  const mins = stats.totalMinutes % 60
 
   return (
-    <div
-      className={`${styles.poster} ${isTransitioning ? styles.transitioning : ''}`}
-    >
-      {/* Accent bar */}
+    <div className={`${styles.poster} ${isTransitioning ? styles.transitioning : ''}`}>
       <div className={styles.accentBar} />
 
-      {/* Hero cover area — 58% */}
+      {/* Hero cover — 55% */}
       <div className={styles.coverArea}>
         {isLoading ? (
           <div className={styles.coverSkeleton} />
         ) : track?.albumImageUrl ? (
-          <img
-            className={styles.coverImg}
-            src={track.albumImageUrl}
-            alt={track.title}
-            width={158}
-            height={92}
-          />
+          <img className={styles.coverImg} src={track.albumImageUrl} alt={track.title} width={195} height={107} />
         ) : (
           <div className={styles.coverPlaceholder} />
         )}
@@ -39,27 +38,53 @@ export default function TopTrackPoster({ stats, isLoading, isTransitioning }: Pr
         {track && track.playCount > 1 && !isLoading && (
           <span className={styles.playBadge}>×{track.playCount}</span>
         )}
+        {!isLoading && (
+          <span className={styles.coverLabel}>TOP TRACK</span>
+        )}
       </div>
 
-      {/* Info area */}
+      {/* Info area — 45% */}
       <div className={styles.infoArea}>
-        <span className={styles.eyebrow}>TOP TRACK</span>
         {isLoading ? (
           <>
-            <div className={styles.skeleton} style={{ height: '14px', width: '90%', marginTop: '0.3rem' } as CSSProperties} />
-            <div className={styles.skeleton} style={{ height: '10px', width: '65%', marginTop: '0.3rem' } as CSSProperties} />
+            <div className={styles.skeleton} style={{ height: '14px', width: '90%' } as CSSProperties} />
+            <div className={styles.skeleton} style={{ height: '10px', width: '65%', marginTop: '0.35rem' } as CSSProperties} />
+            <div className={styles.skeleton} style={{ height: '10px', width: '50%', marginTop: '0.8rem' } as CSSProperties} />
           </>
         ) : track ? (
           <>
             <h3 className={styles.trackTitle}>{track.title}</h3>
             <p className={styles.artistName}>{track.artist}</p>
+
+            <div className={styles.divider} />
+
+            <div className={styles.metaRow}>
+              {track.durationMs > 0 && (
+                <span className={styles.metaChip}>{formatDuration(track.durationMs)}</span>
+              )}
+              {stats.topTag && (
+                <span className={styles.metaChip}>{stats.topTag}</span>
+              )}
+            </div>
+
+            <div className={styles.statRow}>
+              <span className={styles.statItem}>
+                <span className={styles.statNum}>{stats.totalPlays}</span> 首
+              </span>
+              <span className={styles.statItem}>
+                {hours > 0 ? <><span className={styles.statNum}>{hours}</span>h </> : null}
+                <span className={styles.statNum}>{mins}</span>min
+              </span>
+              {stats.peakHour !== null && (
+                <span className={styles.statItem}>
+                  峰值 <span className={styles.statNum}>{String(stats.peakHour).padStart(2,'0')}:00</span>
+                </span>
+              )}
+            </div>
           </>
         ) : (
           <div className={styles.emptyLabel}>今{stats.period === 'day' ? '日' : stats.period === 'week' ? '周' : '月'}暂无数据</div>
         )}
-        <div className={styles.footer}>
-          <span className={styles.footerMeta}>{stats.dateRange}</span>
-        </div>
       </div>
     </div>
   )

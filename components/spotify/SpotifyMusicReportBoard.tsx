@@ -84,7 +84,10 @@ export default function SpotifyMusicReportBoard() {
     return (
       <div className={styles.board}>
         <div className={styles.boardHeader}>
-          <span className={styles.boardTitle}>MUSIC REPORT</span>
+          <div>
+            <p className={styles.eyebrow}>Music Report</p>
+            <h3 className={styles.boardTitle}>听歌报告</h3>
+          </div>
         </div>
         <p style={{ textAlign: 'center', color: 'rgba(40,25,8,0.4)', fontSize: '0.8rem', padding: '2rem 0' }}>
           暂时无法加载报告数据
@@ -95,39 +98,48 @@ export default function SpotifyMusicReportBoard() {
 
   return (
     <div className={styles.board}>
-      {/* Board header with title + period switcher */}
+      {/* Board header: title left, period capsule right — same line as h3 */}
       <div className={styles.boardHeader}>
-        <span className={styles.boardTitle}>MUSIC REPORT</span>
-
-        <div className={styles.periodSwitcher}>
-          {(['day', 'week', 'month'] as Period[]).map((p) => (
-            <button
-              key={p}
-              className={`${styles.periodBtn} ${activePeriod === p ? styles.periodBtnActive : ''}`}
-              onClick={() => handlePeriodChange(p)}
-              type="button"
-            >
-              {PERIOD_LABELS[p]}
-            </button>
-          ))}
+        <div>
+          <p className={styles.eyebrow}>Music Report</p>
+          <div className={styles.titleRow}>
+            <h3 className={styles.boardTitle}>听歌报告</h3>
+            {/* Period capsule — rounded-full style matching SpotifyTimeRangeTabs */}
+            <div className="inline-flex flex-nowrap gap-1 rounded-full border border-[rgba(40,25,8,0.2)] bg-[rgba(245,237,216,0.85)] p-0.5 shadow-[0_2px_6px_rgba(0,0,0,0.18)]">
+              {(['day', 'week', 'month'] as Period[]).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => handlePeriodChange(p)}
+                  className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all ${
+                    activePeriod === p
+                      ? 'bg-[rgba(40,25,8,0.82)] text-[rgba(255,240,200,0.95)] shadow-[0_2px_8px_rgba(0,0,0,0.25)]'
+                      : 'text-[rgba(40,25,8,0.5)] hover:text-[rgba(40,25,8,0.75)]'
+                  }`}
+                >
+                  {PERIOD_LABELS[p]}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* 4 content-dimension posters */}
       <div className={styles.posters}>
-        <PosterShell rotation={POSTER_CONFIGS[0].rotation} pinColor={POSTER_CONFIGS[0].pinColor} tapeRotation={POSTER_CONFIGS[0].tapeRotation}>
+        <PosterShell rotation={POSTER_CONFIGS[0].rotation} pinColor={POSTER_CONFIGS[0].pinColor} tapeRotation={POSTER_CONFIGS[0].tapeRotation} width={195}>
           <TopTrackPoster stats={stats} isLoading={isLoading} isTransitioning={isTransitioning} />
         </PosterShell>
 
-        <PosterShell rotation={POSTER_CONFIGS[1].rotation} pinColor={POSTER_CONFIGS[1].pinColor} tapeRotation={POSTER_CONFIGS[1].tapeRotation}>
+        <PosterShell rotation={POSTER_CONFIGS[1].rotation} pinColor={POSTER_CONFIGS[1].pinColor} tapeRotation={POSTER_CONFIGS[1].tapeRotation} width={195}>
           <TopArtistPoster stats={stats} isLoading={isLoading} isTransitioning={isTransitioning} />
         </PosterShell>
 
-        <PosterShell rotation={POSTER_CONFIGS[2].rotation} pinColor={POSTER_CONFIGS[2].pinColor} tapeRotation={POSTER_CONFIGS[2].tapeRotation}>
+        <PosterShell rotation={POSTER_CONFIGS[2].rotation} pinColor={POSTER_CONFIGS[2].pinColor} tapeRotation={POSTER_CONFIGS[2].tapeRotation} width={195}>
           <StatsInsightPoster stats={stats} isLoading={isLoading} isTransitioning={isTransitioning} />
         </PosterShell>
 
-        <PosterShell rotation={POSTER_CONFIGS[3].rotation} pinColor={POSTER_CONFIGS[3].pinColor} tapeRotation={POSTER_CONFIGS[3].tapeRotation}>
+        <PosterShell rotation={POSTER_CONFIGS[3].rotation} pinColor={POSTER_CONFIGS[3].pinColor} tapeRotation={POSTER_CONFIGS[3].tapeRotation} width={195}>
           <VibePoster stats={stats} isLoading={isLoading} isTransitioning={isTransitioning} />
         </PosterShell>
       </div>

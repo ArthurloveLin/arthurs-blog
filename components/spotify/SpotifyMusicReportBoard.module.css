@@ -3,7 +3,7 @@
 .board {
   position: relative;
   border-radius: 1.4rem;
-  padding: 2rem 2.4rem 2.4rem;
+  padding: 2rem 2.4rem 2.8rem;
   overflow: visible;
 
   background-color: #b07d3a;
@@ -37,7 +37,6 @@
     0 2px 8px rgba(0, 0, 0, 0.14);
 }
 
-/* Cork board wooden frame edge */
 .board::before {
   content: '';
   position: absolute;
@@ -51,81 +50,34 @@
 /* ─── Board Header ────────────────────────────────────────────────────────── */
 
 .boardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.6rem;
+  margin-bottom: 1.8rem;
 }
 
-.boardTitle {
-  background: linear-gradient(135deg, #a06820, #7a4f10);
-  color: rgba(255, 240, 200, 0.92);
-  font-size: 0.65rem;
+.eyebrow {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  padding: 0.32rem 1.1rem;
-  border-radius: 999px;
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  font-family: ui-monospace, 'SF Mono', monospace;
+  color: rgba(255, 240, 200, 0.55);
+  margin-bottom: 0.2rem;
 }
 
-/* ─── Period Capsule Switcher ─────────────────────────────────────────────── */
-
-.periodSwitcher {
-  position: relative;
+/* Title + capsule on the same horizontal line */
+.titleRow {
   display: flex;
-  align-items: stretch;
-  background: #f0e4c4;
-  border-radius: 3px;
-  border: 1px solid rgba(40, 25, 8, 0.22);
-  box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-/* Punched-hole decoration on left */
-.periodSwitcher::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: -10px;
-  transform: translateY(-50%);
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: rgba(40, 25, 8, 0.22);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.periodBtn {
-  font-family: ui-monospace, 'SF Mono', monospace;
-  font-size: 0.58rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  padding: 0.28rem 0.7rem;
-  color: rgba(40, 25, 8, 0.45);
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  border-right: 1px solid rgba(40, 25, 8, 0.12);
-  transition: color 0.14s;
-  line-height: 1;
-}
-
-.periodBtn:last-child {
-  border-right: none;
-}
-
-.periodBtn:hover {
-  color: rgba(40, 25, 8, 0.7);
-}
-
-.periodBtnActive {
-  color: rgba(40, 25, 8, 0.88);
+.boardTitle {
+  font-size: 1.25rem;
   font-weight: 700;
-  box-shadow: inset 0 -2px 0 rgba(40, 25, 8, 0.45);
+  color: rgba(255, 240, 200, 0.92);
+  letter-spacing: -0.01em;
+  line-height: 1;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* ─── Posters Container ───────────────────────────────────────────────────── */
@@ -134,7 +86,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 1.4rem;
+  gap: 1.6rem;
 }
 
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
@@ -147,19 +99,19 @@
 
 @media (max-width: 767px) {
   .board {
-    padding: 1.6rem 1.2rem 1.8rem;
+    padding: 1.6rem 1.2rem 2rem;
   }
 
-  .boardHeader {
+  .titleRow {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.8rem;
+    gap: 0.6rem;
   }
 
   .posters {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 2rem 1.2rem;
+    gap: 2.2rem 1rem;
     justify-items: center;
   }
 }
