@@ -127,19 +127,23 @@ export default function SpotifyMusicReportBoard() {
 
       {/* 4 content-dimension posters */}
       <div className={styles.posters}>
-        <PosterShell rotation={POSTER_CONFIGS[0].rotation} pinColor={POSTER_CONFIGS[0].pinColor} tapeRotation={POSTER_CONFIGS[0].tapeRotation} width={195}>
+        {/* TopTrack — 最宽，主角 */}
+        <PosterShell rotation={POSTER_CONFIGS[0].rotation} pinColor={POSTER_CONFIGS[0].pinColor} tapeRotation={POSTER_CONFIGS[0].tapeRotation} width={262}>
           <TopTrackPoster stats={stats} isLoading={isLoading} isTransitioning={isTransitioning} />
         </PosterShell>
 
-        <PosterShell rotation={POSTER_CONFIGS[1].rotation} pinColor={POSTER_CONFIGS[1].pinColor} tapeRotation={POSTER_CONFIGS[1].tapeRotation} width={195}>
+        {/* TopArtist */}
+        <PosterShell rotation={POSTER_CONFIGS[1].rotation} pinColor={POSTER_CONFIGS[1].pinColor} tapeRotation={POSTER_CONFIGS[1].tapeRotation} width={232}>
           <TopArtistPoster stats={stats} isLoading={isLoading} isTransitioning={isTransitioning} />
         </PosterShell>
 
-        <PosterShell rotation={POSTER_CONFIGS[2].rotation} pinColor={POSTER_CONFIGS[2].pinColor} tapeRotation={POSTER_CONFIGS[2].tapeRotation} width={195}>
+        {/* StatsInsight — 榜单需要更宽的双列 */}
+        <PosterShell rotation={POSTER_CONFIGS[2].rotation} pinColor={POSTER_CONFIGS[2].pinColor} tapeRotation={POSTER_CONFIGS[2].tapeRotation} width={292}>
           <StatsInsightPoster stats={stats} isLoading={isLoading} isTransitioning={isTransitioning} />
         </PosterShell>
 
-        <PosterShell rotation={POSTER_CONFIGS[3].rotation} pinColor={POSTER_CONFIGS[3].pinColor} tapeRotation={POSTER_CONFIGS[3].tapeRotation} width={195}>
+        {/* Vibe */}
+        <PosterShell rotation={POSTER_CONFIGS[3].rotation} pinColor={POSTER_CONFIGS[3].pinColor} tapeRotation={POSTER_CONFIGS[3].tapeRotation} width={232}>
           <VibePoster stats={stats} isLoading={isLoading} isTransitioning={isTransitioning} />
         </PosterShell>
       </div>
