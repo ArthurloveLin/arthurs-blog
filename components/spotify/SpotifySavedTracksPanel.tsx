@@ -97,7 +97,7 @@ function SpotifySavedTracksPanelContent({
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{copy.eyebrow}</p>
           <div className="mt-1 flex items-center gap-3">
             <h3 className="text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h3>
-            <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600">
+            <span className="rounded-full bg-foreground px-2.5 py-0.5 text-xs font-medium text-background shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
               {total} 首
             </span>
           </div>

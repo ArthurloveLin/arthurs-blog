@@ -33,7 +33,9 @@ async function SpotifyDashboardLoader({ copy }: { copy: SpotifyPageCopy }) {
     : spotifyDashboard
 
   const tagAnalysis = computeTagAnalysis(dashboardForRadar, tagStore)
-  return <SpotifyDashboard data={spotifyDashboard} tagAnalysis={tagAnalysis} copy={copy} />
+  const todayTracksCount = shards.length > 0 ? shards[0].length : 0
+
+  return <SpotifyDashboard data={spotifyDashboard} tagAnalysis={tagAnalysis} copy={copy} todayTracksCount={todayTracksCount} />
 }
 
 function SpotifyDashboardSkeleton() {

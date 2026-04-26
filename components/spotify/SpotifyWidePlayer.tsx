@@ -64,7 +64,7 @@ function DeviceInfoIcon({ deviceType }: { deviceType?: string }) {
 
 function StatItem({ label, value, icon: Icon, href }: { label: string; value: number; icon: LucideIcon; href?: string }) {
   const content = (
-    <div className="group flex items-center justify-between gap-3 lg:flex-col lg:items-end lg:gap-0.5">
+    <div className="group flex flex-col items-center justify-center gap-1.5 lg:items-end lg:gap-0.5">
       <div className="flex items-center gap-1.5 opacity-60 transition-opacity group-hover:opacity-100">
         <Icon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
         <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-emerald-800 dark:text-emerald-200 whitespace-nowrap">{label}</p>
@@ -198,22 +198,23 @@ function SpotifyWidePlayerContent({
   return (
     <div className="relative flex min-h-[300px] flex-col justify-center overflow-hidden rounded-[28px] border border-emerald-500/15 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.1),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.8),rgba(240,253,248,0.7))] p-5 sm:p-7 shadow-[0_18px_60_rgba(0,0,0,0.05)] dark:bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_30%),linear-gradient(135deg,rgba(10,20,15,0.7),rgba(5,15,10,0.7))]">
       {data.albumImageUrl && (
-        <div className="animate-in fade-in mix-blend-multiply transition-opacity duration-1000 dark:mix-blend-screen pointer-events-none absolute inset-0 overflow-hidden opacity-30 dark:opacity-20">
+        <div className="animate-in fade-in mix-blend-multiply transition-opacity duration-1000 dark:mix-blend-screen pointer-events-none absolute inset-0 overflow-hidden opacity-30 dark:opacity-20 transform-gpu">
           <Image
             src={data.albumImageUrl}
             alt=""
             fill
             sizes="(max-width: 1200px) 100vw, 1200px"
-            className="scale-125 saturate-150 object-cover blur-[80px]"
+            className="scale-125 saturate-150 object-cover"
             unoptimized
           />
+          <div className="absolute inset-0 backdrop-blur-[80px] transform-gpu" />
         </div>
       )}
 
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[linear-gradient(120deg,transparent,rgba(16,185,129,0.05),transparent)] opacity-60" />
+      <div className="hidden lg:block pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[linear-gradient(120deg,transparent,rgba(16,185,129,0.05),transparent)] opacity-60" />
 
       <div className="relative z-10">
-        <div className="mb-6 flex flex-wrap items-center gap-2 text-[10.5px] uppercase tracking-[0.2em] text-emerald-700/80 sm:text-[11px] dark:text-emerald-300/80">
+        <div className="mb-6 flex flex-wrap items-center justify-center lg:justify-start gap-2 text-[10.5px] uppercase tracking-[0.2em] text-emerald-700/80 sm:text-[11px] dark:text-emerald-300/80">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-white/60 px-2 py-0.5 font-mono sm:px-3 sm:py-1 dark:bg-white/5">
             {data.isPlaying ? (
               <span className="heartbeat text-[10px] leading-none">❤️</span>
@@ -251,18 +252,18 @@ function SpotifyWidePlayerContent({
           {/* Column 2: Info & Progress Grouped */}
           <div className="flex min-w-0 flex-col justify-between py-2">
             <div className="min-w-0 space-y-2">
-              <div className="flex items-center gap-3 opacity-70">
+              <div className="flex items-center justify-center lg:justify-start gap-3 opacity-70">
                 <div className="h-[1px] w-8 bg-emerald-500/60" />
                 <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-emerald-700 dark:text-emerald-300 truncate">
                   {data.album}
                 </span>
               </div>
               
-              <h2 className="text-3xl font-black tracking-tighter text-foreground sm:text-5xl lg:text-6xl xl:text-7xl leading-[0.95] py-2 [text-wrap:balance]">
+              <h2 className="text-3xl font-black tracking-tighter text-foreground text-center lg:text-left sm:text-5xl lg:text-6xl xl:text-7xl leading-[0.95] py-2 [text-wrap:balance]">
                 {data.title}
               </h2>
               
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4">
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-2 mt-4">
                 <p className="text-lg font-medium text-foreground/70 sm:text-xl lg:text-2xl leading-none">
                   by <span className="text-foreground border-b-2 border-emerald-500/20 pb-0.5">{data.artist}</span>
                 </p>
@@ -307,7 +308,7 @@ function SpotifyWidePlayerContent({
 
 
           {/* Stats Column */}
-          <div className="flex flex-col justify-center gap-4 border-emerald-500/10 lg:items-end lg:border-l lg:pl-8">
+          <div className="mt-4 flex flex-row flex-wrap justify-center gap-6 border-emerald-500/10 sm:gap-8 lg:mt-0 lg:flex-col lg:items-end lg:border-l lg:pl-8">
             {stats && (
               <>
                 <StatItem label="Recently Played" value={stats.recentlyPlayed} icon={CalendarClock} href="#recently-played" />

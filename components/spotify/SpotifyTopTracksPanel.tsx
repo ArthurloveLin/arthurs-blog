@@ -79,7 +79,7 @@ export default function SpotifyTopTracksPanel({
                     setActiveRange(range)
                   })
                 }}
-                tone="emerald"
+                tone="contrast"
               />
             </div>
           </div>

@@ -69,13 +69,15 @@ export default function SpotifyDashboard({
   data,
   tagAnalysis,
   copy,
+  todayTracksCount,
 }: {
   data: SpotifyDashboardData
   tagAnalysis: SpotifyTagAnalysis
   copy: SpotifyPageCopy
+  todayTracksCount?: number
 }) {
   const stats = {
-    recentlyPlayed: data.recentlyPlayed.length,
+    recentlyPlayed: todayTracksCount ?? data.recentlyPlayed.length,
     likedSongs: data.library.savedTracks.total,
     playlists: data.library.playlists.total,
   }

@@ -43,8 +43,8 @@ function randomColor(): string {
 
 // ─── Wordle layout (ported from WORDLEJS.Wordle.doLayout / layoutNextWord) ───
 
-const BIGGEST_SIZE  = 36
-const SMALLEST_SIZE = 11
+const BIGGEST_SIZE  = 46
+const SMALLEST_SIZE = 14
 const D_RADIUS      = 6
 const D_DEG         = 10
 
@@ -291,7 +291,7 @@ export default function SpotifyTagCloudCard({
   }, [tags])
 
   return (
-    <section className="relative h-full overflow-hidden rounded-[30px] border border-emerald-400/20 bg-[linear-gradient(160deg,#06110d_0%,#0d1b16_45%,#040706_100%)] p-5 text-slate-100 shadow-[0_28px_80px_rgba(3,14,11,0.52)] sm:p-6">
+    <section className="relative flex h-full flex-col overflow-hidden rounded-[30px] border border-emerald-400/20 bg-[linear-gradient(160deg,#06110d_0%,#0d1b16_45%,#040706_100%)] p-5 text-slate-100 shadow-[0_28px_80px_rgba(3,14,11,0.52)] sm:p-6">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(52,211,153,0.22),transparent_28%),radial-gradient(circle_at_82%_18%,rgba(45,212,191,0.18),transparent_24%),radial-gradient(circle_at_50%_84%,rgba(255,255,255,0.06),transparent_30%)]" />
       <div className="pointer-events-none absolute inset-x-[16%] top-[18%] h-40 rounded-full bg-emerald-300/10 blur-3xl" />
 
@@ -329,13 +329,13 @@ export default function SpotifyTagCloudCard({
       </div>
 
       {/* Wordle canvas area */}
-      <div className="relative mt-6 overflow-hidden rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_center,rgba(30,41,34,0.86),rgba(8,14,12,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_18px_48px_rgba(0,0,0,0.32)]">
+      <div className="relative mt-6 flex flex-1 overflow-hidden rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_center,rgba(30,41,34,0.86),rgba(8,14,12,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_18px_48px_rgba(0,0,0,0.32)]">
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-emerald-200/10" />
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-300/8 blur-3xl" />
 
         <div
           ref={containerRef}
-          className="relative h-[360px] overflow-hidden"
+          className="relative min-h-[460px] w-full overflow-hidden"
         >
           {tags.length === 0 ? (
             <p className="absolute inset-0 flex items-center justify-center text-sm text-emerald-50/62">
