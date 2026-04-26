@@ -23,6 +23,7 @@ export interface MusicReportTopContext {
   label: string
   type: string
   playCount: number
+  imageUrl: string | null
 }
 
 export interface MusicReportStats {
@@ -34,6 +35,7 @@ export interface MusicReportStats {
   top5Tracks: MusicReportTopTrack[]
   top5Artists: MusicReportTopArtist[]
   topContext: MusicReportTopContext | null
+  top2Contexts: MusicReportTopContext[]
   topTag: string | null
   totalPlays: number
   totalMinutes: number
@@ -64,12 +66,13 @@ function computeStats(
   tracks: SpotifyRecentlyPlayedTrack[],
   tagStore: SpotifyTrackTagStore | null,
   artistImageMap: Map<string, string>,
+  contextImageMap: Map<string, string>,
   period: 'day' | 'week' | 'month',
   periodLabel: string,
   dateRange: string
 ): MusicReportStats {
   if (tracks.length === 0) {
-    return { period, periodLabel, dateRange, topTrack: null, topArtist: null, top5Tracks: [], top5Artists: [], topContext: null, topTag: null, totalPlays: 0, totalMinutes: 0, peakHour: null }
+    return { period, periodLabel, dateRange, topTrack: null, topArtist: null, top5Tracks: [], top5Artists: [], topContext: null, top2Contexts: [], topTag: null, totalPlays: 0, totalMinutes: 0, peakHour: null }
   }
 
   // Top tracks (by play count)
@@ -111,10 +114,14 @@ function computeStats(
     const e = ctxMap.get(key)
     if (e) { e.count++ } else { ctxMap.set(key, { label: t.context.label, type: t.context.type, count: 1 }) }
   }
-  const topContextEntry = [...ctxMap.values()].sort((a, b) => b.count - a.count)[0]
-  const topContext: MusicReportTopContext | null = topContextEntry
-    ? { label: topContextEntry.label, type: topContextEntry.type, playCount: topContextEntry.count }
-    : null
+  const sortedContexts = [...ctxMap.values()].sort((a, b) => b.count - a.count)
+  const top2Contexts: MusicReportTopContext[] = sortedContexts.slice(0, 2).map(e => ({
+    label: e.label,
+    type: e.type,
+    playCount: e.count,
+    imageUrl: contextImageMap.get(e.label) ?? null,
+  }))
+  const topContext: MusicReportTopContext | null = top2Contexts[0] ?? null
 
   // Top tag
   const uniqueIds = [...new Set(tracks.map((t) => t.id))]
@@ -134,7 +141,7 @@ function computeStats(
   const peakHourEntry = [...hourMap.entries()].sort((a, b) => b[1] - a[1])[0]
   const peakHour = peakHourEntry ? (peakHourEntry[0] + 8) % 24 : null
 
-  return { period, periodLabel, dateRange, topTrack, topArtist, top5Tracks, top5Artists, topContext, topTag, totalPlays, totalMinutes, peakHour }
+  return { period, periodLabel, dateRange, topTrack, topArtist, top5Tracks, top5Artists, topContext, top2Contexts, topTag, totalPlays, totalMinutes, peakHour }
 }
 
 export async function buildMusicReport(): Promise<MusicReport> {
@@ -183,6 +190,17 @@ export async function buildMusicReport(): Promise<MusicReport> {
     }
   }
 
+  // Build context label → imageUrl lookup from dashboard library (playlists + albums)
+  const contextImageMap = new Map<string, string>()
+  if (dashboard) {
+    for (const p of dashboard.library?.playlists?.items ?? []) {
+      if (p.imageUrl && p.name) contextImageMap.set(p.name, p.imageUrl)
+    }
+    for (const sa of dashboard.library?.savedAlbums?.items ?? []) {
+      if (sa.album.imageUrl && sa.album.name) contextImageMap.set(sa.album.name, sa.album.imageUrl)
+    }
+  }
+
   // Fetch tags for all unique track IDs across all periods
   const allIds = [...new Set([...dayTracks, ...weekTracks, ...monthTracks].map((t) => t.id))]
   const tagStore = allIds.length > 0 ? await readSpotifyTrackTagStore() : null
@@ -196,9 +214,9 @@ export async function buildMusicReport(): Promise<MusicReport> {
   const monthRange = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`
 
   return {
-    day: computeStats(dayTracks, tagStore, artistImageMap, 'day', '今天', dayRange),
-    week: computeStats(weekTracks, tagStore, artistImageMap, 'week', '本周', weekRange),
-    month: computeStats(monthTracks, tagStore, artistImageMap, 'month', '本月', monthRange),
+    day: computeStats(dayTracks, tagStore, artistImageMap, contextImageMap, 'day', '今天', dayRange),
+    week: computeStats(weekTracks, tagStore, artistImageMap, contextImageMap, 'week', '本周', weekRange),
+    month: computeStats(monthTracks, tagStore, artistImageMap, contextImageMap, 'month', '本月', monthRange),
     generatedAt: now.toISOString(),
   }
 }

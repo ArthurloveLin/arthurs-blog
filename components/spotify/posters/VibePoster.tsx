@@ -1,7 +1,7 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import type { MusicReportStats } from '@/lib/spotify-report'
+import type { MusicReportStats, MusicReportTopContext } from '@/lib/spotify-report'
 import styles from './VibePoster.module.css'
 
 interface TagPalette {
@@ -41,6 +41,25 @@ function contextTypeIcon(type: string) {
   return '🎵'
 }
 
+function ContextRow({ ctx, palette }: { ctx: MusicReportTopContext; palette: TagPalette }) {
+  return (
+    <div className={styles.contextRow}>
+      {/* Cover image or emoji fallback */}
+      <div className={styles.contextCover}>
+        {ctx.imageUrl ? (
+          <img src={ctx.imageUrl} alt={ctx.label} className={styles.contextCoverImg} width={40} height={40} />
+        ) : (
+          <span className={styles.contextCoverFallback}>{contextTypeIcon(ctx.type)}</span>
+        )}
+      </div>
+      <div className={styles.contextInfo}>
+        <div className={styles.contextName}>{ctx.label}</div>
+        <div className={styles.contextCount} style={{ color: palette.dimText }}>{ctx.playCount} plays</div>
+      </div>
+    </div>
+  )
+}
+
 interface Props {
   stats: MusicReportStats
   isLoading?: boolean
@@ -49,7 +68,7 @@ interface Props {
 
 export default function VibePoster({ stats, isLoading, isTransitioning }: Props) {
   const palette = getPalette(stats.topTag)
-  const { topTag, topContext, topArtist, period, totalPlays, totalMinutes, peakHour } = stats
+  const { topTag, top2Contexts, topArtist, period, totalPlays, totalMinutes, peakHour } = stats
   const hours = Math.floor(totalMinutes / 60)
   const mins = totalMinutes % 60
 
@@ -73,36 +92,49 @@ export default function VibePoster({ stats, isLoading, isTransitioning }: Props)
 
         {isLoading ? (
           <>
-            <div className={styles.skeleton} style={{ height: '40px', width: '80%', marginTop: '0.7rem' } as CSSProperties} />
-            <div className={styles.skeleton} style={{ height: '10px', width: '55%', marginTop: '0.6rem' } as CSSProperties} />
-            <div className={styles.skeleton} style={{ height: '36px', width: '100%', marginTop: '0.8rem', borderRadius: '6px' } as CSSProperties} />
+            <div className={styles.skeleton} style={{ height: '40px', width: '80%', marginTop: '0.6rem' } as CSSProperties} />
+            <div className={styles.skeleton} style={{ height: '48px', width: '100%', marginTop: '0.7rem', borderRadius: '6px' } as CSSProperties} />
+            <div className={styles.skeleton} style={{ height: '48px', width: '100%', marginTop: '0.4rem', borderRadius: '6px' } as CSSProperties} />
           </>
         ) : (
           <>
-            {/* Big vibe tag */}
+            {/* Vibe tag */}
             <div className={styles.vibeTagBanner}>
               {topTag ?? 'MUSIC'}
             </div>
 
             <div className={styles.divider} />
 
-            {/* Context source */}
-            {topContext ? (
-              <div className={styles.contextSection}>
-                <span className={styles.contextIcon}>{contextTypeIcon(topContext.type)}</span>
-                <div className={styles.contextInfo}>
-                  <div className={styles.contextName}>{topContext.label}</div>
-                  <div className={styles.contextCount}>{topContext.playCount} plays</div>
-                </div>
+            {/* Up to 2 context items */}
+            {top2Contexts.length > 0 ? (
+              <div className={styles.contextList}>
+                {top2Contexts.map((ctx, i) => (
+                  <ContextRow key={`${ctx.type}:${ctx.label}:${i}`} ctx={ctx} palette={palette} />
+                ))}
+                {/* If only 1 context and we have topArtist, fill the gap */}
+                {top2Contexts.length === 1 && topArtist && (
+                  <div className={styles.artistRow}>
+                    <span className={styles.artistEmoji}>🎤</span>
+                    <div className={styles.contextInfo}>
+                      <div className={styles.contextName}>{topArtist.name}</div>
+                      <div className={styles.contextCount} style={{ color: palette.dimText }}>{topArtist.playCount} plays</div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : topArtist ? (
-              <div className={styles.artistSection}>
-                <span className={styles.artistLabel}>最多播放</span>
-                <span className={styles.artistName}>{topArtist.name}</span>
+              <div className={styles.contextList}>
+                <div className={styles.artistRow}>
+                  <span className={styles.artistEmoji}>🎤</span>
+                  <div className={styles.contextInfo}>
+                    <div className={styles.contextName}>{topArtist.name}</div>
+                    <div className={styles.contextCount} style={{ color: palette.dimText }}>{topArtist.playCount} plays</div>
+                  </div>
+                </div>
               </div>
             ) : null}
 
-            {/* Bottom stats row */}
+            {/* Bottom stats */}
             <div className={styles.statsRow}>
               <span className={styles.statItem}>
                 <span className={styles.statNum}>{totalPlays}</span> 首
@@ -115,7 +147,7 @@ export default function VibePoster({ stats, isLoading, isTransitioning }: Props)
               )}
               {peakHour !== null && (
                 <span className={styles.statItem}>
-                  峰值 <span className={styles.statNum}>{String(peakHour).padStart(2,'0')}:00</span>
+                  峰值 <span className={styles.statNum}>{String(peakHour).padStart(2, '0')}:00</span>
                 </span>
               )}
             </div>
