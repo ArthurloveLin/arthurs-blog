@@ -24,6 +24,8 @@ export interface MusicReportStats {
   dateRange: string
   topTrack: MusicReportTopTrack | null
   topArtist: { name: string; playCount: number } | null
+  top5Tracks: MusicReportTopTrack[]
+  top5Artists: { name: string; playCount: number }[]
   topContext: MusicReportTopContext | null
   topTag: string | null
   totalPlays: number
@@ -59,29 +61,34 @@ function computeStats(
   dateRange: string
 ): MusicReportStats {
   if (tracks.length === 0) {
-    return { period, periodLabel, dateRange, topTrack: null, topArtist: null, topContext: null, topTag: null, totalPlays: 0, totalMinutes: 0, peakHour: null }
+    return { period, periodLabel, dateRange, topTrack: null, topArtist: null, top5Tracks: [], top5Artists: [], topContext: null, topTag: null, totalPlays: 0, totalMinutes: 0, peakHour: null }
   }
 
-  // Top track (by play count)
+  // Top tracks (by play count)
   const trackMap = new Map<string, { track: SpotifyRecentlyPlayedTrack; count: number }>()
   for (const t of tracks) {
     const e = trackMap.get(t.id)
     if (e) { e.count++ } else { trackMap.set(t.id, { track: t, count: 1 }) }
   }
-  const topTrackEntry = [...trackMap.values()].sort((a, b) => b.count - a.count)[0]
-  const topTrack: MusicReportTopTrack | null = topTrackEntry
-    ? { title: topTrackEntry.track.title, artist: topTrackEntry.track.artists[0] ?? '', albumImageUrl: topTrackEntry.track.albumImageUrl, playCount: topTrackEntry.count }
-    : null
+  const sortedTracks = [...trackMap.values()].sort((a, b) => b.count - a.count)
+  const top5Tracks: MusicReportTopTrack[] = sortedTracks.slice(0, 5).map(e => ({
+    title: e.track.title,
+    artist: e.track.artists[0] ?? '',
+    albumImageUrl: e.track.albumImageUrl,
+    playCount: e.count,
+  }))
+  const topTrack: MusicReportTopTrack | null = top5Tracks[0] ?? null
 
-  // Top artist
+  // Top artists
   const artistMap = new Map<string, number>()
   for (const t of tracks) {
     for (const a of t.artists) {
       artistMap.set(a, (artistMap.get(a) ?? 0) + 1)
     }
   }
-  const topArtistEntry = [...artistMap.entries()].sort((a, b) => b[1] - a[1])[0]
-  const topArtist = topArtistEntry ? { name: topArtistEntry[0], playCount: topArtistEntry[1] } : null
+  const sortedArtists = [...artistMap.entries()].sort((a, b) => b[1] - a[1])
+  const top5Artists = sortedArtists.slice(0, 5).map(([name, playCount]) => ({ name, playCount }))
+  const topArtist = top5Artists[0] ?? null
 
   // Top context (loyalty)
   const ctxMap = new Map<string, { label: string; type: string; count: number }>()
@@ -112,9 +119,10 @@ function computeStats(
     hourMap.set(h, (hourMap.get(h) ?? 0) + 1)
   }
   const peakHourEntry = [...hourMap.entries()].sort((a, b) => b[1] - a[1])[0]
-  const peakHour = peakHourEntry ? peakHourEntry[0] : null
+  // Convert UTC peak hour to CST (UTC+8)
+  const peakHour = peakHourEntry ? (peakHourEntry[0] + 8) % 24 : null
 
-  return { period, periodLabel, dateRange, topTrack, topArtist, topContext, topTag, totalPlays, totalMinutes, peakHour }
+  return { period, periodLabel, dateRange, topTrack, topArtist, top5Tracks, top5Artists, topContext, topTag, totalPlays, totalMinutes, peakHour }
 }
 
 export async function buildMusicReport(): Promise<MusicReport> {
