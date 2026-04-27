@@ -32,7 +32,7 @@ export async function verifyTurnstile(token: string, remoteip?: string): Promise
 
   // 检查是否是被豁免的 CN 用户
   if (token === 'bypass') {
-    const bypassed = await isTurnstileBypassed();
+    const { bypassed } = await isTurnstileBypassed();
     if (bypassed) {
       console.log('Turnstile successfully bypassed for CN user on the server');
       return true;

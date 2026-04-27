@@ -64,7 +64,8 @@ export default function Turnstile({
   const widgetTheme = resolvedTheme === 'dark' ? 'dark' : 'light'
 
   useEffect(() => {
-    isTurnstileBypassed().then(bypassed => {
+    isTurnstileBypassed().then(({ bypassed, country }) => {
+      console.log('Turnstile Bypass Check:', { bypassed, country })
       setIsBypassed(bypassed)
       if (bypassed) {
         setToken('bypass')
