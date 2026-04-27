@@ -118,6 +118,11 @@ export default function Turnstile({
     return <input type="hidden" name="cf-turnstile-response" value="bypass" />
   }
 
+  // 等待 Server Action 返回归属地检测结果
+  if (isBypassed === null) {
+    return <div className={className} />
+  }
+
   return (
     <div className={className}>
       <Script
