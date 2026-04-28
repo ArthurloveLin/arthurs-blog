@@ -134,26 +134,31 @@ const getCachedPostMeta = unstable_cache(
 
 export const getPostMeta = cache(async function getPostMeta(slug: string): Promise<Post | null> {
   const normalizedSlug = decodeURIComponent(slug)
+  const encodedSlug = encodeURIComponent(normalizedSlug)
   return unstable_cache(
     () => getCachedPostMeta(normalizedSlug),
-    [`post-meta-${normalizedSlug}`],
-    { revalidate: 60, tags: ['posts', `post-meta-${normalizedSlug}`] }
+    [`post-meta-${encodedSlug}`],
+    { revalidate: 60, tags: ['posts', `post-meta-${encodedSlug}`] }
   )()
 })
 
-const getCachedPostContent = (r2Key: string) =>
-  unstable_cache(
+const getCachedPostContent = (r2Key: string) => {
+  const encodedKey = encodeURIComponent(r2Key)
+  return unstable_cache(
     async () => {
       const raw = await getR2Object(BLOG_BUCKET, r2Key)
       const { content } = matter(raw)
       return content
     },
-    [`post-content-${r2Key}`],
-    { revalidate: 300, tags: [`post-raw-${r2Key}`] }
+    [`post-content-${encodedKey}`],
+    { revalidate: 300, tags: [`post-raw-${encodedKey}`] }
   )()
+}
 
 export async function getPostContent(post: Post): Promise<string> {
   const normalizedSlug = decodeURIComponent(post.slug)
+  const encodedSlug = encodeURIComponent(normalizedSlug)
+  const encodedKey = encodeURIComponent(post.r2_key)
   
   return unstable_cache(
     async () => {
@@ -172,8 +177,8 @@ export async function getPostContent(post: Post): Promise<string> {
           )
         : content
     },
-    [`post-rendered-content-${post.r2_key}`],
-    { revalidate: 300, tags: [`post-content-${normalizedSlug}`] }
+    [`post-rendered-content-${encodedKey}`],
+    { revalidate: 300, tags: [`post-content-${encodedSlug}`] }
   )()
 }
 

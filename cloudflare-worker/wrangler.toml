@@ -5,18 +5,18 @@ compatibility_date = "2024-04-05"
 # Cron Triggers
 # Example: 
 # - "5 16 * * *" = 每天 16:05 (UTC) 运行 (北京时间 00:05) -> Full Sync
-# - "*/30 * * * *" = 每 30 分钟运行一次 -> Quick Sync
+# - "*/10 * * * *" = 每 10 分钟运行一次 -> Quick Sync
 [triggers]
-crons = ["5 16 * * *", "*/30 * * * *"]
+crons = ["5 16 * * *", "*/10 * * * *"]
 
 # R2 Bucket Binding
 [[r2_buckets]]
 binding = "SPOTIFY_BUCKET"
 bucket_name = "spotify-data" # TODO: 修改为你的 R2 Bucket 名称
 
-# [vars]
-# R2_SPOTIFY_PUBLIC_DOMAIN = "your-custom-domain.com" # TODO: 如果有配置公共域名
-# NEXTJS_SITE_URL = "https://your-nextjs-site.com" # TODO: 修改为你的网站主域名，用于刷新缓存
+[vars]
+R2_SPOTIFY_PUBLIC_DOMAIN = "music.arthurlovegrace.top" # TODO: 如果有配置公共域名
+NEXTJS_SITE_URL = "https://arthurlovegrace.top" # TODO: 修改为你的网站主域名，用于刷新缓存
 
 # 注意：需要通过命令行或 Dashboard 设置以下 Secrets
 # npx wrangler secret put SPOTIFY_CLIENT_ID
