@@ -2,8 +2,8 @@ import { Env } from './env'
 import { setEnv, syncSpotifyDashboardToArchive, readSpotifyTagCandidatesFromArchive } from './spotify'
 import { setTagsEnv, syncSpotifyTrackTags } from './spotify-tags'
 
-export default {
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+const worker = {
+  async scheduled(event: ScheduledEvent, env: Env) {
     // 设置全局 env
     setEnv(env)
     setTagsEnv(env)
@@ -35,7 +35,7 @@ export default {
     }
   },
 
-  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+  async fetch(request: Request, env: Env) {
     const url = new URL(request.url)
     const mode = url.searchParams.get('mode') === 'full' ? 'full' : 'quick'
     const syncSecret = request.headers.get('x-spotify-sync-secret') || url.searchParams.get('secret')
@@ -71,9 +71,12 @@ export default {
       }), {
         headers: { 'content-type': 'application/json' }
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Manual sync failed:', error)
-      return new Response(JSON.stringify({ error: error.message }), { status: 500 })
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      return new Response(JSON.stringify({ error: message }), { status: 500 })
     }
   }
 }
+
+export default worker

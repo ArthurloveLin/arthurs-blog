@@ -6,8 +6,6 @@ import {
   type SpotifyCollectionPreview,
   type SpotifyContextSource,
   type SpotifyDashboardData,
-  type SpotifyNowPlayingData,
-  type SpotifyNowPlayingRecentTrack,
   type SpotifyPlaylist,
   type SpotifyPlaylistPreview,
   type SpotifyPlaylistTrack,
@@ -31,7 +29,6 @@ export function setEnv(env: Env) {
 }
 
 const SPOTIFY_TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
-const SPOTIFY_PLAYER_ENDPOINT = 'https://api.spotify.com/v1/me/player'
 const SPOTIFY_RECENTLY_PLAYED_ENDPOINT = 'https://api.spotify.com/v1/me/player/recently-played'
 const SPOTIFY_TOP_TRACKS_ENDPOINT = 'https://api.spotify.com/v1/me/top/tracks'
 const SPOTIFY_TOP_ARTISTS_ENDPOINT = 'https://api.spotify.com/v1/me/top/artists'
@@ -109,15 +106,7 @@ type SpotifyPagingResponse<T> = {
   total: number
 }
 
-type SpotifyCurrentPlaybackResponse = {
-  item: SpotifyTrackObject | null
-  is_playing: boolean
-  device?: {
-    name?: string
-    type?: string
-  }
-  progress_ms: number
-}
+
 
 type SpotifyRecentlyPlayedItem = {
   track: SpotifyTrackObject
@@ -197,21 +186,7 @@ function emptyTopArtistsRecord(): Record<SpotifyTimeRange, SpotifyTopArtist[]> {
   }
 }
 
-function createEmptyDashboardData(overrides: Partial<SpotifyDashboardData> = {}): SpotifyDashboardData {
-  return {
-    fetchedAt: new Date().toISOString(),
-    recentlyPlayed: [],
-    topTracks: emptyTopTracksRecord(),
-    topArtists: emptyTopArtistsRecord(),
-    library: {
-      savedTracks: { total: 0, items: [] },
-      savedAlbums: { total: 0, items: [] },
-      playlists: { total: 0, items: [] },
-    },
-    warnings: [],
-    ...overrides,
-  }
-}
+
 
 function createEmptySyncMeta(): SpotifySyncMeta {
   return {
@@ -251,7 +226,7 @@ function isMissingR2ObjectError(error: unknown) {
   )
 }
 
-async function readR2JsonIfExists<T>(bucket: any, key: string): Promise<T | null> {
+async function readR2JsonIfExists<T>(bucket: unknown, key: string): Promise<T | null> {
   try {
     const raw = await getR2Object(__env, key)
     return JSON.parse(raw) as T
@@ -264,7 +239,7 @@ async function readR2JsonIfExists<T>(bucket: any, key: string): Promise<T | null
   }
 }
 
-async function writeR2Json(bucket: any, key: string, payload: unknown) {
+async function writeR2Json(bucket: unknown, key: string, payload: unknown) {
   await putR2Object(
     __env,
     key,
@@ -452,26 +427,7 @@ function toAlbumSummary(album: SpotifyAlbumObject): SpotifyAlbumSummary {
   }
 }
 
-async function getCurrentPlayback(accessToken: string) {
-  const playback = await requestSpotify<SpotifyCurrentPlaybackResponse | null>(
-    accessToken,
-    SPOTIFY_PLAYER_ENDPOINT,
-    true
-  )
 
-  if (!playback?.item) {
-    return null
-  }
-
-  return {
-    track: toTrackSummary(playback.item),
-    isPlaying: playback.is_playing,
-    deviceName: playback.device?.name,
-    deviceType: playback.device?.type,
-    progressMs: playback.progress_ms,
-    durationMs: playback.item.duration_ms,
-  }
-}
 
 async function resolveContextLabel(accessToken: string, context: SpotifyRecentlyPlayedItem['context']) {
   const contextType = context?.type ?? null
@@ -996,7 +952,7 @@ export async function readRecentlyPlayedDayShard(date: string): Promise<SpotifyR
   )
 
   return (shard ?? []).toSorted(
-    (a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
+    (a: SpotifyRecentlyPlayedTrack, b: SpotifyRecentlyPlayedTrack) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
   )
 }
 
@@ -1203,7 +1159,7 @@ export async function syncSpotifyDashboardToArchive(
         existingDayShards[i],
         tracksByDay.get(day)!,
         (item) => `${item.id}:${item.playedAt}`
-      ).toSorted((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime())
+      ).toSorted((a: SpotifyRecentlyPlayedTrack, b: SpotifyRecentlyPlayedTrack) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime())
 
       writePromises.push(writeRecentlyPlayedDayShard(day, merged))
     }

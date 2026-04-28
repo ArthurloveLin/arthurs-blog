@@ -62,7 +62,7 @@ function isMissingR2ObjectError(error: unknown) {
   )
 }
 
-async function readR2JsonIfExists<T>(bucket: any, key: string): Promise<T | null> {
+async function readR2JsonIfExists<T>(bucket: unknown, key: string): Promise<T | null> {
   try {
     const raw = await getR2Object(__env, key)
     return JSON.parse(raw) as T
@@ -75,7 +75,7 @@ async function readR2JsonIfExists<T>(bucket: any, key: string): Promise<T | null
   }
 }
 
-async function writeR2Json(bucket: any, key: string, payload: unknown) {
+async function writeR2Json(bucket: unknown, key: string, payload: unknown) {
   await putR2Object(
     __env,
     key,
