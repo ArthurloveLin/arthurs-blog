@@ -1,0 +1,25 @@
+name = "spotify-sync-worker"
+main = "src/index.ts"
+compatibility_date = "2024-04-05"
+
+# Cron Triggers
+# Example: 
+# - "5 16 * * *" = 每天 16:05 (UTC) 运行 (北京时间 00:05) -> Full Sync
+# - "*/30 * * * *" = 每 30 分钟运行一次 -> Quick Sync
+[triggers]
+crons = ["5 16 * * *", "*/30 * * * *"]
+
+# R2 Bucket Binding
+[[r2_buckets]]
+binding = "SPOTIFY_BUCKET"
+bucket_name = "spotify-data" # TODO: 修改为你的 R2 Bucket 名称
+
+# [vars]
+# R2_SPOTIFY_PUBLIC_DOMAIN = "your-custom-domain.com" # TODO: 如果有配置公共域名
+
+# 注意：需要通过命令行或 Dashboard 设置以下 Secrets
+# npx wrangler secret put SPOTIFY_CLIENT_ID
+# npx wrangler secret put SPOTIFY_CLIENT_SECRET
+# npx wrangler secret put SPOTIFY_REFRESH_TOKEN
+# npx wrangler secret put LASTFM_API_KEY
+# npx wrangler secret put SPOTIFY_SYNC_SECRET (用于手动通过 URL 触发时的校验)
