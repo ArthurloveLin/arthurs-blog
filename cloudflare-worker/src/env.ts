@@ -6,4 +6,5 @@ export interface Env {
   LASTFM_API_KEY?: string
   SPOTIFY_SYNC_SECRET?: string
   R2_SPOTIFY_PUBLIC_DOMAIN?: string
+  NEXTJS_SITE_URL?: string
 }

@@ -279,11 +279,10 @@ async function getSpotifyAccessToken(): Promise<string> {
   }
 
   const { clientId, clientSecret, refreshToken } = getSpotifyCredentials()
-  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
+  const basic = btoa(`${clientId}:${clientSecret}`)
 
   const response = await fetch(SPOTIFY_TOKEN_ENDPOINT, {
     method: 'POST',
-    cache: 'no-store',
     headers: {
       Authorization: `Basic ${basic}`,
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -312,7 +311,6 @@ async function requestSpotify<T>(accessToken: string, endpoint: string, allowNoC
   for (let attempt = 1; attempt <= SPOTIFY_REQUEST_MAX_ATTEMPTS; attempt += 1) {
     try {
       const response = await fetch(endpoint, {
-        cache: 'no-store',
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -1001,7 +999,7 @@ export async function listRecentlyPlayedDays(limitDays?: number): Promise<string
   const { bucket } = getSpotifyArchiveConfig()
   if (!bucket) return []
 
-  const keys = await listR2Objects(bucket, SPOTIFY_RECENTLY_PLAYED_PATH)
+  const keys = await listR2Objects(__env, SPOTIFY_RECENTLY_PLAYED_PATH)
 
   const days = keys
     .map((key) => key.slice(SPOTIFY_RECENTLY_PLAYED_PATH.length))
@@ -1046,11 +1044,11 @@ async function readLatestSpotifyDashboard() {
 
 
 export async function readSpotifyTagCandidatesFromArchive(): Promise<{
-  bucket: string
+  bucket: unknown
   candidates: import('./spotify-types').SpotifyTrackTagCandidate[]
 }> {
   const { bucket } = getSpotifyArchiveConfig()
-  if (!bucket) return { bucket: '', candidates: [] }
+  if (!bucket) return { bucket: null, candidates: [] }
 
   const [dashboard, savedTracksCollection, playlistsCollection] = await Promise.all([
     readLatestSpotifyDashboard(),

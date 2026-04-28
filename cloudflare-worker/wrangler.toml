@@ -16,6 +16,7 @@ bucket_name = "spotify-data" # TODO: 修改为你的 R2 Bucket 名称
 
 # [vars]
 # R2_SPOTIFY_PUBLIC_DOMAIN = "your-custom-domain.com" # TODO: 如果有配置公共域名
+# NEXTJS_SITE_URL = "https://your-nextjs-site.com" # TODO: 修改为你的网站主域名，用于刷新缓存
 
 # 注意：需要通过命令行或 Dashboard 设置以下 Secrets
 # npx wrangler secret put SPOTIFY_CLIENT_ID

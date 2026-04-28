@@ -30,6 +30,17 @@ const worker = {
           console.log(`Tag Sync complete. Updated ${tagResult.tagsUpdated} tags.`)
         }
       }
+
+      // 3. 通知 Vercel 刷新缓存
+      if (env.NEXTJS_SITE_URL && env.SPOTIFY_SYNC_SECRET) {
+        const revalidateUrl = `${env.NEXTJS_SITE_URL}/api/revalidate?secret=${env.SPOTIFY_SYNC_SECRET}`
+        try {
+          const res = await fetch(revalidateUrl)
+          console.log(`Revalidate triggered: ${res.status}`)
+        } catch (e) {
+          console.error(`Revalidate failed:`, e)
+        }
+      }
     } catch (error) {
       console.error('Scheduled sync failed:', error)
     }
@@ -61,6 +72,15 @@ const worker = {
             maxTracks: 35
           })
           tagsUpdated = tagResult.tagsUpdated
+        }
+      }
+
+      if (env.NEXTJS_SITE_URL && env.SPOTIFY_SYNC_SECRET) {
+        const revalidateUrl = `${env.NEXTJS_SITE_URL}/api/revalidate?secret=${env.SPOTIFY_SYNC_SECRET}`
+        try {
+          await fetch(revalidateUrl)
+        } catch (e) {
+          console.error('Manual Revalidate failed', e)
         }
       }
 
