@@ -40,8 +40,8 @@ function createEmptyTrackTagStore(): SpotifyTrackTagStore {
   }
 }
 
-function getSpotifyBucket(explicitBucket?: string) {
-  const bucket = explicitBucket ?? __env.SPOTIFY_BUCKET
+function getSpotifyBucket() {
+  const bucket = __env.SPOTIFY_BUCKET
 
   if (!bucket) {
     throw new Error('Missing R2_SPOTIFY_BUCKET')
@@ -91,7 +91,6 @@ async function fetchLastfmRaw(params: Record<string, string>, apiKey: string): P
 
   try {
     const response = await fetch(`${LASTFM_ENDPOINT}?${searchParams.toString()}`, {
-      cache: 'no-store',
       signal: controller.signal,
     })
 
@@ -159,9 +158,9 @@ function dedupeTrackCandidates(tracks: SpotifyTrackTagCandidate[]) {
   return Array.from(uniqueTracks.values())
 }
 
-export async function readSpotifyTrackTagStore(bucket?: string): Promise<SpotifyTrackTagStore> {
+export async function readSpotifyTrackTagStore(): Promise<SpotifyTrackTagStore> {
   return (
-    await readR2JsonIfExists<SpotifyTrackTagStore>(getSpotifyBucket(bucket), SPOTIFY_TRACK_TAGS_KEY)
+    await readR2JsonIfExists<SpotifyTrackTagStore>(getSpotifyBucket(), SPOTIFY_TRACK_TAGS_KEY)
   ) ?? createEmptyTrackTagStore()
 }
 
@@ -183,14 +182,11 @@ export function filterSpotifyTrackTagStore(store: SpotifyTrackTagStore, ids: str
     tracks,
   }
 }
-
 export async function syncSpotifyTrackTags({
-  bucket,
   tracks,
   syncedAt = new Date().toISOString(),
   maxTracks = 35,
 }: {
-  bucket?: string
   tracks: SpotifyTrackTagCandidate[]
   syncedAt?: string
   maxTracks?: number
@@ -210,8 +206,8 @@ export async function syncSpotifyTrackTags({
     return { tagsUpdated: 0, warnings: [] }
   }
 
-  const resolvedBucket = getSpotifyBucket(bucket)
-  const tagStore = await readSpotifyTrackTagStore(resolvedBucket)
+  const resolvedBucket = getSpotifyBucket()
+  const tagStore = await readSpotifyTrackTagStore()
 
   const pendingTracks = uniqueTracks
     .filter((track) => !tagStore.tracks[track.trackId])

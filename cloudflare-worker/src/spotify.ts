@@ -1,4 +1,5 @@
 import { Env } from './env'
+import { readSpotifyTrackTagStore } from './spotify-tags'
 import {
   SPOTIFY_TIME_RANGES,
   type SpotifyAlbumSummary,
@@ -1294,8 +1295,8 @@ export async function syncSpotifyDashboardToArchive(
     syncedAt,
     snapshotUrl: buildSpotifySnapshotUrl(publicDomain, SPOTIFY_LATEST_DASHBOARD_KEY),
     summary: {
-      recentlyPlayed: liveDashboardWithoutLibrary.recentlyPlayed.length,
-      topTracks: liveDashboardWithoutLibrary.topTracks.medium_term.length,
+      recentlyPlayed: liveDashboard.recentlyPlayed.length,
+      topTracks: liveDashboard.topTracks.medium_term.length,
       topArtists: liveDashboard.topArtists.medium_term.length,
       savedTracks: liveDashboard.library.savedTracks.total,
       savedAlbums: liveDashboard.library.savedAlbums.total,
@@ -1304,4 +1305,128 @@ export async function syncSpotifyDashboardToArchive(
       tagsUpdated: 0,
     },
   }
+}
+
+const STREAM_CLUSTERS = [
+  { key: 'pop', keywords: ['pop', 'k-pop', 'j-pop', 'dream pop', 'synth pop', 'power pop', 'chamber pop', 'art pop', 'indie pop'] },
+  { key: 'rock', keywords: ['rock', 'indie', 'alternative', 'punk', 'post-rock', 'indie rock', 'alternative rock', 'shoegaze', 'grunge', 'emo', 'post-punk', 'metal', 'heavy metal'] },
+  { key: 'rnb', keywords: ['r&b', 'rnb', 'soul', 'neo-soul'] },
+  { key: 'electronic', keywords: ['electronic', 'edm', 'dance', 'techno', 'house', 'electropop', 'ambient', 'electronica', 'idm', 'trance'] },
+  { key: 'folk', keywords: ['acoustic', 'folk', 'singer-songwriter', 'country', 'americana', 'bluegrass', 'celtic'] },
+  { key: 'classical', keywords: ['classical', 'orchestral', 'piano', 'instrumental'] },
+  { key: 'hiphop', keywords: ['hip-hop', 'hip hop', 'rap', 'trap', 'urban'] },
+  { key: 'jazz', keywords: ['jazz', 'blues', 'swing', 'bossa nova'] },
+]
+
+export async function generateAndSaveStreamData() {
+  const { bucket } = getSpotifyArchiveConfig()
+  if (!bucket) return
+  
+  const keys = await listR2Objects(__env, SPOTIFY_RECENTLY_PLAYED_PATH)
+  
+  const months: string[] = []
+  for (const key of keys) {
+    const name = key.slice(SPOTIFY_RECENTLY_PLAYED_PATH.length).replace('.json', '')
+    if (/^\d{4}-\d{2}$/.test(name)) months.push(name)
+  }
+  
+  months.sort().reverse()
+  const targetMonths = months.slice(0, 12)
+  
+  const shardPromises = targetMonths.map(m => readRecentlyPlayedShard(m))
+  const shards = await Promise.all(shardPromises)
+  const allTracks = shards.flatMap(s => s || [])
+  
+  const tagStore = await readSpotifyTrackTagStore()
+  
+  const clusterMatchers = STREAM_CLUSTERS.map(c => ({
+    key: c.key,
+    keywords: new Set(c.keywords)
+  }))
+  
+  const mappedTracks = allTracks.map(t => {
+    const entry = tagStore.tracks[t.id]
+    const matchedIndices: number[] = []
+    
+    if (entry) {
+      const trackTags = entry.tags.map(tag => tag.name.toLowerCase())
+      clusterMatchers.forEach((cluster, i) => {
+        if (trackTags.some(tag => cluster.keywords.has(tag))) {
+          matchedIndices.push(i)
+        }
+      })
+    }
+    
+    return {
+      playedAt: new Date(t.playedAt).getTime(),
+      matchedIndices
+    }
+  })
+  
+  const now = new Date()
+  
+  const hourBuckets = Array.from({ length: 24 }).map((_, i) => {
+    const d = new Date(now.getTime() - (23 - i) * 3600000)
+    return { start: d.getTime() - d.getMinutes()*60000 - d.getSeconds()*1000 - d.getMilliseconds(), label: `${d.getHours()}:00` }
+  })
+  
+  const dayBuckets = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(now.getTime() - (6 - i) * 86400000)
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    const dateStr = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+    return { start, label: `${weekdays[d.getDay()]} ${dateStr}` }
+  })
+  
+  const weekBuckets = Array.from({ length: 5 }).map((_, i) => {
+    const d = new Date(now.getTime() - (4 - i) * 7 * 86400000)
+    return { start: d.getTime(), label: `第${i+1}周` }
+  })
+  
+  const monthBuckets = Array.from({ length: 12 }).map((_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1)
+    return { start: d.getTime(), label: `${d.getMonth() + 1}月` }
+  })
+  
+  function fillSeries(buckets: { start: number, label: string }[], nextBucketSpanMs?: number | ((b: {start: number}, i: number) => number)) {
+    const raw = Array.from({ length: STREAM_CLUSTERS.length }).map(() => Array(buckets.length).fill(0))
+    const labels = buckets.map(b => b.label)
+    
+    const boundaries = buckets.map((b, i) => {
+      const end = i < buckets.length - 1 ? buckets[i+1].start : (
+        typeof nextBucketSpanMs === 'function' ? nextBucketSpanMs(b, i) : b.start + (nextBucketSpanMs || 0)
+      )
+      return { start: b.start, end }
+    })
+    
+    for (const t of mappedTracks) {
+      for (let i = 0; i < boundaries.length; i++) {
+        if (t.playedAt >= boundaries[i].start && t.playedAt < boundaries[i].end) {
+          t.matchedIndices.forEach(clusterIdx => {
+            raw[clusterIdx][i]++
+          })
+          break
+        }
+      }
+    }
+    
+    return { raw, labels, n: buckets.length }
+  }
+  
+  const hourData = fillSeries(hourBuckets, 3600000)
+  const dayData = fillSeries(dayBuckets, 86400000)
+  const weekData = fillSeries(weekBuckets, 7 * 86400000)
+  const monthData = fillSeries(monthBuckets, (b) => {
+    const d = new Date(b.start)
+    return new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime()
+  })
+  
+  const data = {
+    hour: { ...hourData, groupLabel: '近期·按小时' },
+    day: { ...dayData, groupLabel: '本周·按天' },
+    week: { ...weekData, groupLabel: '近期·按周' },
+    month: { ...monthData, groupLabel: '今年·按月' }
+  }
+
+  await writeR2Json(bucket, 'spotify/history/stream.json', data)
 }

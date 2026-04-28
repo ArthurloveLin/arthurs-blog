@@ -1,5 +1,5 @@
 import { Env } from './env'
-import { setEnv, syncSpotifyDashboardToArchive, readSpotifyTagCandidatesFromArchive } from './spotify'
+import { setEnv, syncSpotifyDashboardToArchive, readSpotifyTagCandidatesFromArchive, generateAndSaveStreamData } from './spotify'
 import { setTagsEnv, syncSpotifyTrackTags } from './spotify-tags'
 
 const worker = {
@@ -30,6 +30,9 @@ const worker = {
           console.log(`Tag Sync complete. Updated ${tagResult.tagsUpdated} tags.`)
         }
       }
+      
+      console.log('Generating stream data...')
+      await generateAndSaveStreamData()
 
       // 3. 通知 Vercel 刷新缓存
       if (env.NEXTJS_SITE_URL && env.SPOTIFY_SYNC_SECRET) {
@@ -74,6 +77,9 @@ const worker = {
           tagsUpdated = tagResult.tagsUpdated
         }
       }
+
+      console.log('Generating stream data...')
+      await generateAndSaveStreamData()
 
       if (env.NEXTJS_SITE_URL && env.SPOTIFY_SYNC_SECRET) {
         const revalidateUrl = `${env.NEXTJS_SITE_URL}/api/revalidate?secret=${env.SPOTIFY_SYNC_SECRET}`
