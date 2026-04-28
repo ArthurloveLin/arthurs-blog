@@ -8,16 +8,16 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-const worker = {
-  async scheduled(event, env) {
+export default {
+  async scheduled(event, env, ctx) {
     // 根据触发器名称或时间判断模式
     // 注意：我们将通过两个不同的 Cron 触发该函数
-    const isFullSync = event.cron === "0 0 * * *"; // 假设每天凌晨触发的是 Full
+    const isFullSync = event.cron === "5 16 * * *"; // 假设每天凌晨触发的是 Full
     const mode = isFullSync ? "full" : "quick";
     const url = `${env.SYNC_URL}?mode=${mode}`;
 
     console.log(`正在触发 Spotify [${mode.toUpperCase()}] 同步...`);
-    
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -25,7 +25,7 @@ const worker = {
         "User-Agent": "Cloudflare-Cron-Worker"
       }
     });
-    
+
     if (response.ok) {
       console.log(`${mode} 同步请求发送成功。`);
     } else {
@@ -33,12 +33,12 @@ const worker = {
       console.error(`${mode} 同步失败，状态码 ${response.status}: ${text}`);
     }
   },
-  
-  async fetch(request, env) {
+
+  async fetch(request, env, ctx) {
     const { searchParams } = new URL(request.url);
     const mode = searchParams.get('mode') || 'quick';
     const url = `${env.SYNC_URL}?mode=${mode}`;
-    
+
     await fetch(url, {
       method: "POST",
       headers: {
@@ -49,4 +49,3 @@ const worker = {
   }
 };
 
-export default worker;
