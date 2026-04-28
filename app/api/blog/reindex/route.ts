@@ -137,9 +137,11 @@ export async function POST() {
   // Invalidating specific post data
   for (const { slug, key } of updatedResults) {
     const normalizedSlug = decodeURIComponent(slug)
-    revalidateTag(`post-meta-${normalizedSlug}`, 'max')
-    revalidateTag(`post-content-${normalizedSlug}`, 'max')
-    revalidateTag(`post-raw-${key}`, 'max')
+    const encodedSlug = encodeURIComponent(normalizedSlug)
+    const encodedKey = encodeURIComponent(key)
+    revalidateTag(`post-meta-${encodedSlug}`, 'max')
+    revalidateTag(`post-content-${encodedSlug}`, 'max')
+    revalidateTag(`post-raw-${encodedKey}`, 'max')
   }
 
   if (updatedResults.length > 0 && process.env.CF_ZONE_ID && process.env.CF_API_TOKEN) {

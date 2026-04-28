@@ -13,8 +13,7 @@ export async function GET(request: Request) {
   }
 
   // Revalidate Spotify cache tags
-  // @ts-expect-error - Next.js types might expect a second argument in this version
-  revalidateTag('spotify')
+  revalidateTag('spotify', 'max')
   
   return NextResponse.json({ revalidated: true, now: Date.now() })
 }
