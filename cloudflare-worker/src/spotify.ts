@@ -1294,8 +1294,8 @@ export async function syncSpotifyDashboardToArchive(
     syncedAt,
     snapshotUrl: buildSpotifySnapshotUrl(publicDomain, SPOTIFY_LATEST_DASHBOARD_KEY),
     summary: {
-      recentlyPlayed: liveDashboard.recentlyPlayed.length,
-      topTracks: liveDashboard.topTracks.medium_term.length,
+      recentlyPlayed: liveDashboardWithoutLibrary.recentlyPlayed.length,
+      topTracks: liveDashboardWithoutLibrary.topTracks.medium_term.length,
       topArtists: liveDashboard.topArtists.medium_term.length,
       savedTracks: liveDashboard.library.savedTracks.total,
       savedAlbums: liveDashboard.library.savedAlbums.total,
