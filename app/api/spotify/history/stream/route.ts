@@ -6,6 +6,7 @@ import { getStoredSpotifyTrackTagStore } from '@/lib/spotify-tags'
 import { SpotifyRecentlyPlayedTrack } from '@/lib/spotify-types'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
 
 const STREAM_CLUSTERS = [
   { key: 'pop', keywords: ['pop', 'k-pop', 'j-pop', 'dream pop', 'synth pop', 'power pop', 'chamber pop', 'art pop', 'indie pop'] },
