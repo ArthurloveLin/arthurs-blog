@@ -2,6 +2,12 @@
 
 # dependencies
 /node_modules
+genius-worker/node_modules
+poc-phase-1/node_modules
+cloudflare-worker/node_modules
+
+# cloudflare wrangler local state
+**/.wrangler/
 /.pnp
 .pnp.*
 .yarn/*
