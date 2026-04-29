@@ -38,6 +38,8 @@
   "exclude": [
     "node_modules",
     "ClaudeDesign",
-    "cloudflare-worker"
+    "cloudflare-worker",
+    "genius-worker",
+    "poc-phase-1"
   ]
 }
