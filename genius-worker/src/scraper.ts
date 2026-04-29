@@ -3,46 +3,35 @@ import type { GeniusSongData, GeniusAnnotation } from './types'
 const BROWSER_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
-function unescapeGeniusJson(raw: string): string {
-  // Genius wraps JSON in JSON.parse('...') with JS-escaped single-quote string
-  // Unescape in order: \\ first, then \' and \"
-  return raw.replace(/\\(.)/g, (_match, char: string) => {
-    if (char === '\\') return '\\'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractData(preloadedState: string): any {
+  // POC-proven approach: take from first { to last }, then unescape Genius's
+  // JS-string escaping (the JSON is serialized as JSON.parse('...') in the page).
+  const startPos = preloadedState.indexOf('{')
+  const endPos = preloadedState.lastIndexOf('}') + 1
+  if (startPos === -1 || endPos === 0) return null
+
+  const jsonStr = preloadedState.substring(startPos, endPos)
+
+  // Unescape in a single pass: \' → '  \" → "  \\ → \
+  const unescaped = jsonStr.replace(/\\(.)/g, (_match, char: string) => {
     if (char === "'") return "'"
     if (char === '"') return '"'
+    if (char === '\\') return '\\'
     return char
   })
-}
 
-function safeParse(str: string): unknown {
   try {
-    return JSON.parse(str)
+    return JSON.parse(unescaped)
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : ''
-    const pos = msg.match(/at position (\d+)/)
+    // Genius sometimes appends trailing JS after the JSON — truncate at the
+    // parse error position and retry.
+    const pos = (e instanceof Error ? e.message : '').match(/at position (\d+)/)
     if (pos) {
-      return JSON.parse(str.substring(0, parseInt(pos[1])))
+      return JSON.parse(unescaped.substring(0, parseInt(pos[1])))
     }
     throw e
   }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractData(preloadedState: string): any {
-  // Pattern 1: window.__PRELOADED_STATE__ = JSON.parse('...')
-  const jsonParseMatch = preloadedState.match(/JSON\.parse\('([\s\S]+?)'\)\s*(?:;|window\.)/)
-  if (jsonParseMatch) {
-    const unescaped = unescapeGeniusJson(jsonParseMatch[1])
-    return safeParse(unescaped)
-  }
-
-  // Pattern 2: window.__PRELOADED_STATE__ = {...}
-  const startPos = preloadedState.indexOf('{')
-  if (startPos !== -1) {
-    return safeParse(preloadedState.substring(startPos))
-  }
-
-  return null
 }
 
 export async function scrapeSongPage(
