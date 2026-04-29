@@ -17,6 +17,7 @@ import SpotifyTopArtistsPanel from './SpotifyTopArtistsPanel'
 import SpotifyTopTracksPanel from './SpotifyTopTracksPanel'
 import SpotifyTagCloudCard from './SpotifyTagCloudCard'
 import SpotifyTagRadarCard from './SpotifyTagRadarCard'
+import SpotifyGeniusLiveCard from './SpotifyGeniusLiveCard'
 
 const SectionCard = memo(function SectionCard({
   eyebrow,
@@ -86,6 +87,9 @@ export default function SpotifyDashboard({
     <div className="site-shell py-10 pb-24">
       <SpotifyLivePlayerPanel stats={stats} />
 
+      <div className="mt-4">
+        <SpotifyGeniusLiveCard />
+      </div>
 
       <div className="mt-4">
         <SpotifyRecentlyPlayedSection items={data.recentlyPlayed} copy={copy.recent} />
