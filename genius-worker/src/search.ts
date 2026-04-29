@@ -37,8 +37,24 @@ export async function searchGenius(
   const hits = data?.response?.hits
   if (!hits || hits.length === 0) return null
 
-  const best = hits[0]?.result
-  if (!best) return null
+  // Validate: artist name must loosely match.
+  // Genius search can return completely unrelated results when the title has
+  // non-ASCII characters (e.g. Chinese title matches a translated-lyrics page).
+  const artistNorm = artist.toLowerCase().replace(/[^a-z0-9一-鿿]/g, '')
+
+  const best = hits
+    .map((h) => h?.result)
+    .filter((r): r is NonNullable<typeof r> => !!r)
+    .find((r) => {
+      const resultArtist = (r.primary_artist?.name ?? '').toLowerCase().replace(/[^a-z0-9一-鿿]/g, '')
+      // Accept if either contains the other (handles partial names)
+      return resultArtist.includes(artistNorm) || artistNorm.includes(resultArtist)
+    })
+
+  if (!best) {
+    console.log(`[search] no matching artist among ${hits.length} hits for "${artist}"`)
+    return null
+  }
 
   return {
     url: best.url,
