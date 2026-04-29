@@ -46,15 +46,20 @@ export default {
 
     // 冷启动：搜索 + 抓取
     try {
+      console.log(`[genius] search: "${title}" - "${artist}"`)
       const searchResult = await searchGenius(title, artist, env.GENIUS_API_TOKEN)
       if (!searchResult) {
+        console.log('[genius] search returned null')
         return json({ cached: false, data: null })
       }
+      console.log(`[genius] found: ${searchResult.url}`)
 
       const songData = await scrapeSongPage(searchResult.url, searchResult.id)
       if (!songData) {
+        console.log('[genius] scrape returned null')
         return json({ cached: false, data: null })
       }
+      console.log(`[genius] scraped ${songData.annotations.length} annotations`)
 
       // 异步写入 KV，不阻塞响应
       ctx.waitUntil(writeToCache(env.GENIUS_CACHE, cacheKey, songData))
@@ -62,6 +67,7 @@ export default {
       return json({ cached: false, data: songData })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error'
+      console.error(`[genius] error: ${message}`)
       return json({ error: message }, 500)
     }
   },
