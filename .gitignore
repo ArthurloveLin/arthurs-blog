@@ -8,6 +8,9 @@ cloudflare-worker/node_modules
 
 # cloudflare wrangler local state
 **/.wrangler/
+
+# wrangler local secrets (never commit)
+**/.dev.vars
 /.pnp
 .pnp.*
 .yarn/*

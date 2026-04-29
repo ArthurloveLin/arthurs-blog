@@ -1,0 +1,5 @@
+# 复制本文件为 .dev.vars 并填入真实值
+# wrangler dev 会自动读取 .dev.vars 作为本地 secret
+
+GENIUS_API_TOKEN=your_genius_api_token_here
+# GENIUS_WORKER_SECRET=  # 本地调试可留空（留空则不校验）
