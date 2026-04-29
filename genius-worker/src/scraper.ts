@@ -42,7 +42,11 @@ export async function scrapeSongPage(
     headers: { 'User-Agent': BROWSER_UA },
   })
 
-  if (!res.ok) return null
+  console.log(`[scraper] fetch ${url} → ${res.status}`)
+  if (!res.ok) {
+    console.log(`[scraper] non-ok response: ${res.status}`)
+    return null
+  }
 
   let preloadedState = ''
   let currentScript = ''
@@ -61,7 +65,11 @@ export async function scrapeSongPage(
 
   await rewriter.transform(res).arrayBuffer()
 
-  if (!preloadedState) return null
+  console.log(`[scraper] preloadedState length: ${preloadedState.length}`)
+  if (!preloadedState) {
+    console.log('[scraper] __PRELOADED_STATE__ not found in any script tag')
+    return null
+  }
 
   let data: {
     songPage?: { song?: number }
@@ -84,17 +92,31 @@ export async function scrapeSongPage(
 
   try {
     data = extractData(preloadedState) as typeof data
-  } catch {
+  } catch (e: unknown) {
+    console.log(`[scraper] extractData threw: ${e instanceof Error ? e.message : e}`)
     return null
   }
 
-  if (!data?.entities) return null
+  console.log(`[scraper] entities keys: ${Object.keys(data?.entities ?? {}).join(', ')}`)
+  console.log(`[scraper] songPage.song: ${data?.songPage?.song}, hint: ${geniusIdHint}`)
+
+  if (!data?.entities) {
+    console.log('[scraper] no entities in parsed data')
+    return null
+  }
 
   const songId = data.songPage?.song ?? geniusIdHint
-  if (!songId) return null
+  if (!songId) {
+    console.log('[scraper] no songId')
+    return null
+  }
 
   const songData = data.entities?.song?.[String(songId)]
-  if (!songData?.title) return null
+  console.log(`[scraper] song[${songId}] title: ${songData?.title ?? 'NOT FOUND'}`)
+  console.log(`[scraper] available song ids: ${Object.keys(data.entities?.song ?? {}).join(', ')}`)
+  if (!songData?.title) {
+    return null
+  }
 
   const rawAnnotations = Object.values(data.entities?.annotation ?? {})
   const annotations: GeniusAnnotation[] = rawAnnotations
