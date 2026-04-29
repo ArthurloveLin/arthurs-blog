@@ -71,19 +71,24 @@ export async function scrapeSongPage(
     return null
   }
 
+  // Genius uses camelCase in its normalised state.
+  //   songs[id].primaryArtist → nested object with .name
+  //   songs[id].album         → album ID → albums[id].name
   let data: {
     songPage?: { song?: number }
     entities?: {
-      song?: Record<string, {
+      songs?: Record<string, {
         title?: string
-        primary_artist?: { name?: string }
-        album?: { name?: string }
+        primaryArtist?: { name?: string }
+        album?: number
+        releaseDateForDisplay?: string
         release_date_for_display?: string
         stats?: { pageviews?: number }
       }>
-      annotation?: Record<string, {
+      albums?: Record<string, { name?: string }>
+      annotations?: Record<string, {
         id: number
-        body?: { plain?: string }
+        body?: { plain?: string; html?: string }
         share_url?: string
         votes_total?: number
       }>
@@ -97,11 +102,8 @@ export async function scrapeSongPage(
     return null
   }
 
-  console.log(`[scraper] entities keys: ${Object.keys(data?.entities ?? {}).join(', ')}`)
-  console.log(`[scraper] songPage.song: ${data?.songPage?.song}, hint: ${geniusIdHint}`)
-
   if (!data?.entities) {
-    console.log('[scraper] no entities in parsed data')
+    console.log('[scraper] no entities')
     return null
   }
 
@@ -111,21 +113,42 @@ export async function scrapeSongPage(
     return null
   }
 
-  const songData = data.entities?.song?.[String(songId)]
-  console.log(`[scraper] song[${songId}] title: ${songData?.title ?? 'NOT FOUND'}`)
-  console.log(`[scraper] available song ids: ${Object.keys(data.entities?.song ?? {}).join(', ')}`)
+  const songData = data.entities.songs?.[String(songId)]
   if (!songData?.title) {
+    console.log(`[scraper] songs[${songId}] not found`)
     return null
   }
 
-  const rawAnnotations = Object.values(data.entities?.annotation ?? {})
+  // primaryArtist is a nested object; album is a numeric ID → albums entity
+  const artistName = songData.primaryArtist?.name ?? ''
+
+  const albumId = songData.album
+  const albumName = albumId
+    ? (data.entities.albums?.[String(albumId)]?.name)
+    : undefined
+
+  // Strip basic HTML tags for annotations that only have html body
+  function plainFromHtml(html: string): string {
+    return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  }
+
+  const rawAnnotations = Object.values(data.entities.annotations ?? {})
+  console.log(`[scraper] annotations count: ${rawAnnotations.length}`)
+
   const annotations: GeniusAnnotation[] = rawAnnotations
-    .filter((a) => (a.body?.plain?.length ?? 0) > 10)
-    .sort((a, b) => (b.votes_total ?? 0) - (a.votes_total ?? 0))
+    .map((a) => {
+      // body may have plain, html, or markdown — use whichever has content
+      const text = a.body?.plain
+        ?? plainFromHtml(a.body?.html ?? '')
+        ?? ''
+      return { a, text }
+    })
+    .filter(({ text }) => text.length > 10)
+    .sort((x, y) => (y.a.votes_total ?? 0) - (x.a.votes_total ?? 0))
     .slice(0, 5)
-    .map((a) => ({
+    .map(({ a, text }) => ({
       id: a.id,
-      body: (a.body?.plain ?? '').substring(0, 300),
+      body: text.substring(0, 300),
       url: a.share_url ?? url,
       votes: a.votes_total ?? 0,
     }))
@@ -133,9 +156,9 @@ export async function scrapeSongPage(
   return {
     geniusId: Number(songId),
     title: songData.title,
-    artist: songData.primary_artist?.name ?? '',
-    album: songData.album?.name,
-    releaseDate: songData.release_date_for_display,
+    artist: artistName,
+    album: albumName,
+    releaseDate: songData.releaseDateForDisplay ?? songData.release_date_for_display,
     geniusUrl: url,
     pageViews: songData.stats?.pageviews,
     annotations,
