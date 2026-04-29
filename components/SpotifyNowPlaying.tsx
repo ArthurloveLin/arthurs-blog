@@ -5,7 +5,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useSpotify } from './SpotifyProvider'
 import { Music2, ChevronDown, ArrowRight } from 'lucide-react'
-import GeniusBehindLyricsCard from './GeniusBehindLyricsCard'
 
 export default function SpotifyNowPlaying() {
   const { state: { data, loading } } = useSpotify()
@@ -219,14 +218,6 @@ export default function SpotifyNowPlaying() {
                 </div>
               ))}
             </div>
-
-            {isPlaying && data.title && data.artist && (
-              <GeniusBehindLyricsCard
-                trackId={data.songUrl?.split('/track/')?.[1]?.split('?')?.[0]}
-                title={data.title}
-                artist={data.artist}
-              />
-            )}
 
             <div className="flex flex-col gap-2 mt-4 px-1">
               <Link 
