@@ -28,15 +28,135 @@ function extractData(preloadedState: string): any {
     // parse error position and retry.
     const pos = (e instanceof Error ? e.message : '').match(/at position (\d+)/)
     if (pos) {
-      return JSON.parse(unescaped.substring(0, parseInt(pos[1])))
+      try {
+        return JSON.parse(unescaped.substring(0, parseInt(pos[1])))
+      } catch {
+        return null
+      }
     }
-    throw e
+    return null
+  }
+}
+
+async function fetchInternalLyrics(songId: number): Promise<string | null> {
+  const url = `https://genius.com/api/songs/${songId}/lyrics?text_format=plain`
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': BROWSER_UA },
+    })
+    if (!res.ok) return null
+    const data = await res.json() as { response?: { lyrics?: { plain?: string } } }
+    return data?.response?.lyrics?.plain || null
+  } catch (e) {
+    console.error(`[scraper] fetchInternalLyrics error: ${e}`)
+    return null
+  }
+}
+
+function cleanLyrics(text: string): string {
+  if (!text) return ''
+
+  let cleaned = text
+
+  // 1. 解码常见的 HTML 实体
+  const entities: Record<string, string> = {
+    '&#x27;': "'",
+    '&quot;': '"',
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&#039;': "'",
+    '&apos;': "'",
+    ' ': ' ', // Medium Mathematical Space
+    ' ': ' ', // Four-Per-Em Space
+    ' ': ' ', // Three-Per-Em Space
+    ' ': ' ', // Non-breaking space
+  }
+  
+  for (const [entity, replacement] of Object.entries(entities)) {
+    cleaned = cleaned.split(entity).join(replacement)
+  }
+
+  // 2. 剔除开头的冗余元数据 (Contributors, Translations, Read More 等)
+  const readMoreIndex = cleaned.lastIndexOf('Read More')
+  if (readMoreIndex !== -1) {
+    cleaned = cleaned.substring(readMoreIndex + 9).trim()
+  }
+
+  // 移除 "Contributors" 和 "Translations" 列表噪音
+  cleaned = cleaned.replace(/^\d+\s*Contributors.*?\sLyrics\s+/is, '')
+  cleaned = cleaned.replace(/^\d+\s*Contributors.*?Translations.*?\s/is, '')
+  
+  // 3. 兜底方案：如果开头还是有一堆粘连的非空格字符（语言名列表）
+  // 且后面有 [ 标签，直接切到第一个 [ 处
+  const firstBracket = cleaned.indexOf('[')
+  if (firstBracket > 0 && firstBracket < 1000) {
+    const prefix = cleaned.substring(0, firstBracket)
+    if (prefix.includes('Contributors') || (prefix.length > 40 && prefix.split(' ').length < 5)) {
+      cleaned = cleaned.substring(firstBracket)
+    }
+  }
+
+  // 4. 确保 [Verse] 等标签前后有换行，防止粘连
+  cleaned = cleaned.replace(/(\[.*?\])/g, '\n$1\n')
+  
+  // 5. 清理多余的连续换行
+  cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n')
+
+  return cleaned.trim()
+}
+
+async function fetchReferents(songId: number, apiToken: string): Promise<GeniusAnnotation[]> {
+  const url = `https://api.genius.com/referents?song_id=${songId}&text_format=plain&per_page=15`
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+        'User-Agent': BROWSER_UA,
+      },
+    })
+    if (!res.ok) return []
+    const data = await res.json() as {
+      response?: {
+        referents?: Array<{
+          fragment?: string
+          annotations?: Array<{
+            id: number
+            body?: { plain?: string }
+            share_url?: string
+            votes_total?: number
+          }>
+        }>
+      }
+    }
+    const referents = data?.response?.referents || []
+
+    const annotations: GeniusAnnotation[] = []
+    referents.forEach((ref) => {
+      ref.annotations?.forEach((ann) => {
+        const text = ann.body?.plain || ''
+        if (text.length > 20) {
+          annotations.push({
+            id: ann.id,
+            body: text.substring(0, 2000),
+            fragment: ref.fragment || '',
+            url: ann.share_url || `https://genius.com/annotations/${ann.id}/standalone_embed`,
+            votes: ann.votes_total || 0,
+          })
+        }
+      })
+    })
+    return annotations
+  } catch (e) {
+    console.error(`[scraper] fetchReferents error: ${e}`)
+    return []
   }
 }
 
 export async function scrapeSongPage(
   url: string,
-  geniusIdHint?: number
+  geniusIdHint: number,
+  apiToken?: string
 ): Promise<GeniusSongData | null> {
   const res = await fetch(url, {
     headers: { 'User-Agent': BROWSER_UA },
@@ -51,17 +171,33 @@ export async function scrapeSongPage(
   let preloadedState = ''
   let currentScript = ''
 
-  const rewriter = new HTMLRewriter().on('script', {
-    text(t) {
-      currentScript += t.text
-      if (t.lastInTextNode) {
-        if (currentScript.includes('__PRELOADED_STATE__')) {
-          preloadedState = currentScript
+  const lyricsParts: string[] = []
+
+  const rewriter = new HTMLRewriter()
+    .on('script', {
+      text(t) {
+        currentScript += t.text
+        if (t.lastInTextNode) {
+          if (currentScript.includes('__PRELOADED_STATE__')) {
+            preloadedState = currentScript
+          }
+          currentScript = ''
         }
-        currentScript = ''
+      },
+    })
+    .on('div[data-lyrics-container="true"]', {
+      element() {
+        lyricsParts.push('\n')
+      },
+      text(t) {
+        lyricsParts.push(t.text)
+      },
+    })
+    .on('div[data-lyrics-container="true"] br', {
+      element() {
+        lyricsParts.push('\n')
       }
-    },
-  })
+    })
 
   await rewriter.transform(res).arrayBuffer()
 
@@ -84,6 +220,8 @@ export async function scrapeSongPage(
         releaseDateForDisplay?: string
         release_date_for_display?: string
         stats?: { pageviews?: number }
+        lyricsData?: { plain?: string }
+        body?: { plain?: string }
       }>
       albums?: Record<string, { name?: string }>
       annotations?: Record<string, {
@@ -92,6 +230,10 @@ export async function scrapeSongPage(
         share_url?: string
         votes_total?: number
       }>
+      referents?: Record<string, {
+        id: number
+        annotations?: number[]
+      }>
     }
   }
 
@@ -99,6 +241,11 @@ export async function scrapeSongPage(
     data = extractData(preloadedState) as typeof data
   } catch (e: unknown) {
     console.log(`[scraper] extractData threw: ${e instanceof Error ? e.message : e}`)
+    return null
+  }
+
+  if (!data) {
+    console.log('[scraper] failed to extract data')
     return null
   }
 
@@ -127,31 +274,69 @@ export async function scrapeSongPage(
     ? (data.entities.albums?.[String(albumId)]?.name)
     : undefined
 
-  // Strip basic HTML tags for annotations that only have html body
+  // Strip basic HTML tags but preserve newlines
   function plainFromHtml(html: string): string {
-    return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    return html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/[ \t]+/g, ' ')
+      .trim()
   }
 
-  const rawAnnotations = Object.values(data.entities.annotations ?? {})
-  console.log(`[scraper] annotations count: ${rawAnnotations.length}`)
+  const entities = data.entities || {}
+  const annotationsMap = entities.annotations || {}
 
-  const annotations: GeniusAnnotation[] = rawAnnotations
-    .map((a) => {
-      // body may have plain, html, or markdown — use whichever has content
-      const text = a.body?.plain
-        ?? plainFromHtml(a.body?.html ?? '')
-        ?? ''
-      return { a, text }
+  // 1. 收集实体中的所有注解（通常是歌曲描述）
+  const allAnnotationsMap = new Map<number, GeniusAnnotation>()
+  Object.values(annotationsMap).forEach((a) => {
+    if (a.id) {
+      const text = a.body?.plain ?? plainFromHtml(a.body?.html ?? '') ?? ''
+      if (text.length > 20) {
+        allAnnotationsMap.set(a.id, {
+          id: a.id,
+          body: text.substring(0, 2000),
+          fragment: '',
+          url: a.share_url ?? url,
+          votes: a.votes_total ?? 0,
+        })
+      }
+    }
+  })
+
+  // 2. 如果有 API Token，抓取更完整的歌词注解
+  if (apiToken) {
+    console.log(`[scraper] fetching additional referents from API for song ${songId}`)
+    const apiAnnotations = await fetchReferents(Number(songId), apiToken)
+    apiAnnotations.forEach(ann => {
+      // 避免重复，且 API 拿到的通常更完整
+      allAnnotationsMap.set(ann.id, ann)
     })
-    .filter(({ text }) => text.length > 10)
-    .sort((x, y) => (y.a.votes_total ?? 0) - (x.a.votes_total ?? 0))
-    .slice(0, 5)
-    .map(({ a, text }) => ({
-      id: a.id,
-      body: text.substring(0, 300),
-      url: a.share_url ?? url,
-      votes: a.votes_total ?? 0,
-    }))
+  }
+
+  const annotations = Array.from(allAnnotationsMap.values())
+    .sort((x, y) => (y.votes ?? 0) - (x.votes ?? 0))
+    .slice(0, 15)
+
+  console.log(`[scraper] final annotations count: ${annotations.length}`)
+
+  // 尝试从状态中获取歌词
+  let lyricsRaw = songData.lyricsData?.plain || songData.body?.plain || null
+
+  // 如果状态中没有，尝试使用 HTMLRewriter 抓取的片段
+  if (!lyricsRaw && lyricsParts.length > 0) {
+    console.log(`[scraper] using HTMLRewriter lyrics for song ${songId}`)
+    lyricsRaw = lyricsParts.join('').trim()
+  }
+  
+  // 如果还是没有，尝试通过内部接口（兜底）
+  if (!lyricsRaw) {
+    console.log(`[scraper] lyrics not in state or HTML, trying internal API for song ${songId}`)
+    lyricsRaw = await fetchInternalLyrics(Number(songId))
+  }
+
+  const lyrics = lyricsRaw ? cleanLyrics(lyricsRaw) : undefined
 
   return {
     geniusId: Number(songId),
@@ -162,6 +347,7 @@ export async function scrapeSongPage(
     geniusUrl: url,
     pageViews: songData.stats?.pageviews,
     annotations,
+    lyrics: lyrics || undefined,
     cachedAt: new Date().toISOString(),
   }
 }

@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Mansalva&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  color: #222;
+  background-color: #ececec;
+  font-family: "Mansalva", sans-serif;
+  
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+}
+
+.text {
+  width: fit-content;
+  padding: 6px 12px;
+  position: relative;
+  font-size: 32px;
+  font-weight: 600;
+  user-select: none;
+  text-align: center;
+  white-space: nowrap;
+  
+  &:before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: 3px 5px 3px 5px;
+    background: 
+      conic-gradient(at 0 100%, rgb(var(--mark-color) / 100%) 1% , #fff0 3%) no-repeat 0 0 / auto 120%,
+      conic-gradient(from 180deg at 100% 0, #fff0, rgb(var(--mark-color) / 100%) 1%, #fff0 4%) no-repeat 100% 100% / auto 120%,
+      linear-gradient(var(--mark-bg-angle), rgb(var(--mark-color) / 60%), rgb(var(--mark-color) / 20%) 75%, rgb(var(--mark-color) / 55%)) no-repeat center / auto;
+  }
+  
+  &.yellow-mark:before {
+    rotate: 1deg;
+    scale: 1.1;
+    transform: skew(-5deg);
+    --mark-color: 255 232 62;
+    --mark-bg-angle: 50deg;
+  }
+  
+  &.green-mark:before {
+    scale: 0.92;
+    transform: skew(7deg);
+    --mark-color: 91 233 92;
+    --mark-bg-angle: 30deg;
+  }
+  &.red-mark:before {
+    rotate: 0.5deg;
+    transform: skew(5deg);
+    --mark-color: 255 100 185;
+    --mark-bg-angle: 150deg;
+  }
+}

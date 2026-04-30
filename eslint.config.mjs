@@ -33,6 +33,7 @@ const eslintConfig = [
       "ClaudeDesign/**",
       ".vscode/**",
       ".git/**",
+      "genius-worker/.wrangler/**",
     ],
   },
 ];
