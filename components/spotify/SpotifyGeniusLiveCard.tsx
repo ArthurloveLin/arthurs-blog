@@ -27,11 +27,12 @@ function GeniusCardInner() {
   const [fixedAnnId, setFixedAnnId] = useState<number | null>(null)
 
   const isPlaying = data?.isPlaying === true
-  const track = isPlaying && data?.title && data?.artist
+  const track = (data?.title && data?.artist)
     ? {
         trackId: data.songUrl?.split('/track/')?.[1]?.split('?')?.[0],
         title: data.title,
         artist: data.artist,
+        durationMs: data.durationMs || undefined,
       }
     : null
 
@@ -46,7 +47,7 @@ function GeniusCardInner() {
 
   const { geniusData, loading } = useGeniusData(track)
 
-  if (!isPlaying) return null
+  if (!track) return null
   const hasAnnotations = geniusData && geniusData.annotations.length > 0
   const hasLyrics = geniusData && !!geniusData.lyrics
   if (!loading && !hasAnnotations) return null
@@ -111,8 +112,8 @@ function GeniusCardInner() {
       <div className="flex items-center justify-between mb-8 flex-shrink-0">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60 flex items-center gap-2">
-            <span className="w-1 h-1 rounded-full bg-yellow-400 animate-pulse" />
-            Now Playing
+            <span className={`w-1 h-1 rounded-full bg-yellow-400 ${isPlaying ? 'animate-pulse' : 'opacity-40'}`} />
+            {isPlaying ? 'Now Playing' : 'Recently Played'}
           </p>
           <h3 className="mt-2 text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
             Behind the Lyrics
@@ -152,13 +153,15 @@ function GeniusCardInner() {
                     const isLabel = line.startsWith('[') && line.endsWith(']')
                     const lineTrimmed = line.trim()
                   
-                  const associatedAnn = lineTrimmed.length > 4 
-                    ? geniusData!.annotations.find(ann => 
-                        ann.fragment && (
-                          lineTrimmed.includes(ann.fragment) || 
-                          ann.fragment.includes(lineTrimmed)
-                        )
-                      )
+                  const normalize = (s: string) => s.toLowerCase().replace(/[^\w\s\u4e00-\u9fa5]/g, '').replace(/\s+/g, ' ').trim()
+                  const lineNorm = normalize(lineTrimmed)
+
+                  const associatedAnn = lineNorm.length > 0 
+                    ? geniusData!.annotations.find(ann => {
+                        if (!ann.fragment) return false
+                        const fragNorm = normalize(ann.fragment)
+                        return fragNorm.includes(lineNorm) || lineNorm.includes(fragNorm)
+                      })
                     : null
 
                   const isFixed = associatedAnn && fixedAnnId === associatedAnn.id
