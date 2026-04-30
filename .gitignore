@@ -69,3 +69,4 @@ tmp/
 
 # build
 dist/
+.env*.local

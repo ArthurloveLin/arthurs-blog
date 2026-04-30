@@ -84,15 +84,29 @@ function cleanLyrics(text: string): string {
   }
 
   // 移除 "Contributors" 和 "Translations" 列表噪音
-  cleaned = cleaned.replace(/^\d+\s*Contributors.*?\sLyrics\s+/is, '')
+  // 增加 Cyrics, Lyries 等可能出现的乱码变体
+  cleaned = cleaned.replace(/^\d+\s*Contributors.*?\s(Lyrics|Cyrics|Lyries)\s+/is, '')
   cleaned = cleaned.replace(/^\d+\s*Contributors.*?Translations.*?\s/is, '')
   
-  // 3. 兜底方案：如果开头还是有一堆粘连的非空格字符（语言名列表）
-  // 且后面有 [ 标签，直接切到第一个 [ 处
+  // 3. 兜底方案：如果开头还是有一堆噪音（语言名列表、歌曲简介等）
+  // 且后面有 [ 标签，检测前缀是否包含元数据特征
   const firstBracket = cleaned.indexOf('[')
-  if (firstBracket > 0 && firstBracket < 1000) {
+  if (firstBracket > 0 && firstBracket < 2000) {
     const prefix = cleaned.substring(0, firstBracket)
-    if (prefix.includes('Contributors') || (prefix.length > 40 && prefix.split(' ').length < 5)) {
+    
+    // 元数据特征关键词
+    const metadataMarkers = [
+      'Contributors', 
+      'Lyrics', 'Cyrics', 'Lyries',
+      'Português', 'Türkge', 'Türkçe', 'Frangais', 'Français', 'Español', 'Italiano', 'Deutsch',
+      'single from', 'album', 'released on'
+    ]
+    
+    const isMetadata = metadataMarkers.some(marker => 
+      prefix.toLowerCase().includes(marker.toLowerCase())
+    ) || (prefix.length > 40 && prefix.split(' ').length < 5) // 或者是很长但空格很少的粘连文本
+
+    if (isMetadata) {
       cleaned = cleaned.substring(firstBracket)
     }
   }
