@@ -7,6 +7,7 @@ interface TrackInfo {
   trackId?: string
   title: string
   artist: string
+  durationMs?: number
 }
 
 interface GeniusResponse {
@@ -25,7 +26,7 @@ export function useGeniusData(track: TrackInfo | null): {
   loading: boolean
 } {
   const key = track
-    ? `/api/genius?trackId=${track.trackId ?? ''}&title=${encodeURIComponent(track.title)}&artist=${encodeURIComponent(track.artist)}`
+    ? `/api/genius?trackId=${track.trackId ?? ''}&title=${encodeURIComponent(track.title)}&artist=${encodeURIComponent(track.artist)}${track.durationMs ? `&durationMs=${track.durationMs}` : ''}`
     : null
 
   const { data, isLoading } = useSWR<GeniusResponse>(key, fetcher, {

@@ -5,6 +5,7 @@ export async function GET(request: Request) {
   const trackId = searchParams.get('trackId') ?? ''
   const title = (searchParams.get('title') ?? '').trim()
   const artist = (searchParams.get('artist') ?? '').trim()
+  const durationMs = searchParams.get('durationMs') ?? ''
 
   if (!title || !artist) {
     return Response.json({ error: 'title and artist are required' }, { status: 400 })
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
   if (trackId) target.searchParams.set('trackId', trackId)
   target.searchParams.set('title', title)
   target.searchParams.set('artist', artist)
+  if (durationMs) target.searchParams.set('durationMs', durationMs)
 
   const headers: Record<string, string> = {}
   const secret = process.env.GENIUS_WORKER_SECRET
