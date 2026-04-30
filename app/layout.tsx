@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Noto_Sans_SC } from "next/font/google";
+import { Geist, Geist_Mono, Noto_Sans_SC, Caveat } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -21,6 +21,13 @@ const notoSansSC = Noto_Sans_SC({
   weight: ["300", "400", "600", "700"],
   preload: false,
   display: "swap",
+});
+
+const caveat = Caveat({
+  variable: "--font-caveat",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 import AuthProvider from "@/components/AuthProvider";
 import { ThemeProvider } from "next-themes";
@@ -49,7 +56,7 @@ export default async function RootLayout({
 
   return (
     <html lang="zh-CN"
-      className={`${geistSans.variable} ${geistMono.variable} ${notoSansSC.variable}`}
+      className={`${geistSans.variable} ${geistMono.variable} ${notoSansSC.variable} ${caveat.variable}`}
       suppressHydrationWarning>
         <head>
           <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />

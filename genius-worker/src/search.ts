@@ -37,18 +37,25 @@ export async function searchGenius(
   const hits = data?.response?.hits
   if (!hits || hits.length === 0) return null
 
-  // Validate: artist name must loosely match.
-  // Genius search can return completely unrelated results when the title has
-  // non-ASCII characters (e.g. Chinese title matches a translated-lyrics page).
+  // 改进匹配逻辑：提取主唱艺人，处理 Spotify 常见的 "Artist A, Artist B" 格式
+  const artists = artist.split(/[,&]|\bfeat\.?\b/i).map(s => s.trim()).filter(Boolean)
+  const primaryArtist = artists[0] || artist
+  
   const artistNorm = artist.toLowerCase().replace(/[^a-z0-9一-鿿]/g, '')
+  const primaryArtistNorm = primaryArtist.toLowerCase().replace(/[^a-z0-9一-鿿]/g, '')
 
   const best = hits
     .map((h) => h?.result)
     .filter((r): r is NonNullable<typeof r> => !!r)
     .find((r) => {
       const resultArtist = (r.primary_artist?.name ?? '').toLowerCase().replace(/[^a-z0-9一-鿿]/g, '')
-      // Accept if either contains the other (handles partial names)
-      return resultArtist.includes(artistNorm) || artistNorm.includes(resultArtist)
+      // 匹配策略：
+      // 1. 搜索结果包含主唱名 (e.g. "Kanye West" includes "Kanye West")
+      // 2. 主唱名包含搜索结果 (e.g. "Kanye West" matches "Kanye")
+      // 3. 搜索结果包含在完整的艺人列表中 (e.g. "Kanye West, Pusha T" includes "Kanye West")
+      return resultArtist.includes(primaryArtistNorm) || 
+             primaryArtistNorm.includes(resultArtist) ||
+             artistNorm.includes(resultArtist)
     })
 
   if (!best) {

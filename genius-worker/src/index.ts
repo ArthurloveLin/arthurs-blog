@@ -12,7 +12,7 @@ function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: CORS_HEADERS })
 }
 
-export default {
+const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS_HEADERS })
@@ -54,7 +54,7 @@ export default {
       }
       console.log(`[genius] found: ${searchResult.url}`)
 
-      const songData = await scrapeSongPage(searchResult.url, searchResult.id)
+      const songData = await scrapeSongPage(searchResult.url, searchResult.id, env.GENIUS_API_TOKEN)
       if (!songData) {
         console.log('[genius] scrape returned null')
         return json({ cached: false, data: null })
@@ -72,3 +72,4 @@ export default {
     }
   },
 }
+export default worker
