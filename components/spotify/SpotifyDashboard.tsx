@@ -1,4 +1,5 @@
 import { memo, type ReactNode } from 'react'
+import dynamic from 'next/dynamic'
 import { AlertTriangle } from 'lucide-react'
 
 import type {
@@ -15,9 +16,10 @@ import SpotifyRecentlyPlayedSection from './SpotifyRecentlyPlayedSection'
 import SpotifySavedTracksPanel from './SpotifySavedTracksPanel'
 import SpotifyTopArtistsPanel from './SpotifyTopArtistsPanel'
 import SpotifyTopTracksPanel from './SpotifyTopTracksPanel'
-import SpotifyTagCloudCard from './SpotifyTagCloudCard'
-import SpotifyTagRadarCard from './SpotifyTagRadarCard'
 import SpotifyGeniusLiveCard from './SpotifyGeniusLiveCard'
+
+const SpotifyTagCloudCard = dynamic(() => import('./SpotifyTagCloudCard'))
+const SpotifyTagRadarCard = dynamic(() => import('./SpotifyTagRadarCard'))
 
 const SectionCard = memo(function SectionCard({
   eyebrow,

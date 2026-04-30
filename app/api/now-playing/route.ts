@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server'
 import { getSpotifyNowPlayingData } from '@/lib/spotify'
 
 export const dynamic = 'force-dynamic'
-export const runtime = 'edge'
 
 export async function GET() {
   try {

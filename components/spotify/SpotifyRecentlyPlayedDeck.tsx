@@ -16,9 +16,11 @@ import {
 import { formatStableDate } from '@/lib/date-format'
 import type { SpotifyRecentlyPlayedTrack, SpotifyTrackTagStore, TimeSegmentId } from '@/lib/spotify-types'
 
-import SpotifyListeningChart from './SpotifyListeningChart'
-import SpotifyTagStreamChart from './SpotifyTagStreamChart'
+import dynamic from 'next/dynamic'
 import styles from './SpotifyRecentlyPlayedDeck.module.css'
+
+const SpotifyListeningChart = dynamic(() => import('./SpotifyListeningChart'), { ssr: false })
+const SpotifyTagStreamChart = dynamic(() => import('./SpotifyTagStreamChart'), { ssr: false })
 
 const DEFAULT_CARDS_PER_PAGE = 4
 

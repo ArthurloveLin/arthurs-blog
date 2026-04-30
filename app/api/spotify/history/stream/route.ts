@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { getR2Object } from '@/lib/r2'
 
 export const dynamic = 'force-dynamic'
-export const runtime = 'edge'
 
 function getBucket() {
   const bucket = process.env.R2_SPOTIFY_BUCKET
