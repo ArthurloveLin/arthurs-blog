@@ -1040,19 +1040,23 @@ async function readRecentlyPlayedShard(yearMonth: string): Promise<SpotifyRecent
   return shard ?? []
 }
 
-export async function readRecentlyPlayedDayShard(date: string): Promise<SpotifyRecentlyPlayedTrack[]> {
-  const { bucket } = getSpotifyArchiveConfig()
-  if (!bucket) return []
+export const readRecentlyPlayedDayShard = unstable_cache(
+  async function readRecentlyPlayedDayShardRaw(date: string): Promise<SpotifyRecentlyPlayedTrack[]> {
+    const { bucket } = getSpotifyArchiveConfig()
+    if (!bucket) return []
 
-  const shard = await readR2JsonIfExists<SpotifyRecentlyPlayedTrack[]>(
-    bucket,
-    `${SPOTIFY_RECENTLY_PLAYED_PATH}${date}.json`
-  )
+    const shard = await readR2JsonIfExists<SpotifyRecentlyPlayedTrack[]>(
+      bucket,
+      `${SPOTIFY_RECENTLY_PLAYED_PATH}${date}.json`
+    )
 
-  return (shard ?? []).toSorted(
-    (a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
-  )
-}
+    return (shard ?? []).toSorted(
+      (a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
+    )
+  },
+  ['spotify-recently-played-day-shard'],
+  { tags: ['spotify'], revalidate: 3600 }
+)
 
 export async function readSpotifyPlaylistShard(id: string): Promise<SpotifyPlaylistTrack[]> {
   const { bucket } = getSpotifyArchiveConfig()
@@ -1095,24 +1099,28 @@ async function writeRecentlyPlayedDayShard(date: string, items: SpotifyRecentlyP
   await writeR2Json(bucket, `${SPOTIFY_RECENTLY_PLAYED_PATH}${date}.json`, items)
 }
 
-export async function listRecentlyPlayedDays(limitDays?: number): Promise<string[]> {
-  const { bucket } = getSpotifyArchiveConfig()
-  if (!bucket) return []
+export const listRecentlyPlayedDays = unstable_cache(
+  async function listRecentlyPlayedDaysRaw(limitDays?: number): Promise<string[]> {
+    const { bucket } = getSpotifyArchiveConfig()
+    if (!bucket) return []
 
-  const keys = await listR2Objects(bucket, SPOTIFY_RECENTLY_PLAYED_PATH)
+    const keys = await listR2Objects(bucket, SPOTIFY_RECENTLY_PLAYED_PATH)
 
-  const days = keys
-    .map((key) => key.slice(SPOTIFY_RECENTLY_PLAYED_PATH.length))
-    .filter((name) => RECENTLY_PLAYED_DAY_SHARD_PATTERN.test(name))
-    .map((name) => name.replace(/\.json$/, ''))
-    .sort((a, b) => b.localeCompare(a))
+    const days = keys
+      .map((key) => key.slice(SPOTIFY_RECENTLY_PLAYED_PATH.length))
+      .filter((name) => RECENTLY_PLAYED_DAY_SHARD_PATTERN.test(name))
+      .map((name) => name.replace(/\.json$/, ''))
+      .sort((a, b) => b.localeCompare(a))
 
-  if (typeof limitDays === 'number') {
-    return days.slice(0, Math.max(limitDays, 0))
-  }
+    if (typeof limitDays === 'number') {
+      return days.slice(0, Math.max(limitDays, 0))
+    }
 
-  return days
-}
+    return days
+  },
+  ['spotify-recently-played-days'],
+  { tags: ['spotify'], revalidate: 3600 }
+)
 
 async function readLatestSpotifyLibrary(): Promise<SpotifyDashboardData['library'] | null> {
   const { bucket } = getSpotifyArchiveConfig()
