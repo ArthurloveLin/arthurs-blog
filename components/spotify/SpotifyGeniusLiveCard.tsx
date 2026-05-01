@@ -309,7 +309,7 @@ function GeniusCardInner() {
           <div 
             className="hidden lg:flex space-y-4 transition-all duration-500 ease-out h-full flex flex-col overflow-hidden"
           >
-            <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2 px-1 flex-shrink-0 flex items-center justify-between">
+            <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2 px-4 flex-shrink-0 flex items-center justify-between">
               <span>{currentId ? 'Selected Insight' : 'Track Insights'}</span>
               {currentId && (
                 <button 
@@ -320,7 +320,7 @@ function GeniusCardInner() {
                 </button>
               )}
             </h4>
-            <div ref={scrollRef} className="flex-grow overflow-y-auto scrollbar-hide space-y-4 pr-1 pb-10">
+            <div ref={scrollRef} className="flex-grow overflow-y-auto scrollbar-hide space-y-4 px-4 pt-2 pb-10">
               {displayAnnotations.map((ann) => {
                 const isActive = currentId === ann.id
                 return (
