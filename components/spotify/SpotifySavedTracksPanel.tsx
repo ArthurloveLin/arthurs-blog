@@ -5,6 +5,7 @@ import { useEffect, useMemo } from 'react'
 import type { SpotifySectionCopy } from '@/lib/spotify-page-copy'
 import type { SpotifySavedTrack } from '@/lib/spotify-types'
 import { formatStableDate } from '@/lib/date-format'
+import { getSpotifyPublicApiUrl } from '@/lib/spotify-public-api'
 import SpotifyTrackWall from './SpotifyTrackWall'
 import { useSpotifyCollectionPagination } from './useSpotifyCollectionPagination'
 
@@ -25,6 +26,7 @@ function formatDuration(durationMs: number) {
 }
 
 const PAGE_SIZE = 24
+const SPOTIFY_SAVED_TRACKS_URL = getSpotifyPublicApiUrl('/api/spotify/library/tracks')
 
 function buildTracksResetKey(items: SpotifySavedTrack[], total: number) {
   return `${total}:${items.map((item) => `${item.track.id}:${item.addedAt}`).join('|')}`
@@ -57,7 +59,7 @@ function SpotifySavedTracksPanelContent({
     initialItems,
     total,
     pageSize: PAGE_SIZE,
-    fetchUrl: '/api/spotify/library/tracks',
+    fetchUrl: SPOTIFY_SAVED_TRACKS_URL,
     getItemKey: (item) => `${item.track.id}:${item.addedAt}`,
   })
 

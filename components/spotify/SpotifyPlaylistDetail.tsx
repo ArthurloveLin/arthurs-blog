@@ -7,6 +7,7 @@ import Image from 'next/image'
 
 import type { SpotifyPlaylistPreview, SpotifyPlaylistTrack } from '@/lib/spotify-types'
 import { spotifyImg } from '@/lib/spotify-img'
+import { getSpotifyPublicApiUrl } from '@/lib/spotify-public-api'
 import { formatStableDate } from '@/lib/date-format'
 
 function formatLocalDateTime(iso: string) {
@@ -55,7 +56,7 @@ async function fetchPlaylistTracks(url: string): Promise<SpotifyPlaylistTrack[]>
 export default function SpotifyPlaylistDetail({ playlist }: { playlist: SpotifyPlaylistPreview }) {
   const [isOpen, setIsOpen] = useState(false)
   const { data: tracks = [], error, isLoading } = useSWR<SpotifyPlaylistTrack[]>(
-    isOpen ? `/api/spotify/playlists/${playlist.id}` : null,
+    isOpen ? getSpotifyPublicApiUrl(`/api/spotify/playlists/${playlist.id}`) : null,
     fetchPlaylistTracks,
     {
       revalidateOnFocus: false,

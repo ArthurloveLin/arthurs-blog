@@ -7,6 +7,8 @@ import {
   type SpotifyCollectionPreview,
   type SpotifyContextSource,
   type SpotifyDashboardData,
+  type SpotifyNowPlayingData,
+  type SpotifyNowPlayingRecentTrack,
   type SpotifyPlaylist,
   type SpotifyPlaylistPreview,
   type SpotifyPlaylistTrack,
@@ -17,6 +19,7 @@ import {
   type SpotifySyncMeta,
   type SpotifySyncResult,
   type SpotifyTimeRange,
+  type SpotifyTrackTagStore,
   type SpotifyTopArtist,
   type SpotifyTopTrack,
   type SpotifyTrackTagCandidate,
@@ -25,6 +28,7 @@ import {
 import { getR2Object, listR2Objects, putR2Object } from './r2'
 
 const SPOTIFY_TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
+const SPOTIFY_PLAYER_ENDPOINT = 'https://api.spotify.com/v1/me/player'
 const SPOTIFY_RECENTLY_PLAYED_ENDPOINT = 'https://api.spotify.com/v1/me/player/recently-played'
 const SPOTIFY_TOP_TRACKS_ENDPOINT = 'https://api.spotify.com/v1/me/top/tracks'
 const SPOTIFY_TOP_ARTISTS_ENDPOINT = 'https://api.spotify.com/v1/me/top/artists'
@@ -39,6 +43,8 @@ const SAVED_ALBUMS_PREVIEW_LIMIT = 12
 const SPOTIFY_META_KEY = 'spotify/meta.json'
 const SPOTIFY_LATEST_DASHBOARD_KEY = 'spotify/latest/dashboard.json'
 const SPOTIFY_LATEST_LIBRARY_KEY = 'spotify/latest/library.json'
+const SPOTIFY_LATEST_REPORT_KEY = 'spotify/latest/report.json'
+const SPOTIFY_STREAM_KEY = 'spotify/history/stream.json'
 export const SPOTIFY_SAVED_TRACKS_KEY = 'spotify/collection/saved-tracks.json'
 const SPOTIFY_SAVED_ALBUMS_KEY = 'spotify/collection/saved-albums.json'
 const SPOTIFY_PLAYLISTS_KEY = 'spotify/collection/playlists.json'
@@ -99,6 +105,16 @@ type SpotifyPagingResponse<T> = {
   items: T[]
   next: string | null
   total: number
+}
+
+type SpotifyCurrentPlaybackResponse = {
+  item: SpotifyTrackObject | null
+  is_playing: boolean
+  device?: {
+    name?: string
+    type?: string
+  }
+  progress_ms: number
 }
 
 
@@ -417,6 +433,89 @@ function toAlbumSummary(album: SpotifyAlbumObject): SpotifyAlbumSummary {
     artists: album.artists.map((artist) => artist.name),
     releaseDate: album.release_date ?? null,
     totalTracks: album.total_tracks ?? null,
+  }
+}
+
+function createEmptySpotifyLibrary(): SpotifyDashboardData['library'] {
+  return {
+    savedTracks: { total: 0, items: [] },
+    savedAlbums: { total: 0, items: [] },
+    playlists: { total: 0, items: [] },
+  }
+}
+
+async function getCurrentPlayback(accessToken: string) {
+  const playback = await requestSpotify<SpotifyCurrentPlaybackResponse | null>(
+    accessToken,
+    SPOTIFY_PLAYER_ENDPOINT,
+    true
+  )
+
+  if (!playback?.item) {
+    return null
+  }
+
+  return {
+    track: toTrackSummary(playback.item),
+    isPlaying: playback.is_playing,
+    deviceName: playback.device?.name,
+    deviceType: playback.device?.type,
+    progressMs: playback.progress_ms,
+    durationMs: playback.item.duration_ms,
+  }
+}
+
+export async function getSpotifyNowPlayingData(env: Env): Promise<SpotifyNowPlayingData | null> {
+  const accessToken = await getSpotifyAccessToken(env)
+
+  const [currentPlayback, storedData] = await Promise.all([
+    getCurrentPlayback(accessToken).catch(() => null),
+    readStoredSpotifyDashboardData(env).catch(() => null),
+  ])
+
+  const recentTracks: SpotifyNowPlayingRecentTrack[] = (storedData?.recentlyPlayed ?? []).map((track) => ({
+    id: track.id,
+    title: track.title,
+    artist: track.artists.join(', '),
+    album: track.album,
+    albumImageUrl: track.albumImageUrl,
+    songUrl: track.songUrl,
+    playedAt: track.playedAt,
+  }))
+
+  if (!currentPlayback) {
+    if (recentTracks.length === 0) {
+      return null
+    }
+
+    const lastTrack = recentTracks[0]
+    return {
+      isPlaying: false,
+      isRecentlyPlayed: true,
+      title: lastTrack.title,
+      artist: lastTrack.artist,
+      album: lastTrack.album,
+      albumImageUrl: lastTrack.albumImageUrl,
+      songUrl: lastTrack.songUrl,
+      playedAt: lastTrack.playedAt,
+      recentTracks,
+    }
+  }
+
+  const track = currentPlayback.track
+
+  return {
+    isPlaying: currentPlayback.isPlaying,
+    title: track.title,
+    artist: track.artists.join(', '),
+    album: track.album,
+    albumImageUrl: track.albumImageUrl,
+    songUrl: track.songUrl,
+    deviceName: currentPlayback.deviceName,
+    deviceType: currentPlayback.deviceType,
+    progressMs: currentPlayback.progressMs,
+    durationMs: currentPlayback.durationMs,
+    recentTracks,
   }
 }
 
@@ -1044,6 +1143,30 @@ async function readLatestSpotifyDashboard(env: Env) {
   }
 }
 
+export async function readStoredSpotifyDashboardData(env: Env): Promise<SpotifyDashboardData | null> {
+  const [latest, meta, library] = await Promise.all([
+    readLatestSpotifyDashboard(env),
+    readSpotifyMeta(env),
+    readLatestSpotifyLibrary(env),
+  ])
+
+  if (!latest) {
+    return null
+  }
+
+  return {
+    ...latest.data,
+    library: library ?? createEmptySpotifyLibrary(),
+    archiveMeta: {
+      source: 'r2-archive',
+      hasStoredSnapshot: true,
+      lastSyncedAt: latest.syncedAt,
+      snapshotUrl: latest.snapshotUrl,
+      syncCount: meta.syncCount,
+    },
+  }
+}
+
 
 
 
@@ -1311,6 +1434,362 @@ export async function syncSpotifyDashboardToArchive(
   }
 }
 
+interface MusicReportTopTrack {
+  title: string
+  artist: string
+  albumImageUrl: string | null
+  playCount: number
+  durationMs: number
+  tags: string[]
+  peakHour: number | null
+}
+
+interface MusicReportTopArtist {
+  name: string
+  playCount: number
+  totalMinutes: number
+  imageUrl: string | null
+  tags: string[]
+  peakHour: number | null
+}
+
+interface MusicReportTopContext {
+  label: string
+  type: string
+  playCount: number
+  imageUrl: string | null
+}
+
+interface MusicReportStats {
+  period: 'day' | 'week' | 'month'
+  periodLabel: string
+  dateRange: string
+  topTrack: MusicReportTopTrack | null
+  topArtist: MusicReportTopArtist | null
+  top5Tracks: MusicReportTopTrack[]
+  top5Artists: MusicReportTopArtist[]
+  topContext: MusicReportTopContext | null
+  top2Contexts: MusicReportTopContext[]
+  topTag: string | null
+  totalPlays: number
+  totalMinutes: number
+  peakHour: number | null
+}
+
+export interface MusicReport {
+  day: MusicReportStats
+  week: MusicReportStats
+  month: MusicReportStats
+  generatedAt: string
+}
+
+interface TagAggregation {
+  name: string
+  totalCount: number
+  trackCount: number
+}
+
+function aggregateTags(trackIds: string[], store: SpotifyTrackTagStore): TagAggregation[] {
+  const map = new Map<string, { totalCount: number; trackCount: number }>()
+
+  for (const id of trackIds) {
+    const entry = store.tracks[id]
+    if (!entry) continue
+
+    for (const tag of entry.tags) {
+      const key = tag.name.toLowerCase()
+      const existing = map.get(key)
+
+      if (existing) {
+        existing.totalCount += tag.count
+        existing.trackCount += 1
+      } else {
+        map.set(key, { totalCount: tag.count, trackCount: 1 })
+      }
+    }
+  }
+
+  return Array.from(map.entries())
+    .map(([name, { totalCount, trackCount }]) => ({ name, totalCount, trackCount }))
+    .sort((left, right) => right.totalCount - left.totalCount)
+    .slice(0, 60)
+}
+
+function toYMD(date: Date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function toYM(date: Date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  return `${y}-${m}`
+}
+
+function parseDayKey(dayKey: string) {
+  const [year, month, day] = dayKey.split('-').map(Number)
+  return new Date(year, (month ?? 1) - 1, day ?? 1)
+}
+
+function toDayKey(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function buildWeekDayKeys(anchorDateStr: string | null) {
+  const anchor = anchorDateStr ? parseDayKey(anchorDateStr) : new Date()
+  const normalizedAnchor = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate())
+  const weekday = normalizedAnchor.getDay() === 0 ? 7 : normalizedAnchor.getDay()
+  const monday = new Date(normalizedAnchor)
+  monday.setDate(normalizedAnchor.getDate() - (weekday - 1))
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const current = new Date(monday)
+    current.setDate(monday.getDate() + index)
+    return toDayKey(current)
+  })
+}
+
+function formatMonthDay(dateKey: string) {
+  const [, month = '01', day = '01'] = dateKey.split('-')
+  return `${month}/${day}`
+}
+
+function computeMusicReportStats(
+  tracks: SpotifyRecentlyPlayedTrack[],
+  tagStore: SpotifyTrackTagStore | null,
+  artistImageMap: Map<string, string>,
+  contextImageMap: Map<string, string>,
+  period: 'day' | 'week' | 'month',
+  periodLabel: string,
+  dateRange: string
+): MusicReportStats {
+  if (tracks.length === 0) {
+    return {
+      period,
+      periodLabel,
+      dateRange,
+      topTrack: null,
+      topArtist: null,
+      top5Tracks: [],
+      top5Artists: [],
+      topContext: null,
+      top2Contexts: [],
+      topTag: null,
+      totalPlays: 0,
+      totalMinutes: 0,
+      peakHour: null,
+    }
+  }
+
+  const trackMap = new Map<string, { track: SpotifyRecentlyPlayedTrack; count: number }>()
+  for (const track of tracks) {
+    const existing = trackMap.get(track.id)
+    if (existing) {
+      existing.count += 1
+    } else {
+      trackMap.set(track.id, { track, count: 1 })
+    }
+  }
+
+  const sortedTracks = [...trackMap.values()].sort((left, right) => right.count - left.count)
+  const top5Tracks: MusicReportTopTrack[] = sortedTracks.slice(0, 5).map((entry) => ({
+    title: entry.track.title,
+    artist: entry.track.artists[0] ?? '',
+    albumImageUrl: entry.track.albumImageUrl,
+    playCount: entry.count,
+    durationMs: entry.track.durationMs,
+    tags: tagStore?.tracks[entry.track.id]?.tags.map((tag) => tag.name) ?? [],
+    peakHour: (() => {
+      const hourMap = new Map<number, number>()
+      for (const track of tracks.filter((candidate) => candidate.id === entry.track.id)) {
+        const hour = new Date(track.playedAt).getUTCHours()
+        hourMap.set(hour, (hourMap.get(hour) ?? 0) + 1)
+      }
+      const topHour = [...hourMap.entries()].sort((left, right) => right[1] - left[1])[0]
+      return topHour ? (topHour[0] + 8) % 24 : null
+    })(),
+  }))
+  const topTrack = top5Tracks[0] ?? null
+
+  const artistMap = new Map<string, number>()
+  for (const track of tracks) {
+    for (const artist of track.artists) {
+      artistMap.set(artist, (artistMap.get(artist) ?? 0) + 1)
+    }
+  }
+
+  const sortedArtists = [...artistMap.entries()].sort((left, right) => right[1] - left[1])
+  const top5Artists: MusicReportTopArtist[] = sortedArtists.slice(0, 5).map(([name, playCount]) => ({
+    name,
+    playCount,
+    totalMinutes: Math.round(
+      tracks.filter((track) => track.artists.includes(name)).reduce((sum, track) => sum + track.durationMs, 0) / 60000
+    ),
+    imageUrl: artistImageMap.get(name) ?? null,
+    tags: tagStore
+      ? aggregateTags(
+          tracks.filter((track) => track.artists.includes(name)).map((track) => track.id),
+          tagStore
+        )
+          .slice(0, 5)
+          .map((tag) => tag.name)
+      : [],
+    peakHour: (() => {
+      const hourMap = new Map<number, number>()
+      for (const track of tracks.filter((candidate) => candidate.artists.includes(name))) {
+        const hour = new Date(track.playedAt).getUTCHours()
+        hourMap.set(hour, (hourMap.get(hour) ?? 0) + 1)
+      }
+      const topHour = [...hourMap.entries()].sort((left, right) => right[1] - left[1])[0]
+      return topHour ? (topHour[0] + 8) % 24 : null
+    })(),
+  }))
+  const topArtist = top5Artists[0] ?? null
+
+  const contextMap = new Map<string, { label: string; type: string; count: number }>()
+  for (const track of tracks) {
+    if (!track.context) continue
+    const key = `${track.context.type}:${track.context.label}`
+    const existing = contextMap.get(key)
+    if (existing) {
+      existing.count += 1
+    } else {
+      contextMap.set(key, {
+        label: track.context.label,
+        type: track.context.type,
+        count: 1,
+      })
+    }
+  }
+
+  const sortedContexts = [...contextMap.values()].sort((left, right) => right.count - left.count)
+  const top2Contexts: MusicReportTopContext[] = sortedContexts
+    .slice(0, 4)
+    .map((entry) => ({
+      label: entry.label,
+      type: entry.type,
+      playCount: entry.count,
+      imageUrl: contextImageMap.get(entry.label) ?? artistImageMap.get(entry.label) ?? null,
+    }))
+    .filter((entry) => entry.imageUrl !== null)
+    .slice(0, 3)
+  const topContext = top2Contexts[0] ?? null
+
+  const uniqueIds = [...new Set(tracks.map((track) => track.id))]
+  const topTagEntry = tagStore ? aggregateTags(uniqueIds, tagStore)[0] : null
+  const topTag = topTagEntry?.name ?? null
+
+  const totalPlays = tracks.length
+  const totalMinutes = Math.round(tracks.reduce((sum, track) => sum + track.durationMs, 0) / 60000)
+
+  const hourMap = new Map<number, number>()
+  for (const track of tracks) {
+    const hour = new Date(track.playedAt).getUTCHours()
+    hourMap.set(hour, (hourMap.get(hour) ?? 0) + 1)
+  }
+  const peakHourEntry = [...hourMap.entries()].sort((left, right) => right[1] - left[1])[0]
+  const peakHour = peakHourEntry ? (peakHourEntry[0] + 8) % 24 : null
+
+  return {
+    period,
+    periodLabel,
+    dateRange,
+    topTrack,
+    topArtist,
+    top5Tracks,
+    top5Artists,
+    topContext,
+    top2Contexts,
+    topTag,
+    totalPlays,
+    totalMinutes,
+    peakHour,
+  }
+}
+
+export async function readStoredMusicReport(env: Env): Promise<MusicReport | null> {
+  const { bucket } = getSpotifyArchiveConfig(env)
+  if (!bucket) return null
+
+  return readR2JsonIfExists<MusicReport>(env, bucket, SPOTIFY_LATEST_REPORT_KEY)
+}
+
+export async function generateAndSaveMusicReport(env: Env): Promise<MusicReport | null> {
+  const { bucket } = getSpotifyArchiveConfig(env)
+  if (!bucket) return null
+
+  const now = new Date()
+  const todayStr = toYMD(now)
+  const yearMonthStr = toYM(now)
+  const weekDays = buildWeekDayKeys(todayStr).filter((day) => day <= todayStr)
+
+  const [dayTracks, monthDays, dashboard] = await Promise.all([
+    readRecentlyPlayedDayShard(env, todayStr),
+    listRecentlyPlayedDays(env, 31),
+    readStoredSpotifyDashboardData(env).catch(() => null),
+  ])
+
+  const weekShards = await Promise.all(weekDays.map((day) => readRecentlyPlayedDayShard(env, day)))
+  const weekTracks = weekShards.flat()
+
+  const currentMonthDays = monthDays.filter((day) => day.startsWith(yearMonthStr))
+  const monthShards = await Promise.all(currentMonthDays.map((day) => readRecentlyPlayedDayShard(env, day)))
+  const monthTracks = monthShards.flat()
+
+  const artistImageMap = new Map<string, string>()
+  if (dashboard) {
+    const allArtists = [
+      ...(dashboard.topArtists.short_term ?? []),
+      ...(dashboard.topArtists.medium_term ?? []),
+      ...(dashboard.topArtists.long_term ?? []),
+    ]
+
+    for (const artist of allArtists) {
+      if (artist.imageUrl && !artistImageMap.has(artist.name)) {
+        artistImageMap.set(artist.name, artist.imageUrl)
+      }
+    }
+  }
+
+  const contextImageMap = new Map<string, string>()
+  if (dashboard) {
+    for (const playlist of dashboard.library.playlists.items ?? []) {
+      if (playlist.imageUrl && playlist.name) {
+        contextImageMap.set(playlist.name, playlist.imageUrl)
+      }
+    }
+
+    for (const savedAlbum of dashboard.library.savedAlbums.items ?? []) {
+      if (savedAlbum.album.imageUrl && savedAlbum.album.name) {
+        contextImageMap.set(savedAlbum.album.name, savedAlbum.album.imageUrl)
+      }
+    }
+  }
+
+  const allIds = [...new Set([...dayTracks, ...weekTracks, ...monthTracks].map((track) => track.id))]
+  const tagStore = allIds.length > 0 ? await readSpotifyTrackTagStore(env) : null
+
+  const dayRange = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`
+  const weekStart = weekDays[0] ?? todayStr
+  const weekRange = `${formatMonthDay(weekStart)}–${formatMonthDay(todayStr)}`
+  const monthRange = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`
+
+  const report: MusicReport = {
+    day: computeMusicReportStats(dayTracks, tagStore, artistImageMap, contextImageMap, 'day', '今天', dayRange),
+    week: computeMusicReportStats(weekTracks, tagStore, artistImageMap, contextImageMap, 'week', '本周', weekRange),
+    month: computeMusicReportStats(monthTracks, tagStore, artistImageMap, contextImageMap, 'month', '本月', monthRange),
+    generatedAt: now.toISOString(),
+  }
+
+  await writeR2Json(env, bucket, SPOTIFY_LATEST_REPORT_KEY, report)
+  return report
+}
+
 const STREAM_CLUSTERS = [
   { key: 'pop', keywords: ['pop', 'k-pop', 'j-pop', 'dream pop', 'synth pop', 'power pop', 'chamber pop', 'art pop', 'indie pop'] },
   { key: 'rock', keywords: ['rock', 'indie', 'alternative', 'punk', 'post-rock', 'indie rock', 'alternative rock', 'shoegaze', 'grunge', 'emo', 'post-punk', 'metal', 'heavy metal'] },
@@ -1321,6 +1800,13 @@ const STREAM_CLUSTERS = [
   { key: 'hiphop', keywords: ['hip-hop', 'hip hop', 'rap', 'trap', 'urban'] },
   { key: 'jazz', keywords: ['jazz', 'blues', 'swing', 'bossa nova'] },
 ]
+
+export async function readStoredSpotifyStreamData(env: Env): Promise<Record<string, unknown> | null> {
+  const { bucket } = getSpotifyArchiveConfig(env)
+  if (!bucket) return null
+
+  return readR2JsonIfExists<Record<string, unknown>>(env, bucket, SPOTIFY_STREAM_KEY)
+}
 
 export async function generateAndSaveStreamData(env: Env) {
   const { bucket } = getSpotifyArchiveConfig(env)
@@ -1432,5 +1918,5 @@ export async function generateAndSaveStreamData(env: Env) {
     month: { ...monthData, groupLabel: '今年·按月' }
   }
 
-  await writeR2Json(env, bucket, 'spotify/history/stream.json', data)
+  await writeR2Json(env, bucket, SPOTIFY_STREAM_KEY, data)
 }

@@ -2,6 +2,7 @@
 
 import useSWR from 'swr'
 import type { GeniusSongData } from '@/lib/genius-types'
+import { getGeniusPublicApiUrl } from '@/lib/spotify-public-api'
 
 interface TrackInfo {
   trackId?: string
@@ -25,9 +26,7 @@ export function useGeniusData(track: TrackInfo | null): {
   geniusData: GeniusSongData | null
   loading: boolean
 } {
-  const key = track
-    ? `/api/genius?trackId=${track.trackId ?? ''}&title=${encodeURIComponent(track.title)}&artist=${encodeURIComponent(track.artist)}${track.durationMs ? `&durationMs=${track.durationMs}` : ''}`
-    : null
+  const key = track ? getGeniusPublicApiUrl(track) : null
 
   const { data, isLoading } = useSWR<GeniusResponse>(key, fetcher, {
     revalidateOnFocus: false,

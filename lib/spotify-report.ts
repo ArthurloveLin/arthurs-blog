@@ -2,9 +2,12 @@ import 'server-only'
 
 import { aggregateTags } from './spotify-tag-analysis'
 import { getStoredSpotifyDashboardData, listRecentlyPlayedDays, readRecentlyPlayedDayShard } from './spotify'
+import { getR2Object } from './r2'
 import { readSpotifyTrackTagStore } from './spotify-tags'
 import { buildWeekDayKeys } from './spotify-history-utils'
 import type { SpotifyRecentlyPlayedTrack, SpotifyTrackTagStore } from './spotify-types'
+
+const SPOTIFY_REPORT_KEY = 'spotify/latest/report.json'
 
 export interface MusicReportTopTrack {
   title: string
@@ -53,6 +56,40 @@ export interface MusicReport {
   week: MusicReportStats
   month: MusicReportStats
   generatedAt: string
+}
+
+function isMissingR2ObjectError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  return (
+    error.name === 'NoSuchKey' ||
+    /NoSuchKey/i.test(error.message) ||
+    /The specified key does not exist/i.test(error.message)
+  )
+}
+
+export async function readStoredMusicReport(): Promise<MusicReport | null> {
+  const bucket = process.env.R2_SPOTIFY_BUCKET
+  if (!bucket) {
+    return null
+  }
+
+  try {
+    const raw = await getR2Object(bucket, SPOTIFY_REPORT_KEY)
+    return JSON.parse(raw) as MusicReport
+  } catch (error) {
+    if (isMissingR2ObjectError(error)) {
+      return null
+    }
+
+    throw error
+  }
+}
+
+export async function getMusicReport(): Promise<MusicReport> {
+  return (await readStoredMusicReport()) ?? buildMusicReport()
 }
 
 function toYMD(date: Date) {

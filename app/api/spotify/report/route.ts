@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 
-import { buildMusicReport } from '@/lib/spotify-report'
+import { getMusicReport } from '@/lib/spotify-report'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const report = await buildMusicReport()
+    const report = await getMusicReport()
     return NextResponse.json(report, {
       headers: {
         // Day section is volatile, so short cache; week/month are recomputed anyway server-side
