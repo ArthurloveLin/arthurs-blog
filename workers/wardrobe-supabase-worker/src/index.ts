@@ -1,5 +1,6 @@
 const DEFAULT_SUPABASE_HOST = 'ymdwknyxmbhckgftfena.supabase.co'
 const DEFAULT_CORS_ALLOW_ORIGIN = 'https://arthurlovegrace.top'
+const UPSTREAM_TIMEOUT_MS = 30_000
 
 function createCorsHeaders(allowOrigin: string) {
   const headers: Record<string, string> = {
@@ -70,8 +71,13 @@ const worker = {
       redirect: 'manual',
     })
 
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+
     try {
-      const response = await fetch(upstreamRequest)
+      const response = await fetch(upstreamRequest, {
+        signal: controller.signal,
+      })
       const proxiedResponse = new Response(response.body, response)
 
       Object.entries(corsHeaders).forEach(([key, value]) => {
@@ -86,6 +92,8 @@ const worker = {
         targetHost: supabaseHost,
       })
       return new Response('Bad Gateway', { status: 502, headers: corsHeaders })
+    } finally {
+      clearTimeout(timeoutId)
     }
   },
 } satisfies ExportedHandler<Cloudflare.Env>

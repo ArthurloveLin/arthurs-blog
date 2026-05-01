@@ -2,23 +2,9 @@ import type { Env } from './env'
 import { searchGenius } from './search'
 import { scrapeSongPage } from './scraper'
 import { buildCacheKey, getFromCache, writeToCache } from './cache'
+import { logError, logInfo } from './log'
 
 const textEncoder = new TextEncoder()
-
-function logInfo(message: string, fields: Record<string, unknown> = {}) {
-  console.log(JSON.stringify({ level: 'info', message, ...fields }))
-}
-
-function logError(message: string, error: unknown, fields: Record<string, unknown> = {}) {
-  console.error(
-    JSON.stringify({
-      level: 'error',
-      message,
-      error: error instanceof Error ? error.message : String(error),
-      ...fields,
-    })
-  )
-}
 
 async function secretsMatch(provided: string | null, expected: string): Promise<boolean> {
   const [providedHash, expectedHash] = await Promise.all([

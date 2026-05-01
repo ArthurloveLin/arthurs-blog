@@ -38,10 +38,7 @@
   "exclude": [
     "node_modules",
     "ClaudeDesign",
-    "cloudflare-worker",
-    "genius-worker",
-    "poc-phase-1",
-    "wardrobe-supabase-worker",
-    "wardrobe-front-worker"
+    "workers",
+    "poc-phase-1"
   ]
 }

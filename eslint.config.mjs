@@ -33,10 +33,6 @@ const eslintConfig = [
       "ClaudeDesign/**",
       ".vscode/**",
       ".git/**",
-      "cloudflare-worker/**",
-      "genius-worker/**",
-      "wardrobe-supabase-worker/**",
-      "wardrobe-front-worker/**",
     ],
   },
 ];

@@ -1,4 +1,6 @@
 import type { GeniusSongData, GeniusAnnotation } from './types'
+import { fetchWithRetry } from './http'
+import { logError, logInfo, logWarn } from './log'
 
 const BROWSER_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -41,14 +43,17 @@ function extractData(preloadedState: string): any {
 async function fetchInternalLyrics(songId: number): Promise<string | null> {
   const url = `https://genius.com/api/songs/${songId}/lyrics?text_format=plain`
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       headers: { 'User-Agent': BROWSER_UA },
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      logWarn('genius internal lyrics upstream non-ok', { songId, status: res.status })
+      return null
+    }
     const data = await res.json() as { response?: { lyrics?: { plain?: string } } }
     return data?.response?.lyrics?.plain || null
-  } catch (e) {
-    console.error(`[scraper] fetchInternalLyrics error: ${e}`)
+  } catch (error) {
+    logError('genius internal lyrics request failed', error, { songId })
     return null
   }
 }
@@ -123,13 +128,16 @@ function cleanLyrics(text: string): string {
 async function fetchReferents(songId: number, apiToken: string): Promise<GeniusAnnotation[]> {
   const url = `https://api.genius.com/referents?song_id=${songId}&text_format=plain&per_page=15`
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       headers: {
         'Authorization': `Bearer ${apiToken}`,
         'User-Agent': BROWSER_UA,
       },
     })
-    if (!res.ok) return []
+    if (!res.ok) {
+      logWarn('genius referents upstream non-ok', { songId, status: res.status })
+      return []
+    }
     const data = await res.json() as {
       response?: {
         referents?: Array<{
@@ -161,8 +169,8 @@ async function fetchReferents(songId: number, apiToken: string): Promise<GeniusA
       })
     })
     return annotations
-  } catch (e) {
-    console.error(`[scraper] fetchReferents error: ${e}`)
+  } catch (error) {
+    logError('genius referents request failed', error, { songId })
     return []
   }
 }
@@ -172,13 +180,20 @@ export async function scrapeSongPage(
   geniusIdHint: number,
   apiToken?: string
 ): Promise<GeniusSongData | null> {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': BROWSER_UA },
-  })
+  let res: Response
 
-  console.log(`[scraper] fetch ${url} → ${res.status}`)
+  try {
+    res = await fetchWithRetry(url, {
+      headers: { 'User-Agent': BROWSER_UA },
+    })
+  } catch (error) {
+    logError('genius scrape page request failed', error, { url, geniusIdHint })
+    throw error
+  }
+
+  logInfo('genius scrape page fetched', { url, status: res.status, geniusIdHint })
   if (!res.ok) {
-    console.log(`[scraper] non-ok response: ${res.status}`)
+    logWarn('genius scrape page upstream non-ok', { url, status: res.status, geniusIdHint })
     return null
   }
 
@@ -215,9 +230,9 @@ export async function scrapeSongPage(
 
   await rewriter.transform(res).arrayBuffer()
 
-  console.log(`[scraper] preloadedState length: ${preloadedState.length}`)
+  logInfo('genius scrape preloaded state parsed', { url, geniusIdHint, preloadedStateLength: preloadedState.length })
   if (!preloadedState) {
-    console.log('[scraper] __PRELOADED_STATE__ not found in any script tag')
+    logWarn('genius scrape preloaded state missing', { url, geniusIdHint })
     return null
   }
 
@@ -253,30 +268,30 @@ export async function scrapeSongPage(
 
   try {
     data = extractData(preloadedState) as typeof data
-  } catch (e: unknown) {
-    console.log(`[scraper] extractData threw: ${e instanceof Error ? e.message : e}`)
+  } catch (error: unknown) {
+    logError('genius scrape extract data failed', error, { url, geniusIdHint })
     return null
   }
 
   if (!data) {
-    console.log('[scraper] failed to extract data')
+    logWarn('genius scrape data empty', { url, geniusIdHint })
     return null
   }
 
   if (!data?.entities) {
-    console.log('[scraper] no entities')
+    logWarn('genius scrape entities missing', { url, geniusIdHint })
     return null
   }
 
   const songId = data.songPage?.song ?? geniusIdHint
   if (!songId) {
-    console.log('[scraper] no songId')
+    logWarn('genius scrape song id missing', { url, geniusIdHint })
     return null
   }
 
   const songData = data.entities.songs?.[String(songId)]
   if (!songData?.title) {
-    console.log(`[scraper] songs[${songId}] not found`)
+    logWarn('genius scrape song payload missing', { url, geniusIdHint, songId })
     return null
   }
 
@@ -321,7 +336,7 @@ export async function scrapeSongPage(
 
   // 2. 如果有 API Token，抓取更完整的歌词注解
   if (apiToken) {
-    console.log(`[scraper] fetching additional referents from API for song ${songId}`)
+    logInfo('genius referents fetch started', { songId, url })
     const apiAnnotations = await fetchReferents(Number(songId), apiToken)
     apiAnnotations.forEach(ann => {
       // 避免重复，且 API 拿到的通常更完整
@@ -333,20 +348,20 @@ export async function scrapeSongPage(
     .sort((x, y) => (y.votes ?? 0) - (x.votes ?? 0))
     .slice(0, 15)
 
-  console.log(`[scraper] final annotations count: ${annotations.length}`)
+  logInfo('genius annotations prepared', { songId, url, annotations: annotations.length })
 
   // 尝试从状态中获取歌词
   let lyricsRaw = songData.lyricsData?.plain || songData.body?.plain || null
 
   // 如果状态中没有，尝试使用 HTMLRewriter 抓取的片段
   if (!lyricsRaw && lyricsParts.length > 0) {
-    console.log(`[scraper] using HTMLRewriter lyrics for song ${songId}`)
+    logInfo('genius lyrics resolved from html', { songId, url })
     lyricsRaw = lyricsParts.join('').trim()
   }
   
   // 如果还是没有，尝试通过内部接口（兜底）
   if (!lyricsRaw) {
-    console.log(`[scraper] lyrics not in state or HTML, trying internal API for song ${songId}`)
+    logInfo('genius lyrics fallback to internal api', { songId, url })
     lyricsRaw = await fetchInternalLyrics(Number(songId))
   }
 

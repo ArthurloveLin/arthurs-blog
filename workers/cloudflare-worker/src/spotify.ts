@@ -48,7 +48,6 @@ const SPOTIFY_RANKINGS_KEY = 'spotify/history/rankings.json'
 const RANKINGS_SNAPSHOTS_LIMIT = 90
 const SPOTIFY_RECENTLY_PLAYED_PATH = 'spotify/history/recently-played/'
 const RECENTLY_PLAYED_DAY_SHARD_PATTERN = /^\d{4}-\d{2}-\d{2}\.json$/
-const CONTEXT_LABEL_CACHE = new Map<string, string>()
 let _tokenCache: { token: string; expiresAt: number } | null = null
 
 const SPOTIFY_ARCHIVE_SCHEMA_VERSION = 2
@@ -423,7 +422,11 @@ function toAlbumSummary(album: SpotifyAlbumObject): SpotifyAlbumSummary {
 
 
 
-async function resolveContextLabel(accessToken: string, context: SpotifyRecentlyPlayedItem['context']) {
+async function resolveContextLabel(
+  accessToken: string,
+  context: SpotifyRecentlyPlayedItem['context'],
+  contextLabelCache: Map<string, string>
+) {
   const contextType = context?.type ?? null
   const fallbackLabel = humanizeContextType(contextType)
 
@@ -431,14 +434,14 @@ async function resolveContextLabel(accessToken: string, context: SpotifyRecently
     return fallbackLabel
   }
 
-  if (CONTEXT_LABEL_CACHE.has(context.href)) {
-    return CONTEXT_LABEL_CACHE.get(context.href)!
+  if (contextLabelCache.has(context.href)) {
+    return contextLabelCache.get(context.href)!
   }
 
   try {
     const payload = await requestSpotify<{ name?: string }>(accessToken, context.href)
     const label = payload.name ?? fallbackLabel
-    CONTEXT_LABEL_CACHE.set(context.href, label)
+    contextLabelCache.set(context.href, label)
     return label
   } catch {
     return fallbackLabel
@@ -450,6 +453,7 @@ async function getRecentlyPlayed(
   limit: number,
   options: { resolveContext?: boolean; after?: number } = {}
 ): Promise<SpotifyRecentlyPlayedTrack[]> {
+  const contextLabelCache = new Map<string, string>()
   const params = new URLSearchParams({ limit: String(limit) })
   if (options.after) params.set('after', String(options.after))
   const recent = await requestSpotify<{ items: SpotifyRecentlyPlayedItem[] }>(
@@ -470,7 +474,7 @@ async function getRecentlyPlayed(
 
     const resolvedLabels = await Promise.all(
       uniqueContexts.map(async (context) => {
-        const label = await resolveContextLabel(accessToken, context)
+        const label = await resolveContextLabel(accessToken, context, contextLabelCache)
         return [context?.href as string, label] as const
       })
     )

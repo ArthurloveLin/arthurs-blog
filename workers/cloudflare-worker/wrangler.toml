@@ -12,6 +12,10 @@ enabled = true
 head_sampling_rate = 1
 invocation_logs = true
 
+[observability.traces]
+enabled = true
+head_sampling_rate = 1
+
 # Cron Triggers
 # Example: 
 # - "5 16 * * *" = 每天 16:05 (UTC) 运行 (北京时间 00:05) -> Full Sync
