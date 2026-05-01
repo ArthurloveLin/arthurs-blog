@@ -1,4 +1,4 @@
-import { Env } from './env'
+import type { Env } from './env'
 import { getR2Object, putR2Object } from './r2'
 import {
   type SpotifyTrackTagCandidate,
@@ -6,11 +6,6 @@ import {
   type SpotifyTrackTagStore,
   type SpotifyTrackTagValue,
 } from './spotify-types'
-
-let __env: Env;
-export function setTagsEnv(env: Env) {
-  __env = env;
-}
 
 export const SPOTIFY_TRACK_TAGS_KEY = 'spotify/tags/track-tags.json'
 
@@ -40,8 +35,8 @@ function createEmptyTrackTagStore(): SpotifyTrackTagStore {
   }
 }
 
-function getSpotifyBucket() {
-  const bucket = __env.SPOTIFY_BUCKET
+function getSpotifyBucket(env: Env) {
+  const bucket = env.SPOTIFY_BUCKET
 
   if (!bucket) {
     throw new Error('Missing R2_SPOTIFY_BUCKET')
@@ -62,9 +57,9 @@ function isMissingR2ObjectError(error: unknown) {
   )
 }
 
-async function readR2JsonIfExists<T>(bucket: unknown, key: string): Promise<T | null> {
+async function readR2JsonIfExists<T>(env: Env, bucket: unknown, key: string): Promise<T | null> {
   try {
-    const raw = await getR2Object(__env, key)
+    const raw = await getR2Object(env, key)
     return JSON.parse(raw) as T
   } catch (error) {
     if (isMissingR2ObjectError(error)) {
@@ -75,9 +70,9 @@ async function readR2JsonIfExists<T>(bucket: unknown, key: string): Promise<T | 
   }
 }
 
-async function writeR2Json(bucket: unknown, key: string, payload: unknown) {
+async function writeR2Json(env: Env, bucket: unknown, key: string, payload: unknown) {
   await putR2Object(
-    __env,
+    env,
     key,
     JSON.stringify(payload, null, 2),
     'application/json; charset=utf-8'
@@ -158,9 +153,9 @@ function dedupeTrackCandidates(tracks: SpotifyTrackTagCandidate[]) {
   return Array.from(uniqueTracks.values())
 }
 
-export async function readSpotifyTrackTagStore(): Promise<SpotifyTrackTagStore> {
+export async function readSpotifyTrackTagStore(env: Env): Promise<SpotifyTrackTagStore> {
   return (
-    await readR2JsonIfExists<SpotifyTrackTagStore>(getSpotifyBucket(), SPOTIFY_TRACK_TAGS_KEY)
+    await readR2JsonIfExists<SpotifyTrackTagStore>(env, getSpotifyBucket(env), SPOTIFY_TRACK_TAGS_KEY)
   ) ?? createEmptyTrackTagStore()
 }
 
@@ -183,15 +178,17 @@ export function filterSpotifyTrackTagStore(store: SpotifyTrackTagStore, ids: str
   }
 }
 export async function syncSpotifyTrackTags({
+  env,
   tracks,
   syncedAt = new Date().toISOString(),
   maxTracks = 35,
 }: {
+  env: Env
   tracks: SpotifyTrackTagCandidate[]
   syncedAt?: string
   maxTracks?: number
 }): Promise<SpotifyTrackTagSyncResult> {
-  const apiKey = __env.LASTFM_API_KEY
+  const apiKey = env.LASTFM_API_KEY
 
   if (!apiKey) {
     return {
@@ -206,8 +203,8 @@ export async function syncSpotifyTrackTags({
     return { tagsUpdated: 0, warnings: [] }
   }
 
-  const resolvedBucket = getSpotifyBucket()
-  const tagStore = await readSpotifyTrackTagStore()
+  const resolvedBucket = getSpotifyBucket(env)
+  const tagStore = await readSpotifyTrackTagStore(env)
 
   const pendingTracks = uniqueTracks
     .filter((track) => !tagStore.tracks[track.trackId])
@@ -233,7 +230,7 @@ export async function syncSpotifyTrackTags({
       tagsUpdated += 1
 
       tagStore.lastUpdatedAt = syncedAt
-      await writeR2Json(resolvedBucket, SPOTIFY_TRACK_TAGS_KEY, tagStore)
+      await writeR2Json(env, resolvedBucket, SPOTIFY_TRACK_TAGS_KEY, tagStore)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown Last.fm error'
       const warning = `Last.fm tag sync failed for ${track.artist} - ${track.title}: ${message}`

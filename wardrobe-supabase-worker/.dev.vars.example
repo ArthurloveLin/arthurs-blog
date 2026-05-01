@@ -1,0 +1,3 @@
+# 复制本文件为 .dev.vars 并按本地前端地址覆盖可公开 vars
+
+CORS_ALLOW_ORIGIN=http://localhost:3000

@@ -1,4 +1,4 @@
-import { Env } from './env'
+import type { Env } from './env'
 import { readSpotifyTrackTagStore } from './spotify-tags'
 import {
   SPOTIFY_TIME_RANGES,
@@ -23,11 +23,6 @@ import {
   type SpotifyTrackSummary,
 } from './spotify-types'
 import { getR2Object, listR2Objects, putR2Object } from './r2'
-
-let __env: Env;
-export function setEnv(env: Env) {
-  __env = env;
-}
 
 const SPOTIFY_TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
 const SPOTIFY_RECENTLY_PLAYED_ENDPOINT = 'https://api.spotify.com/v1/me/player/recently-played'
@@ -164,10 +159,10 @@ class SpotifyRequestError extends Error {
   }
 }
 
-function getSpotifyArchiveConfig() {
+function getSpotifyArchiveConfig(env: Env) {
   return {
-    bucket: __env.SPOTIFY_BUCKET,
-    publicDomain: __env.R2_SPOTIFY_PUBLIC_DOMAIN ?? null,
+    bucket: env.SPOTIFY_BUCKET,
+    publicDomain: env.R2_SPOTIFY_PUBLIC_DOMAIN ?? null,
   }
 }
 
@@ -227,9 +222,9 @@ function isMissingR2ObjectError(error: unknown) {
   )
 }
 
-async function readR2JsonIfExists<T>(bucket: unknown, key: string): Promise<T | null> {
+async function readR2JsonIfExists<T>(env: Env, bucket: unknown, key: string): Promise<T | null> {
   try {
-    const raw = await getR2Object(__env, key)
+    const raw = await getR2Object(env, key)
     return JSON.parse(raw) as T
   } catch (error) {
     if (isMissingR2ObjectError(error)) {
@@ -240,9 +235,9 @@ async function readR2JsonIfExists<T>(bucket: unknown, key: string): Promise<T | 
   }
 }
 
-async function writeR2Json(bucket: unknown, key: string, payload: unknown) {
+async function writeR2Json(env: Env, bucket: unknown, key: string, payload: unknown) {
   await putR2Object(
-    __env,
+    env,
     key,
     JSON.stringify(payload, null, 2),
     'application/json; charset=utf-8'
@@ -257,10 +252,10 @@ function buildSpotifySnapshotUrl(publicDomain: string | null, key: string) {
   return `https://${publicDomain}/${key}`
 }
 
-function getSpotifyCredentials() {
-  const clientId = __env.SPOTIFY_CLIENT_ID
-  const clientSecret = __env.SPOTIFY_CLIENT_SECRET
-  const refreshToken = __env.SPOTIFY_REFRESH_TOKEN
+function getSpotifyCredentials(env: Env) {
+  const clientId = env.SPOTIFY_CLIENT_ID
+  const clientSecret = env.SPOTIFY_CLIENT_SECRET
+  const refreshToken = env.SPOTIFY_REFRESH_TOKEN
 
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error('Missing Spotify environment variables')
@@ -273,13 +268,13 @@ function getSpotifyCredentials() {
   }
 }
 
-async function getSpotifyAccessToken(): Promise<string> {
+async function getSpotifyAccessToken(env: Env): Promise<string> {
   const now = Date.now()
   if (_tokenCache && now < _tokenCache.expiresAt) {
     return _tokenCache.token
   }
 
-  const { clientId, clientSecret, refreshToken } = getSpotifyCredentials()
+  const { clientId, clientSecret, refreshToken } = getSpotifyCredentials(env)
   const basic = btoa(`${clientId}:${clientSecret}`)
 
   const response = await fetch(SPOTIFY_TOKEN_ENDPOINT, {
@@ -702,6 +697,7 @@ async function getPlaylists(
 
 
 async function fetchSpotifyDashboardDataFromApi(
+  env: Env,
   options: {
     archivedPlaylists?: SpotifyPlaylist[]
     mode?: 'quick' | 'full'
@@ -709,7 +705,7 @@ async function fetchSpotifyDashboardDataFromApi(
   } = {}
 ): Promise<SpotifyStoredDashboardSnapshot> {
   const mode = options.mode ?? 'full'
-  const accessToken = await getSpotifyAccessToken()
+  const accessToken = await getSpotifyAccessToken(env)
 
   const [
     recentlyPlayedResult,
@@ -910,42 +906,44 @@ function collectTrackTagCandidates({
   return candidates
 }
 
-async function readSpotifyMeta(): Promise<SpotifySyncMeta> {
-  const { bucket } = getSpotifyArchiveConfig()
+async function readSpotifyMeta(env: Env): Promise<SpotifySyncMeta> {
+  const { bucket } = getSpotifyArchiveConfig(env)
   if (!bucket) return createEmptySyncMeta()
-  const meta = await readR2JsonIfExists<SpotifySyncMeta>(bucket, SPOTIFY_META_KEY)
+  const meta = await readR2JsonIfExists<SpotifySyncMeta>(env, bucket, SPOTIFY_META_KEY)
   return meta ?? createEmptySyncMeta()
 }
 
-export async function readSpotifyRankings(): Promise<SpotifyRankingsHistory> {
-  const { bucket } = getSpotifyArchiveConfig()
+export async function readSpotifyRankings(env: Env): Promise<SpotifyRankingsHistory> {
+  const { bucket } = getSpotifyArchiveConfig(env)
   if (!bucket) return createEmptyRankingsHistory()
-  const rankings = await readR2JsonIfExists<SpotifyRankingsHistory>(bucket, SPOTIFY_RANKINGS_KEY)
+  const rankings = await readR2JsonIfExists<SpotifyRankingsHistory>(env, bucket, SPOTIFY_RANKINGS_KEY)
   return rankings ?? createEmptyRankingsHistory()
 }
 
-export async function readSpotifyCollection<T>(key: string): Promise<SpotifyCollectionPreview<T>> {
-  const { bucket } = getSpotifyArchiveConfig()
+export async function readSpotifyCollection<T>(env: Env, key: string): Promise<SpotifyCollectionPreview<T>> {
+  const { bucket } = getSpotifyArchiveConfig(env)
   if (!bucket) return { total: 0, items: [] }
-  const collection = await readR2JsonIfExists<SpotifyCollectionPreview<T>>(bucket, key)
+  const collection = await readR2JsonIfExists<SpotifyCollectionPreview<T>>(env, bucket, key)
   return collection ?? { total: 0, items: [] }
 }
 
-async function readRecentlyPlayedShard(yearMonth: string): Promise<SpotifyRecentlyPlayedTrack[]> {
-  const { bucket } = getSpotifyArchiveConfig()
+async function readRecentlyPlayedShard(env: Env, yearMonth: string): Promise<SpotifyRecentlyPlayedTrack[]> {
+  const { bucket } = getSpotifyArchiveConfig(env)
   if (!bucket) return []
   const shard = await readR2JsonIfExists<SpotifyRecentlyPlayedTrack[]>(
+    env,
     bucket,
     `${SPOTIFY_RECENTLY_PLAYED_PATH}${yearMonth}.json`
   )
   return shard ?? []
 }
 
-export async function readRecentlyPlayedDayShard(date: string): Promise<SpotifyRecentlyPlayedTrack[]> {
-  const { bucket } = getSpotifyArchiveConfig()
+export async function readRecentlyPlayedDayShard(env: Env, date: string): Promise<SpotifyRecentlyPlayedTrack[]> {
+  const { bucket } = getSpotifyArchiveConfig(env)
   if (!bucket) return []
 
   const shard = await readR2JsonIfExists<SpotifyRecentlyPlayedTrack[]>(
+    env,
     bucket,
     `${SPOTIFY_RECENTLY_PLAYED_PATH}${date}.json`
   )
@@ -955,20 +953,21 @@ export async function readRecentlyPlayedDayShard(date: string): Promise<SpotifyR
   )
 }
 
-export async function readSpotifyPlaylistShard(id: string): Promise<SpotifyPlaylistTrack[]> {
-  const { bucket } = getSpotifyArchiveConfig()
+export async function readSpotifyPlaylistShard(env: Env, id: string): Promise<SpotifyPlaylistTrack[]> {
+  const { bucket } = getSpotifyArchiveConfig(env)
   if (!bucket) return []
   const tracks = await readR2JsonIfExists<SpotifyPlaylistTrack[]>(
+    env,
     bucket,
     `${SPOTIFY_PLAYLIST_SHARD_PATH}${id}.json`
   )
   return tracks ?? []
 }
 
-async function writeSpotifyPlaylistShard(id: string, tracks: SpotifyPlaylistTrack[]) {
-  const { bucket } = getSpotifyArchiveConfig()
+async function writeSpotifyPlaylistShard(env: Env, id: string, tracks: SpotifyPlaylistTrack[]) {
+  const { bucket } = getSpotifyArchiveConfig(env)
   if (!bucket) return
-  await writeR2Json(bucket, `${SPOTIFY_PLAYLIST_SHARD_PATH}${id}.json`, tracks)
+  await writeR2Json(env, bucket, `${SPOTIFY_PLAYLIST_SHARD_PATH}${id}.json`, tracks)
 }
 
 function getYearMonth(date: Date = new Date()) {
@@ -984,23 +983,23 @@ function getYearMonthDay(date: Date = new Date()) {
   return `${y}-${m}-${d}`
 }
 
-async function writeRecentlyPlayedShard(yearMonth: string, items: SpotifyRecentlyPlayedTrack[]) {
-  const { bucket } = getSpotifyArchiveConfig()
+async function writeRecentlyPlayedShard(env: Env, yearMonth: string, items: SpotifyRecentlyPlayedTrack[]) {
+  const { bucket } = getSpotifyArchiveConfig(env)
   if (!bucket) return
-  await writeR2Json(bucket, `${SPOTIFY_RECENTLY_PLAYED_PATH}${yearMonth}.json`, items)
+  await writeR2Json(env, bucket, `${SPOTIFY_RECENTLY_PLAYED_PATH}${yearMonth}.json`, items)
 }
 
-async function writeRecentlyPlayedDayShard(date: string, items: SpotifyRecentlyPlayedTrack[]) {
-  const { bucket } = getSpotifyArchiveConfig()
+async function writeRecentlyPlayedDayShard(env: Env, date: string, items: SpotifyRecentlyPlayedTrack[]) {
+  const { bucket } = getSpotifyArchiveConfig(env)
   if (!bucket) return
-  await writeR2Json(bucket, `${SPOTIFY_RECENTLY_PLAYED_PATH}${date}.json`, items)
+  await writeR2Json(env, bucket, `${SPOTIFY_RECENTLY_PLAYED_PATH}${date}.json`, items)
 }
 
-export async function listRecentlyPlayedDays(limitDays?: number): Promise<string[]> {
-  const { bucket } = getSpotifyArchiveConfig()
+export async function listRecentlyPlayedDays(env: Env, limitDays?: number): Promise<string[]> {
+  const { bucket } = getSpotifyArchiveConfig(env)
   if (!bucket) return []
 
-  const keys = await listR2Objects(__env, SPOTIFY_RECENTLY_PLAYED_PATH)
+  const keys = await listR2Objects(env, SPOTIFY_RECENTLY_PLAYED_PATH)
 
   const days = keys
     .map((key) => key.slice(SPOTIFY_RECENTLY_PLAYED_PATH.length))
@@ -1015,20 +1014,20 @@ export async function listRecentlyPlayedDays(limitDays?: number): Promise<string
   return days
 }
 
-async function readLatestSpotifyLibrary(): Promise<SpotifyDashboardData['library'] | null> {
-  const { bucket } = getSpotifyArchiveConfig()
+async function readLatestSpotifyLibrary(env: Env): Promise<SpotifyDashboardData['library'] | null> {
+  const { bucket } = getSpotifyArchiveConfig(env)
   if (!bucket) return null
-  return readR2JsonIfExists<SpotifyDashboardData['library']>(bucket, SPOTIFY_LATEST_LIBRARY_KEY)
+  return readR2JsonIfExists<SpotifyDashboardData['library']>(env, bucket, SPOTIFY_LATEST_LIBRARY_KEY)
 }
 
-async function readLatestSpotifyDashboard() {
-  const { bucket, publicDomain } = getSpotifyArchiveConfig()
+async function readLatestSpotifyDashboard(env: Env) {
+  const { bucket, publicDomain } = getSpotifyArchiveConfig(env)
 
   if (!bucket) {
     return null
   }
 
-  const latest = await readR2JsonIfExists<SpotifyLatestDashboardFile>(bucket, SPOTIFY_LATEST_DASHBOARD_KEY)
+  const latest = await readR2JsonIfExists<SpotifyLatestDashboardFile>(env, bucket, SPOTIFY_LATEST_DASHBOARD_KEY)
 
   if (!latest?.data) {
     return null
@@ -1044,17 +1043,17 @@ async function readLatestSpotifyDashboard() {
 
 
 
-export async function readSpotifyTagCandidatesFromArchive(): Promise<{
+export async function readSpotifyTagCandidatesFromArchive(env: Env): Promise<{
   bucket: unknown
   candidates: import('./spotify-types').SpotifyTrackTagCandidate[]
 }> {
-  const { bucket } = getSpotifyArchiveConfig()
+  const { bucket } = getSpotifyArchiveConfig(env)
   if (!bucket) return { bucket: null, candidates: [] }
 
   const [dashboard, savedTracksCollection, playlistsCollection] = await Promise.all([
-    readLatestSpotifyDashboard(),
-    readSpotifyCollection<SpotifySavedTrack>(SPOTIFY_SAVED_TRACKS_KEY),
-    readSpotifyCollection<SpotifyPlaylist>(SPOTIFY_PLAYLISTS_KEY),
+    readLatestSpotifyDashboard(env),
+    readSpotifyCollection<SpotifySavedTrack>(env, SPOTIFY_SAVED_TRACKS_KEY),
+    readSpotifyCollection<SpotifyPlaylist>(env, SPOTIFY_PLAYLISTS_KEY),
   ])
 
   if (!dashboard?.data) return { bucket, candidates: [] }
@@ -1071,10 +1070,11 @@ export async function readSpotifyTagCandidatesFromArchive(): Promise<{
 }
 
 export async function syncSpotifyDashboardToArchive(
+  env: Env,
   options: { mode?: 'quick' | 'full' } = {}
 ): Promise<SpotifySyncResult> {
   const mode = options.mode ?? 'full'
-  const { bucket, publicDomain } = getSpotifyArchiveConfig()
+  const { bucket, publicDomain } = getSpotifyArchiveConfig(env)
   if (!bucket) {
     throw new Error('Missing R2_SPOTIFY_BUCKET')
   }
@@ -1082,9 +1082,9 @@ export async function syncSpotifyDashboardToArchive(
   const syncedAt = new Date().toISOString()
 
   const [meta, latestLibrary, existingDashboard] = await Promise.all([
-    readSpotifyMeta(),
-    mode === 'quick' ? readLatestSpotifyLibrary() : Promise.resolve(null),
-    readLatestSpotifyDashboard(),
+    readSpotifyMeta(env),
+    mode === 'quick' ? readLatestSpotifyLibrary(env) : Promise.resolve(null),
+    readLatestSpotifyDashboard(env),
   ])
 
   // Full sync: 读取全量集合用于增量合并；Quick sync: 跳过，library 数据从上次快照继承
@@ -1094,9 +1094,9 @@ export async function syncSpotifyDashboardToArchive(
     existingPlaylists
   ] = mode === 'full'
     ? await Promise.all([
-        readSpotifyCollection<SpotifySavedTrack>(SPOTIFY_SAVED_TRACKS_KEY),
-        readSpotifyCollection<SpotifySavedAlbum>(SPOTIFY_SAVED_ALBUMS_KEY),
-        readSpotifyCollection<SpotifyPlaylist>(SPOTIFY_PLAYLISTS_KEY),
+        readSpotifyCollection<SpotifySavedTrack>(env, SPOTIFY_SAVED_TRACKS_KEY),
+        readSpotifyCollection<SpotifySavedAlbum>(env, SPOTIFY_SAVED_ALBUMS_KEY),
+        readSpotifyCollection<SpotifyPlaylist>(env, SPOTIFY_PLAYLISTS_KEY),
       ])
     : [
         { total: 0, items: [] as SpotifySavedTrack[] },
@@ -1108,7 +1108,7 @@ export async function syncSpotifyDashboardToArchive(
     ? new Date(meta.lastSyncedAt).getTime()
     : undefined
 
-  const liveDashboard = await fetchSpotifyDashboardDataFromApi({
+  const liveDashboard = await fetchSpotifyDashboardDataFromApi(env, {
     archivedPlaylists: existingPlaylists.items,
     mode,
     afterMs,
@@ -1135,7 +1135,7 @@ export async function syncSpotifyDashboardToArchive(
 
   if (tracksByMonth.size > 0) {
     const shardMonths = Array.from(tracksByMonth.keys())
-    const existingShards = await Promise.all(shardMonths.map(readRecentlyPlayedShard))
+    const existingShards = await Promise.all(shardMonths.map((month) => readRecentlyPlayedShard(env, month)))
     for (let i = 0; i < shardMonths.length; i++) {
       const month = shardMonths[i]
       const merged = mergeByKey(
@@ -1144,13 +1144,13 @@ export async function syncSpotifyDashboardToArchive(
         (item) => `${item.id}:${item.playedAt}`
       )
       allMergedRecentlyPlayed.push(...merged)
-      writePromises.push(writeRecentlyPlayedShard(month, merged))
+      writePromises.push(writeRecentlyPlayedShard(env, month, merged))
     }
   }
 
   if (tracksByDay.size > 0) {
     const shardDays = Array.from(tracksByDay.keys())
-    const existingDayShards = await Promise.all(shardDays.map(readRecentlyPlayedDayShard))
+    const existingDayShards = await Promise.all(shardDays.map((day) => readRecentlyPlayedDayShard(env, day)))
 
     for (let i = 0; i < shardDays.length; i++) {
       const day = shardDays[i]
@@ -1160,7 +1160,7 @@ export async function syncSpotifyDashboardToArchive(
         (item) => `${item.id}:${item.playedAt}`
       ).toSorted((a: SpotifyRecentlyPlayedTrack, b: SpotifyRecentlyPlayedTrack) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime())
 
-      writePromises.push(writeRecentlyPlayedDayShard(day, merged))
+      writePromises.push(writeRecentlyPlayedDayShard(env, day, merged))
     }
   }
 
@@ -1183,15 +1183,15 @@ export async function syncSpotifyDashboardToArchive(
       items: mergePlaylistHistory(existingPlaylists.items, liveDashboard.library.playlists.items as unknown as SpotifyPlaylist[])
     }
 
-    writePromises.push(writeR2Json(bucket, SPOTIFY_SAVED_TRACKS_KEY, nextTracks))
-    writePromises.push(writeR2Json(bucket, SPOTIFY_SAVED_ALBUMS_KEY, nextAlbums))
-    writePromises.push(writeR2Json(bucket, SPOTIFY_PLAYLISTS_KEY, nextPlaylists))
+    writePromises.push(writeR2Json(env, bucket, SPOTIFY_SAVED_TRACKS_KEY, nextTracks))
+    writePromises.push(writeR2Json(env, bucket, SPOTIFY_SAVED_ALBUMS_KEY, nextAlbums))
+    writePromises.push(writeR2Json(env, bucket, SPOTIFY_PLAYLISTS_KEY, nextPlaylists))
 
     // 同步歌单曲目分片 (仅同步本次抓取到的歌单中包含曲目的部分，通常是 snapshot 变动的歌单)
     for (const playlist of liveDashboard.library.playlists.items) {
       const fullPlaylist = playlist as unknown as SpotifyPlaylist
       if (fullPlaylist.tracks && fullPlaylist.tracks.length > 0) {
-        writePromises.push(writeSpotifyPlaylistShard(fullPlaylist.id, fullPlaylist.tracks))
+        writePromises.push(writeSpotifyPlaylistShard(env, fullPlaylist.id, fullPlaylist.tracks))
       }
     }
 
@@ -1209,7 +1209,7 @@ export async function syncSpotifyDashboardToArchive(
       savedAlbums: nextAlbums,
       playlists: strippedPlaylists,
     }
-    writePromises.push(writeR2Json(bucket, SPOTIFY_LATEST_LIBRARY_KEY, snapshotLibrary))
+    writePromises.push(writeR2Json(env, bucket, SPOTIFY_LATEST_LIBRARY_KEY, snapshotLibrary))
   } else {
     // Quick sync: library 直接继承上次全量快照，不重新请求也不重写 R2 集合文件
     snapshotLibrary = latestLibrary ?? {
@@ -1220,12 +1220,12 @@ export async function syncSpotifyDashboardToArchive(
   }
 
   // 3. 处理 Top 榜单快照
-  const rankings = await readSpotifyRankings()
+  const rankings = await readSpotifyRankings(env)
 
   if (mode === 'full') {
     appendTrackSnapshots(rankings.topTracks, liveDashboard.topTracks, syncedAt)
     appendArtistSnapshots(rankings.topArtists, liveDashboard.topArtists, syncedAt)
-    writePromises.push(writeR2Json(bucket, SPOTIFY_RANKINGS_KEY, rankings))
+    writePromises.push(writeR2Json(env, bucket, SPOTIFY_RANKINGS_KEY, rankings))
   } else {
     // Quick Sync: 从历史排行榜中填充，避免由于跳过 API 调用导致 dashboard.json 中的排行榜被置空
     const lastTracks = {
@@ -1273,7 +1273,7 @@ export async function syncSpotifyDashboardToArchive(
     syncedAt,
     data: liveDashboardWithoutLibrary,
   }
-  writePromises.push(writeR2Json(bucket, SPOTIFY_LATEST_DASHBOARD_KEY, latestFile))
+  writePromises.push(writeR2Json(env, bucket, SPOTIFY_LATEST_DASHBOARD_KEY, latestFile))
 
   // 4. 更新元数据
   const nextMeta: SpotifySyncMeta = {
@@ -1286,7 +1286,7 @@ export async function syncSpotifyDashboardToArchive(
       ...meta.syncLog.slice(0, 19), // 保留最近20条日志
     ],
   }
-  writePromises.push(writeR2Json(bucket, SPOTIFY_META_KEY, nextMeta))
+  writePromises.push(writeR2Json(env, bucket, SPOTIFY_META_KEY, nextMeta))
 
   // 等待所有写入完成
   await Promise.all(writePromises)
@@ -1318,11 +1318,11 @@ const STREAM_CLUSTERS = [
   { key: 'jazz', keywords: ['jazz', 'blues', 'swing', 'bossa nova'] },
 ]
 
-export async function generateAndSaveStreamData() {
-  const { bucket } = getSpotifyArchiveConfig()
+export async function generateAndSaveStreamData(env: Env) {
+  const { bucket } = getSpotifyArchiveConfig(env)
   if (!bucket) return
   
-  const keys = await listR2Objects(__env, SPOTIFY_RECENTLY_PLAYED_PATH)
+  const keys = await listR2Objects(env, SPOTIFY_RECENTLY_PLAYED_PATH)
   
   const months: string[] = []
   for (const key of keys) {
@@ -1333,11 +1333,11 @@ export async function generateAndSaveStreamData() {
   months.sort().reverse()
   const targetMonths = months.slice(0, 12)
   
-  const shardPromises = targetMonths.map(m => readRecentlyPlayedShard(m))
+  const shardPromises = targetMonths.map((month) => readRecentlyPlayedShard(env, month))
   const shards = await Promise.all(shardPromises)
   const allTracks = shards.flatMap(s => s || [])
   
-  const tagStore = await readSpotifyTrackTagStore()
+  const tagStore = await readSpotifyTrackTagStore(env)
   
   const clusterMatchers = STREAM_CLUSTERS.map(c => ({
     key: c.key,
@@ -1428,5 +1428,5 @@ export async function generateAndSaveStreamData() {
     month: { ...monthData, groupLabel: '今年·按月' }
   }
 
-  await writeR2Json(bucket, 'spotify/history/stream.json', data)
+  await writeR2Json(env, bucket, 'spotify/history/stream.json', data)
 }

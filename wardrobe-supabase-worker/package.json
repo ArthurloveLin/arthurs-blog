@@ -1,7 +1,8 @@
 {
-  "name": "wardrobe-picks-spotify-sync",
+  "name": "wardrobe-supabase-worker",
   "version": "1.0.0",
-  "description": "Cloudflare Worker for Spotify Sync",
+  "private": true,
+  "description": "Cloudflare Worker proxy for Supabase",
   "main": "src/index.ts",
   "scripts": {
     "dev": "wrangler dev",

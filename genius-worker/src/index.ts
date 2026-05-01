@@ -3,6 +3,32 @@ import { searchGenius } from './search'
 import { scrapeSongPage } from './scraper'
 import { buildCacheKey, getFromCache, writeToCache } from './cache'
 
+const textEncoder = new TextEncoder()
+
+function logInfo(message: string, fields: Record<string, unknown> = {}) {
+  console.log(JSON.stringify({ level: 'info', message, ...fields }))
+}
+
+function logError(message: string, error: unknown, fields: Record<string, unknown> = {}) {
+  console.error(
+    JSON.stringify({
+      level: 'error',
+      message,
+      error: error instanceof Error ? error.message : String(error),
+      ...fields,
+    })
+  )
+}
+
+async function secretsMatch(provided: string | null, expected: string): Promise<boolean> {
+  const [providedHash, expectedHash] = await Promise.all([
+    crypto.subtle.digest('SHA-256', textEncoder.encode(provided ?? '')),
+    crypto.subtle.digest('SHA-256', textEncoder.encode(expected)),
+  ])
+
+  return crypto.subtle.timingSafeEqual(providedHash, expectedHash)
+}
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Content-Type': 'application/json',
@@ -23,7 +49,8 @@ const worker = {
       const provided =
         request.headers.get('x-genius-secret') ??
         new URL(request.url).searchParams.get('secret')
-      if (provided !== env.GENIUS_WORKER_SECRET) {
+      if (!(await secretsMatch(provided, env.GENIUS_WORKER_SECRET))) {
+        logInfo('genius request forbidden', { path: new URL(request.url).pathname })
         return json({ error: 'Forbidden' }, 403)
       }
     }
@@ -41,25 +68,33 @@ const worker = {
     const cacheKey = buildCacheKey(trackId, artist, title)
     const cached = await getFromCache(env.GENIUS_CACHE, cacheKey)
     if (cached) {
+      logInfo('genius cache hit', { trackId, title, artist })
       return json({ cached: true, data: cached })
     }
 
     // 冷启动：搜索 + 抓取
     try {
-      console.log(`[genius] search: "${title}" - "${artist}"`)
+      logInfo('genius cache miss', { trackId, title, artist })
+      logInfo('genius search started', { trackId, title, artist })
       const searchResult = await searchGenius(title, artist, env.GENIUS_API_TOKEN)
       if (!searchResult) {
-        console.log('[genius] search returned null')
+        logInfo('genius search returned null', { trackId, title, artist })
         return json({ cached: false, data: null })
       }
-      console.log(`[genius] found: ${searchResult.url}`)
+      logInfo('genius search matched', { trackId, title, artist, url: searchResult.url })
 
       const songData = await scrapeSongPage(searchResult.url, searchResult.id, env.GENIUS_API_TOKEN)
       if (!songData) {
-        console.log('[genius] scrape returned null')
+        logInfo('genius scrape returned null', { trackId, title, artist, url: searchResult.url })
         return json({ cached: false, data: null })
       }
-      console.log(`[genius] scraped ${songData.annotations.length} annotations`)
+      logInfo('genius scrape completed', {
+        trackId,
+        title,
+        artist,
+        url: searchResult.url,
+        annotations: songData.annotations.length,
+      })
 
       // 异步写入 KV，不阻塞响应
       ctx.waitUntil(writeToCache(env.GENIUS_CACHE, cacheKey, songData))
@@ -67,7 +102,7 @@ const worker = {
       return json({ cached: false, data: songData })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error'
-      console.error(`[genius] error: ${message}`)
+      logError('genius request failed', err, { trackId, title, artist })
       return json({ error: message }, 500)
     }
   },

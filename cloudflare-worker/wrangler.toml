@@ -1,6 +1,16 @@
 name = "spotify-sync-worker"
 main = "src/index.ts"
-compatibility_date = "2024-04-05"
+compatibility_date = "2026-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
 
 # Cron Triggers
 # Example: 
