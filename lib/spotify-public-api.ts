@@ -15,6 +15,7 @@ function normalizePath(path: string) {
 
 const spotifyWorkerBase = trimTrailingSlash(process.env.NEXT_PUBLIC_SPOTIFY_WORKER_URL)
 const geniusWorkerBase = trimTrailingSlash(process.env.NEXT_PUBLIC_GENIUS_WORKER_URL)
+const GENIUS_PUBLIC_PATH = '/api/genius'
 
 export function getSpotifyPublicApiUrl(path: string) {
   const normalizedPath = normalizePath(path)
@@ -36,10 +37,14 @@ export function getGeniusPublicApiUrl(track: GeniusTrackQuery) {
   }
 
   if (!geniusWorkerBase) {
-    return `/api/genius?${search.toString()}`
+    return `${GENIUS_PUBLIC_PATH}?${search.toString()}`
   }
 
   const url = new URL(geniusWorkerBase)
+  if (url.pathname === '/' || !url.pathname) {
+    url.pathname = GENIUS_PUBLIC_PATH
+  }
+
   search.forEach((value, key) => {
     url.searchParams.set(key, value)
   })
