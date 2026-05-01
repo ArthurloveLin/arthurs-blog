@@ -11,7 +11,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Board not found' }, { status: 404 })
   }
 
-  const body = await req.json().catch(() => ({}))
+  const body = await req.json().catch(() => ({})) as Record<string, unknown>
   const identities = Array.isArray(body.identities)
     ? body.identities.filter((value: unknown): value is string => typeof value === 'string')
     : undefined
@@ -40,9 +40,8 @@ export async function PATCH(
     return NextResponse.json({ error: 'Board not found' }, { status: 404 })
   }
 
-  const body = await req.json().catch(() => ({}))
-  const hasContent = typeof body.content === 'string'
-  const content = hasContent ? body.content.trim() : undefined
+  const body = await req.json().catch(() => ({})) as Record<string, unknown>
+  const content = typeof body.content === 'string' ? body.content.trim() : undefined
   const archived = typeof body.archived === 'boolean' ? body.archived : undefined
   const hasPriority = typeof body.priority !== 'undefined'
   const rawPriority = hasPriority

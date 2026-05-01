@@ -45,10 +45,13 @@ export async function POST(
     return NextResponse.json({ error: 'Board not found' }, { status: 404 })
   }
 
-  const { author, content, priority: rawPriority } = await req.json().catch(() => ({}))
+  const body = await req.json().catch(() => ({})) as Record<string, unknown>
+  const author = typeof body.author === 'string' ? body.author : ''
+  const content = typeof body.content === 'string' ? body.content : ''
+  const rawPriority = body.priority
   const priority = rawPriority === undefined ? undefined : Number(rawPriority)
 
-  if (!author?.trim() || !content?.trim()) {
+  if (!author.trim() || !content.trim()) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 

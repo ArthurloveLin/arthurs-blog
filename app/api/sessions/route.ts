@@ -18,10 +18,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { title, note, budget, template_id, template_config } = await request.json()
+  const { title, note, budget, template_id, template_config } = await request.json() as Record<string, unknown>
   const token = crypto.randomUUID().replace(/-/g, '').slice(0, 12)
   
-  const selectedTemplateId = template_id || DEFAULT_TEMPLATE
+  const selectedTemplateId = (template_id as string | undefined) || DEFAULT_TEMPLATE
   const finalTemplateConfig = template_config || TEMPLATES[selectedTemplateId] || TEMPLATES[DEFAULT_TEMPLATE]
 
   const { data, error } = await supabaseAdmin

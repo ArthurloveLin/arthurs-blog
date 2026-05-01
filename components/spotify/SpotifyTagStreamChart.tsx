@@ -20,6 +20,7 @@ const TAGS = [
 ]
 
 type StreamDim = 'hour' | 'day' | 'week' | 'month'
+type StreamSlice = { n: number; raw: number[][]; labels: string[]; groupLabel: string }
 
 const DIMS: { key: StreamDim; label: string }[] = [
   { key: 'hour',  label: '24h' },
@@ -30,7 +31,7 @@ const DIMS: { key: StreamDim; label: string }[] = [
 
 export default function SpotifyTagStreamChart() {
   const [activeDim, setActiveDim] = useState<StreamDim>('day')
-  const { data: allData, isLoading } = useSWR('/api/spotify/history/stream', fetcher)
+  const { data: allData, isLoading } = useSWR<Record<StreamDim, StreamSlice>>('/api/spotify/history/stream', fetcher)
   
   const [tooltip, setTooltip] = useState<{ xi: number, xPx: number, leftPct: string, tag: typeof TAGS[0], value: number, label: string } | null>(null)
   const svgRef = useRef<SVGSVGElement | null>(null)
@@ -98,7 +99,7 @@ export default function SpotifyTagStreamChart() {
     .curve(d3.curveCatmullRom.alpha(0.5))
 
   function handleSvgMove(e: React.MouseEvent) {
-    if (!svgRef.current) return
+    if (!svgRef.current || !data) return
     const rect = svgRef.current.getBoundingClientRect()
     // Handle responsive scaling
     const scaleX = W / rect.width

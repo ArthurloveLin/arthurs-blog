@@ -82,11 +82,11 @@ export default function NewSession() {
       })
 
       if (!res.ok) {
-        const { error: msg } = await res.json()
+        const { error: msg } = await res.json() as { error?: string }
         throw new Error(msg ?? '创建失败')
       }
 
-      const session = await res.json()
+      const session = await res.json() as { token: string }
       router.push(`/session/${session.token}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : '创建失败，请重试')

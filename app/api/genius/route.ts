@@ -33,7 +33,7 @@ export async function GET(request: Request) {
       return Response.json({ data: null }, { status: res.status })
     }
 
-    const data = await res.json()
+    const data = await res.json() as Record<string, unknown>
 
     const cacheControl = data?.data
       ? 'public, s-maxage=86400, stale-while-revalidate=604800'

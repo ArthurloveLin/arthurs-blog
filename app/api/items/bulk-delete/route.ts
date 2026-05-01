@@ -5,7 +5,7 @@ import { deleteR2Object } from '@/lib/r2'
 const WARDROBE_BUCKET = process.env.R2_WARDROBE_BUCKET!
 
 export async function POST(request: NextRequest) {
-  const { ids } = await request.json()
+  const { ids } = await request.json() as { ids?: unknown }
   if (!Array.isArray(ids) || ids.length === 0) {
     return NextResponse.json({ error: 'ids required' }, { status: 400 })
   }

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function PUT(req: NextRequest) {
-  const { item_id, author, score, ...restScores } = await req.json()
+  const body = await req.json() as Record<string, unknown>
+  const { item_id, author, score, ...restScores } = body
 
   if (!item_id || !author) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })

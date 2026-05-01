@@ -58,7 +58,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   const { token } = await params
-  const body = await req.json()
+  const body = await req.json() as Record<string, unknown>
 
   const allowed = ['archived', 'title', 'note', 'budget']
   const update: Record<string, unknown> = {}

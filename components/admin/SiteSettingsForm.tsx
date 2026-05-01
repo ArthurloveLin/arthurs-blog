@@ -364,7 +364,7 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
     setMessage('🔍 正在扫描 CDN 目录...')
     try {
       const res = await fetch('/api/admin/live2d/scan')
-      const result = await res.json()
+      const result = await res.json() as { error?: string; models?: { id: string; name: string; url: string }[] }
       if (!res.ok) throw new Error(result.error || 'Scan failed')
       setScannedModels(result.models || [])
       setMessage(`✅ 扫描完成，发现 ${result.models?.length || 0} 个模型。`)
@@ -477,9 +477,9 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
         method: 'POST',
         body: formData,
       })
-      const result = await res.json()
+      const result = await res.json() as { error?: string; url?: string }
       if (!res.ok) throw new Error(result.error || 'Upload failed')
-      
+
       setData((prev) => ({ ...prev, author_avatar_url: result.url }))
       setMessage('✅ 头像裁剪并上传成功（请点击下方按钮保存配置生效）')
     } catch (err) {
@@ -505,7 +505,7 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-      const result = await res.json()
+      const result = await res.json() as { error?: string }
       if (!res.ok) throw new Error(result.error || 'Save failed')
       setMessage('✅ 配置已成功保存！前端即时生效。')
       router.refresh()

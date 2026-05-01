@@ -625,8 +625,8 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     const searchParams = new URLSearchParams({ target_type: targetType, target_id: targetId, identity })
 
     void fetch(`/api/comments?${searchParams.toString()}`, { signal: controller.signal })
-      .then((response) => response.ok ? response.json() : null)
-      .then((nextComments: Comment[] | null) => {
+      .then((response) => response.ok ? response.json() as Promise<Comment[]> : null)
+      .then((nextComments) => {
         if (!nextComments) return
 
         setComments((current) => {

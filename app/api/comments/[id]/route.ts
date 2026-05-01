@@ -24,7 +24,7 @@ async function canModifyComment(req: NextRequest, author: string) {
     return true
   }
 
-  const body = await req.json().catch(() => ({}))
+  const body = await req.json().catch(() => ({})) as Record<string, unknown>
   const requesterIdentities = Array.isArray(body.identities)
     ? body.identities.filter((value: unknown): value is string => typeof value === 'string')
     : [body.identity].filter((value): value is string => typeof value === 'string')
@@ -63,7 +63,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Comment not found' }, { status: 404 })
   }
 
-  const body = await req.json().catch(() => ({}))
+  const body = await req.json().catch(() => ({})) as Record<string, unknown>
   const content = typeof body.content === 'string' ? body.content.trim() : ''
   const requesterIdentities = Array.isArray(body.identities)
     ? body.identities.filter((value: unknown): value is string => typeof value === 'string')

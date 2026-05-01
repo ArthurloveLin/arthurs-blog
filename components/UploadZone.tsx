@@ -66,7 +66,7 @@ export default function UploadZone({ sessionToken, templateConfig }: UploadZoneP
 
           const res = await fetch('/api/items', { method: 'POST', body: fd })
           if (!res.ok) {
-            const { error } = await res.json()
+            const { error } = await res.json() as { error?: string }
             throw new Error(error ?? 'Upload failed')
           }
           updateStatus(i, { progress: 'done' })
