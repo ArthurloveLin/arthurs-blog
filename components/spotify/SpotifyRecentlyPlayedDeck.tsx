@@ -518,12 +518,14 @@ export default function SpotifyRecentlyPlayedDeck({
       return
     }
 
-    if (didHydrateInitialDateRef.current && selectedDate === initialHistoryDate) {
+    const date = selectedDate
+
+    if (didHydrateInitialDateRef.current && date === initialHistoryDate) {
       didHydrateInitialDateRef.current = false
       return
     }
 
-    const cachedTracks = dateTracksCacheRef.current.get(selectedDate)
+    const cachedTracks = dateTracksCacheRef.current.get(date)
     if (cachedTracks) {
       startTransition(() => {
         setHistoryTracks(cachedTracks)
@@ -537,13 +539,13 @@ export default function SpotifyRecentlyPlayedDeck({
       setIsLoading(true)
 
       try {
-        const params = new URLSearchParams({ date: selectedDate ?? '' })
+        const params = new URLSearchParams({ date })
         const nextTracks = await readJson<SpotifyRecentlyPlayedTrack[]>(
           `/api/spotify/history?${params.toString()}`,
           controller.signal
         )
 
-        dateTracksCacheRef.current.set(selectedDate, nextTracks)
+        dateTracksCacheRef.current.set(date, nextTracks)
         startTransition(() => {
           setHistoryTracks(nextTracks)
         })
