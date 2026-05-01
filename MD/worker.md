@@ -9,12 +9,13 @@
 ## 上线前需要配置
 
 - `NEXT_PUBLIC_SPOTIFY_WORKER_URL`：指向 spotify-sync-worker 的公开域名或 workers.dev 域名。
-- `NEXT_PUBLIC_GENIUS_WORKER_URL`：指向 genius-worker 的公开域名或 workers.dev 域名。
+- `NEXT_PUBLIC_GENIUS_WORKER_URL`：指向 genius-worker 的公开域名或 workers.dev 域名。前端会自动拼到 `/api/genius`。
 
 ## 兼容策略
 
 - 如果未配置上述两个 `NEXT_PUBLIC_*` 变量，前端会继续回退到站内 `/api/*` 路由。
 - Spotify 页面 SSR 和 `/api/spotify/report` 会优先读取 `spotify/latest/report.json`；如果该文件尚未生成，才会回退到旧的服务端聚合逻辑。
+- genius-worker 现按公开只读 API 处理：`/api/genius` 提供查询，根路径 `/` 与 `/health` 只返回健康信息，不再要求浏览器携带共享 secret。
 
 ## 建议上线顺序
 

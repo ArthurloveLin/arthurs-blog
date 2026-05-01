@@ -1,5 +1,15 @@
 export const dynamic = 'force-dynamic'
 
+function createGeniusWorkerTarget(workerUrl: string) {
+  const target = new URL(workerUrl)
+
+  if (target.pathname === '/' || !target.pathname) {
+    target.pathname = '/api/genius'
+  }
+
+  return target
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const trackId = searchParams.get('trackId') ?? ''
@@ -16,18 +26,14 @@ export async function GET(request: Request) {
     return Response.json({ data: null }, { status: 503 })
   }
 
-  const target = new URL(workerUrl)
+  const target = createGeniusWorkerTarget(workerUrl)
   if (trackId) target.searchParams.set('trackId', trackId)
   target.searchParams.set('title', title)
   target.searchParams.set('artist', artist)
   if (durationMs) target.searchParams.set('durationMs', durationMs)
 
-  const headers: Record<string, string> = {}
-  const secret = process.env.GENIUS_WORKER_SECRET
-  if (secret) headers['x-genius-secret'] = secret
-
   try {
-    const res = await fetch(target.toString(), { headers })
+    const res = await fetch(target.toString())
 
     if (!res.ok) {
       return Response.json({ data: null }, { status: res.status })

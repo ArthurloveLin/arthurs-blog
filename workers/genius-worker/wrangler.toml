@@ -23,4 +23,3 @@ preview_id = "3f392ec87e8d405eab06101fcec62270"
 
 # Secrets (通过 wrangler secret put 设置):
 # GENIUS_API_TOKEN       — Genius 免费 API token
-# GENIUS_WORKER_SECRET   — 可选，Next.js 调用时 header 校验
