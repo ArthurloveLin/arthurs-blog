@@ -26,10 +26,6 @@ const DEFAULT_CARDS_PER_PAGE = 4
 
 type RecentlyPlayedView = 'timeline' | 'chart' | 'stream'
 
-type DaysResponse = {
-  days: string[]
-}
-
 function resolveCardsPerPage(width: number) {
   if (width < 640) return 1
   if (width < 1024) return 2
@@ -466,25 +462,37 @@ function RecentlyPlayedParallaxCard({ item }: { item: SpotifyRecentlyPlayedTrack
 }
 
 export default function SpotifyRecentlyPlayedDeck({
+  initialAvailableDays = [],
+  initialHistoryDate = null,
+  initialHistoryTracks = [],
   items,
   view: controlledView,
   onViewChange,
 }: {
+  initialAvailableDays?: string[]
+  initialHistoryDate?: string | null
+  initialHistoryTracks?: SpotifyRecentlyPlayedTrack[]
   items: SpotifyRecentlyPlayedTrack[]
   view?: RecentlyPlayedView
   onViewChange?: (view: RecentlyPlayedView) => void
 }) {
   const [uncontrolledView, setUncontrolledView] = useState<RecentlyPlayedView>('timeline')
-  const [availableDays, setAvailableDays] = useState<string[]>([])
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useState<string | null>(initialHistoryDate)
   const [selectedSegment, setSelectedSegment] = useState<TimeSegmentId | null>(null)
-  const [historyTracks, setHistoryTracks] = useState<SpotifyRecentlyPlayedTrack[]>([])
+  const [historyTracks, setHistoryTracks] = useState<SpotifyRecentlyPlayedTrack[]>(initialHistoryTracks)
   const [isLoading, setIsLoading] = useState(false)
   const [tagStore, setTagStore] = useState<SpotifyTrackTagStore | null>(null)
   const [cardsPerPage, setCardsPerPage] = useState(DEFAULT_CARDS_PER_PAGE)
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0)
-  const isInitialLoadRef = useRef(true)
+  const didHydrateInitialDateRef = useRef(Boolean(initialHistoryDate))
+  const dateTracksCacheRef = useRef(
+    new Map<string, SpotifyRecentlyPlayedTrack[]>(
+      initialHistoryDate ? [[initialHistoryDate, initialHistoryTracks]] : []
+    )
+  )
+  const tagStoreCacheRef = useRef(new Map<string, SpotifyTrackTagStore>())
   const view = controlledView ?? uncontrolledView
+  const availableDays = initialAvailableDays
 
   const setView = (nextView: RecentlyPlayedView) => {
     if (onViewChange) {
@@ -505,57 +513,21 @@ export default function SpotifyRecentlyPlayedDeck({
     return () => window.removeEventListener('resize', updateCardsPerPage)
   }, [])
 
-  // Initial load: fetch days then immediately fetch first day's tracks without
-  // waiting for a React re-render cycle between the two requests.
   useEffect(() => {
-    let isCancelled = false
-    const controller = new AbortController()
-
-    async function loadInitialHistory() {
-      setIsLoading(true)
-      try {
-        const data = await readJson<DaysResponse>('/api/spotify/history/days')
-        if (isCancelled) return
-
-        const latestDay = data.days[0] ?? null
-        startTransition(() => {
-          setAvailableDays(data.days)
-          setSelectedDate(latestDay)
-        })
-
-        if (latestDay) {
-          const params = new URLSearchParams({ date: latestDay })
-          const tracks = await readJson<SpotifyRecentlyPlayedTrack[]>(
-            `/api/spotify/history?${params.toString()}`,
-            controller.signal
-          )
-          if (!isCancelled) {
-            startTransition(() => setHistoryTracks(tracks))
-          }
-        }
-      } catch (error) {
-        if (!isCancelled && !controller.signal.aborted) {
-          console.error('Failed to load Spotify history:', error)
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false)
-          isInitialLoadRef.current = false
-        }
-      }
+    if (!selectedDate) {
+      return
     }
 
-    void loadInitialHistory()
-
-    return () => {
-      isCancelled = true
-      controller.abort()
+    if (didHydrateInitialDateRef.current && selectedDate === initialHistoryDate) {
+      didHydrateInitialDateRef.current = false
+      return
     }
-  }, [])
 
-  // Subsequent user-selected date changes (skip the initial mount).
-  useEffect(() => {
-    if (isInitialLoadRef.current || !selectedDate) {
+    const cachedTracks = dateTracksCacheRef.current.get(selectedDate)
+    if (cachedTracks) {
+      startTransition(() => {
+        setHistoryTracks(cachedTracks)
+      })
       return
     }
 
@@ -571,6 +543,7 @@ export default function SpotifyRecentlyPlayedDeck({
           controller.signal
         )
 
+        dateTracksCacheRef.current.set(selectedDate, nextTracks)
         startTransition(() => {
           setHistoryTracks(nextTracks)
         })
@@ -591,31 +564,52 @@ export default function SpotifyRecentlyPlayedDeck({
     return () => {
       controller.abort()
     }
-  }, [selectedDate])
+  }, [initialHistoryDate, selectedDate])
 
-  const effectiveTracks = selectedDate && availableDays.length > 0
-    ? (historyTracks.length > 0 || !isLoading ? historyTracks : items)
-    : items
+  const effectiveTracks = selectedDate ? historyTracks : items
   const effectiveSegmentMap = useMemo(() => segmentTracksByTime(effectiveTracks), [effectiveTracks])
   const effectiveHourMap = useMemo(() => groupTracksByHour(effectiveTracks), [effectiveTracks])
+  const trackIds = useMemo(
+    () => Array.from(new Set(effectiveTracks.map((track) => track.id))),
+    [effectiveTracks]
+  )
+  const tagRequestKey = trackIds.join(',')
 
   useEffect(() => {
-    const ids = effectiveTracks.map((t) => t.id)
-    if (ids.length === 0) {
+    if (view !== 'chart') {
+      return
+    }
+
+    if (trackIds.length === 0) {
       setTagStore(null)
       return
     }
 
+    const cachedStore = tagStoreCacheRef.current.get(tagRequestKey)
+    if (cachedStore) {
+      setTagStore(cachedStore)
+      return
+    }
+
     const controller = new AbortController()
-    const params = new URLSearchParams({ ids: ids.join(',') })
+    const params = new URLSearchParams({ ids: tagRequestKey })
+    setTagStore(null)
+
     readJson<SpotifyTrackTagStore>(`/api/spotify/tags?${params.toString()}`, controller.signal)
-      .then(setTagStore)
-      .catch(() => setTagStore(null))
+      .then((nextStore) => {
+        tagStoreCacheRef.current.set(tagRequestKey, nextStore)
+        setTagStore(nextStore)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setTagStore(null)
+        }
+      })
 
     return () => {
       controller.abort()
     }
-  }, [effectiveTracks])
+  }, [tagRequestKey, trackIds, view])
 
   useEffect(() => {
     const firstAvailableSegment = getFirstAvailableSegmentId(effectiveSegmentMap)

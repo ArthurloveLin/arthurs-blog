@@ -7,6 +7,7 @@ import type {
   SpotifyPlaylistPreview,
   SpotifyTagAnalysis,
 } from '@/lib/spotify-types'
+import type { MusicReport } from '@/lib/spotify-report'
 import type { SpotifyPageCopy } from '@/lib/spotify-page-copy'
 import SpotifyVinylAlbumsPanel from './SpotifyVinylAlbumsPanel'
 import SpotifyLivePlayerPanel from './SpotifyLivePlayerPanel'
@@ -70,13 +71,21 @@ const PlaylistsBoard = memo(function PlaylistsBoard({ items, total }: { items: S
 
 export default function SpotifyDashboard({
   data,
+  initialRecentDate,
+  initialRecentDays,
+  initialRecentTracks,
   tagAnalysis,
   copy,
+  musicReport,
   todayTracksCount,
 }: {
   data: SpotifyDashboardData
+  initialRecentDate: string | null
+  initialRecentDays: string[]
+  initialRecentTracks: SpotifyDashboardData['recentlyPlayed']
   tagAnalysis: SpotifyTagAnalysis
   copy: SpotifyPageCopy
+  musicReport: MusicReport
   todayTracksCount?: number
 }) {
   const stats = {
@@ -94,11 +103,17 @@ export default function SpotifyDashboard({
       </div>
 
       <div className="mt-4">
-        <SpotifyRecentlyPlayedSection items={data.recentlyPlayed} copy={copy.recent} />
+        <SpotifyRecentlyPlayedSection
+          items={data.recentlyPlayed}
+          copy={copy.recent}
+          initialHistoryDate={initialRecentDate}
+          initialHistoryTracks={initialRecentTracks}
+          initialAvailableDays={initialRecentDays}
+        />
       </div>
 
       <div className="mt-4">
-        <SpotifyMusicReportSection copy={copy.report} />
+        <SpotifyMusicReportSection copy={copy.report} report={musicReport} />
       </div>
 
       <div className="mt-4">

@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useState, useTransition } from 'react'
 
 import type { SpotifySectionCopy } from '@/lib/spotify-page-copy'
+import type { MusicReport } from '@/lib/spotify-report'
 
 import SpotifyMusicReportBoard from './SpotifyMusicReportBoard'
 
@@ -14,18 +15,23 @@ const PERIOD_LABELS: Record<Period, string> = {
   month: '月报',
 }
 
-export default function SpotifyMusicReportSection({ copy }: { copy: SpotifySectionCopy }) {
+export default function SpotifyMusicReportSection({
+  copy,
+  report,
+}: {
+  copy: SpotifySectionCopy
+  report: MusicReport
+}) {
+  const [isPending, startTransition] = useTransition()
   const [activePeriod, setActivePeriod] = useState<Period>('week')
-  const [isTransitioning, setIsTransitioning] = useState(false)
 
-  const handlePeriodChange = useCallback((period: Period) => {
+  function handlePeriodChange(period: Period) {
     if (period === activePeriod) return
-    setIsTransitioning(true)
-    setTimeout(() => {
+
+    startTransition(() => {
       setActivePeriod(period)
-      setIsTransitioning(false)
-    }, 200)
-  }, [activePeriod])
+    })
+  }
 
   return (
     <section
@@ -57,7 +63,7 @@ export default function SpotifyMusicReportSection({ copy }: { copy: SpotifySecti
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{copy.description}</p>
 
       <div className="mt-6">
-        <SpotifyMusicReportBoard activePeriod={activePeriod} isTransitioning={isTransitioning} />
+        <SpotifyMusicReportBoard activePeriod={activePeriod} isTransitioning={isPending} report={report} />
       </div>
     </section>
   )

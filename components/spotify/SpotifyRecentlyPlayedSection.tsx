@@ -11,9 +11,15 @@ import SpotifyRecentlyPlayedDeck from './SpotifyRecentlyPlayedDeck'
 type RecentlyPlayedView = 'timeline' | 'chart' | 'stream'
 
 export default function SpotifyRecentlyPlayedSection({
+  initialAvailableDays,
+  initialHistoryDate,
+  initialHistoryTracks,
   items,
   copy,
 }: {
+  initialAvailableDays: string[]
+  initialHistoryDate: string | null
+  initialHistoryTracks: SpotifyRecentlyPlayedTrack[]
   items: SpotifyRecentlyPlayedTrack[]
   copy: SpotifySectionCopy
 }) {
@@ -46,7 +52,14 @@ export default function SpotifyRecentlyPlayedSection({
       </div>
 
       <div className={`mt-6 transition-opacity duration-200 ${isPending ? 'opacity-70' : 'opacity-100'}`}>
-        <SpotifyRecentlyPlayedDeck items={items} view={view} onViewChange={setView} />
+        <SpotifyRecentlyPlayedDeck
+          items={items}
+          view={view}
+          onViewChange={setView}
+          initialAvailableDays={initialAvailableDays}
+          initialHistoryDate={initialHistoryDate}
+          initialHistoryTracks={initialHistoryTracks}
+        />
       </div>
     </section>
   )
