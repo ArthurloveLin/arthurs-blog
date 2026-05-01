@@ -12,6 +12,10 @@ enabled = true
 head_sampling_rate = 1
 invocation_logs = true
 
+[observability.traces]
+enabled = true
+head_sampling_rate = 1
+
 [[kv_namespaces]]
 binding = "GENIUS_CACHE"
 id = "3f392ec87e8d405eab06101fcec62270"

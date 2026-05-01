@@ -1,3 +1,6 @@
+import { fetchWithRetry } from './http'
+import { logError, logInfo, logWarn } from './log'
+
 export interface GeniusSearchResult {
   url: string
   id: number
@@ -13,15 +16,25 @@ export async function searchGenius(
   const query = `${title} ${artist}`
   const url = `https://api.genius.com/search?q=${encodeURIComponent(query)}&access_token=${apiToken}`
 
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; LyricsBot/1.0)',
-    },
-  })
+  let res: Response
 
-  if (!res.ok) return null
+  try {
+    res = await fetchWithRetry(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; LyricsBot/1.0)',
+      },
+    })
+  } catch (error) {
+    logError('genius search request failed', error, { title, artist })
+    throw error
+  }
 
-  const data = await res.json() as {
+  if (!res.ok) {
+    logWarn('genius search upstream non-ok', { title, artist, status: res.status })
+    return null
+  }
+
+  let data: {
     response?: {
       hits?: Array<{
         result?: {
@@ -32,6 +45,24 @@ export async function searchGenius(
         }
       }>
     }
+  }
+
+  try {
+    data = await res.json() as {
+      response?: {
+        hits?: Array<{
+          result?: {
+            url: string
+            id: number
+            title: string
+            primary_artist?: { name: string }
+          }
+        }>
+      }
+    }
+  } catch (error) {
+    logError('genius search response parse failed', error, { title, artist, status: res.status })
+    return null
   }
 
   const hits = data?.response?.hits
@@ -59,7 +90,7 @@ export async function searchGenius(
     })
 
   if (!best) {
-    console.log(`[search] no matching artist among ${hits.length} hits for "${artist}"`)
+    logInfo('genius search artist mismatch', { title, artist, hits: hits.length })
     return null
   }
 

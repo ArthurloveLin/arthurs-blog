@@ -1,5 +1,7 @@
 import type { GeniusSongData } from './types'
 
+const GENIUS_CACHE_TTL_SECONDS = 90 * 24 * 60 * 60
+
 export function buildCacheKey(trackId: string, artist: string, title: string): string {
   if (trackId) return `song:${trackId}`
   const a = artist.toLowerCase().trim()
@@ -25,5 +27,7 @@ export async function writeToCache(
   key: string,
   data: GeniusSongData
 ): Promise<void> {
-  await kv.put(key, JSON.stringify(data))
+  await kv.put(key, JSON.stringify(data), {
+    expirationTtl: GENIUS_CACHE_TTL_SECONDS,
+  })
 }
