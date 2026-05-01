@@ -5,6 +5,7 @@ import PageHero from '@/components/PageHero'
 import SpotifyDashboard from '@/components/spotify/SpotifyDashboard'
 
 import { getSiteConfig } from '@/lib/blog'
+import { buildMusicReport } from '@/lib/spotify-report'
 import { getSpotifyPageCopy, type SpotifyPageCopy } from '@/lib/spotify-page-copy'
 import { getStoredSpotifyDashboardData, listRecentlyPlayedDays, readRecentlyPlayedDayShard } from '@/lib/spotify'
 import { computeTagAnalysis } from '@/lib/spotify-tag-analysis'
@@ -13,16 +14,18 @@ import { getStoredSpotifyTrackTagStore } from '@/lib/spotify-tags'
 export const metadata = { title: 'Spotify Dashboard' }
 export const revalidate = 3600
 
-async function SpotifyDashboardLoader({ copy }: { copy: SpotifyPageCopy }) {
-  const [spotifyDashboard, tagStore, recentDays] = await Promise.all([
+async function loadSpotifyDashboardPayload() {
+  const [spotifyDashboard, tagStore, recentDays, musicReport] = await Promise.all([
     getStoredSpotifyDashboardData(),
     getStoredSpotifyTrackTagStore(),
-    listRecentlyPlayedDays(1),
+    listRecentlyPlayedDays(),
+    buildMusicReport(),
   ])
 
-  const shards = await Promise.all(recentDays.map(readRecentlyPlayedDayShard))
+  const initialRecentDate = recentDays[0] ?? null
+  const initialRecentTracks = initialRecentDate ? await readRecentlyPlayedDayShard(initialRecentDate) : []
   const seenIds = new Set<string>()
-  const recentTracks = shards.flat().filter((t) => {
+  const recentTracks = initialRecentTracks.filter((t) => {
     if (seenIds.has(t.id)) return false
     seenIds.add(t.id)
     return true
@@ -33,9 +36,40 @@ async function SpotifyDashboardLoader({ copy }: { copy: SpotifyPageCopy }) {
     : spotifyDashboard
 
   const tagAnalysis = computeTagAnalysis(dashboardForRadar, tagStore)
-  const todayTracksCount = shards.length > 0 ? shards[0].length : 0
+  const todayTracksCount = initialRecentTracks.length
 
-  return <SpotifyDashboard data={spotifyDashboard} tagAnalysis={tagAnalysis} copy={copy} todayTracksCount={todayTracksCount} />
+  return {
+    data: spotifyDashboard,
+    initialRecentDate,
+    initialRecentDays: recentDays,
+    initialRecentTracks,
+    musicReport,
+    tagAnalysis,
+    todayTracksCount,
+  }
+}
+
+async function SpotifyDashboardLoader({
+  copy,
+  dashboardPromise,
+}: {
+  copy: SpotifyPageCopy
+  dashboardPromise: ReturnType<typeof loadSpotifyDashboardPayload>
+}) {
+  const dashboard = await dashboardPromise
+
+  return (
+    <SpotifyDashboard
+      data={dashboard.data}
+      initialRecentDate={dashboard.initialRecentDate}
+      initialRecentDays={dashboard.initialRecentDays}
+      initialRecentTracks={dashboard.initialRecentTracks}
+      tagAnalysis={dashboard.tagAnalysis}
+      copy={copy}
+      musicReport={dashboard.musicReport}
+      todayTracksCount={dashboard.todayTracksCount}
+    />
+  )
 }
 
 function SpotifyDashboardSkeleton() {
@@ -49,6 +83,7 @@ function SpotifyDashboardSkeleton() {
 }
 
 export default async function SpotifyPage() {
+  const dashboardPromise = loadSpotifyDashboardPayload()
   const siteConfig = await getSiteConfig()
   const spotifyCopy = getSpotifyPageCopy(siteConfig)
 
@@ -82,7 +117,7 @@ export default async function SpotifyPage() {
 
         {/* ── Body ── */}
         <Suspense fallback={<SpotifyDashboardSkeleton />}>
-          <SpotifyDashboardLoader copy={spotifyCopy} />
+          <SpotifyDashboardLoader copy={spotifyCopy} dashboardPromise={dashboardPromise} />
         </Suspense>
       </main>
     </DirectionalTransition>
