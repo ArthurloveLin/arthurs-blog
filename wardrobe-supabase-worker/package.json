@@ -1,5 +1,5 @@
 {
-  "name": "wardrobe-supabase-worker",
+  "name": "wardrobe-supabase",
   "version": "1.0.0",
   "private": true,
   "description": "Cloudflare Worker proxy for Supabase",
