@@ -24,6 +24,7 @@ import {
   clamp,
   MOBILE_SIDE_PEEK_RATIO,
   PREVIEW_CARD_SIZE,
+  PREVIEW_REVEAL_THRESHOLD,
   sanitizeNotePosition,
   STICKY_COLORS,
 } from '@/components/note-board/utils/board'
@@ -168,6 +169,7 @@ function StickyNoteCardFrame({
     const visual = visualRef.current
     if (!visual) return
 
+    gsap.killTweensOf(visual)
     visualRotationRef.current = rotation
     gsap.to(visual, {
       rotation,
@@ -405,7 +407,9 @@ function StickyNoteCardFrame({
     dragOriginRef.current = null
     dragPointerRef.current = null
     velocityRef.current = { lastClientX: 0, lastClientY: 0, lastTime: 0, velocityX: 0, velocityY: 0 }
-  releaseNoteAnimation(settledRotation)
+    if (dragBoundsMode !== 'mobile-stack' || distance < PREVIEW_REVEAL_THRESHOLD) {
+      releaseNoteAnimation(settledRotation)
+    }
     latestDragPositionRef.current = null
     queuedDragPositionRef.current = null
     setIsDragging(false)
