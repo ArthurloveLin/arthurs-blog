@@ -52,7 +52,7 @@ export function MobileStickyStack({ items }: MobileStickyStackProps) {
   function parkMessage(messageId: string, index: number) {
     setPlacedPositions((current) => ({
       ...current,
-      [messageId]: getMobileSideParkPosition(index % 2 === 0 ? 'right' : 'left', 18 + (index % 4) * 34, index, size, cardWidth),
+      [messageId]: getMobileSideParkPosition(index % 2 === 0 ? 'right' : 'left', 18 + (index % 4) * 34, index, size, cardWidth, messageId),
     }))
     setParkedIds((current) => [...current, messageId])
   }
@@ -66,7 +66,7 @@ export function MobileStickyStack({ items }: MobileStickyStackProps) {
 
       setPlacedPositions((current) => ({
         ...current,
-        [messageId]: getMobileSideParkPosition(parkSide, nextPosition.y, parkedCount, size, cardWidth),
+        [messageId]: getMobileSideParkPosition(parkSide, nextPosition.y, parkedCount, size, cardWidth, messageId),
       }))
       setParkedIds((current) => [...current, messageId])
       return

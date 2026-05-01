@@ -91,18 +91,23 @@ export function getMobileSideParkPosition(
   index: number,
   size: Size,
   cardWidth: number,
+  messageId?: string,
 ): NotePosition {
   const exposedWidth = cardWidth * MOBILE_SIDE_PEEK_RATIO
   const x = side === 'right' ? size.width - exposedWidth : exposedWidth - cardWidth
   const fallbackY = 18 + (index % 4) * 34
   const y = clamp(releaseY, 12, Math.max(size.height - 160, 12)) || fallbackY
 
+  const jitter = messageId ? (seededUnit(messageId, 6) - 0.5) * 6 : (index % 3 - 1) * 2
+  const baseRotation = side === 'right' ? 11 : -11
+
   return {
     x,
     y,
-    rotation: side === 'right' ? 11 : -11,
+    rotation: baseRotation + jitter,
   }
 }
+
 
 export function computeBoardLayout(
   messages: NoteMessage[],
