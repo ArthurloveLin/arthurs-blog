@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
-  const body = await req.json().catch(() => ({}))
+  const body = await req.json().catch(() => ({})) as Record<string, unknown>
   const identity = normalizeReactionIdentity(body.identity)
   const reaction = normalizeReactionValue(body.reaction)
 

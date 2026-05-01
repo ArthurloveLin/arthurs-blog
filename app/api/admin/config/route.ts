@@ -18,14 +18,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json()
-    // Validation
-    if (typeof body !== 'object' || !body) {
+    const rawBody = await request.json()
+    if (typeof rawBody !== 'object' || !rawBody) {
       return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
     }
+    const body = rawBody as Record<string, unknown>
 
     const entries: Record<string, string> = {}
-    
+
     // Allowed keys
     const allowedKeys = [
       'author_name',
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     for (const key of allowedKeys) {
       if (typeof body[key] === 'string') {
-        entries[key] = body[key]
+        entries[key] = body[key] as string
       }
     }
 

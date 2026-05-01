@@ -14,10 +14,10 @@ export default function ReindexButton() {
     setMessage('')
     try {
       const res = await fetch('/api/blog/reindex', { method: 'POST' })
-      const data = await res.json()
+      const data = await res.json() as { error?: string; summary?: { indexed: number; skipped: number } }
       if (!res.ok) throw new Error(data.error ?? '同步失败')
       const { summary } = data
-      setMessage(`已同步 ${summary.indexed} 篇，跳过 ${summary.skipped} 篇`)
+      setMessage(`已同步 ${summary?.indexed} 篇，跳过 ${summary?.skipped} 篇`)
       setState('success')
     } catch (err) {
       setMessage(err instanceof Error ? err.message : '同步失败')

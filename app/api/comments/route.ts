@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { target_type, target_id, author, content, parent_id } = await req.json()
+  const { target_type, target_id, author, content, parent_id } = await req.json() as Record<string, unknown>
   const nextAuthor = typeof author === 'string' ? author.trim() : ''
   const nextContent = typeof content === 'string' ? content.trim() : ''
 

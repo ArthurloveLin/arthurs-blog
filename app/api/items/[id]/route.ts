@@ -42,7 +42,7 @@ export async function PATCH(
   }
 
   const { id } = await params
-  const body = await request.json()
+  const body = await request.json() as Record<string, unknown>
 
   const updates: Record<string, unknown> = {}
   if (body.decision !== undefined) updates.decision = body.decision

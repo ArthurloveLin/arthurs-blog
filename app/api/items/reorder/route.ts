@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { ids } = await request.json()
+  const { ids } = await request.json() as { ids?: unknown }
   if (!Array.isArray(ids) || ids.length === 0) {
     return NextResponse.json({ error: 'ids required' }, { status: 400 })
   }
