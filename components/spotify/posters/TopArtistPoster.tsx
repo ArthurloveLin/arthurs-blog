@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import type { CSSProperties } from 'react'
 import type { MusicReportStats } from '@/lib/spotify-report'
+import { spotifyImg } from '@/lib/spotify-img'
 import styles from './TopArtistPoster.module.css'
 
 interface Props {
@@ -13,9 +14,9 @@ interface Props {
 
 export default function TopArtistPoster({ stats, isLoading, isTransitioning }: Props) {
   const artist = stats.topArtist
-  const artistImageUrl = artist?.imageUrl ?? null
+  const artistImageUrl = spotifyImg(artist?.imageUrl)
   // fallback: use album art blurred if no artist image
-  const fallbackImageUrl = stats.topTrack?.albumImageUrl ?? null
+  const fallbackImageUrl = spotifyImg(stats.topTrack?.albumImageUrl)
   const bgImageUrl = artistImageUrl ?? fallbackImageUrl
 
   return (
@@ -36,7 +37,7 @@ export default function TopArtistPoster({ stats, isLoading, isTransitioning }: P
         {isLoading ? (
           <div className={styles.coverSkeleton} />
         ) : artistImageUrl ? (
-          <Image className={styles.coverImg} src={artistImageUrl} alt={artist?.name ?? ''} width={195} height={98} unoptimized />
+          <Image className={styles.coverImg} src={artistImageUrl} alt={artist?.name ?? ''} width={195} height={98} unoptimized loading="lazy" />
         ) : fallbackImageUrl ? (
           <Image
             className={styles.coverImg}
@@ -46,6 +47,7 @@ export default function TopArtistPoster({ stats, isLoading, isTransitioning }: P
             height={98}
             style={{ filter: 'blur(8px) saturate(1.4) brightness(0.6)', transform: 'scale(1.1)' } as CSSProperties}
             unoptimized
+            loading="lazy"
           />
         ) : (
           <div className={styles.coverPlaceholder} />

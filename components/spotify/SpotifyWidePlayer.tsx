@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowRight, CalendarClock, Clock3, Heart, Library, Music2, Radio, Monitor, Smartphone, Speaker, Laptop, type LucideIcon } from 'lucide-react'
 
 import { useSpotify } from '@/components/SpotifyProvider'
+import { spotifyImg } from '@/lib/spotify-img'
 import { formatStableDate } from '@/lib/date-format'
 
 function formatRelativeTime(playedAt: string) {
@@ -200,7 +201,7 @@ function SpotifyWidePlayerContent({
       {data.albumImageUrl && (
         <div className="animate-in fade-in mix-blend-multiply transition-opacity duration-1000 dark:mix-blend-screen pointer-events-none absolute inset-0 overflow-hidden opacity-30 dark:opacity-20 transform-gpu">
           <Image
-            src={data.albumImageUrl}
+            src={spotifyImg(data.albumImageUrl)!}
             alt=""
             fill
             sizes="(max-width: 1200px) 100vw, 1200px"
@@ -232,7 +233,7 @@ function SpotifyWidePlayerContent({
               {data.albumImageUrl ? (
                 <>
                   <Image
-                    src={data.albumImageUrl}
+                    src={spotifyImg(data.albumImageUrl)!}
                     alt={data.album || data.title || 'Spotify artwork'}
                     fill
                     sizes="(max-width: 640px) 160px, (max-width: 1024px) 224px, 256px"

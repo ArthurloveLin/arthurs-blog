@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import type { CSSProperties } from 'react'
 import type { MusicReportStats, MusicReportTopContext } from '@/lib/spotify-report'
+import { spotifyImg } from '@/lib/spotify-img'
 import styles from './VibePoster.module.css'
 
 interface TagPalette {
@@ -48,7 +49,7 @@ function ContextRow({ ctx, palette }: { ctx: MusicReportTopContext; palette: Tag
       {/* Cover image or emoji fallback */}
       <div className={styles.contextCover}>
         {ctx.imageUrl ? (
-          <Image src={ctx.imageUrl} alt={ctx.label} className={styles.contextCoverImg} width={40} height={40} unoptimized />
+          <Image src={spotifyImg(ctx.imageUrl)!} alt={ctx.label} className={styles.contextCoverImg} width={40} height={40} unoptimized loading="lazy" />
         ) : (
           <span className={styles.contextCoverFallback}>{contextTypeIcon(ctx.type)}</span>
         )}

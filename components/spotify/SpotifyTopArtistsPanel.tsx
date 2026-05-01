@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, ExternalLink, Mic2, Users } from 'lucide-rea
 
 import type { SpotifySectionCopy } from '@/lib/spotify-page-copy'
 import type { SpotifyTimeRange, SpotifyTopArtist } from '@/lib/spotify-types'
+import { spotifyImg } from '@/lib/spotify-img'
 import SpotifyTimeRangeTabs from './SpotifyTimeRangeTabs'
 import styles from './SpotifyTopArtistsPanel.module.css'
 
@@ -43,10 +44,12 @@ function ArtistCard({ artist }: { artist: SpotifyTopArtist }) {
   return (
     <div
       className={styles.card}
-      style={hasImage ? { backgroundImage: `url(${artist.imageUrl})` } : undefined}
       data-no-image={!hasImage ? 'true' : undefined}
     >
-      {!hasImage && (
+      {hasImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={spotifyImg(artist.imageUrl)!} alt="" loading="lazy" className={styles.cardImg} />
+      ) : (
         <div className={styles.fallbackIcon}>
           <Mic2 className="h-10 w-10" strokeWidth={1.5} />
         </div>

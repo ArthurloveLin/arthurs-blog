@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Music2 } from 'lucide-react'
 
 import type { SpotifySectionCopy } from '@/lib/spotify-page-copy'
 import type { SpotifySavedAlbum } from '@/lib/spotify-types'
+import { spotifyImg } from '@/lib/spotify-img'
 import { formatStableDate } from '@/lib/date-format'
 import styles from './SpotifyVinylAlbumsPanel.module.css'
 
@@ -33,7 +34,7 @@ function VinylAlbum({ album, addedAt }: { album: SpotifySavedAlbum['album']; add
       <div className={styles.album}>
         <div className={styles.cover}>
           {album.imageUrl ? (
-            <Image src={album.imageUrl} alt={album.name} fill sizes="200px" className="object-cover" unoptimized />
+            <Image src={spotifyImg(album.imageUrl)!} alt={album.name} fill sizes="200px" className="object-cover" unoptimized loading="lazy" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
               <Music2 className="h-8 w-8" strokeWidth={1.6} />
@@ -41,10 +42,12 @@ function VinylAlbum({ album, addedAt }: { album: SpotifySavedAlbum['album']; add
           )}
         </div>
         <div className={styles.vinyl}>
-          <div
-            className={styles.vinylCover}
-            style={album.imageUrl ? { backgroundImage: `url(${album.imageUrl})` } : undefined}
-          />
+          <div className={styles.vinylCover}>
+            {album.imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={spotifyImg(album.imageUrl)!} alt="" loading="lazy" className={styles.vinylCoverImg} />
+            )}
+          </div>
         </div>
       </div>
       <div className={styles.albumInfo}>

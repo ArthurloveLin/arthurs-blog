@@ -17,6 +17,7 @@ import { formatStableDate } from '@/lib/date-format'
 import type { SpotifyRecentlyPlayedTrack, SpotifyTrackTagStore, TimeSegmentId } from '@/lib/spotify-types'
 
 import dynamic from 'next/dynamic'
+import { spotifyImg } from '@/lib/spotify-img'
 import styles from './SpotifyRecentlyPlayedDeck.module.css'
 
 const SpotifyListeningChart = dynamic(() => import('./SpotifyListeningChart'), { ssr: false })
@@ -428,10 +429,12 @@ function RecentlyPlayedParallaxCard({ item }: { item: SpotifyRecentlyPlayedTrack
       style={cardStyle}
     >
       <div className={styles.card}>
-        <div
-          className={styles.cardBg}
-          style={item.albumImageUrl ? { backgroundImage: `url(${item.albumImageUrl})` } : undefined}
-        />
+        <div className={styles.cardBg}>
+          {item.albumImageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={spotifyImg(item.albumImageUrl)!} alt="" loading="lazy" className={styles.cardBgImg} />
+          )}
+        </div>
         {item.albumImageUrl ? null : (
           <div className="absolute inset-0 flex items-center justify-center text-white/70">
             <Music2 className="h-10 w-10" strokeWidth={1.6} />
