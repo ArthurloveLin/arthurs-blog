@@ -3,8 +3,10 @@
 import React, { createContext, use, ReactNode } from 'react'
 import useSWR from 'swr'
 import type { SpotifyNowPlayingData } from '@/lib/spotify-types'
+import { getSpotifyPublicApiUrl } from '@/lib/spotify-public-api'
 
 const DEFAULT_REFRESH_INTERVAL_MS = 30000
+const SPOTIFY_NOW_PLAYING_URL = getSpotifyPublicApiUrl('/api/now-playing')
 
 type SpotifyLiveData = SpotifyNowPlayingData | { isPlaying: false }
 
@@ -39,7 +41,7 @@ export function SpotifyProvider({
   children: ReactNode
   refreshIntervalMs?: number
 }) {
-  const { data, error, isLoading, mutate } = useSWR<SpotifyLiveData>('/api/now-playing', fetchSpotifyNowPlaying, {
+  const { data, error, isLoading, mutate } = useSWR<SpotifyLiveData>(SPOTIFY_NOW_PLAYING_URL, fetchSpotifyNowPlaying, {
     refreshInterval: refreshIntervalMs,
     revalidateOnFocus: false,
     refreshWhenHidden: false,

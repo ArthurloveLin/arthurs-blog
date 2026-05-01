@@ -5,7 +5,7 @@ import PageHero from '@/components/PageHero'
 import SpotifyDashboard from '@/components/spotify/SpotifyDashboard'
 
 import { getSiteConfig } from '@/lib/blog'
-import { buildMusicReport } from '@/lib/spotify-report'
+import { getMusicReport } from '@/lib/spotify-report'
 import { getSpotifyPageCopy, type SpotifyPageCopy } from '@/lib/spotify-page-copy'
 import { getStoredSpotifyDashboardData, listRecentlyPlayedDays, readRecentlyPlayedDayShard } from '@/lib/spotify'
 import { computeTagAnalysis } from '@/lib/spotify-tag-analysis'
@@ -19,7 +19,7 @@ async function loadSpotifyDashboardPayload() {
     getStoredSpotifyDashboardData(),
     getStoredSpotifyTrackTagStore(),
     listRecentlyPlayedDays(),
-    buildMusicReport(),
+    getMusicReport(),
   ])
 
   const initialRecentDate = recentDays[0] ?? null

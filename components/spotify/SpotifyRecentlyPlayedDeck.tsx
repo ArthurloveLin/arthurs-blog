@@ -18,6 +18,7 @@ import type { SpotifyRecentlyPlayedTrack, SpotifyTrackTagStore, TimeSegmentId } 
 
 import dynamic from 'next/dynamic'
 import { spotifyImg } from '@/lib/spotify-img'
+import { getSpotifyPublicApiUrl } from '@/lib/spotify-public-api'
 import styles from './SpotifyRecentlyPlayedDeck.module.css'
 
 const SpotifyListeningChart = dynamic(() => import('./SpotifyListeningChart'), { ssr: false })
@@ -544,7 +545,7 @@ export default function SpotifyRecentlyPlayedDeck({
       try {
         const params = new URLSearchParams({ date })
         const nextTracks = await readJson<SpotifyRecentlyPlayedTrack[]>(
-          `/api/spotify/history?${params.toString()}`,
+          getSpotifyPublicApiUrl(`/api/spotify/history?${params.toString()}`),
           controller.signal
         )
 
@@ -600,7 +601,7 @@ export default function SpotifyRecentlyPlayedDeck({
     const params = new URLSearchParams({ ids: tagRequestKey })
     setTagStore(null)
 
-    readJson<SpotifyTrackTagStore>(`/api/spotify/tags?${params.toString()}`, controller.signal)
+    readJson<SpotifyTrackTagStore>(getSpotifyPublicApiUrl(`/api/spotify/tags?${params.toString()}`), controller.signal)
       .then((nextStore) => {
         tagStoreCacheRef.current.set(tagRequestKey, nextStore)
         setTagStore(nextStore)

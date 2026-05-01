@@ -4,9 +4,11 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import * as d3 from 'd3'
 import useSWR from 'swr'
 
+import { getSpotifyPublicApiUrl } from '@/lib/spotify-public-api'
 import styles from './SpotifyRecentlyPlayedDeck.module.css'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const SPOTIFY_STREAM_DATA_URL = getSpotifyPublicApiUrl('/api/spotify/history/stream')
 
 const TAGS = [
   { key: 'pop',       label: '流行',  color: '#6ee7b7' },
@@ -31,7 +33,7 @@ const DIMS: { key: StreamDim; label: string }[] = [
 
 export default function SpotifyTagStreamChart() {
   const [activeDim, setActiveDim] = useState<StreamDim>('day')
-  const { data: allData, isLoading } = useSWR<Record<StreamDim, StreamSlice>>('/api/spotify/history/stream', fetcher)
+  const { data: allData, isLoading } = useSWR<Record<StreamDim, StreamSlice>>(SPOTIFY_STREAM_DATA_URL, fetcher)
   
   const [tooltip, setTooltip] = useState<{ xi: number, xPx: number, leftPct: string, tag: typeof TAGS[0], value: number, label: string } | null>(null)
   const svgRef = useRef<SVGSVGElement | null>(null)
