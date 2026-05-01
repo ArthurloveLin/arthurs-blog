@@ -4,6 +4,7 @@ import { Fragment, startTransition, useCallback, useEffect, useMemo, useRef, use
 import Image from 'next/image'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Loader2, Music2 } from 'lucide-react'
 
+import { spotifyImg } from '@/lib/spotify-img'
 import styles from './SpotifyTrackWall.module.css'
 
 const HOVER_INTENT_DELAY_MS = 120
@@ -672,7 +673,7 @@ export default function SpotifyTrackWall({
                   <div className={styles.tileInner}>
                     {layoutItem.item.imageUrl ? (
                       <Image
-                        src={layoutItem.item.imageUrl}
+                        src={spotifyImg(layoutItem.item.imageUrl)!}
                         alt={layoutItem.item.title}
                         className={styles.tileMedia}
                         width={layoutItem.width}

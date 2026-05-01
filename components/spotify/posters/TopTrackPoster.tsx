@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import type { CSSProperties } from 'react'
 import type { MusicReportStats } from '@/lib/spotify-report'
+import { spotifyImg } from '@/lib/spotify-img'
 import styles from './TopTrackPoster.module.css'
 
 interface Props {
@@ -29,7 +30,7 @@ export default function TopTrackPoster({ stats, isLoading, isTransitioning }: Pr
         {isLoading ? (
           <div className={styles.coverSkeleton} />
         ) : track?.albumImageUrl ? (
-          <Image className={styles.coverImg} src={track.albumImageUrl} alt={track.title} width={195} height={107} unoptimized />
+          <Image className={styles.coverImg} src={spotifyImg(track.albumImageUrl)!} alt={track.title} width={195} height={107} unoptimized loading="lazy" />
         ) : (
           <div className={styles.coverPlaceholder} />
         )}

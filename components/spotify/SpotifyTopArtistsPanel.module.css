@@ -26,23 +26,30 @@
   overflow: hidden;
   border-radius: 18px;
   background-color: var(--muted);
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: cover;
   box-shadow:
     rgba(0, 0, 0, 0.55) 0 30px 60px 0,
     inset #333 0 0 0 4px,
     inset rgba(255, 255, 255, 0.45) 0 0 0 5px;
   cursor: default;
-  transition:
-    background-size 0.8s ease,
-    background-position 0.8s ease,
-    box-shadow 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: box-shadow 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.cardImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+  transition: transform 0.8s ease;
+}
+
+.card:hover .cardImg {
+  transform: scale(1.4) translateY(-5%);
 }
 
 .card:hover {
-  background-size: 140%;
-  background-position: center 20%;
   box-shadow:
     rgba(255, 255, 255, 0.18) 0 0 36px 4px,
     rgba(255, 255, 255, 0.9) 0 0 0 1px,
@@ -51,10 +58,9 @@
     inset rgba(255, 255, 255, 0.82) 0 0 0 5px;
 }
 
-/* no-image variant: disable bg transitions */
-.card[data-no-image='true']:hover {
-  background-size: cover;
-  background-position: center center;
+/* no-image variant: no img zoom */
+.card[data-no-image='true']:hover .cardImg {
+  transform: none;
 }
 
 /* Fallback icon for cards with no image */
@@ -333,6 +339,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .card,
+  .cardImg,
   .innerBorder,
   .hoverContent,
   .rankLabel,

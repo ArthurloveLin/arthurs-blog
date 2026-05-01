@@ -108,13 +108,20 @@
   position: absolute;
   inset: -20px;
   opacity: 0.5;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: cover;
+  overflow: hidden;
   transform: translateX(var(--card-bg-x, 0px)) translateY(var(--card-bg-y, 0px)) scale(1.12);
   transition: 1s cubic-bezier(0.445, 0.05, 0.55, 0.95), opacity 5s 1s cubic-bezier(0.445, 0.05, 0.55, 0.95);
   pointer-events: none;
   will-change: transform, opacity;
+}
+
+.cardBgImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .cardShade {

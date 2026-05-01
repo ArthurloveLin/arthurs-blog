@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSpotify } from './SpotifyProvider'
+import { spotifyImg } from '@/lib/spotify-img'
 import { Music2, ChevronDown, ArrowRight } from 'lucide-react'
 
 export default function SpotifyNowPlaying() {
@@ -101,7 +102,7 @@ export default function SpotifyNowPlaying() {
         {data.albumImageUrl && (
           <div className={`absolute inset-0 pointer-events-none transition-opacity duration-700 overflow-hidden ${isExpanded ? 'opacity-20' : 'opacity-0 group-hover:opacity-30'}`}>
             <Image
-              src={data.albumImageUrl}
+              src={spotifyImg(data.albumImageUrl)!}
               alt=""
               fill
               sizes="(max-width: 768px) 100vw, 320px"
@@ -117,7 +118,7 @@ export default function SpotifyNowPlaying() {
           <div className={`flex-shrink-0 overflow-hidden relative shadow-md transition-all duration-500 ${isExpanded ? 'w-12 h-12 rounded-xl' : 'w-8 h-8 rounded-lg group-hover:scale-105'} bg-muted`}>
             {data.albumImageUrl ? (
               <Image
-                src={data.albumImageUrl}
+                src={spotifyImg(data.albumImageUrl)!}
                 alt={data.album || ''}
                 fill
                 sizes={isExpanded ? '48px' : '32px'}
@@ -192,7 +193,7 @@ export default function SpotifyNowPlaying() {
                   <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-sm group-hover/item:shadow-md transition-shadow bg-muted">
                     {track.albumImageUrl ? (
                       <Image
-                        src={track.albumImageUrl}
+                        src={spotifyImg(track.albumImageUrl)!}
                         alt={track.album}
                         fill
                         sizes="32px"

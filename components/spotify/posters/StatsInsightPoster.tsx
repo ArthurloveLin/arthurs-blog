@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import type { CSSProperties } from 'react'
 import type { MusicReportStats } from '@/lib/spotify-report'
+import { spotifyImg } from '@/lib/spotify-img'
 import styles from './StatsInsightPoster.module.css'
 
 interface Props {
@@ -22,8 +23,8 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
 
   // 2 images: Top Artist avatar (left) and Top Track cover (right)
   const collageImages = [
-    stats.topArtist?.imageUrl ?? null,
-    stats.topTrack?.albumImageUrl ?? null,
+    spotifyImg(stats.topArtist?.imageUrl),
+    spotifyImg(stats.topTrack?.albumImageUrl),
   ]
 
   const isEmpty = stats.totalPlays === 0
@@ -41,7 +42,7 @@ export default function StatsInsightPoster({ stats, isLoading, isTransitioning }
             <div className={styles.collageGrid}>
               {collageImages.map((url, i) =>
                 url ? (
-                  <Image key={i} src={url} className={styles.collageImg} alt="" width={146} height={90} unoptimized />
+                  <Image key={i} src={url} className={styles.collageImg} alt="" width={146} height={90} unoptimized loading="lazy" />
                 ) : (
                   <div key={i} className={styles.collagePlaceholder} />
                 )

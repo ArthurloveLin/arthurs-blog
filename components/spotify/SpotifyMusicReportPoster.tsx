@@ -6,6 +6,7 @@ import Image from 'next/image'
 import gsap from 'gsap'
 
 import type { MusicReportStats } from '@/lib/spotify-report'
+import { spotifyImg } from '@/lib/spotify-img'
 
 import styles from './SpotifyMusicReportBoard.module.css'
 
@@ -176,11 +177,12 @@ export default function SpotifyMusicReportPoster({ stats, isLoading }: Props) {
                     {stats.topTrack.albumImageUrl ? (
                       <Image
                         className={styles.albumThumb}
-                        src={stats.topTrack.albumImageUrl}
+                        src={spotifyImg(stats.topTrack.albumImageUrl)!}
                         alt={stats.topTrack.title}
                         width={44}
                         height={44}
                         unoptimized
+                        loading="lazy"
                       />
                     ) : (
                       <div className={styles.albumThumbPlaceholder} />

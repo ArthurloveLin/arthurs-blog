@@ -1,0 +1,15 @@
+{
+	"name": "spotify-image-proxy",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy",
+		"type-check": "tsc --noEmit",
+		"types": "wrangler types"
+	},
+	"devDependencies": {
+		"typescript": "^5.4.0",
+		"wrangler": "^4.87.0"
+	}
+}

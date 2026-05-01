@@ -62,11 +62,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '*.scdn.co',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.spotifycdn.com',
+        hostname: 'img.arthurlovegrace.top',
       },
     ],
   },

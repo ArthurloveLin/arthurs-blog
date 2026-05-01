@@ -1,0 +1,18 @@
+{
+	"name": "spotify-image-proxy",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-05-01",
+	"compatibility_flags": ["nodejs_compat"],
+
+	"routes": [
+		{
+			"pattern": "img.arthurlovegrace.top/spotify*",
+			"zone_name": "arthurlovegrace.top"
+		}
+	],
+
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1
+	}
+}

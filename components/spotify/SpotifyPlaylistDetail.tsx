@@ -6,6 +6,7 @@ import { Music2, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 
 import type { SpotifyPlaylistPreview, SpotifyPlaylistTrack } from '@/lib/spotify-types'
+import { spotifyImg } from '@/lib/spotify-img'
 import { formatStableDate } from '@/lib/date-format'
 
 function formatLocalDateTime(iso: string) {
@@ -75,7 +76,7 @@ export default function SpotifyPlaylistDetail({ playlist }: { playlist: SpotifyP
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="flex items-start gap-4">
             <div className="relative h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-[22px] bg-muted">
-              <Artwork src={playlist.imageUrl} alt={playlist.name} />
+              <Artwork src={spotifyImg(playlist.imageUrl)} alt={playlist.name} />
             </div>
             <div className="min-w-0">
               <h4 className="truncate text-base font-semibold text-foreground">{playlist.name}</h4>
