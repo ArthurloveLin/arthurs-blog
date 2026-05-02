@@ -19,7 +19,7 @@ export default function MarkdownRenderer({
     <div className="prose prose-gray max-w-none">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight, rehypeSlug]}
+        rehypePlugins={[[rehypeHighlight, { detect: true }], rehypeSlug]}
         components={{
           p: ({ children }) => {
             paragraphCount++;
@@ -28,8 +28,12 @@ export default function MarkdownRenderer({
             }
             return <p>{children}</p>;
           },
+          table: ({ children }) => (
+            <div className="overflow-x-auto my-6">
+              <table>{children}</table>
+            </div>
+          ),
           img: ({ ...props }) => {
-            // Decodes the URL to handle special characters correctly
             const url = typeof props.src === 'string' ? props.src : ''
             const src = url ? decodeURIComponent(url) : ''
             return (
