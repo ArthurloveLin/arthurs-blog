@@ -1,5 +1,9 @@
 import type { Env } from './env'
 import {
+  getSpotifyNowPlayingCacheControl,
+  getSpotifyNowPlayingErrorCacheControl,
+} from './now-playing-cache'
+import {
   generateAndSaveMusicReport,
   generateAndSaveStreamData,
   getSpotifyNowPlayingData,
@@ -117,12 +121,12 @@ async function handlePublicRequest(request: Request, env: Env, ctx: ExecutionCon
       try {
         const data = await getSpotifyNowPlayingData(env)
         return json(data ?? { isPlaying: false }, 200, {
-          'Cache-Control': 'public, max-age=30, stale-while-revalidate=30',
+          'Cache-Control': getSpotifyNowPlayingCacheControl(data),
         })
       } catch (error) {
         logError('spotify now-playing failed', error, { path: url.pathname })
         return json({ isPlaying: false }, 200, {
-          'Cache-Control': 'public, max-age=10',
+          'Cache-Control': getSpotifyNowPlayingErrorCacheControl(),
         })
       }
     })

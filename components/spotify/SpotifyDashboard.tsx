@@ -10,14 +10,13 @@ import type {
 import type { MusicReport } from '@/lib/spotify-report'
 import type { SpotifyPageCopy } from '@/lib/spotify-page-copy'
 import SpotifyVinylAlbumsPanel from './SpotifyVinylAlbumsPanel'
-import SpotifyLivePlayerPanel from './SpotifyLivePlayerPanel'
+import SpotifyLiveNowPlayingSection from './SpotifyLiveNowPlayingSection'
 import SpotifyMusicReportSection from './SpotifyMusicReportSection'
 import SpotifyPlaylistDetail from './SpotifyPlaylistDetail'
 import SpotifyRecentlyPlayedSection from './SpotifyRecentlyPlayedSection'
 import SpotifySavedTracksPanel from './SpotifySavedTracksPanel'
 import SpotifyTopArtistsPanel from './SpotifyTopArtistsPanel'
 import SpotifyTopTracksPanel from './SpotifyTopTracksPanel'
-import SpotifyGeniusLiveCard from './SpotifyGeniusLiveCard'
 
 const SpotifyTagCloudCard = dynamic(() => import('./SpotifyTagCloudCard'))
 const SpotifyTagRadarCard = dynamic(() => import('./SpotifyTagRadarCard'))
@@ -96,11 +95,7 @@ export default function SpotifyDashboard({
 
   return (
     <div className="site-shell py-10 pb-24">
-      <SpotifyLivePlayerPanel stats={stats} />
-
-      <div className="mt-4">
-        <SpotifyGeniusLiveCard />
-      </div>
+      <SpotifyLiveNowPlayingSection stats={stats} />
 
       <div className="mt-4">
         <SpotifyRecentlyPlayedSection

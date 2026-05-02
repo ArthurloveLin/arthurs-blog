@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { SpotifyProvider, useSpotify } from '@/components/SpotifyProvider'
+import { useSpotify } from '@/components/SpotifyProvider'
 import { useGeniusData } from '@/hooks/useGeniusData'
 
 function AnnotationSkeleton() {
@@ -450,9 +450,5 @@ function GeniusCardInner() {
 }
 
 export default function SpotifyGeniusLiveCard() {
-  return (
-    <SpotifyProvider>
-      <GeniusCardInner />
-    </SpotifyProvider>
-  )
+  return <GeniusCardInner />
 }
