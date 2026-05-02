@@ -268,7 +268,7 @@ function SpotifyWidePlayerContent({
                         {getDeviceLabel(data.deviceName, data.deviceType)}
                       </span>
                       <span className="h-1 w-1 rounded-full bg-emerald-500/40 opacity-50" />
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-white/60 px-2 py-0.5 sm:px-3 sm:py-1 font-mono dark:bg-white/5 text-emerald-700/80 dark:text-emerald-300/80">
+                      <span className="inline-flex items-center gap-1.5 opacity-50">
                         <span className="heartbeat text-[10px] leading-none">❤️</span>
                         {statusLabel}
                       </span>
@@ -280,7 +280,7 @@ function SpotifyWidePlayerContent({
                         {absolutePlayedAt}
                       </span>
                       <span className="h-1 w-1 rounded-full bg-emerald-500/40 opacity-50" />
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-white/60 px-2 py-0.5 sm:px-3 sm:py-1 font-mono dark:bg-white/5 text-emerald-700/80 dark:text-emerald-300/80">
+                      <span className="inline-flex items-center gap-1.5 opacity-50">
                         <Radio className="h-3.5 w-3.5" strokeWidth={1.8} />
                         {statusLabel}
                       </span>

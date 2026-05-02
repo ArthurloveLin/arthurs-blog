@@ -24,7 +24,11 @@ export function getSpotifyPublicApiUrl(path: string) {
     ? (spotifyNowPlayingWorkerBase || spotifyWorkerBase)
     : spotifyWorkerBase
 
-  return workerBase ? `${workerBase}${normalizedPath}` : normalizedPath
+  if (!workerBase) {
+    throw new Error(`Missing Spotify worker URL for ${normalizedPath}`)
+  }
+
+  return `${workerBase}${normalizedPath}`
 }
 
 export function getGeniusPublicApiUrl(track: GeniusTrackQuery) {
