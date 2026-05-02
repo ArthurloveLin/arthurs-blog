@@ -14,7 +14,7 @@ const SPOTIFY_NOW_PLAYING_URL = getSpotifyPublicApiUrl('/api/now-playing')
 type SpotifyLiveData = SpotifyNowPlayingData | { isPlaying: false }
 
 async function fetchSpotifyNowPlaying(url: string): Promise<SpotifyLiveData> {
-  const response = await fetch(url, { cache: 'no-store' })
+  const response = await fetch(url)
 
   if (!response.ok) {
     throw new Error(`Failed to fetch Spotify status: ${response.status}`)
