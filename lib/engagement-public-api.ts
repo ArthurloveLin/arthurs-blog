@@ -8,20 +8,18 @@ function normalizePath(path: string) {
 
 const engagementWorkerBase = trimTrailingSlash(process.env.NEXT_PUBLIC_ENGAGEMENT_WORKER_URL)
 
-if (typeof window !== 'undefined') {
-  (window as any).__NEXT_PUBLIC_ENGAGEMENT_WORKER_URL = process.env.NEXT_PUBLIC_ENGAGEMENT_WORKER_URL
-}
-
 export function getEngagementPublicApiUrl(path: string) {
-  const normalizedPath = normalizePath(path)
+  const [pathPart, queryPart] = path.split('?') as [string, string | undefined]
+  const normalizedPath = normalizePath(pathPart)
 
   if (!engagementWorkerBase) {
-    return normalizedPath
+    return queryPart ? `${normalizedPath}?${queryPart}` : normalizedPath
   }
 
   const url = new URL(engagementWorkerBase)
   const basePath = url.pathname === '/' ? '' : url.pathname.replace(/\/+$/, '')
   url.pathname = `${basePath}${normalizedPath}`
+  if (queryPart) url.search = `?${queryPart}`
 
   return url.toString()
 }
