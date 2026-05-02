@@ -2,11 +2,35 @@ const DEFAULT_SUPABASE_HOST = 'ymdwknyxmbhckgftfena.supabase.co'
 const DEFAULT_CORS_ALLOW_ORIGIN = 'https://arthurlovegrace.top'
 const UPSTREAM_TIMEOUT_MS = 30_000
 
-function createCorsHeaders(allowOrigin: string) {
+const DEFAULT_ALLOWED_HEADERS = [
+  'Content-Type',
+  'Authorization',
+  'apikey',
+  'x-client-info',
+  'x-supabase-api-version',
+]
+
+function createCorsHeaders(allowOrigin: string, requestedHeaders: string | null = null) {
+  const allowedHeaders = new Map(
+    DEFAULT_ALLOWED_HEADERS.map((header) => [header.toLowerCase(), header])
+  )
+
+  requestedHeaders
+    ?.split(',')
+    .map((header) => header.trim())
+    .filter(Boolean)
+    .forEach((header) => {
+      const normalizedHeader = header.toLowerCase()
+
+      if (!allowedHeaders.has(normalizedHeader)) {
+        allowedHeaders.set(normalizedHeader, header)
+      }
+    })
+
   const headers: Record<string, string> = {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info',
+    'Access-Control-Allow-Headers': Array.from(allowedHeaders.values()).join(', '),
   }
 
   if (allowOrigin !== '*') {
@@ -51,7 +75,10 @@ const worker = {
       return new Response('Forbidden', { status: 403 })
     }
 
-    const corsHeaders = createCorsHeaders(allowOrigin || DEFAULT_CORS_ALLOW_ORIGIN)
+    const corsHeaders = createCorsHeaders(
+      allowOrigin || DEFAULT_CORS_ALLOW_ORIGIN,
+      request.headers.get('Access-Control-Request-Headers')
+    )
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders })
