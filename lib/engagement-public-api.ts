@@ -8,6 +8,10 @@ function normalizePath(path: string) {
 
 const engagementWorkerBase = trimTrailingSlash(process.env.NEXT_PUBLIC_ENGAGEMENT_WORKER_URL)
 
+if (typeof window !== 'undefined') {
+  (window as any).__NEXT_PUBLIC_ENGAGEMENT_WORKER_URL = process.env.NEXT_PUBLIC_ENGAGEMENT_WORKER_URL
+}
+
 export function getEngagementPublicApiUrl(path: string) {
   const normalizedPath = normalizePath(path)
 
