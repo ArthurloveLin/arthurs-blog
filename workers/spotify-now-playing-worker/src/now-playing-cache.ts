@@ -1,7 +1,7 @@
 import type { SpotifyNowPlayingData } from './spotify-types'
 
 const SPOTIFY_NEAR_END_WINDOW_MS = 12_000
-const SPOTIFY_STANDARD_CACHE_TTL_SECONDS = 30
+const SPOTIFY_STANDARD_CACHE_TTL_SECONDS = 15
 const SPOTIFY_IDLE_CACHE_TTL_SECONDS = 5
 const SPOTIFY_NEAR_END_CACHE_TTL_MAX_SECONDS = 5
 const SPOTIFY_ERROR_CACHE_TTL_SECONDS = 10
@@ -44,7 +44,7 @@ export function getSpotifyNowPlayingCacheControl(data: SpotifyNowPlayingData | n
     return createCacheControl(ttlSeconds, 0)
   }
 
-  return createCacheControl(SPOTIFY_STANDARD_CACHE_TTL_SECONDS, SPOTIFY_STANDARD_CACHE_TTL_SECONDS)
+  return createCacheControl(SPOTIFY_STANDARD_CACHE_TTL_SECONDS, 5)
 }
 
 export function getSpotifyNowPlayingErrorCacheControl() {

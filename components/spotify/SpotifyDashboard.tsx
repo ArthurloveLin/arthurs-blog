@@ -94,7 +94,7 @@ export default function SpotifyDashboard({
   }
 
   return (
-    <div className="site-shell py-10 pb-24">
+    <div className="site-shell pt-4 pb-24">
       <SpotifyLiveNowPlayingSection stats={stats} />
 
       <div className="mt-4">
