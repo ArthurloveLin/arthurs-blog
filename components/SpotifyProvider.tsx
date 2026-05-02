@@ -22,7 +22,7 @@ function buildSpotifyNowPlayingRequestUrl(url: string, forceFresh = false) {
 }
 
 async function fetchSpotifyNowPlaying(url: string, forceFresh = false): Promise<SpotifyLiveData> {
-  const response = await fetch(buildSpotifyNowPlayingRequestUrl(url, forceFresh))
+  const response = await fetch(buildSpotifyNowPlayingRequestUrl(url, forceFresh), { cache: 'no-store' })
 
   if (!response.ok) {
     throw new Error(`Failed to fetch Spotify status: ${response.status}`)
