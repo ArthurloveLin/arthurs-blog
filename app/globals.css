@@ -677,9 +677,8 @@
   font-size: 0.875rem; /* text-sm */
   line-height: 1.25rem; /* 20px */
   color: var(--muted-foreground);
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  text-align: left;
+  align-items: flex-start;
 }
 
 .default-cover-bg {

@@ -350,6 +350,7 @@ export default function NavbarSearch() {
           published_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           sticky: 0,
+          reading_minutes: 0,
         }))
 
         // Use transition to update results without blocking the UI

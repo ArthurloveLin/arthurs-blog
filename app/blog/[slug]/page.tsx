@@ -19,7 +19,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import ScrollToTop from '@/components/ScrollToTop'
 import { getPostAnchorHref } from '@/lib/blog-return'
 import { attachViewerEmojiReactions } from '@/lib/comment-emojis'
-import ArticleMetaStats from '@/components/ArticleMetaStats'
+import PostCardStats from '@/components/PostCardStats'
 import ArticleEngagementPanel from '@/components/ArticleEngagementPanel'
 import { getPostReactionSummary } from '@/lib/post-reactions'
 
@@ -30,20 +30,6 @@ function formatDate(dateStr: string | null | undefined) {
 }
 
 export const revalidate = 60
-
-function estimateReadingMinutes(content: string) {
-  const plainText = content
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`[^`]+`/g, ' ')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-    .replace(/\[[^\]]+\]\([^)]*\)/g, ' ')
-    .replace(/[#>*_~\-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  const characterCount = plainText.replace(/\s/g, '').length
-  return Math.max(1, Math.ceil(characterCount / 320))
-}
 
 export async function generateStaticParams() {
   const posts = await getPosts(1000, 0)
@@ -142,10 +128,6 @@ async function ArticleBody({
   )
 }
 
-async function ArticleHeaderMetrics({ contentPromise }: { contentPromise: Promise<string> }) {
-  const content = await contentPromise
-  return <ArticleMetaStats readingMinutes={estimateReadingMinutes(content)} />
-}
 
 export default async function BlogPostPage({
   params,
@@ -237,26 +219,24 @@ export default async function BlogPostPage({
                     </h1>
                   </ViewTransition>
 
-                  <Suspense
-                    fallback={
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <div className="h-8 w-36 animate-pulse rounded-full bg-muted" />
-                        <div className="h-8 w-28 animate-pulse rounded-full bg-muted" />
-                      </div>
-                    }
-                  >
-                    <ArticleHeaderMetrics contentPromise={contentPromise} />
-                  </Suspense>
-
-                  {/* Hero: Meta (Date · Category · Tags) */}
+                  {/* Hero: Meta (Date · Category · Stats · Tags) */}
                   <ViewTransition name={`post-meta-${post.id}`} share="morph" default="none">
-                    <div className="blog-hero-meta mt-4 flex flex-wrap items-center gap-x-1.5 gap-y-2">
-                      <time className="tabular-nums whitespace-nowrap">{formatDate(post.published_at)}</time>
-                      {post.category && (
-                        <><span className="text-foreground/20 font-bold">·</span><Link href={`/blog/category/${encodeURIComponent(post.category)}`} className="font-medium text-foreground/80 hover:text-primary transition-colors whitespace-nowrap">{post.category}</Link></>
-                      )}
+                    <div className="blog-hero-meta mt-4 flex flex-col gap-1.5 items-start text-left">
+                      {/* Stats row */}
+                      <div className="flex flex-wrap items-center gap-x-1 gap-y-1 w-full">
+                        <time className="tabular-nums whitespace-nowrap">{formatDate(post.published_at)}</time>
+                        {post.category && (
+                          <><span className="text-foreground/20 font-bold">·</span><Link href={`/category/${encodeURIComponent(post.category)}`} className="font-medium text-foreground/80 hover:text-primary transition-colors whitespace-nowrap">{post.category}</Link></>
+                        )}
+                        <PostCardStats slug={post.slug} readingMinutes={post.reading_minutes ?? 1} />
+                      </div>
+                      {/* Tags row */}
                       {post.tags.length > 0 && (
-                        <><span className="text-foreground/20 font-bold">·</span><div className="flex flex-wrap gap-1.5 items-center">{post.tags.map((tag) => (<Link key={tag} href={`/blog/tags/${encodeURIComponent(tag)}`} className="px-2 py-0.5 rounded-md bg-muted text-[11px] text-foreground/65 hover:bg-muted-foreground hover:text-background transition-all">#{tag}</Link>))}</div></>
+                        <div className="flex flex-wrap gap-1.5 items-center w-full">
+                          {post.tags.map((tag) => (
+                            <Link key={tag} href={`/tag/${encodeURIComponent(tag)}`} className="px-2 py-0.5 rounded-md bg-muted text-[11px] text-foreground/65 hover:bg-muted-foreground hover:text-background transition-all">#{tag}</Link>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </ViewTransition>
