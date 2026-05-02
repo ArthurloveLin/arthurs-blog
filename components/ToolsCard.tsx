@@ -158,7 +158,7 @@ const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
       {/* Tool links */}
       <ul className="space-y-1">
         <li>
-          <SpotifyProvider refreshIntervalMs={45000}>
+          <SpotifyProvider>
             <SpotifyNowPlaying />
           </SpotifyProvider>
         </li>

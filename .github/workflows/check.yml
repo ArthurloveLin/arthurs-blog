@@ -37,7 +37,9 @@ jobs:
         run: |
           CHANGED=$(git diff --name-only HEAD~1 HEAD -- . \
             ':!.github' ':!supabase' ':!scripts' ':!.agents' ':!.claude' \
-            ':!docs' ':!workers' ':!tmp' ':!scratch' ':!**.md')
+            ':!docs' ':!workers' ':!workers/**' ':!tmp' ':!scratch' ':!**.md')
+          echo "Files changed (excluding workers and other ignored paths):"
+          echo "$CHANGED"
           if [ -n "$CHANGED" ]; then
             echo "changed=true" >> $GITHUB_OUTPUT
           else
