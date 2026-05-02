@@ -764,7 +764,7 @@ html {
 }
 
 :where([class~="dark"]) .prose pre {
-  background-color: var(--secondary);
+  background-color: #161b22;
 }
 
 :where([class~="dark"]) .prose blockquote {
@@ -781,83 +781,34 @@ html {
   color: var(--foreground);
 }
 
-/* highlight.js dark mode token colors (GitHub Dark theme) */
-:where([class~="dark"]) .hljs {
-  color: #c9d1d9;
-  background: transparent;
+/* Always-dark code blocks — single visual layer */
+.code-block-wrapper {
+  position: relative;
+  margin: 1.25em 0;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  background: #161b22;
 }
-:where([class~="dark"]) .hljs-doctag,
-:where([class~="dark"]) .hljs-keyword,
-:where([class~="dark"]) .hljs-meta .hljs-keyword,
-:where([class~="dark"]) .hljs-template-tag,
-:where([class~="dark"]) .hljs-template-variable,
-:where([class~="dark"]) .hljs-type,
-:where([class~="dark"]) .hljs-variable.language_ {
-  color: #ff7b72;
+
+/* Strip prose/tailwind defaults from pre so only code.hljs shows */
+.code-block-wrapper pre {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
 }
-:where([class~="dark"]) .hljs-title,
-:where([class~="dark"]) .hljs-title.class_,
-:where([class~="dark"]) .hljs-title.class_.inherited__,
-:where([class~="dark"]) .hljs-title.function_ {
-  color: #d2a8ff;
+
+/* Override github-dark.css's #0d1117 so there's no inner/outer color mismatch */
+.code-block-wrapper pre code.hljs {
+  background: #161b22 !important;
+  border-radius: 0;
 }
-:where([class~="dark"]) .hljs-attr,
-:where([class~="dark"]) .hljs-attribute,
-:where([class~="dark"]) .hljs-literal,
-:where([class~="dark"]) .hljs-meta,
-:where([class~="dark"]) .hljs-number,
-:where([class~="dark"]) .hljs-operator,
-:where([class~="dark"]) .hljs-variable,
-:where([class~="dark"]) .hljs-selector-attr,
-:where([class~="dark"]) .hljs-selector-class,
-:where([class~="dark"]) .hljs-selector-id {
-  color: #79c0ff;
-}
-:where([class~="dark"]) .hljs-regexp,
-:where([class~="dark"]) .hljs-string,
-:where([class~="dark"]) .hljs-meta .hljs-string {
-  color: #a5d6ff;
-}
-:where([class~="dark"]) .hljs-built_in,
-:where([class~="dark"]) .hljs-symbol {
-  color: #ffa657;
-}
-:where([class~="dark"]) .hljs-comment,
-:where([class~="dark"]) .hljs-code,
-:where([class~="dark"]) .hljs-formula {
-  color: #8b949e;
-}
-:where([class~="dark"]) .hljs-name,
-:where([class~="dark"]) .hljs-quote,
-:where([class~="dark"]) .hljs-selector-tag,
-:where([class~="dark"]) .hljs-selector-pseudo {
-  color: #7ee787;
-}
-:where([class~="dark"]) .hljs-subst {
-  color: #c9d1d9;
-}
-:where([class~="dark"]) .hljs-section {
-  color: #1f6feb;
-  font-weight: bold;
-}
-:where([class~="dark"]) .hljs-bullet {
-  color: #f2cc60;
-}
-:where([class~="dark"]) .hljs-emphasis {
-  color: #c9d1d9;
-  font-style: italic;
-}
-:where([class~="dark"]) .hljs-strong {
-  color: #c9d1d9;
-  font-weight: bold;
-}
-:where([class~="dark"]) .hljs-addition {
-  color: #aff5b4;
-  background-color: #033a16;
-}
-:where([class~="dark"]) .hljs-deletion {
-  color: #ffdcd7;
-  background-color: #67060c;
+
+/* Dark mode override no longer needed — always dark */
+:where([class~="dark"]) .prose pre {
+  background-color: #161b22;
 }
 
 /* Blob animations */
