@@ -84,7 +84,7 @@ export default function SpotifyDashboard({
   initialRecentTracks: SpotifyDashboardData['recentlyPlayed']
   tagAnalysis: SpotifyTagAnalysis
   copy: SpotifyPageCopy
-  musicReport: MusicReport
+  musicReport: MusicReport | null
   todayTracksCount?: number
 }) {
   const stats = {

@@ -10,22 +10,18 @@ const SPOTIFY_IDLE_CACHE_TTL_SECONDS = 5
 const SPOTIFY_NEAR_END_CACHE_TTL_MAX_SECONDS = 5
 const SPOTIFY_ERROR_CACHE_TTL_SECONDS = 10
 
-interface SpotifyNowPlayingCacheControlOptions {
-  shared?: boolean
-}
-
 interface SpotifyNowPlayingRefreshPlan {
   nearEndDelayMs?: number
   endDelayMs: number
   postEndDelayMs: number
 }
 
-function createAgeDirective(ageSeconds: number, shared: boolean) {
+function createAgeDirective(ageSeconds: number) {
   return `max-age=0, must-revalidate, s-maxage=${ageSeconds}`
 }
 
-function createCacheControl(ageSeconds: number, staleWhileRevalidateSeconds: number, shared: boolean) {
-  const directives = ['public', createAgeDirective(ageSeconds, shared)]
+function createCacheControl(ageSeconds: number, staleWhileRevalidateSeconds: number) {
+  const directives = ['public', createAgeDirective(ageSeconds)]
 
   if (staleWhileRevalidateSeconds > 0) {
     directives.push(`stale-while-revalidate=${staleWhileRevalidateSeconds}`)
@@ -66,13 +62,11 @@ export function getSpotifyNowPlayingRefreshPlan(
 
 export function getSpotifyNowPlayingCacheControl(
   data: SpotifyNowPlayingData | null | undefined,
-  options: SpotifyNowPlayingCacheControlOptions = {},
 ) {
-  const shared = options.shared ?? false
   const remainingMs = getSpotifyRemainingMs(data)
 
   if (remainingMs === null) {
-    return createCacheControl(SPOTIFY_IDLE_CACHE_TTL_SECONDS, SPOTIFY_IDLE_CACHE_TTL_SECONDS, shared)
+    return createCacheControl(SPOTIFY_IDLE_CACHE_TTL_SECONDS, SPOTIFY_IDLE_CACHE_TTL_SECONDS)
   }
 
   if (remainingMs <= SPOTIFY_NEAR_END_WINDOW_MS) {
@@ -81,18 +75,15 @@ export function getSpotifyNowPlayingCacheControl(
       Math.ceil(remainingMs / 1_000),
     ))
 
-    return createCacheControl(ttlSeconds, 0, shared)
+    return createCacheControl(ttlSeconds, 0)
   }
 
   return createCacheControl(
     SPOTIFY_STANDARD_CACHE_TTL_SECONDS,
     SPOTIFY_STANDARD_CACHE_TTL_SECONDS,
-    shared,
   )
 }
 
-export function getSpotifyNowPlayingErrorCacheControl(
-  options: SpotifyNowPlayingCacheControlOptions = {},
-) {
-  return createCacheControl(SPOTIFY_ERROR_CACHE_TTL_SECONDS, 0, options.shared ?? false)
+export function getSpotifyNowPlayingErrorCacheControl() {
+  return createCacheControl(SPOTIFY_ERROR_CACHE_TTL_SECONDS, 0)
 }

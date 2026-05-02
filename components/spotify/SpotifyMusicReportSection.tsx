@@ -20,7 +20,7 @@ export default function SpotifyMusicReportSection({
   report,
 }: {
   copy: SpotifySectionCopy
-  report: MusicReport
+  report: MusicReport | null
 }) {
   const [isPending, startTransition] = useTransition()
   const [activePeriod, setActivePeriod] = useState<Period>('week')
@@ -63,7 +63,13 @@ export default function SpotifyMusicReportSection({
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{copy.description}</p>
 
       <div className="mt-6">
-        <SpotifyMusicReportBoard activePeriod={activePeriod} isTransitioning={isPending} report={report} />
+        {report ? (
+          <SpotifyMusicReportBoard activePeriod={activePeriod} isTransitioning={isPending} report={report} />
+        ) : (
+          <div className="rounded-[24px] border border-dashed border-border/70 bg-muted/20 px-4 py-10 text-sm text-muted-foreground">
+            Spotify report.json 暂未生成，当前页面不再回退到本地现场聚合。请等待 worker 下一次同步后再查看此区块。
+          </div>
+        )}
       </div>
     </section>
   )
