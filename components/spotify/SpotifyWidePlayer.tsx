@@ -197,7 +197,7 @@ function SpotifyWidePlayerContent({
   const progressPercent = data.durationMs ? (localProgress / data.durationMs) * 100 : 0
 
   return (
-    <div className="relative flex min-h-[300px] flex-col justify-center overflow-hidden rounded-[28px] border border-emerald-500/15 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.1),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.8),rgba(240,253,248,0.7))] p-5 sm:p-7 shadow-[0_18px_60_rgba(0,0,0,0.05)] dark:bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_30%),linear-gradient(135deg,rgba(10,20,15,0.7),rgba(5,15,10,0.7))]">
+    <div className="relative flex min-h-[300px] flex-col justify-center overflow-hidden rounded-[28px] border border-emerald-500/15 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.1),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.8),rgba(240,253,248,0.7))] p-5 sm:p-7 dark:bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_30%),linear-gradient(135deg,rgba(10,20,15,0.7),rgba(5,15,10,0.7))] shadow-[0_15px_40px_rgba(16,185,129,0.22),0_4px_16px_rgba(16,185,129,0.12)]">
       {data.albumImageUrl && (
         <div className="animate-in fade-in mix-blend-multiply transition-opacity duration-1000 dark:mix-blend-screen pointer-events-none absolute inset-0 overflow-hidden opacity-30 dark:opacity-20 transform-gpu">
           <Image
@@ -215,16 +215,7 @@ function SpotifyWidePlayerContent({
       <div className="hidden lg:block pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[linear-gradient(120deg,transparent,rgba(16,185,129,0.05),transparent)] opacity-60" />
 
       <div className="relative z-10">
-        <div className="mb-6 flex flex-wrap items-center justify-center lg:justify-start gap-2 text-[10.5px] uppercase tracking-[0.2em] text-emerald-700/80 sm:text-[11px] dark:text-emerald-300/80">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-white/60 px-2 py-0.5 font-mono sm:px-3 sm:py-1 dark:bg-white/5">
-            {data.isPlaying ? (
-              <span className="heartbeat text-[10px] leading-none">❤️</span>
-            ) : (
-              <Radio className="h-3.5 w-3.5" strokeWidth={1.8} />
-            )}
-            {statusLabel}
-          </span>
-        </div>
+
 
         <div className="grid gap-8 lg:grid-cols-[auto_1fr_180px] lg:items-stretch xl:gap-12">
           {/* Column 1: Album Cover */}
@@ -268,20 +259,32 @@ function SpotifyWidePlayerContent({
                 <p className="text-lg font-medium text-foreground/70 sm:text-xl lg:text-2xl leading-none">
                   by <span className="text-foreground border-b-2 border-emerald-500/20 pb-0.5">{data.artist}</span>
                 </p>
-                <div className="flex items-center gap-3 text-[10px] font-mono uppercase tracking-widest opacity-50 leading-none">
+                <div className="flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-widest leading-none">
                   {data.isPlaying ? (
                     <>
-                      <span className="h-1 w-1 rounded-full bg-emerald-500/40" />
-                      <span className="inline-flex items-center gap-1.5">
+                      <span className="h-1 w-1 rounded-full bg-emerald-500/40 opacity-50" />
+                      <span className="inline-flex items-center gap-1.5 opacity-50">
                         <DeviceInfoIcon deviceType={data.deviceType} />
                         {getDeviceLabel(data.deviceName, data.deviceType)}
                       </span>
+                      <span className="h-1 w-1 rounded-full bg-emerald-500/40 opacity-50" />
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-white/60 px-2 py-0.5 sm:px-3 sm:py-1 font-mono dark:bg-white/5 text-emerald-700/80 dark:text-emerald-300/80">
+                        <span className="heartbeat text-[10px] leading-none">❤️</span>
+                        {statusLabel}
+                      </span>
                     </>
                   ) : absolutePlayedAt ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Clock3 className="h-3.5 w-3.5" strokeWidth={1.8} />
-                      {absolutePlayedAt}
-                    </span>
+                    <>
+                      <span className="inline-flex items-center gap-1.5 opacity-50">
+                        <Clock3 className="h-3.5 w-3.5" strokeWidth={1.8} />
+                        {absolutePlayedAt}
+                      </span>
+                      <span className="h-1 w-1 rounded-full bg-emerald-500/40 opacity-50" />
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-white/60 px-2 py-0.5 sm:px-3 sm:py-1 font-mono dark:bg-white/5 text-emerald-700/80 dark:text-emerald-300/80">
+                        <Radio className="h-3.5 w-3.5" strokeWidth={1.8} />
+                        {statusLabel}
+                      </span>
+                    </>
                   ) : null}
                 </div>
               </div>

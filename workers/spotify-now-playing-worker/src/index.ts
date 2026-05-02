@@ -45,11 +45,27 @@ function json(body: unknown, status = 200, extraHeaders: HeadersInit = {}) {
 }
 
 async function respondFromEdgeCache(request: Request, ctx: ExecutionContext, build: () => Promise<Response>) {
-  const cacheKey = new Request(request.url, { method: 'GET' })
-  const cached = await caches.default.match(cacheKey)
+  const cacheControl = request.headers.get('Cache-Control') || ''
+  const pragma = request.headers.get('Pragma') || ''
 
-  if (cached) {
-    return cached
+  const url = new URL(request.url)
+  const hasRefreshParam = url.searchParams.has('refresh')
+
+  const isNoCache = cacheControl.includes('no-cache') ||
+                    cacheControl.includes('no-store') ||
+                    pragma.includes('no-cache') ||
+                    hasRefreshParam
+
+  // Normalize cache key by removing cache-busting params
+  url.searchParams.delete('refresh')
+  url.searchParams.delete('t')
+  const cacheKey = new Request(url.toString(), { method: 'GET' })
+
+  if (!isNoCache) {
+    const cached = await caches.default.match(cacheKey)
+    if (cached) {
+      return cached
+    }
   }
 
   const response = await build()
@@ -73,7 +89,7 @@ const worker = {
 
     const url = new URL(request.url)
 
-    if (url.pathname !== '/api/now-playing') {
+    if (url.pathname !== '/api/now-playing' && url.pathname !== '/') {
       return json({ error: 'Not Found' }, 404, { 'Cache-Control': 'no-store' })
     }
 

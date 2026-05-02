@@ -79,7 +79,8 @@ export function SpotifyProvider({
 
     const refreshTask = (async () => {
       try {
-        const nextData = await fetchSpotifyNowPlaying(SPOTIFY_NOW_PLAYING_URL)
+        const url = SPOTIFY_NOW_PLAYING_URL + (SPOTIFY_NOW_PLAYING_URL.includes('?') ? '&' : '?') + 'refresh=true'
+        const nextData = await fetchSpotifyNowPlaying(url)
         await mutate(nextData, { revalidate: false })
       } catch (refreshError) {
         console.error('Failed to refresh Spotify status', refreshError)
