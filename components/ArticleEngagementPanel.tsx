@@ -5,6 +5,7 @@ import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import ThankYouAnimation from '@/components/ThankYouAnimation'
 import { useAuth } from '@/components/AuthProvider'
+import { getEngagementPublicApiUrl } from '@/lib/engagement-public-api'
 import type { PostReactionSummary } from '@/lib/post-reactions'
 
 interface ArticleEngagementPanelProps {
@@ -90,7 +91,7 @@ export default function ArticleEngagementPanel({ postId, initialSummary }: Artic
     let cancelled = false
 
     async function loadSummary() {
-      const response = await fetch(`/api/posts/${postId}/engagement?identity=${encodeURIComponent(identity)}`)
+      const response = await fetch(getEngagementPublicApiUrl(`/api/posts/${postId}/engagement?identity=${encodeURIComponent(identity)}`))
       if (!response.ok) {
         return
       }
@@ -126,7 +127,7 @@ export default function ArticleEngagementPanel({ postId, initialSummary }: Artic
     setSummary((current) => applyOptimisticReaction(current, nextReaction))
 
     try {
-      const response = await fetch(`/api/posts/${postId}/reaction`, {
+      const response = await fetch(getEngagementPublicApiUrl(`/api/posts/${postId}/reaction`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identity, reaction: nextReaction }),
@@ -155,7 +156,7 @@ export default function ArticleEngagementPanel({ postId, initialSummary }: Artic
     setSummary((current) => applyOptimisticEmoji(current, emoji))
 
     try {
-      const response = await fetch(`/api/posts/${postId}/emoji`, {
+      const response = await fetch(getEngagementPublicApiUrl(`/api/posts/${postId}/emoji`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identity, emoji }),

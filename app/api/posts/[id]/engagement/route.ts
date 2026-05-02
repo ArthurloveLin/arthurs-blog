@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPostReactionSummary } from '@/lib/post-reactions'
-import { normalizeReactionIdentity } from '@/lib/comment-reactions'
+import { normalizePostReactionIdentity } from '@/lib/post-reaction-core'
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
-  const identity = normalizeReactionIdentity(req.nextUrl.searchParams.get('identity'))
+  const identity = normalizePostReactionIdentity(req.nextUrl.searchParams.get('identity'))
 
   try {
     const summary = await getPostReactionSummary(id, identity)

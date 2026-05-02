@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { applyPostReaction } from '@/lib/post-reactions'
-import { normalizeReactionIdentity, normalizeReactionValue } from '@/lib/comment-reactions'
+import { normalizePostReactionIdentity, normalizePostReactionValue } from '@/lib/post-reaction-core'
 
 export async function POST(
   req: NextRequest,
@@ -8,8 +8,8 @@ export async function POST(
 ) {
   const { id } = await params
   const body = await req.json().catch(() => ({})) as Record<string, unknown>
-  const identity = normalizeReactionIdentity(body.identity)
-  const reaction = normalizeReactionValue(body.reaction)
+  const identity = normalizePostReactionIdentity(body.identity)
+  const reaction = normalizePostReactionValue(body.reaction)
 
   if (!identity) {
     return NextResponse.json({ error: 'Missing identity' }, { status: 400 })

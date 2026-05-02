@@ -1,14 +1,16 @@
 import type { EmojiReactionSummary } from '@/lib/comment-emojis'
 import { normalizeEmoji } from '@/lib/comment-emojis'
 import {
-  normalizeReactionIdentity,
-  normalizeReactionValue,
-  type ReactionSummary,
-  type ReactionValue,
-} from '@/lib/comment-reactions'
+  createPostReactionSummaryFields,
+  normalizePostReactionIdentity,
+  normalizePostReactionValue,
+  summarizePostReactionValues,
+  type PostReactionSummaryFields,
+  type PostReactionValue,
+} from '@/lib/post-reaction-core'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
-export type PostReactionSummary = ReactionSummary & EmojiReactionSummary
+export type PostReactionSummary = PostReactionSummaryFields & EmojiReactionSummary
 
 function createEmptyEmojiSummary(): EmojiReactionSummary {
   return {
@@ -18,7 +20,7 @@ function createEmptyEmojiSummary(): EmojiReactionSummary {
 }
 
 export async function getPostReactionSummary(postId: string, identity?: string | null): Promise<PostReactionSummary> {
-  const normalizedIdentity = normalizeReactionIdentity(identity)
+  const normalizedIdentity = normalizePostReactionIdentity(identity)
   const [{ data: post, error: postError }, { data: viewerReaction, error: viewerReactionError }, { data: emojiRows, error: emojiError }] = await Promise.all([
     supabaseAdmin
       .from('posts')
@@ -61,7 +63,7 @@ export async function getPostReactionSummary(postId: string, identity?: string |
     }
 
     const current = aggregateMap.get(emoji)
-    const rowIdentity = normalizeReactionIdentity(row.identity)
+    const rowIdentity = normalizePostReactionIdentity(row.identity)
     const updatedAt = typeof row.updated_at === 'string' ? row.updated_at : ''
 
     aggregateMap.set(emoji, {
@@ -93,15 +95,13 @@ export async function getPostReactionSummary(postId: string, identity?: string |
   emojiSummary.viewer_emojis = [...emojiSummary.viewer_emojis].sort((left, right) => left.localeCompare(right))
 
   return {
-    upvotes: typeof post.upvotes === 'number' ? post.upvotes : 0,
-    downvotes: typeof post.downvotes === 'number' ? post.downvotes : 0,
-    viewer_reaction: normalizeReactionValue(viewerReaction?.value),
+    ...createPostReactionSummaryFields(post.upvotes, post.downvotes, viewerReaction?.value),
     ...emojiSummary,
   }
 }
 
-export async function applyPostReaction(postId: string, identity: string, reaction: ReactionValue): Promise<ReactionSummary> {
-  const normalizedIdentity = normalizeReactionIdentity(identity)
+export async function applyPostReaction(postId: string, identity: string, reaction: PostReactionValue): Promise<PostReactionSummaryFields> {
+  const normalizedIdentity = normalizePostReactionIdentity(identity)
   if (!normalizedIdentity) {
     throw new Error('MISSING_IDENTITY')
   }
@@ -127,7 +127,7 @@ export async function applyPostReaction(postId: string, identity: string, reacti
     throw new Error(reactionFetchError.message)
   }
 
-  const currentReaction = normalizeReactionValue(existingReaction?.value)
+  const currentReaction = normalizePostReactionValue(existingReaction?.value)
 
   if (reaction === 0) {
     if (existingReaction?.id) {
@@ -168,17 +168,7 @@ export async function applyPostReaction(postId: string, identity: string, reacti
     throw new Error(aggregateError.message)
   }
 
-  let upvotes = 0
-  let downvotes = 0
-
-  for (const entry of reactions ?? []) {
-    const value = normalizeReactionValue(entry.value)
-    if (value === 1) {
-      upvotes += 1
-    } else if (value === -1) {
-      downvotes += 1
-    }
-  }
+  const { upvotes, downvotes } = summarizePostReactionValues((reactions ?? []).map((entry) => entry.value))
 
   const { error: updateError } = await supabaseAdmin
     .from('posts')
@@ -189,15 +179,11 @@ export async function applyPostReaction(postId: string, identity: string, reacti
     throw new Error(updateError.message)
   }
 
-  return {
-    upvotes,
-    downvotes,
-    viewer_reaction: reaction,
-  }
+  return createPostReactionSummaryFields(upvotes, downvotes, reaction)
 }
 
 export async function applyPostEmojiReaction(postId: string, identity: string, emoji: string | null) {
-  const normalizedIdentity = normalizeReactionIdentity(identity)
+  const normalizedIdentity = normalizePostReactionIdentity(identity)
   if (!normalizedIdentity) {
     throw new Error('MISSING_IDENTITY')
   }

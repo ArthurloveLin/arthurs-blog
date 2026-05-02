@@ -8,6 +8,7 @@ import EmojiPickerButton from './emoji/EmojiPickerButton'
 import EmojiReactionSummary from './emoji/EmojiReactionSummary'
 import EditorActionBar from './EditorActionBar'
 import ReactionToggleBar from './ReactionToggleBar'
+import { getEngagementPublicApiUrl } from '@/lib/engagement-public-api'
 import type { EmojiReactionEntry } from '@/lib/comment-emojis'
 import { formatCommentTimeLabel } from '@/lib/date-format'
 import { COMMENT_MAX_LENGTH } from '@/lib/input-limits'
@@ -29,12 +30,20 @@ interface Comment {
   optimistic?: boolean
 }
 
+interface CommentViewerState {
+  id: string
+  viewer_reaction: ReactionValue
+  viewer_emojis: string[]
+}
+
 interface CommentTreeContextValue {
   comments: Comment[]
   topLevelComments: Comment[]
   repliesByParentId: Record<string, Comment[]>
+  draftScopeKey: string
   replyTo: { id: string; author: string } | null
   draft: string
+  composeDraftNotice: string | null
   submitting: boolean
   error: string | null
   identityReady: boolean
@@ -57,6 +66,77 @@ const CommentTreeContext = createContext<CommentTreeContextValue | null>(null)
 
 function limitCommentText(value: string) {
   return value.slice(0, COMMENT_MAX_LENGTH)
+}
+
+function createComposeDraftStorageKey(targetType: CommentBoxProps['targetType'], targetId: string) {
+  return `comment-compose-draft:${targetType}:${targetId}`
+}
+
+function createEditDraftStorageKey(draftScopeKey: string, commentId: string) {
+  return `comment-edit-draft:${draftScopeKey}:${commentId}`
+}
+
+function readComposeDraft(storageKey: string) {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const raw = window.localStorage.getItem(storageKey)
+  if (!raw) {
+    return null
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as { draft?: unknown; replyTo?: { id?: unknown; author?: unknown } | null }
+    const draft = typeof parsed.draft === 'string' ? limitCommentText(parsed.draft) : ''
+    const replyTo = parsed.replyTo && typeof parsed.replyTo.id === 'string' && typeof parsed.replyTo.author === 'string'
+      ? { id: parsed.replyTo.id, author: parsed.replyTo.author }
+      : null
+
+    if (!draft && !replyTo) {
+      return null
+    }
+
+    return { draft, replyTo }
+  } catch {
+    window.localStorage.removeItem(storageKey)
+    return null
+  }
+}
+
+function writeComposeDraft(storageKey: string, draft: string, replyTo: { id: string; author: string } | null) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  if (!draft && !replyTo) {
+    window.localStorage.removeItem(storageKey)
+    return
+  }
+
+  window.localStorage.setItem(storageKey, JSON.stringify({ draft, replyTo }))
+}
+
+function readEditDraft(storageKey: string) {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const raw = window.localStorage.getItem(storageKey)
+  return raw ? limitCommentText(raw) : null
+}
+
+function writeEditDraft(storageKey: string, draft: string) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  if (!draft) {
+    window.localStorage.removeItem(storageKey)
+    return
+  }
+
+  window.localStorage.setItem(storageKey, draft)
 }
 
 function getLengthTone(length: number, maxLength: number) {
@@ -140,6 +220,49 @@ function applyOptimisticEmojiToComment(comment: Comment, nextEmoji: string): Com
   }
 }
 
+function applyViewerStateToComment(comment: Comment, viewerState?: CommentViewerState): Comment {
+  const viewerEmojis = viewerState?.viewer_emojis ?? []
+  const viewerEmojiSet = new Set(viewerEmojis)
+
+  return {
+    ...comment,
+    viewer_reaction: viewerState?.viewer_reaction ?? 0,
+    viewer_emojis: viewerEmojis,
+    emoji_reactions: comment.emoji_reactions.map((entry) => ({
+      ...entry,
+      viewer: viewerEmojiSet.has(entry.emoji),
+    })),
+  }
+}
+
+function mergePublicComments(current: Comment[], nextComments: Comment[]) {
+  const currentById = new Map(current.map((comment) => [comment.id, comment]))
+  const mergedComments = nextComments.map((comment) => {
+    const currentComment = currentById.get(comment.id)
+    if (!currentComment) {
+      return comment
+    }
+
+    return applyViewerStateToComment(comment, {
+      id: comment.id,
+      viewer_reaction: currentComment.viewer_reaction,
+      viewer_emojis: currentComment.viewer_emojis,
+    })
+  })
+  const mergedIds = new Set(mergedComments.map((comment) => comment.id))
+
+  return [
+    ...mergedComments,
+    ...current.filter((comment) => comment.optimistic && !mergedIds.has(comment.id)),
+  ]
+}
+
+function applyViewerStateToComments(comments: Comment[], viewerStates: CommentViewerState[]) {
+  const viewerStateMap = new Map(viewerStates.map((entry) => [entry.id, entry]))
+
+  return comments.map((comment) => applyViewerStateToComment(comment, viewerStateMap.get(comment.id)))
+}
+
 function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = []
   const pattern = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==)/g
@@ -210,6 +333,7 @@ function CommentEditorForm({
   onSave,
   isSaving,
   error,
+  notice,
 }: {
   value: string
   onChange: (value: string) => void
@@ -217,6 +341,7 @@ function CommentEditorForm({
   onSave: () => void
   isSaving: boolean
   error: string | null
+  notice: string | null
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -281,6 +406,7 @@ function CommentEditorForm({
           已输入 {value.length} 字，还剩 {Math.max(COMMENT_MAX_LENGTH - value.length, 0)} 字
         </span>
       </div>
+      {notice ? <p className="px-3 pb-3 text-xs text-slate-500">{notice}</p> : null}
       {error ? <p className="px-3 pb-3 text-xs text-rose-600">{error}</p> : null}
     </CommentComposerShell>
   )
@@ -324,17 +450,56 @@ function CommentIconButton({
 }
 
 function CommentCard({ comment }: { comment: Comment }) {
-  const { identityAliases, isAdmin, reactingIds, emojiReactingIds, onReply, onDelete, onUpdate, onReact, onEmojiReact } = useCommentTree()
+  const { draftScopeKey, identityAliases, isAdmin, reactingIds, emojiReactingIds, onReply, onDelete, onUpdate, onReact, onEmojiReact } = useCommentTree()
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(comment.content)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const editable = canModifyComment(comment, identityAliases, isAdmin)
+  const editDraftStorageKey = useMemo(() => createEditDraftStorageKey(draftScopeKey, comment.id), [comment.id, draftScopeKey])
+  const skipNextEditDraftPersistRef = useRef(false)
 
   useEffect(() => {
     setDraft(comment.content)
   }, [comment.content])
+
+  useEffect(() => {
+    if (!isEditing) {
+      return
+    }
+
+    const storedDraft = readEditDraft(editDraftStorageKey)
+    if (!storedDraft || storedDraft === comment.content) {
+      setNotice(null)
+      return
+    }
+
+    skipNextEditDraftPersistRef.current = true
+    setDraft(storedDraft)
+    setNotice('已恢复未保存的编辑内容。')
+  }, [comment.content, editDraftStorageKey, isEditing])
+
+  useEffect(() => {
+    if (!isEditing) {
+      return
+    }
+
+    if (skipNextEditDraftPersistRef.current) {
+      skipNextEditDraftPersistRef.current = false
+      return
+    }
+
+    const normalizedDraft = limitCommentText(draft)
+
+    if (!normalizedDraft.trim() || normalizedDraft === comment.content) {
+      writeEditDraft(editDraftStorageKey, '')
+      return
+    }
+
+    writeEditDraft(editDraftStorageKey, normalizedDraft)
+  }, [comment.content, draft, editDraftStorageKey, isEditing])
 
   async function handleSave() {
     if (!draft.trim() || isSaving) return
@@ -344,6 +509,8 @@ function CommentCard({ comment }: { comment: Comment }) {
 
     try {
       await onUpdate(comment.id, draft.trim())
+      writeEditDraft(editDraftStorageKey, '')
+      setNotice(null)
       setIsEditing(false)
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : '评论更新失败。')
@@ -386,11 +553,13 @@ function CommentCard({ comment }: { comment: Comment }) {
             onCancel={() => {
               setDraft(comment.content)
               setError(null)
+              setNotice(null)
               setIsEditing(false)
             }}
             onSave={handleSave}
             isSaving={isSaving}
             error={error}
+            notice={notice}
           />
         ) : (
           <div className="w-full whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-800">
@@ -490,6 +659,7 @@ function CommentThreadList() {
 
 function CommentThreadComposer() {
   const {
+    composeDraftNotice,
     draft,
     error,
     identityReady,
@@ -573,6 +743,7 @@ function CommentThreadComposer() {
           已输入 {draft.length} 字，还剩 {Math.max(COMMENT_MAX_LENGTH - draft.length, 0)} 字
         </span>
       </div>
+      {composeDraftNotice ? <p className="text-xs text-slate-500">{composeDraftNotice}</p> : null}
       {error ? <p className="text-xs text-rose-600">{error}</p> : null}
     </div>
   )
@@ -600,6 +771,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
 
   const [comments, setComments] = useState<Comment[]>(initialComments)
   const [draft, setDraft] = useState('')
+  const [composeDraftNotice, setComposeDraftNotice] = useState<string | null>(null)
   const [replyTo, setReplyTo] = useState<{ id: string; author: string } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -609,34 +781,85 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const commentsRef = useRef(initialComments)
   const freshTimerRefs = useRef<Record<string, number>>({})
+  const composeDraftStorageKey = useMemo(() => createComposeDraftStorageKey(targetType, targetId), [targetId, targetType])
+  const draftScopeKey = useMemo(() => `${targetType}:${targetId}`, [targetId, targetType])
+  const skipNextComposeDraftPersistRef = useRef(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
   useEffect(() => {
+    if (!mounted) return
+
+    const storedDraft = readComposeDraft(composeDraftStorageKey)
+    if (!storedDraft) {
+      return
+    }
+
+    skipNextComposeDraftPersistRef.current = true
+    setDraft(storedDraft.draft)
+    setReplyTo(storedDraft.replyTo)
+    setComposeDraftNotice('已恢复上次草稿，后续会自动保存到本地。')
+  }, [composeDraftStorageKey, mounted])
+
+  useEffect(() => {
+    if (!mounted) return
+
+    if (skipNextComposeDraftPersistRef.current) {
+      skipNextComposeDraftPersistRef.current = false
+      return
+    }
+
+    writeComposeDraft(composeDraftStorageKey, draft, replyTo)
+  }, [composeDraftStorageKey, draft, mounted, replyTo])
+
+  useEffect(() => {
     commentsRef.current = comments
   }, [comments])
 
   useEffect(() => {
-    if (!mounted || !identity) return
+    if (!mounted) return
 
     const controller = new AbortController()
-    const searchParams = new URLSearchParams({ target_type: targetType, target_id: targetId, identity })
+    const searchParams = new URLSearchParams({ target_type: targetType, target_id: targetId })
 
-    void fetch(`/api/comments?${searchParams.toString()}`, { signal: controller.signal })
+    void fetch(getEngagementPublicApiUrl(`/api/comments?${searchParams.toString()}`), { signal: controller.signal })
       .then((response) => response.ok ? response.json() as Promise<Comment[]> : null)
       .then((nextComments) => {
         if (!nextComments) return
 
-        setComments((current) => {
-          const optimisticComments = current.filter((comment) => comment.optimistic)
-          return [...nextComments, ...optimisticComments.filter((comment) => !nextComments.some((entry) => entry.id === comment.id))]
-        })
+        setComments((current) => mergePublicComments(current, nextComments))
       })
       .catch((fetchError) => {
         if ((fetchError as Error).name !== 'AbortError') {
-          setError((current) => current ?? '评论状态同步失败。')
+          setError((current) => current ?? '评论线程同步失败。')
+        }
+      })
+
+    return () => controller.abort()
+  }, [mounted, targetId, targetType])
+
+  useEffect(() => {
+    if (!mounted) return
+
+    if (!identity) {
+      setComments((current) => applyViewerStateToComments(current, []))
+      return
+    }
+
+    const controller = new AbortController()
+    const searchParams = new URLSearchParams({ target_type: targetType, target_id: targetId, identity })
+
+    void fetch(`/api/comments/viewer-state?${searchParams.toString()}`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() as Promise<CommentViewerState[]> : null)
+      .then((viewerStates) => {
+        if (!viewerStates) return
+        setComments((current) => applyViewerStateToComments(current, viewerStates))
+      })
+      .catch((fetchError) => {
+        if ((fetchError as Error).name !== 'AbortError') {
+          setError((current) => current ?? '评论互动状态同步失败。')
         }
       })
 
@@ -700,7 +923,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     markCommentFresh(optimisticId)
 
     try {
-      const res = await fetch('/api/comments', {
+      const res = await fetch(getEngagementPublicApiUrl('/api/comments'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -716,6 +939,8 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
         throw new Error(payload?.error === 'Content too long' ? `评论不能超过 ${COMMENT_MAX_LENGTH} 字。` : '评论发送失败。')
       }
       const newComment: Comment = await res.json()
+      writeComposeDraft(composeDraftStorageKey, '', null)
+      setComposeDraftNotice(null)
       setComments((prev) => prev.map((comment) => comment.id === optimisticId ? newComment : comment))
       markCommentFresh(newComment.id)
     } catch (submitError) {
@@ -847,8 +1072,10 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     comments,
     topLevelComments,
     repliesByParentId,
+    draftScopeKey,
     replyTo,
     draft,
+    composeDraftNotice,
     submitting,
     error,
     identityReady: mounted && Boolean(identity),

@@ -14,11 +14,10 @@ import CategoriesCard from '@/components/CategoriesCard'
 import RecentPostsCard from '@/components/RecentPostsCard'
 import ToolsCard from '@/components/ToolsCard'
 import ScrollCollapseWrapper from '@/components/ScrollHideWrapper'
+import { getPublicCommentThread, type PublicCommentThreadItem } from '@/lib/comments'
 import { formatBlogPublishedDate } from '@/lib/date-format'
-import { supabaseAdmin } from '@/lib/supabase-admin'
 import ScrollToTop from '@/components/ScrollToTop'
 import { getPostAnchorHref } from '@/lib/blog-return'
-import { attachViewerEmojiReactions } from '@/lib/comment-emojis'
 import PostCardStats from '@/components/PostCardStats'
 import ArticleEngagementPanel from '@/components/ArticleEngagementPanel'
 import { getPostReactionSummary } from '@/lib/post-reactions'
@@ -34,20 +33,6 @@ export const revalidate = 60
 export async function generateStaticParams() {
   const posts = await getPosts(1000, 0)
   return posts.map((p) => ({ slug: p.slug }))
-}
-
-type Comment = {
-  id: string
-  author: string
-  content: string
-  created_at: string
-  updated_at: string | null
-  parent_id: string | null
-  upvotes: number
-  downvotes: number
-  viewer_reaction: -1 | 0 | 1
-  emoji_reactions: { emoji: string; count: number; viewer: boolean }[]
-  viewer_emojis: string[]
 }
 
 // async-suspense-boundaries: inner Server Component for TOC — shares contentPromise
@@ -67,7 +52,7 @@ async function ArticleBody({
 }: {
   contentPromise: Promise<string>
   adjacentPromise: Promise<{ prev: Post | null; next: Post | null }>
-  commentsPromise: Promise<Comment[] | null>
+  commentsPromise: Promise<PublicCommentThreadItem[] | null>
   engagementSummaryPromise: Promise<Awaited<ReturnType<typeof getPostReactionSummary>>>
   postId: string
   skipFirstParagraph?: boolean
@@ -145,17 +130,7 @@ export default async function BlogPostPage({
   const contentPromise = getPostContent(post)
   const adjacentPromise = getAdjacentPosts(post.published_at!)
   const engagementSummaryPromise = getPostReactionSummary(post.id)
-  const commentsPromise = Promise.resolve(
-    supabaseAdmin
-      .from('comments')
-      .select('id, author, content, created_at, updated_at, parent_id, upvotes, downvotes')
-      .eq('target_type', 'blog_post')
-      .eq('target_id', post.id)
-      .order('created_at', { ascending: true })
-      .then(async (r) => attachViewerEmojiReactions(
-        (r.data ?? []).map((comment) => ({ ...comment, viewer_reaction: 0 })) as Array<Omit<Comment, 'emoji_reactions' | 'viewer_emojis'>>,
-      ) as Promise<Comment[]>)
-  )
+  const commentsPromise = getPublicCommentThread('blog_post', post.id)
 
   return (
     <DirectionalTransition>

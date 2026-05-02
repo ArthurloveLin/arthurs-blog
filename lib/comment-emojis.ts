@@ -36,6 +36,40 @@ function createEmptySummary(): EmojiReactionSummary {
   }
 }
 
+export async function getViewerEmojiMap(commentIds: string[], identity?: string | null) {
+  const normalizedIdentity = normalizeReactionIdentity(identity)
+  if (!normalizedIdentity || commentIds.length === 0) {
+    return {} as Record<string, string[]>
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('comment_emoji_reactions')
+    .select('comment_id, emoji')
+    .eq('identity', normalizedIdentity)
+    .in('comment_id', commentIds)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  const emojiMap = {} as Record<string, string[]>
+
+  for (const row of data ?? []) {
+    const commentId = row.comment_id as string
+    const emoji = normalizeEmoji(row.emoji)
+    if (!emoji) {
+      continue
+    }
+
+    const current = emojiMap[commentId] ?? []
+    if (!current.includes(emoji)) {
+      emojiMap[commentId] = [...current, emoji].sort((left, right) => left.localeCompare(right))
+    }
+  }
+
+  return emojiMap
+}
+
 export async function getEmojiReactionSummaryMap(commentIds: string[], identity?: string | null) {
   if (commentIds.length === 0) {
     return {} as Record<string, EmojiReactionSummary>

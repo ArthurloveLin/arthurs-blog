@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { applyPostEmojiReaction } from '@/lib/post-reactions'
-import { normalizeReactionIdentity } from '@/lib/comment-reactions'
+import { normalizePostReactionIdentity } from '@/lib/post-reaction-core'
 
 export async function POST(
   req: NextRequest,
@@ -8,7 +8,7 @@ export async function POST(
 ) {
   const { id } = await params
   const body = await req.json().catch(() => ({})) as Record<string, unknown>
-  const identity = normalizeReactionIdentity(body.identity)
+  const identity = normalizePostReactionIdentity(body.identity)
   const emoji = typeof body.emoji === 'string' ? body.emoji : null
 
   if (!identity) {

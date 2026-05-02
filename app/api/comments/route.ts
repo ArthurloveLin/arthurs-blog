@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { attachViewerEmojiReactions } from '@/lib/comment-emojis'
-import { attachViewerReactions, normalizeReactionIdentity } from '@/lib/comment-reactions'
+import { getCommentViewerState, getPublicCommentThread, mergePublicCommentThreadWithViewerState } from '@/lib/comments'
+import { normalizeReactionIdentity } from '@/lib/comment-reactions'
 import { COMMENT_MAX_LENGTH } from '@/lib/input-limits'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
@@ -14,17 +14,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing target_type or target_id' }, { status: 400 })
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('comments')
-    .select('id, author, content, created_at, updated_at, parent_id, upvotes, downvotes')
-    .eq('target_type', target_type)
-    .eq('target_id', target_id)
-    .order('created_at', { ascending: true })
+  try {
+    const publicThread = await getPublicCommentThread(target_type, target_id)
+    if (!identity) {
+      return NextResponse.json(publicThread)
+    }
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  const commentsWithReactions = await attachViewerReactions(data ?? [], identity)
-  return NextResponse.json(await attachViewerEmojiReactions(commentsWithReactions, identity))
+    const viewerState = await getCommentViewerState(target_type, target_id, identity)
+    return NextResponse.json(mergePublicCommentThreadWithViewerState(publicThread, viewerState))
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to load comments' },
+      { status: 500 },
+    )
+  }
 }
 
 export async function POST(req: NextRequest) {

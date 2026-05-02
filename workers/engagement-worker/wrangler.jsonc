@@ -1,0 +1,54 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "wardrobe-engagement",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "COMMENT_RATE_LIMITER",
+        "class_name": "CommentRateLimiterDurableObject"
+      },
+      {
+        "name": "POST_REACTION_DO",
+        "class_name": "PostReactionDurableObject"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1-comment-rate-limit",
+      "new_sqlite_classes": ["CommentRateLimiterDurableObject"]
+    },
+    {
+      "tag": "v2-post-reactions",
+      "new_sqlite_classes": ["PostReactionDurableObject"]
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 1
+    }
+  },
+  "vars": {
+    "ORIGIN_BASE_URL": "https://arthurlovegrace.top",
+    "CORS_ALLOW_ORIGIN": "*",
+    "SUPABASE_URL": "https://api.arthurlovegrace.top",
+    "COMMENT_MAX_LENGTH": 500,
+    "COMMENT_URL_LIMIT": 2,
+    "COMMENT_BLOCKED_TERMS": "博彩,裸聊,刷单,代刷,纸飞机,telegram,免费兼职,加v,加微",
+    "COMMENT_RATE_LIMIT_MAX_REQUESTS": 5,
+    "COMMENT_RATE_LIMIT_WINDOW_SECONDS": 60,
+    "REACTION_FLUSH_INTERVAL_SECONDS": 300,
+    "REACTION_FLUSH_RETRY_SECONDS": 60
+  }
+}
