@@ -7,7 +7,7 @@ const SPOTIFY_NEAR_END_CACHE_TTL_MAX_SECONDS = 5
 const SPOTIFY_ERROR_CACHE_TTL_SECONDS = 10
 
 function createCacheControl(ageSeconds: number, staleWhileRevalidateSeconds: number) {
-  const directives = ['public', `max-age=${ageSeconds}`]
+  const directives = ['public', 'max-age=0', 'must-revalidate', `s-maxage=${ageSeconds}`]
 
   if (staleWhileRevalidateSeconds > 0) {
     directives.push(`stale-while-revalidate=${staleWhileRevalidateSeconds}`)

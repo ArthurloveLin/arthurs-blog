@@ -21,7 +21,7 @@ interface SpotifyNowPlayingRefreshPlan {
 }
 
 function createAgeDirective(ageSeconds: number, shared: boolean) {
-  return `${shared ? 's-maxage' : 'max-age'}=${ageSeconds}`
+  return `max-age=0, must-revalidate, s-maxage=${ageSeconds}`
 }
 
 function createCacheControl(ageSeconds: number, staleWhileRevalidateSeconds: number, shared: boolean) {

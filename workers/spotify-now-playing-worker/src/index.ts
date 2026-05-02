@@ -53,6 +53,7 @@ async function respondFromEdgeCache(request: Request, ctx: ExecutionContext, bui
 
   const isNoCache = cacheControl.includes('no-cache') ||
                     cacheControl.includes('no-store') ||
+                    cacheControl.includes('max-age=0') ||
                     pragma.includes('no-cache') ||
                     hasRefreshParam
 
