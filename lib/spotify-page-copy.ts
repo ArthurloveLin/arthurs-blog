@@ -31,7 +31,7 @@ export interface SpotifyPageCopy {
 export const SPOTIFY_SITE_CONFIG_DEFAULTS: Record<string, string> = {
   spotify_hero_subtitle: 'SOUNDTRACK ARCHIVE',
   spotify_hero_title_highlight: 'Music',
-  spotify_hero_title_highlight_2: 'Listening',
+  spotify_hero_title_highlight_2: '',
   spotify_hero_title_rest: 'Archive',
   spotify_hero_description: '把最近循环、收藏与反复重播的旋律整理成一页可翻阅的音乐日记，记录每个阶段的情绪、偏爱与回声。',
   spotify_slogan_1: 'Some days stay with us',

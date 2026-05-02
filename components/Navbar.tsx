@@ -37,7 +37,7 @@ const navLinks = [
   { href: '/wardrobe', label: 'Life Lens', tooltip: 'Life Lens - 记录真实评价的决策系统', external: false },
   { href: '/trend-radar', label: 'News', tooltip: '趋势雷达 - 获取最新的趋势资讯', external: false },
   { href: '/guestbook', label: 'Message', tooltip: '留言板 - 留下你的印记', external: false },
-  { href: '/spotify', label: 'Music Data', tooltip: 'Music Data - Spotify数据仪表盘', external: false },
+  { href: '/spotify', label: 'Music Library', tooltip: 'Music Library - Spotify 数据仪表盘', external: false },
 ]
 
 const mobileDrawerItems: DrawerToggleItem[] = [

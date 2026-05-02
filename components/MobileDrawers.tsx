@@ -119,27 +119,32 @@ export default function MobileDrawers() {
         onClick={closeDrawer}
       />
       {/* Drawer Content */}
-      <div className={`relative w-full bg-background rounded-t-[2rem] shadow-[0_-8px_24px_rgba(0,0,0,0.1)] border-t border-border/40 p-5 pt-2 max-h-[85vh] overflow-y-auto transform-gpu will-change-transform [contain:layout_paint] transition-transform transition-opacity duration-200 ease-out ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
-        {/* Handle */}
-        <div className="flex justify-center mb-5">
-          <div className="w-12 h-1.5 bg-muted/50 rounded-full" />
-        </div>
-        
-        {/* Header with Title and close button */}
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-            {activeDefinition?.title ?? ''}
-          </h3>
-          <button
-            onClick={closeDrawer}
-            className="p-2 text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-5 h-5" strokeWidth={2} />
-          </button>
-        </div>
+      <div 
+        className={`relative w-full bg-background rounded-t-[2rem] shadow-[0_-8px_24px_rgba(0,0,0,0.1)] border-t border-border/40 max-h-[85vh] transition-transform transition-opacity duration-200 ease-out flex flex-col overflow-hidden isolate ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}
+        style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
+      >
+        <div className="flex-1 overflow-y-auto p-5 pt-2 select-none overscroll-behavior-contain">
+          {/* Handle */}
+          <div className="flex justify-center mb-5">
+            <div className="w-12 h-1.5 bg-muted/50 rounded-full" />
+          </div>
+          
+          {/* Header with Title and close button */}
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+              {activeDefinition?.title ?? ''}
+            </h3>
+            <button
+              onClick={closeDrawer}
+              className="p-2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-5 h-5" strokeWidth={2} />
+            </button>
+          </div>
 
-        <div className="pb-8 text-foreground">
-          {ActiveDrawerPanel ? <ActiveDrawerPanel routeContext={routeContext} /> : null}
+          <div className="pb-8 text-foreground">
+            {ActiveDrawerPanel ? <ActiveDrawerPanel routeContext={routeContext} /> : null}
+          </div>
         </div>
       </div>
     </div>
