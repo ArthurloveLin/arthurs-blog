@@ -1,7 +1,7 @@
 'use client'
 
 import gsap from 'gsap'
-import { Archive, ArchiveRestore, ArrowRight, PencilLine, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowRight, Check, Copy, PencilLine, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
@@ -119,6 +119,7 @@ function StickyNoteCardFrame({
   const [dragPosition, setDragPosition] = useState<NotePosition | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
+  const [copied, setCopied] = useState(false)
   const isPreview = variant === 'preview'
   const isInlineEditing = Boolean(inlineEditor)
 
@@ -518,6 +519,19 @@ function StickyNoteCardFrame({
               {actions?.edit && !isPreview && !isInlineEditing ? (
                 <NoteActionButton label="编辑便签" onClick={actions.edit.onClick}>
                   <PencilLine size={16} strokeWidth={1.9} />
+                </NoteActionButton>
+              ) : null}
+              {!isInlineEditing ? (
+                <NoteActionButton
+                  label={copied ? '已复制' : '复制内容'}
+                  onClick={() => {
+                    void navigator.clipboard.writeText(message.content).then(() => {
+                      setCopied(true)
+                      setTimeout(() => setCopied(false), 1500)
+                    })
+                  }}
+                >
+                  {copied ? <Check size={16} strokeWidth={1.9} /> : <Copy size={16} strokeWidth={1.9} />}
                 </NoteActionButton>
               ) : null}
               {actions?.delete && !isInlineEditing ? (
