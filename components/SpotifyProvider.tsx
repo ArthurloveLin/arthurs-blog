@@ -13,8 +13,16 @@ const SPOTIFY_NOW_PLAYING_URL = getSpotifyPublicApiUrl('/api/now-playing')
 
 type SpotifyLiveData = SpotifyNowPlayingData | { isPlaying: false }
 
-async function fetchSpotifyNowPlaying(url: string): Promise<SpotifyLiveData> {
-  const response = await fetch(url)
+function buildSpotifyNowPlayingRequestUrl(url: string, forceFresh = false) {
+  if (!forceFresh) {
+    return url
+  }
+
+  return url + (url.includes('?') ? '&' : '?') + 'refresh=true'
+}
+
+async function fetchSpotifyNowPlaying(url: string, forceFresh = false): Promise<SpotifyLiveData> {
+  const response = await fetch(buildSpotifyNowPlayingRequestUrl(url, forceFresh))
 
   if (!response.ok) {
     throw new Error(`Failed to fetch Spotify status: ${response.status}`)
@@ -47,15 +55,21 @@ export function SpotifyProvider({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const scheduledRefreshTimersRef = useRef<any[]>([])
   const manualRefreshRef = useRef<Promise<void> | null>(null)
-  const { data, error, isLoading, mutate } = useSWR<SpotifyLiveData>(SPOTIFY_NOW_PLAYING_URL, fetchSpotifyNowPlaying, {
-    refreshInterval: refreshIntervalMs,
-    revalidateOnFocus: false,
+  const { data, error, isLoading, mutate } = useSWR<SpotifyLiveData>(
+    SPOTIFY_NOW_PLAYING_URL,
+    (url: string) => fetchSpotifyNowPlaying(url, false),
+    {
+    refreshInterval: (latestData: SpotifyLiveData | undefined) =>
+      latestData?.isPlaying ? refreshIntervalMs : 0,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
     refreshWhenHidden: false,
     refreshWhenOffline: false,
     dedupingInterval: 1000,
-    focusThrottleInterval: 60000,
+    focusThrottleInterval: 5000,
     keepPreviousData: true,
-  })
+    }
+  )
 
   if (error) {
     console.error('Failed to fetch Spotify status', error)
@@ -79,8 +93,7 @@ export function SpotifyProvider({
 
     const refreshTask = (async () => {
       try {
-        const url = SPOTIFY_NOW_PLAYING_URL + (SPOTIFY_NOW_PLAYING_URL.includes('?') ? '&' : '?') + 'refresh=true'
-        const nextData = await fetchSpotifyNowPlaying(url)
+        const nextData = await fetchSpotifyNowPlaying(SPOTIFY_NOW_PLAYING_URL, true)
         await mutate(nextData, { revalidate: false })
       } catch (refreshError) {
         console.error('Failed to refresh Spotify status', refreshError)
