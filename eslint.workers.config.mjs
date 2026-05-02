@@ -10,6 +10,7 @@ const workersEslintConfig = [
     files: [
       "workers/cloudflare-worker/src/**/*.ts",
       "workers/genius-worker/src/**/*.ts",
+      "workers/spotify-now-playing-worker/src/**/*.ts",
       "workers/wardrobe-supabase-worker/src/**/*.ts",
     ],
     linterOptions: {

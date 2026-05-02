@@ -14,12 +14,17 @@ function normalizePath(path: string) {
 }
 
 const spotifyWorkerBase = trimTrailingSlash(process.env.NEXT_PUBLIC_SPOTIFY_WORKER_URL)
+const spotifyNowPlayingWorkerBase = trimTrailingSlash(process.env.NEXT_PUBLIC_SPOTIFY_NOW_PLAYING_WORKER_URL)
 const geniusWorkerBase = trimTrailingSlash(process.env.NEXT_PUBLIC_GENIUS_WORKER_URL)
 const GENIUS_PUBLIC_PATH = '/api/genius'
 
 export function getSpotifyPublicApiUrl(path: string) {
   const normalizedPath = normalizePath(path)
-  return spotifyWorkerBase ? `${spotifyWorkerBase}${normalizedPath}` : normalizedPath
+  const workerBase = normalizedPath === '/api/now-playing'
+    ? (spotifyNowPlayingWorkerBase || spotifyWorkerBase)
+    : spotifyWorkerBase
+
+  return workerBase ? `${workerBase}${normalizedPath}` : normalizedPath
 }
 
 export function getGeniusPublicApiUrl(track: GeniusTrackQuery) {
