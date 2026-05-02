@@ -47,7 +47,7 @@ function NoteBoardControls() {
   }, [bindings])
 
   return (
-    <section className="rounded-[32px] border border-border/60 bg-card/75 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:p-6">
+    <section className="rounded-[32px] border border-border/60 bg-card/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-6">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{meta.board.title}</p>
@@ -189,7 +189,7 @@ function NoteBoardControls() {
 
           {state.hasPreviousPage || state.hasNextPage ? (
             <div className="mt-6 flex justify-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/90 px-2 py-2 text-sm shadow-sm backdrop-blur-sm">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/95 px-2 py-2 text-sm shadow-sm">
                 <button
                   type="button"
                   className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
@@ -243,7 +243,7 @@ function NoteBoardEditorSection() {
   }, [bindings])
 
   return (
-    <section ref={bindEditorSection} className="rounded-[28px] border border-border/60 bg-card/75 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)] backdrop-blur-sm">
+    <section ref={bindEditorSection} className="rounded-[28px] border border-border/60 bg-card/95 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)]">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{state.editorSectionLabel}</p>
