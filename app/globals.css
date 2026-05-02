@@ -781,6 +781,85 @@ html {
   color: var(--foreground);
 }
 
+/* highlight.js dark mode token colors (GitHub Dark theme) */
+:where([class~="dark"]) .hljs {
+  color: #c9d1d9;
+  background: transparent;
+}
+:where([class~="dark"]) .hljs-doctag,
+:where([class~="dark"]) .hljs-keyword,
+:where([class~="dark"]) .hljs-meta .hljs-keyword,
+:where([class~="dark"]) .hljs-template-tag,
+:where([class~="dark"]) .hljs-template-variable,
+:where([class~="dark"]) .hljs-type,
+:where([class~="dark"]) .hljs-variable.language_ {
+  color: #ff7b72;
+}
+:where([class~="dark"]) .hljs-title,
+:where([class~="dark"]) .hljs-title.class_,
+:where([class~="dark"]) .hljs-title.class_.inherited__,
+:where([class~="dark"]) .hljs-title.function_ {
+  color: #d2a8ff;
+}
+:where([class~="dark"]) .hljs-attr,
+:where([class~="dark"]) .hljs-attribute,
+:where([class~="dark"]) .hljs-literal,
+:where([class~="dark"]) .hljs-meta,
+:where([class~="dark"]) .hljs-number,
+:where([class~="dark"]) .hljs-operator,
+:where([class~="dark"]) .hljs-variable,
+:where([class~="dark"]) .hljs-selector-attr,
+:where([class~="dark"]) .hljs-selector-class,
+:where([class~="dark"]) .hljs-selector-id {
+  color: #79c0ff;
+}
+:where([class~="dark"]) .hljs-regexp,
+:where([class~="dark"]) .hljs-string,
+:where([class~="dark"]) .hljs-meta .hljs-string {
+  color: #a5d6ff;
+}
+:where([class~="dark"]) .hljs-built_in,
+:where([class~="dark"]) .hljs-symbol {
+  color: #ffa657;
+}
+:where([class~="dark"]) .hljs-comment,
+:where([class~="dark"]) .hljs-code,
+:where([class~="dark"]) .hljs-formula {
+  color: #8b949e;
+}
+:where([class~="dark"]) .hljs-name,
+:where([class~="dark"]) .hljs-quote,
+:where([class~="dark"]) .hljs-selector-tag,
+:where([class~="dark"]) .hljs-selector-pseudo {
+  color: #7ee787;
+}
+:where([class~="dark"]) .hljs-subst {
+  color: #c9d1d9;
+}
+:where([class~="dark"]) .hljs-section {
+  color: #1f6feb;
+  font-weight: bold;
+}
+:where([class~="dark"]) .hljs-bullet {
+  color: #f2cc60;
+}
+:where([class~="dark"]) .hljs-emphasis {
+  color: #c9d1d9;
+  font-style: italic;
+}
+:where([class~="dark"]) .hljs-strong {
+  color: #c9d1d9;
+  font-weight: bold;
+}
+:where([class~="dark"]) .hljs-addition {
+  color: #aff5b4;
+  background-color: #033a16;
+}
+:where([class~="dark"]) .hljs-deletion {
+  color: #ffdcd7;
+  background-color: #67060c;
+}
+
 /* Blob animations */
 @keyframes heartbeat {
   0%, 100% { transform: scale(0.9); opacity: 0.8; }
