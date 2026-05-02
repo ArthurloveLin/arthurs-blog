@@ -3,7 +3,8 @@ import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeSlug from 'rehype-slug'
 import Image from 'next/image'
-import 'highlight.js/styles/github.css'
+import CodeBlock from '@/components/CodeBlock'
+import 'highlight.js/styles/github-dark.css'
 
 export default function MarkdownRenderer({
   content,
@@ -28,6 +29,7 @@ export default function MarkdownRenderer({
             }
             return <p>{children}</p>;
           },
+          pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
           table: ({ children }) => (
             <div className="overflow-x-auto my-6">
               <table>{children}</table>
