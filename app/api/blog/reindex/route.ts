@@ -35,6 +35,8 @@ async function processFile(
   const firstParagraph = mdContent.split(/\n\s*\n/).find(p => p.trim() && !p.trim().startsWith('#'))?.trim()
   const summary = fm.summary ?? fm.excerpt ?? (excerpt?.trim()) ?? firstParagraph ?? null
   const searchContent = stripMarkdownToText(mdContent)
+  const charCount = searchContent.replace(/\s/g, '').length
+  const reading_minutes = Math.max(1, Math.ceil(charCount / 320))
 
   await upsertPost({
     slug,
@@ -61,13 +63,15 @@ async function processFile(
     published,
     published_at: parseBlogFrontmatterDate(fm.date),
     sticky: typeof fm.sticky === 'number' ? fm.sticky : 0,
+    reading_minutes,
   })
 
   return { slug, status: 'ok' }
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   const domain = process.env.R2_BLOG_PUBLIC_DOMAIN
+  const force = new URL(request.url).searchParams.get('force') === '1'
 
   const [allObjects, existingPosts] = await Promise.all([
     listR2ObjectsWithMeta(BLOG_BUCKET),
@@ -80,11 +84,13 @@ export async function POST() {
   // P1: 建立 r2_key → DB updated_at 的映射，用于跳过未变更文件
   const dbMap = new Map(existingPosts.map((p) => [p.r2_key, new Date(p.updated_at)]))
 
-  const toProcess = mdObjects.filter(({ key, lastModified }) => {
-    if (!dbMap.has(key)) return true // 新文件
-    if (!lastModified) return true // R2 无时间戳，保守处理
-    return lastModified > dbMap.get(key)! // 文件在上次 reindex 后有修改
-  })
+  const toProcess = force
+    ? mdObjects
+    : mdObjects.filter(({ key, lastModified }) => {
+        if (!dbMap.has(key)) return true // 新文件
+        if (!lastModified) return true // R2 无时间戳，保守处理
+        return lastModified > dbMap.get(key)! // 文件在上次 reindex 后有修改
+      })
 
   const unchangedCount = mdObjects.length - toProcess.length
 
@@ -121,7 +127,6 @@ export async function POST() {
 
   revalidatePath('/')
   revalidatePath('/blog/[slug]', 'page')
-  revalidatePath('/blog/tags/[tag]', 'page')
   revalidatePath('/category/[slug]', 'page')
   revalidatePath('/archive')
   revalidatePath('/wardrobe')

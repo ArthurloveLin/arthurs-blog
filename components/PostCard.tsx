@@ -5,6 +5,9 @@ import { Star } from 'lucide-react'
 import type { Post } from '@/lib/blog'
 import { formatBlogPublishedDate } from '@/lib/date-format'
 import PrefetchOnHover from './PrefetchOnHover'
+import PostCardStats from './PostCardStats'
+
+const MAX_VISIBLE_TAGS = 3
 
 // Removed hardcoded gradient array as we now use the theme's primary gradient
 
@@ -83,16 +86,36 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
           </ViewTransition>
         )}
 
-        {/* Hero: Meta (Date · Category · Tags) */}
+        {/* Hero: Meta (Date · Category · Stats · Tags) */}
         <ViewTransition name={`post-meta-${post.id}`} share="morph" default="none">
-          <div className="blog-hero-meta flex items-center gap-x-1">
-          <time dateTime={post.published_at ?? ''} className="tabular-nums whitespace-nowrap">{date}</time>
-          {post.category && (
-            <><span className="text-foreground/20 font-bold">·</span><Link href={`/blog/category/${encodeURIComponent(post.category)}`} className="relative z-10 hover:text-primary transition-colors whitespace-nowrap">{post.category}</Link></>
-          )}
-          {post.tags.length > 0 && (
-            <><span className="text-foreground/20 font-bold">·</span><div className="flex flex-wrap gap-1.5 items-center">{post.tags.map((tag, i) => (<Link key={tag} href={`/blog/tags/${encodeURIComponent(tag)}`} className={`relative z-10 px-2 py-0.5 rounded-md bg-muted text-[11px] text-foreground/65 hover:bg-muted-foreground hover:text-background transition-all ${i >= 2 ? 'hidden md:inline-block' : ''}`}>#{tag}</Link>))}</div></>
-          )}
+          <div className="blog-hero-meta flex flex-col gap-1.5 items-start">
+            {/* Stats row: date · category · reading time · views */}
+            <div className="flex flex-wrap items-center gap-x-1 gap-y-1 w-full">
+              <time dateTime={post.published_at ?? ''} className="tabular-nums whitespace-nowrap">{date}</time>
+              {post.category && (
+                <><span className="text-foreground/20 font-bold">·</span><Link href={`/category/${encodeURIComponent(post.category)}`} className="relative z-10 hover:text-primary transition-colors whitespace-nowrap">{post.category}</Link></>
+              )}
+              <PostCardStats slug={post.slug} readingMinutes={post.reading_minutes ?? 1} />
+            </div>
+            {/* Tags row: mobile caps at MAX_VISIBLE_TAGS + overflow badge; desktop shows all */}
+            {post.tags.length > 0 && (
+              <div className="flex gap-1.5 items-center w-full">
+                {post.tags.map((tag, i) => (
+                  <Link
+                    key={tag}
+                    href={`/tag/${encodeURIComponent(tag)}`}
+                    className={`relative z-10 px-2 py-0.5 rounded-md bg-muted text-[11px] text-foreground/65 hover:bg-muted-foreground hover:text-background transition-all whitespace-nowrap shrink-0${i >= MAX_VISIBLE_TAGS ? ' hidden md:block' : ''}`}
+                  >
+                    #{tag}
+                  </Link>
+                ))}
+                {post.tags.length > MAX_VISIBLE_TAGS && (
+                  <span className="md:hidden px-2 py-0.5 rounded-md bg-muted text-[11px] text-foreground/40 whitespace-nowrap shrink-0">
+                    +{post.tags.length - MAX_VISIBLE_TAGS}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </ViewTransition>
       </div>

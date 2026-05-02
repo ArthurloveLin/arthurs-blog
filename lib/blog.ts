@@ -22,6 +22,7 @@ export interface Post {
   published_at: string | null
   updated_at: string
   sticky: number
+  reading_minutes: number
 }
 
 export interface SearchPostResult extends Post {
@@ -448,6 +449,7 @@ export async function upsertPost(post: {
   published: boolean
   published_at?: string
   sticky?: number
+  reading_minutes?: number
 }): Promise<void> {
   const { error } = await supabaseAdmin
     .from('posts')
@@ -502,6 +504,7 @@ export async function searchPosts(
       published_at: row.published_at,
       updated_at: row.updated_at,
       sticky: row.sticky,
+      reading_minutes: row.reading_minutes ?? 0,
       rank: row.rank ?? 0,
       matched_fields: row.matched_fields ?? [],
       snippet: buildSearchSnippet(row.search_content || row.summary || row.title, normalizedQuery),
