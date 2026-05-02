@@ -34,14 +34,14 @@ export default function PostCardStats({ slug, readingMinutes }: PostCardStatsPro
       <span className="text-foreground/20 font-bold select-none">·</span>
       <span className="inline-flex items-center gap-1 whitespace-nowrap">
         <Clock className="w-3.5 h-3.5 shrink-0" strokeWidth={1.8} />
-        <span>{minutes}&nbsp;分钟读完</span>
+        <span>{minutes}&nbsp;min</span>
       </span>
       {typeof data?.pageviews === 'number' && (
         <>
           <span className="text-foreground/20 font-bold select-none">·</span>
           <span className="inline-flex items-center gap-1 whitespace-nowrap">
             <Eye className="w-3.5 h-3.5 shrink-0" strokeWidth={1.8} />
-            <span>{formatViews(data.pageviews)}&nbsp;次浏览</span>
+            <span>{formatViews(data.pageviews)}&nbsp;次</span>
           </span>
         </>
       )}
