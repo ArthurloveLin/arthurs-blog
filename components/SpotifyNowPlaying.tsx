@@ -92,9 +92,9 @@ export default function SpotifyNowPlaying() {
     <div
         ref={containerRef}
         onClick={toggleExpand}
-        className={`relative overflow-hidden transition-all duration-500 cursor-pointer group ${
+        className={`relative overflow-hidden transition-all duration-300 cursor-pointer group ${
           isExpanded 
-            ? 'rounded-2xl p-4 shadow-xl border border-black/5 dark:border-white/10 bg-white/80 dark:bg-black backdrop-blur-md dark:backdrop-blur-none z-20' 
+            ? 'rounded-2xl p-4 shadow-lg border border-black/5 dark:border-white/10 bg-white dark:bg-zinc-900 z-20' 
             : 'rounded-lg py-2 px-1 hover:bg-muted/50'
         }`}
       >
@@ -178,7 +178,7 @@ export default function SpotifyNowPlaying() {
 
         {/* --- Expanded Content (Recently Played) --- */}
         {isExpanded && (
-          <div className="relative z-10 animate-in fade-in slide-in-from-top-4 duration-700 ease-out">
+          <div className="relative z-10 animate-in fade-in slide-in-from-top-4 duration-300 ease-out">
             <div className="flex items-center justify-between mb-3 px-1">
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">最近播放</h4>
               <div className="h-[1px] flex-1 bg-border/40 mx-4" />
@@ -224,10 +224,10 @@ export default function SpotifyNowPlaying() {
               <Link 
                 href="/spotify"
                 onClick={(e) => e.stopPropagation()}
-                className="group/link flex items-center justify-between p-3 rounded-xl bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all duration-300"
+                className="group/link flex items-center justify-center gap-2 p-3 rounded-xl bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all duration-300"
               >
-                <span className="text-[10px] font-bold uppercase tracking-widest text-primary/80 group-hover/link:text-primary">
-                  Explore Detailed Music Data
+                <span className="text-xs font-bold tracking-wider text-primary/80 group-hover/link:text-primary">
+                  查看详细音乐数据
                 </span>
                 <ArrowRight className="w-3.5 h-3.5 text-primary/50 group-hover/link:text-primary transform group-hover/link:translate-x-1 transition-all" />
               </Link>
