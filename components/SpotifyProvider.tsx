@@ -44,6 +44,7 @@ export function SpotifyProvider({
   children: ReactNode
   refreshIntervalMs?: number
 }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const scheduledRefreshTimersRef = useRef<any[]>([])
   const manualRefreshRef = useRef<Promise<void> | null>(null)
   const { data, error, isLoading, mutate } = useSWR<SpotifyLiveData>(SPOTIFY_NOW_PLAYING_URL, fetchSpotifyNowPlaying, {
