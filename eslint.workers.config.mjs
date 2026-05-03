@@ -8,6 +8,7 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const workersEslintConfig = [
   {
     files: [
+      "workers/engagement-worker/src/**/*.ts",
       "workers/cloudflare-worker/src/**/*.ts",
       "workers/genius-worker/src/**/*.ts",
       "workers/spotify-now-playing-worker/src/**/*.ts",
