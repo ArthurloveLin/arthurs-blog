@@ -1,8 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createCommentRecord, type Comment } from '@/lib/comments'
+import { createEngagementRequestHeaders, fetchEngagementPublicApi } from '@/lib/engagement-public-api'
+import { createGuestbookNoteMessage, humanizeGuestbookMutationError } from '@/lib/guestbook-comments'
 import type { NoteMessage } from '@/lib/note-boards'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { DEFAULT_NOTE_PRIORITY, type NotePriority } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
+
+function getResponseErrorMessage(payload: unknown) {
+  if (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') {
+    return payload.error
+  }
+
+  return undefined
+}
 
 export interface UseNoteEditorProps {
   board: NoteBoardViewConfig
@@ -113,21 +124,47 @@ export function useNoteEditor({
       : currentMessage), { resetPositions: false })
 
     try {
-      const response = await fetch(`/api/note-boards/${board.slug}/${updatedId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity, identities: viewerIdentityAliases, content: nextContent, priority: editPriority }),
-      })
+      let updatedMessage: NoteMessage
 
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null) as { error?: string } | null
-        if (response.status === 403) {
-          throw new Error('当前身份没有编辑权限。')
+      if (board.slug === 'guestbook') {
+        const response = await fetchEngagementPublicApi(`/api/comments/${updatedId}`, {
+          method: 'PATCH',
+          headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ identity, identities: viewerIdentityAliases, content: nextContent }),
+        })
+
+        const payload = await response.json().catch(() => null) as Comment | { error?: string } | null
+        if (!response.ok) {
+          if (response.status === 403) {
+            throw new Error('当前身份没有编辑权限。')
+          }
+
+          throw new Error(humanizeGuestbookMutationError(getResponseErrorMessage(payload), '便签更新失败，请稍后再试。'))
         }
-        throw new Error(payload?.error === 'Content too long' ? `便签不能超过 ${NOTE_MAX_LENGTH} 字。` : '便签更新失败，请稍后再试。')
+
+        if (!payload) {
+          throw new Error('便签更新失败，请稍后再试。')
+        }
+
+        updatedMessage = createGuestbookNoteMessage(createCommentRecord(payload as Comment))
+      } else {
+        const response = await fetch(`/api/note-boards/${board.slug}/${updatedId}`, {
+          method: 'PATCH',
+          headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ identity, identities: viewerIdentityAliases, content: nextContent, priority: editPriority }),
+        })
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null) as { error?: string } | null
+          if (response.status === 403) {
+            throw new Error('当前身份没有编辑权限。')
+          }
+          throw new Error(payload?.error === 'Content too long' ? `便签不能超过 ${NOTE_MAX_LENGTH} 字。` : '便签更新失败，请稍后再试。')
+        }
+
+        updatedMessage = (await response.json()) as NoteMessage
       }
 
-      const updatedMessage = (await response.json()) as NoteMessage
       replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedMessage.id
         ? {
           ...updatedMessage,
@@ -199,21 +236,53 @@ export function useNoteEditor({
     markMessageFresh(optimisticId)
 
     try {
-      const response = await fetch(`/api/note-boards/${board.slug}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author: publicIdentity, content: draftValue, priority: draftPriorityValue }),
-      })
+      let message: NoteMessage
 
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null) as { error?: string } | null
-        if (response.status === 403) {
-          throw new Error('当前身份没有写入权限。')
+      if (board.slug === 'guestbook') {
+        const response = await fetchEngagementPublicApi('/api/comments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            target_type: board.targetType,
+            target_id: board.targetId,
+            author: publicIdentity,
+            content: draftValue,
+            parent_id: null,
+          }),
+        })
+
+        const payload = await response.json().catch(() => null) as Comment | { error?: string } | null
+        if (!response.ok) {
+          if (response.status === 403) {
+            throw new Error('当前身份没有写入权限。')
+          }
+
+          throw new Error(humanizeGuestbookMutationError(getResponseErrorMessage(payload), '便签保存失败，请稍后再试。'))
         }
-        throw new Error(payload?.error === 'Content too long' ? `便签不能超过 ${NOTE_MAX_LENGTH} 字。` : '便签保存失败，请稍后再试。')
+
+        if (!payload) {
+          throw new Error('便签保存失败，请稍后再试。')
+        }
+
+        message = createGuestbookNoteMessage(createCommentRecord(payload as Comment))
+      } else {
+        const response = await fetch(`/api/note-boards/${board.slug}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ author: publicIdentity, content: draftValue, priority: draftPriorityValue }),
+        })
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null) as { error?: string } | null
+          if (response.status === 403) {
+            throw new Error('当前身份没有写入权限。')
+          }
+          throw new Error(payload?.error === 'Content too long' ? `便签不能超过 ${NOTE_MAX_LENGTH} 字。` : '便签保存失败，请稍后再试。')
+        }
+
+        message = (await response.json()) as NoteMessage
       }
 
-      const message = (await response.json()) as NoteMessage
       replaceMessages((current) => current.map((currentMessage) => currentMessage.id === optimisticId ? { ...message, visual_seed: currentMessage.visual_seed ?? currentMessage.id } : currentMessage), {
         resetPositions: true,
         nextOffset: nextOffset + 1,
@@ -232,7 +301,7 @@ export function useNoteEditor({
     } finally {
       setIsSubmitting(false)
     }
-  }, [board.slug, canWrite, draft, draftPriority, hasMore, identity, isSubmitting, markMessageFresh, nextOffset, publicIdentity, replaceMessages, setError, onDraftSubmitted])
+  }, [board.slug, board.targetId, board.targetType, canWrite, draft, draftPriority, hasMore, identity, isSubmitting, markMessageFresh, nextOffset, publicIdentity, replaceMessages, setError, onDraftSubmitted])
 
   useEffect(() => {
     if (!editingNoteId) return

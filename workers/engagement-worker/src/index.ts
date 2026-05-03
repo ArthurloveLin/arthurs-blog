@@ -13,6 +13,7 @@ const COMMENT_QUEUE_DO_NAME = 'global'
 const COMMENT_QUEUE_RECORD_PREFIX = 'comment-queue:record:'
 const COMMENT_QUEUE_THREAD_PREFIX = 'comment-queue:thread:'
 const COMMENT_QUEUE_THREAD_LOOKUP_PREFIX = 'comment-queue:lookup:'
+const SUPABASE_COMMENT_SELECT = 'id,target_type,target_id,author,content,parent_id,created_at,updated_at,upvotes,downvotes'
 const POST_REACTION_POST_ID_KEY = 'post-reaction:post-id'
 const POST_REACTION_META_KEY = 'post-reaction:meta'
 const POST_REACTION_VALUE_PREFIX = 'post-reaction:value:'
@@ -108,6 +109,11 @@ type CommentBatchRpcResult = {
   inserted_count?: unknown
 }
 
+type CommentPersistedRecord = CommentQueuedRecord & {
+  upvotes: number
+  downvotes: number
+}
+
 type PostReactionValue = -1 | 0 | 1
 
 type PostReactionAggregate = {
@@ -197,10 +203,10 @@ function corsHeaders(headers?: HeadersInit) {
     nextHeaders.set('Access-Control-Allow-Origin', '*')
   }
   if (!nextHeaders.has('Access-Control-Allow-Methods')) {
-    nextHeaders.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    nextHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
   }
   if (!nextHeaders.has('Access-Control-Allow-Headers')) {
-    nextHeaders.set('Access-Control-Allow-Headers', 'Content-Type')
+    nextHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   }
   return nextHeaders
 }
@@ -399,6 +405,38 @@ function normalizeQueuedCommentRecord(value: unknown) {
   } satisfies CommentQueuedRecord
 }
 
+function normalizePersistedCommentRecord(value: unknown) {
+  const comment = normalizeQueuedCommentRecord(value)
+  if (!comment || !value || typeof value !== 'object') {
+    return null
+  }
+
+  const payload = value as Record<string, unknown>
+
+  return {
+    ...comment,
+    upvotes: typeof payload.upvotes === 'number' && Number.isFinite(payload.upvotes) ? payload.upvotes : 0,
+    downvotes: typeof payload.downvotes === 'number' && Number.isFinite(payload.downvotes) ? payload.downvotes : 0,
+  } satisfies CommentPersistedRecord
+}
+
+function createPersistedCommentPublicRecord(comment: CommentPersistedRecord): CommentPublicRecord {
+  return {
+    id: comment.id,
+    author: comment.author,
+    content: comment.content,
+    created_at: comment.created_at,
+    updated_at: comment.updated_at,
+    parent_id: comment.parent_id,
+    upvotes: comment.upvotes,
+    downvotes: comment.downvotes,
+    viewer_reaction: 0,
+    emoji_reactions: [],
+    viewer_emojis: [],
+    sync_state: 'persisted',
+  }
+}
+
 function normalizeCommentPayload(body: unknown) {
   if (!body || typeof body !== 'object') {
     return null
@@ -496,6 +534,227 @@ function getSupabaseServiceRoleKey(env: Cloudflare.Env) {
   }
 
   return secret
+}
+
+function getSupabaseCommentByIdUrl(env: Cloudflare.Env, commentId: string, select = SUPABASE_COMMENT_SELECT) {
+  const url = new URL(`${getSupabaseUrl(env)}/rest/v1/comments`)
+  url.searchParams.set('id', `eq.${commentId}`)
+  url.searchParams.set('limit', '1')
+
+  if (select) {
+    url.searchParams.set('select', select)
+  }
+
+  return url.toString()
+}
+
+function getRequestBearerToken(request: Request) {
+  const authorization = request.headers.get('Authorization')?.trim()
+  if (!authorization) {
+    return null
+  }
+
+  const [scheme, token] = authorization.split(/\s+/, 2)
+  if (scheme?.toLowerCase() !== 'bearer' || !token) {
+    return null
+  }
+
+  const normalizedToken = token.trim()
+  return normalizedToken || null
+}
+
+async function getSupabaseUserIdFromRequest(request: Request, env: Cloudflare.Env) {
+  const bearerToken = getRequestBearerToken(request)
+  if (!bearerToken) {
+    return null
+  }
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+  const serviceRoleKey = getSupabaseServiceRoleKey(env)
+
+  try {
+    const response = await fetch(`${getSupabaseUrl(env)}/auth/v1/user`, {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${bearerToken}`,
+      },
+      signal: controller.signal,
+    })
+
+    const payload = await response.json().catch(() => null)
+    if (response.status === 401 || response.status === 403) {
+      return null
+    }
+
+    if (!response.ok) {
+      throw new Error(getErrorMessage(payload, `SUPABASE_AUTH_${response.status}`))
+    }
+
+    const userId = payload && typeof payload === 'object' && typeof (payload as { id?: unknown }).id === 'string'
+      ? (payload as { id: string }).id.trim()
+      : ''
+
+    if (!userId) {
+      throw new Error('INVALID_SUPABASE_AUTH_RESPONSE')
+    }
+
+    return userId
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+async function requestHasAdminRole(request: Request, env: Cloudflare.Env) {
+  const userId = await getSupabaseUserIdFromRequest(request, env)
+  if (!userId) {
+    return false
+  }
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+  const serviceRoleKey = getSupabaseServiceRoleKey(env)
+  const url = new URL(`${getSupabaseUrl(env)}/rest/v1/user_roles`)
+  url.searchParams.set('select', 'role')
+  url.searchParams.set('user_id', `eq.${userId}`)
+  url.searchParams.set('limit', '1')
+
+  try {
+    const response = await fetch(url.toString(), {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      signal: controller.signal,
+    })
+
+    const payload = await response.json().catch(() => null)
+    if (!response.ok) {
+      throw new Error(getErrorMessage(payload, `SUPABASE_ROLE_${response.status}`))
+    }
+
+    if (!Array.isArray(payload) || payload.length === 0) {
+      return false
+    }
+
+    return payload.some((entry) => entry && typeof entry === 'object' && (entry as { role?: unknown }).role === 'admin')
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+async function fetchPersistedCommentById(env: Cloudflare.Env, commentId: string) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+  const serviceRoleKey = getSupabaseServiceRoleKey(env)
+
+  try {
+    const response = await fetch(getSupabaseCommentByIdUrl(env, commentId), {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      signal: controller.signal,
+    })
+
+    const payload = await response.json().catch(() => null)
+    if (!response.ok) {
+      throw new Error(getErrorMessage(payload, `SUPABASE_COMMENT_${response.status}`))
+    }
+
+    if (!Array.isArray(payload) || payload.length === 0) {
+      return null
+    }
+
+    const comment = normalizePersistedCommentRecord(payload[0])
+    if (!comment) {
+      throw new Error('INVALID_SUPABASE_COMMENT_RESPONSE')
+    }
+
+    return comment
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+async function updatePersistedComment(env: Cloudflare.Env, commentId: string, content: string) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+  const serviceRoleKey = getSupabaseServiceRoleKey(env)
+
+  try {
+    const response = await fetch(getSupabaseCommentByIdUrl(env, commentId), {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({ content }),
+      signal: controller.signal,
+    })
+
+    const payload = await response.json().catch(() => null)
+    if (!response.ok) {
+      throw new Error(getErrorMessage(payload, `SUPABASE_COMMENT_UPDATE_${response.status}`))
+    }
+
+    if (!Array.isArray(payload) || payload.length === 0) {
+      return null
+    }
+
+    const comment = normalizePersistedCommentRecord(payload[0])
+    if (!comment) {
+      throw new Error('INVALID_SUPABASE_COMMENT_RESPONSE')
+    }
+
+    return comment
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+async function deletePersistedComment(env: Cloudflare.Env, commentId: string) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+  const serviceRoleKey = getSupabaseServiceRoleKey(env)
+
+  try {
+    const response = await fetch(getSupabaseCommentByIdUrl(env, commentId, ''), {
+      method: 'DELETE',
+      headers: {
+        Prefer: 'return=minimal',
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      signal: controller.signal,
+    })
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null)
+      throw new Error(getErrorMessage(payload, `SUPABASE_COMMENT_DELETE_${response.status}`))
+    }
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+async function assertCanModifyPersistedComment(
+  request: Request,
+  env: Cloudflare.Env,
+  comment: CommentPersistedRecord,
+  identities: string[],
+) {
+  if (identities.includes(comment.author)) {
+    return
+  }
+
+  if (await requestHasAdminRole(request, env)) {
+    return
+  }
+
+  throw new Error('FORBIDDEN')
 }
 
 function normalizePostId(value: unknown) {
@@ -1056,10 +1315,10 @@ async function handleCommentMutation(request: Request, env: EngagementEnv, ctx: 
   const commentId = normalizeCommentId(match[1])
   const body = await request.json().catch(() => null) as Record<string, unknown> | null
   const identities = normalizeCommentIdentities(body)
+  const content = typeof body?.content === 'string' ? body.content.trim() : ''
 
   try {
     if (request.method === 'PATCH') {
-      const content = typeof body?.content === 'string' ? body.content.trim() : ''
       if (!content) {
         return jsonResponse({ error: 'Missing content' }, { status: 400 })
       }
@@ -1094,10 +1353,36 @@ async function handleCommentMutation(request: Request, env: EngagementEnv, ctx: 
       headers: corsHeaders(),
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
+    let message = error instanceof Error ? error.message : String(error)
 
     if (message === 'NOT_FOUND') {
-      return jsonResponse({ error: 'Comment not found' }, { status: 404 })
+      try {
+        const persistedComment = await fetchPersistedCommentById(env, commentId)
+        if (!persistedComment) {
+          return jsonResponse({ error: 'Comment not found' }, { status: 404 })
+        }
+
+        await assertCanModifyPersistedComment(request, env, persistedComment, identities)
+
+        if (request.method === 'PATCH') {
+          const updatedComment = await updatePersistedComment(env, commentId, content)
+          if (!updatedComment) {
+            return jsonResponse({ error: 'Comment not found' }, { status: 404 })
+          }
+
+          invalidateCommentThreadCache(ctx, request.url, updatedComment.target_type, updatedComment.target_id, 'update')
+          return jsonResponse(createPersistedCommentPublicRecord(updatedComment))
+        }
+
+        await deletePersistedComment(env, commentId)
+        invalidateCommentThreadCache(ctx, request.url, persistedComment.target_type, persistedComment.target_id, 'delete')
+        return new Response(null, {
+          status: 204,
+          headers: corsHeaders(),
+        })
+      } catch (persistedError) {
+        message = persistedError instanceof Error ? persistedError.message : String(persistedError)
+      }
     }
 
     if (message === 'FORBIDDEN') {

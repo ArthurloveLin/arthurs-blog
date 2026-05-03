@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import useSWR from 'swr'
 import type { NoteBoardListPayload, NotePosition, OptimisticMessageSnapshot } from '@/components/note-board/types'
 import { createBoardPayload, isSameBoardSurfacePayload, sortBoardMessages } from '@/components/note-board/utils/board'
+import { applyViewerStateToComments, createCommentRecord, type Comment, type CommentViewerState } from '@/lib/comments'
+import { fetchEngagementPublicApi } from '@/lib/engagement-public-api'
+import { createGuestbookMessagesFromComments } from '@/lib/guestbook-comments'
 import type { NoteSortMode } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
@@ -79,6 +82,54 @@ export function useBoardData({
     offset = 0,
     limit = board.initialPageLimit,
   ) => {
+    if (board.slug === 'guestbook') {
+      const threadSearchParams = new URLSearchParams({
+        target_type: board.targetType,
+        target_id: board.targetId,
+        archived: archived ? '1' : '0',
+      })
+
+      const threadResponse = await fetchEngagementPublicApi(`/api/comments?${threadSearchParams.toString()}`)
+      if (!threadResponse.ok) {
+        throw new Error('便签加载失败，请稍后重试。')
+      }
+
+      const threadPayload = await threadResponse.json().catch(() => null)
+      if (!Array.isArray(threadPayload)) {
+        throw new Error('便签加载失败，请稍后重试。')
+      }
+
+      let comments = threadPayload.map((entry) => createCommentRecord(entry as Comment))
+
+      if (reactionIdentity) {
+        const viewerStateSearchParams = new URLSearchParams({
+          target_type: board.targetType,
+          target_id: board.targetId,
+          identity: reactionIdentity,
+        })
+
+        const viewerStateResponse = await fetch(`/api/comments/viewer-state?${viewerStateSearchParams.toString()}`)
+        const viewerStatePayload = viewerStateResponse.ok
+          ? await viewerStateResponse.json().catch(() => null)
+          : null
+
+        if (Array.isArray(viewerStatePayload)) {
+          comments = applyViewerStateToComments(comments, viewerStatePayload as CommentViewerState[])
+        }
+      }
+
+      const allMessages = sortBoardMessages(createGuestbookMessagesFromComments(comments, archived), sort)
+      const nextMessages = allMessages.slice(offset, offset + limit)
+
+      return createBoardPayload(
+        nextMessages,
+        archived,
+        sort,
+        offset + nextMessages.length,
+        offset + nextMessages.length < allMessages.length,
+      )
+    }
+
     const searchParams = new URLSearchParams({
       offset: String(offset),
       limit: String(limit),
@@ -97,7 +148,7 @@ export function useBoardData({
 
     const payload = await response.json() as { messages: NoteMessage[]; nextOffset: number; hasMore: boolean }
     return createBoardPayload(payload.messages, archived, sort, payload.nextOffset, payload.hasMore)
-  }, [board.initialPageLimit, board.slug, reactionIdentity, sortMode])
+  }, [board.initialPageLimit, board.slug, board.targetId, board.targetType, reactionIdentity, sortMode])
 
   const {
     data: boardPayload,

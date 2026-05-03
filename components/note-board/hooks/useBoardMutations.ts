@@ -2,8 +2,18 @@ import { useCallback, useRef, useState } from 'react'
 import type { NoteMessage } from '@/lib/note-boards'
 import type { NotePriority } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
+import { createEngagementRequestHeaders, fetchEngagementPublicApi } from '@/lib/engagement-public-api'
+import { humanizeGuestbookMutationError } from '@/lib/guestbook-comments'
 import type { NotePosition, OptimisticMessageSnapshot } from '@/components/note-board/types'
 import { applyOptimisticEmojiToMessage, applyOptimisticReactionToMessage, buildOptimisticSnapshot } from '@/components/note-board/utils/board'
+
+function getResponseErrorMessage(payload: unknown) {
+  if (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') {
+    return payload.error
+  }
+
+  return undefined
+}
 
 export interface UseBoardMutationsProps {
   board: NoteBoardViewConfig
@@ -139,14 +149,29 @@ export function useBoardMutations({
     removeMessageFromSurface(id, editingNoteId)
 
     try {
-      const response = await fetch(`/api/note-boards/${board.slug}/${id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity, identities: viewerIdentityAliases }),
-      })
+      const response = board.slug === 'guestbook'
+        ? await fetchEngagementPublicApi(`/api/comments/${id}`, {
+            method: 'DELETE',
+            headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ identity, identities: viewerIdentityAliases }),
+          })
+        : await fetch(`/api/note-boards/${board.slug}/${id}`, {
+            method: 'DELETE',
+            headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ identity, identities: viewerIdentityAliases }),
+          })
 
       if (!response.ok) {
-        throw new Error(response.status === 403 ? '当前身份没有删除权限。' : '删除失败，请稍后重试。')
+        const payload = await response.json().catch(() => null)
+        if (response.status === 403) {
+          throw new Error('当前身份没有删除权限。')
+        }
+
+        throw new Error(
+          board.slug === 'guestbook'
+            ? humanizeGuestbookMutationError(getResponseErrorMessage(payload), '删除失败，请稍后重试。')
+            : '删除失败，请稍后重试。',
+        )
       }
     } catch (deleteError) {
       restoreMessageSnapshot(snapshot)
@@ -167,7 +192,7 @@ export function useBoardMutations({
     try {
       const response = await fetch(`/api/note-boards/${board.slug}/${message.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ identity, identities: viewerIdentityAliases, archived: !message.archived }),
       })
 
@@ -206,7 +231,7 @@ export function useBoardMutations({
     try {
       const response = await fetch(`/api/note-boards/${board.slug}/${message.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ identity, identities: viewerIdentityAliases, priority }),
       })
 
