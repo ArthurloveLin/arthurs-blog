@@ -48,6 +48,7 @@ export function useNoteEditor({
   const [editPriority, setEditPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
   const [isUpdatingNote, setIsUpdatingNote] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [updatingNoteIds, setUpdatingNoteIds] = useState<Record<string, boolean>>({})
 
   const editingMessage = useMemo(
     () => messages.find((message) => message.id === editingNoteId) ?? null,
@@ -87,11 +88,32 @@ export function useNoteEditor({
       return
     }
 
+    const updatedId = editingMessage.id
+    const originalContent = editingMessage.content
+    const originalPriority = editingMessage.priority
+
     setIsUpdatingNote(true)
     setError(null)
 
+    // Reset local editing state immediately to restore card view/shape
+    setEditingNoteId(null)
+    setEditContent('')
+    setEditPriority(DEFAULT_NOTE_PRIORITY)
+
+    // Mark note as updating for loading indicator
+    setUpdatingNoteIds((prev) => ({ ...prev, [updatedId]: true }))
+
+    // Optimistically update message in state
+    replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedId
+      ? {
+        ...currentMessage,
+        content: nextContent,
+        priority: editPriority,
+      }
+      : currentMessage), { resetPositions: false })
+
     try {
-      const response = await fetch(`/api/note-boards/${board.slug}/${editingMessage.id}`, {
+      const response = await fetch(`/api/note-boards/${board.slug}/${updatedId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identity, identities: viewerIdentityAliases, content: nextContent, priority: editPriority }),
@@ -116,14 +138,26 @@ export function useNoteEditor({
           emoji_reactions: currentMessage.emoji_reactions,
           viewer_emojis: currentMessage.viewer_emojis,
         }
-        : currentMessage), { resetPositions: true })
-      cancelEditingNote()
+        : currentMessage), { resetPositions: false })
     } catch (updateError) {
+      // Revert if error occurs
+      replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedId
+        ? {
+          ...currentMessage,
+          content: originalContent,
+          priority: originalPriority,
+        }
+        : currentMessage), { resetPositions: false })
       setError(updateError instanceof Error ? updateError.message : '便签更新失败，请稍后再试。')
     } finally {
       setIsUpdatingNote(false)
+      setUpdatingNoteIds((prev) => {
+        const next = { ...prev }
+        delete next[updatedId]
+        return next
+      })
     }
-  }, [board.slug, cancelEditingNote, editContent, editPriority, editingMessage, identity, isUpdatingNote, replaceMessages, setError, viewerIdentityAliases])
+  }, [board.slug, editContent, editPriority, editingMessage, identity, isUpdatingNote, replaceMessages, setError, viewerIdentityAliases])
 
   const submitDraft = useCallback(async () => {
     if (!draft.trim() || !identity || !canWrite || isSubmitting) return
@@ -219,6 +253,7 @@ export function useNoteEditor({
     setEditPriority,
     isUpdatingNote,
     isSubmitting,
+    updatingNoteIds,
     editingMessage,
     cancelEditingNote,
     startEditingNote,

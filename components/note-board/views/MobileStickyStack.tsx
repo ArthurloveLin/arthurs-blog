@@ -140,7 +140,7 @@ export function MobileStickyStack({ items }: MobileStickyStackProps) {
             {(() => {
               let unplacedCounter = 0
               return visibleItems.map((item, index) => {
-                const { message, actions, priorityControl, isPriorityUpdating, canEdit, reactionControl, isOptimistic, isFresh } = item
+                const { message, actions, priorityControl, isPriorityUpdating, canEdit, reactionControl, isOptimistic, isOptimisticEditing, isFresh } = item
                 const placed = placedNotes[message.id]
                 const isParked = parkedSet.has(message.id)
                 const stackIndex = isParked ? -1 : unplacedCounter++
@@ -181,6 +181,7 @@ export function MobileStickyStack({ items }: MobileStickyStackProps) {
                         disabled: isPriorityUpdating || priorityControl.disabled || !canEdit,
                       } : undefined}
                       isOptimistic={isOptimistic}
+                      isOptimisticEditing={isOptimisticEditing}
                       isFresh={isFresh}
                       onLift={() => {}}
                       onCommit={(nextPosition, metrics) => handleCommit(message.id, isDraggable, nextPosition, metrics.distance)}

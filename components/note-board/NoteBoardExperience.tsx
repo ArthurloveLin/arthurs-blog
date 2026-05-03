@@ -148,7 +148,7 @@ function NoteBoardControls() {
             ) : !meta.surface.hasMeasured ? null : (
               <div className="relative" style={{ minHeight: Math.max(meta.surface.height, 320) }}>
                 {state.noteItems.map((item, index) => {
-                  const { message, actions: cardActions, priorityControl, reactionControl, inlineEditor, isEditing, isOptimistic, isFresh } = item
+                  const { message, actions: cardActions, priorityControl, reactionControl, inlineEditor, isEditing, isOptimistic, isOptimisticEditing, isFresh } = item
                   const layout = meta.surface.layouts[index]
                   const targetPosition = meta.surface.getTargetPosition(index)
                   const collapsedPosition = {
@@ -176,6 +176,7 @@ function NoteBoardControls() {
                       reactionControl={reactionControl}
                       inlineEditor={inlineEditor}
                       isOptimistic={isOptimistic}
+                      isOptimisticEditing={isOptimisticEditing}
                       isFresh={isFresh}
                       onLift={() => actions.bringCardToFront(message.id)}
                       onCommit={(nextPosition) => actions.setCardPosition(message.id, nextPosition)}

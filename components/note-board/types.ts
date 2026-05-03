@@ -110,5 +110,6 @@ export interface NoteCardViewModel {
   isEditing: boolean
   isPriorityUpdating: boolean
   isOptimistic: boolean
+  isOptimisticEditing?: boolean
   isFresh: boolean
 }
