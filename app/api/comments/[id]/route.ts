@@ -1,54 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { attachViewerEmojiReactions } from '@/lib/comment-emojis'
+import { fetchCommentWorker } from '@/lib/comment-worker'
 import { COMMENT_MAX_LENGTH } from '@/lib/input-limits'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserRole } from '@/lib/auth'
 
-function trimTrailingSlash(value: string | undefined) {
-  return value?.replace(/\/+$/, '') ?? ''
-}
+type PendingCommentMutationResult =
+  | { type: 'handled'; response: NextResponse }
+  | { type: 'fallback' }
+  | { type: 'unavailable' }
 
-function getCommentWorkerUrl(path: string) {
-  const baseUrl = trimTrailingSlash(process.env.NEXT_PUBLIC_ENGAGEMENT_WORKER_URL)
-  if (!baseUrl) {
-    return null
+async function tryPendingCommentMutation(
+  path: string,
+  method: 'PATCH' | 'DELETE',
+  body: Record<string, unknown>,
+): Promise<PendingCommentMutationResult> {
+  try {
+    const response = await fetchCommentWorker(path, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      cache: 'no-store',
+    })
+
+    if (!response) {
+      return { type: 'unavailable' }
+    }
+
+    if (response.status === 404) {
+      return { type: 'fallback' }
+    }
+
+    if (method === 'DELETE' && response.status === 204) {
+      return { type: 'handled', response: new NextResponse(null, { status: 204 }) }
+    }
+
+    const payload = await response.json().catch(() => null) as Record<string, unknown> | null
+    if (!response.ok) {
+      return {
+        type: 'handled',
+        response: NextResponse.json(payload ?? { error: 'Pending comment mutation failed' }, { status: response.status }),
+      }
+    }
+
+    return { type: 'handled', response: NextResponse.json(payload) }
+  } catch {
+    return { type: 'unavailable' }
   }
-
-  const url = new URL(baseUrl)
-  const basePath = url.pathname === '/' ? '' : trimTrailingSlash(url.pathname)
-  url.pathname = `${basePath}${path.startsWith('/') ? path : `/${path}`}`
-  return url.toString()
-}
-
-async function tryPendingCommentMutation(path: string, method: 'PATCH' | 'DELETE', body: Record<string, unknown>) {
-  const workerUrl = getCommentWorkerUrl(path)
-  if (!workerUrl) {
-    return null
-  }
-
-  const response = await fetch(workerUrl, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-    cache: 'no-store',
-  })
-
-  if (response.status === 404) {
-    return null
-  }
-
-  if (method === 'DELETE' && response.status === 204) {
-    return new NextResponse(null, { status: 204 })
-  }
-
-  const payload = await response.json().catch(() => null) as Record<string, unknown> | null
-  if (!response.ok) {
-    return NextResponse.json(payload ?? { error: 'Pending comment mutation failed' }, { status: response.status })
-  }
-
-  return NextResponse.json(payload)
 }
 
 async function getCommentById(id: string) {
@@ -85,9 +85,13 @@ export async function DELETE(
   const { id } = await params
   const body = await req.json().catch(() => ({})) as Record<string, unknown>
 
-  const pendingMutationResponse = await tryPendingCommentMutation(`/api/comments/${id}`, 'DELETE', body)
-  if (pendingMutationResponse) {
-    return pendingMutationResponse
+  const pendingMutationResult = await tryPendingCommentMutation(`/api/comments/${id}`, 'DELETE', body)
+  if (pendingMutationResult.type === 'handled') {
+    return pendingMutationResult.response
+  }
+
+  if (pendingMutationResult.type === 'unavailable') {
+    return NextResponse.json({ error: 'Comment service unavailable' }, { status: 503 })
   }
 
   const comment = await getCommentById(id)
@@ -112,9 +116,13 @@ export async function PATCH(
   const { id } = await params
   const body = await req.json().catch(() => ({})) as Record<string, unknown>
 
-  const pendingMutationResponse = await tryPendingCommentMutation(`/api/comments/${id}`, 'PATCH', body)
-  if (pendingMutationResponse) {
-    return pendingMutationResponse
+  const pendingMutationResult = await tryPendingCommentMutation(`/api/comments/${id}`, 'PATCH', body)
+  if (pendingMutationResult.type === 'handled') {
+    return pendingMutationResult.response
+  }
+
+  if (pendingMutationResult.type === 'unavailable') {
+    return NextResponse.json({ error: 'Comment service unavailable' }, { status: 503 })
   }
 
   const comment = await getCommentById(id)

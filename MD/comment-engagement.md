@@ -23,7 +23,7 @@
 - /home/arthur/project/wardrobe-picks/workers/blog-engagement/src/index.ts — Worker fetch handler、scheduled handler、Durable Object 类
 - /home/arthur/project/wardrobe-picks/package.json — 根级 check/lint:workers 脚本补充 blog-engagement
 - /home/arthur/project/wardrobe-picks/eslint.workers.config.mjs — 把新 Worker 源码纳入 workers lint
-- /home/arthur/project/wardrobe-picks/app/api/comments/route.ts — 现有评论 GET/POST 的 origin 边界，改成 fallback/复用点而非生产入口
+- /home/arthur/project/wardrobe-picks/lib/engagement-public-api.ts — 评论公开线程 GET/POST 的 worker 入口；worker 缺失时显式失败，不再回退 same-origin /api/comments
 - /home/arthur/project/wardrobe-picks/app/api/comments/[id]/route.ts — 保持 flushed comment 的 PATCH/DELETE origin 处理，必要时抽出共享权限判断
 - /home/arthur/project/wardrobe-picks/app/api/comments/viewer-state/route.ts — 新增 viewer-specific overlay 路由
 - /home/arthur/project/wardrobe-picks/app/blog/[slug]/page.tsx — 首屏 initialComments 改走 public thread loader
@@ -52,6 +52,7 @@
 - “编辑已保存功能”按本地草稿自动保存与恢复落地，不做服务端自动保存，不新增编辑成功 toast 作为主需求。
 - 公开线程缓存采用“public thread cached + viewer overlay uncached”模式，避免把 identity 相关反应状态缓存到边缘。
 - 首页、归档等评论数统计仍以 Supabase 为准，因此在 flush 之前不会立即反映边缘已接受评论；这次不扩展到全站 comment count 实时化。
+- 2026-05 的清理中，评论公开 GET/POST 与 guestbook create 不再保留 worker 缺失时的 Supabase 写入回退；只保留 worker 返回 404 时进入 persisted comment/message 路径的 fallback。
 
 **Further Considerations**
 1. 若评论吞吐量明显上升，再把单例 CommentQueue DO 拆成按 thread 分片的 DO，并增加 coordinator DO 或 KV 脏索引来驱动 scheduled flush。
