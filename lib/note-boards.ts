@@ -1,6 +1,8 @@
 import { cache } from 'react'
 import { attachViewerEmojiReactions, type EmojiReactionEntry } from '@/lib/comment-emojis'
 import { attachViewerReactions, type ReactionValue } from '@/lib/comment-reactions'
+import { applyViewerStateToComments, type Comment, type CommentSyncState } from '@/lib/comments'
+import { getCommentThread, getCommentViewerState } from '@/lib/comments-server'
 import { DEFAULT_NOTE_PRIORITY, isNotePriority, type NotePriority, type NoteSortMode } from '@/lib/note-priority'
 import { getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
@@ -22,6 +24,65 @@ export interface NoteMessage {
   viewer_reaction: ReactionValue
   emoji_reactions: EmojiReactionEntry[]
   viewer_emojis: string[]
+  sync_state?: CommentSyncState
+}
+
+function compareBoardMessageTime(
+  left: Pick<NoteMessage, 'created_at' | 'updated_at' | 'id'>,
+  right: Pick<NoteMessage, 'created_at' | 'updated_at' | 'id'>,
+) {
+  const leftTime = Date.parse(left.updated_at ?? left.created_at)
+  const rightTime = Date.parse(right.updated_at ?? right.created_at)
+
+  if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && rightTime !== leftTime) {
+    return rightTime - leftTime
+  }
+
+  if (right.created_at !== left.created_at) {
+    return right.created_at.localeCompare(left.created_at)
+  }
+
+  return right.id.localeCompare(left.id)
+}
+
+export function createGuestbookNoteMessage(comment: Comment, archived = false): NoteMessage {
+  return {
+    id: comment.id,
+    author: comment.author,
+    content: comment.content,
+    created_at: comment.created_at,
+    updated_at: comment.updated_at,
+    priority: DEFAULT_NOTE_PRIORITY,
+    archived,
+    parent_id: comment.parent_id,
+    upvotes: comment.upvotes,
+    downvotes: comment.downvotes,
+    viewer_reaction: comment.viewer_reaction,
+    emoji_reactions: comment.emoji_reactions,
+    viewer_emojis: comment.viewer_emojis,
+    sync_state: comment.sync_state,
+  }
+}
+
+async function getGuestbookMessages(
+  limit: number,
+  offset: number,
+  archived: boolean,
+  viewerIdentity?: string | null,
+) {
+  const config = getNoteBoardConfig('guestbook')
+  const [thread, viewerState] = await Promise.all([
+    getCommentThread(config.targetType, config.targetId, { archived }),
+    viewerIdentity ? getCommentViewerState(config.targetType, config.targetId, viewerIdentity) : Promise.resolve([]),
+  ])
+
+  const mergedThread = viewerState.length > 0 ? applyViewerStateToComments(thread, viewerState) : thread
+
+  return mergedThread
+    .filter((comment) => comment.parent_id === null)
+    .map((comment) => createGuestbookNoteMessage(comment, archived))
+    .sort(compareBoardMessageTime)
+    .slice(offset, offset + limit)
 }
 
 function canWriteBoard(board: NoteBoardSlug, role: UserRole) {
@@ -65,6 +126,11 @@ export const getBoardMessages = cache(async (
   viewerIdentity?: string | null,
 ) => {
   const config = getNoteBoardConfig(board)
+
+  if (board === 'guestbook') {
+    return getGuestbookMessages(limit, offset, archived, viewerIdentity)
+  }
+
   let query = supabaseAdmin
     .from('comments')
     .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes')

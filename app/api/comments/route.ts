@@ -7,13 +7,15 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const target_type = searchParams.get('target_type')
   const target_id = searchParams.get('target_id')
+  const rawArchived = searchParams.get('archived')
+  const archived = rawArchived === '1' ? true : rawArchived === '0' ? false : undefined
 
   if (!target_type || !target_id) {
     return NextResponse.json({ error: 'Missing target_type or target_id' }, { status: 400 })
   }
 
   try {
-    return NextResponse.json(await getPublicComments(target_type, target_id))
+    return NextResponse.json(await getPublicComments(target_type, target_id, { archived }))
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to load comments' },

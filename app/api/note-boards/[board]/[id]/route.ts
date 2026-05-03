@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createCommentRecord, type Comment } from '@/lib/comments'
+import { fetchCommentWorker } from '@/lib/comment-worker'
 import { isNotePriority, normalizeNotePriority } from '@/lib/note-priority'
-import { deleteBoardMessage, isNoteBoardSlug, updateBoardMessage } from '@/lib/note-boards'
+import { createGuestbookNoteMessage, deleteBoardMessage, isNoteBoardSlug, updateBoardMessage } from '@/lib/note-boards'
+
+function getResponseErrorMessage(payload: unknown, fallback: string) {
+  if (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') {
+    return payload.error
+  }
+
+  return fallback
+}
 
 export async function DELETE(
   req: NextRequest,
@@ -15,6 +25,30 @@ export async function DELETE(
   const identities = Array.isArray(body.identities)
     ? body.identities.filter((value: unknown): value is string => typeof value === 'string')
     : undefined
+
+  if (board === 'guestbook') {
+    const response = await fetchCommentWorker(`/api/comments/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        identity: body.identity,
+        identities,
+      }),
+      cache: 'no-store',
+    })
+
+    if (response && response.status !== 404) {
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null)
+        return NextResponse.json(
+          { error: getResponseErrorMessage(payload, 'Failed to delete note') },
+          { status: response.status },
+        )
+      }
+
+      return new NextResponse(null, { status: 204 })
+    }
+  }
 
   try {
     await deleteBoardMessage(board, id, identities ?? (body.identity as string | undefined))
@@ -58,6 +92,36 @@ export async function PATCH(
 
   if (hasPriority && !isNotePriority(priority)) {
     return NextResponse.json({ error: 'Invalid priority' }, { status: 400 })
+  }
+
+  if (board === 'guestbook' && typeof archived === 'undefined' && typeof content === 'string') {
+    const response = await fetchCommentWorker(`/api/comments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        identity: body.identity,
+        identities,
+        content,
+      }),
+      cache: 'no-store',
+    })
+
+    if (response && response.status !== 404) {
+      const payload = await response.json().catch(() => null) as Record<string, unknown> | null
+
+      if (!response.ok) {
+        return NextResponse.json(
+          { error: getResponseErrorMessage(payload, 'Failed to update note') },
+          { status: response.status },
+        )
+      }
+
+      if (!payload) {
+        return NextResponse.json({ error: 'Invalid engagement response' }, { status: 502 })
+      }
+
+      return NextResponse.json(createGuestbookNoteMessage(createCommentRecord(payload as unknown as Comment), false))
+    }
   }
 
   try {
