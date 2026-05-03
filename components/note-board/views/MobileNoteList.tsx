@@ -23,18 +23,20 @@ export function MobileNoteList({ items }: MobileNoteListProps) {
 }
 
 function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
-  const { message, actions, canDelete, canEdit, priorityControl, isPriorityUpdating, reactionControl, isOptimistic, isFresh } = item
+  const { message, actions, canDelete, canEdit, priorityControl, isPriorityUpdating, reactionControl, isOptimistic, isOptimisticEditing, isFresh } = item
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
 
   return (
     <div className={[
       'rounded-[20px] border border-border/60 bg-background/55 p-5 shadow-sm transition-all',
-      (isOptimistic || isFresh) ? 'animate-in fade-in slide-in-from-bottom-3 duration-300' : '',
+      (isOptimistic || isOptimisticEditing || isFresh) ? 'animate-in fade-in slide-in-from-bottom-3 duration-300' : '',
     ].filter(Boolean).join(' ')}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <span className="text-sm font-medium">{message.author}</span>
         <div className="flex items-center gap-3">
-          <span className="whitespace-nowrap text-xs text-muted-foreground">{isOptimistic ? '发布中…' : formatCommentTimeLabel(message.created_at, message.updated_at)}</span>
+          <span className="whitespace-nowrap text-xs text-muted-foreground">
+            {isOptimistic ? '发布中…' : isOptimisticEditing ? '编辑中…' : formatCommentTimeLabel(message.created_at, message.updated_at)}
+          </span>
           {priorityControl ? (
             <PriorityPicker.Dot
               value={priorityControl.value}

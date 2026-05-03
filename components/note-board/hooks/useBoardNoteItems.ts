@@ -19,6 +19,7 @@ export interface UseBoardNoteItemsProps {
   freshMessageIds: Record<string, boolean>
   measuredHeights: Record<string, number>
   priorityEnabled: boolean
+  updatingNoteIds?: Record<string, boolean>
   
   handleDelete: (id: string, editingNoteId?: string | null) => void
   startEditingNote: (message: NoteMessage) => void
@@ -45,6 +46,7 @@ export function useBoardNoteItems({
   freshMessageIds,
   measuredHeights,
   priorityEnabled,
+  updatingNoteIds,
   handleDelete,
   startEditingNote,
   handleToggleArchive,
@@ -60,6 +62,7 @@ export function useBoardNoteItems({
     const canEdit = getEditPermission(isAdmin, viewerIdentityAliases, message)
     const isEditing = editingNoteId === message.id
     const isPriorityUpdating = Boolean(priorityUpdatingIds[message.id])
+    const isOptimisticEditing = Boolean(updatingNoteIds?.[message.id])
 
     return {
       message,
@@ -67,6 +70,7 @@ export function useBoardNoteItems({
       canEdit,
       isEditing,
       isPriorityUpdating,
+      isOptimisticEditing,
       isOptimistic: message.id.startsWith('optimistic-'),
       isFresh: Boolean(freshMessageIds[message.id]),
       actions: {
@@ -113,6 +117,7 @@ export function useBoardNoteItems({
     freshMessageIds,
     measuredHeights,
     priorityEnabled,
+    updatingNoteIds,
     handleDelete,
     startEditingNote,
     handleToggleArchive,

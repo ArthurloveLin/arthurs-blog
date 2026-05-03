@@ -13,10 +13,6 @@
       {
         "name": "COMMENT_RATE_LIMITER",
         "class_name": "CommentRateLimiterDurableObject"
-      },
-      {
-        "name": "POST_REACTION_DO",
-        "class_name": "PostReactionDurableObject"
       }
     ]
   },
@@ -32,6 +28,10 @@
     {
       "tag": "v3-post-reactions",
       "new_sqlite_classes": ["PostReactionDurableObject"]
+    },
+    {
+      "tag": "v4-delete-post-reactions",
+      "deleted_classes": ["PostReactionDurableObject"]
     }
   ],
   "triggers": {

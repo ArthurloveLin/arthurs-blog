@@ -55,6 +55,7 @@ interface StickyNoteBoardCardProps extends StickyNoteCardSharedProps {
   onHeightChange?: (height: number) => void
   surface?: 'desktop' | 'mobile-stack'
   isOptimistic?: boolean
+  isOptimisticEditing?: boolean
   isFresh?: boolean
 }
 
@@ -73,6 +74,7 @@ interface StickyNoteCardFrameProps extends StickyNoteCardSharedProps {
   animatePosition: boolean
   dragBoundsMode: 'contained' | 'mobile-stack'
   isOptimistic?: boolean
+  isOptimisticEditing?: boolean
   isFresh?: boolean
 }
 
@@ -101,6 +103,7 @@ function StickyNoteCardFrame({
   animatePosition,
   dragBoundsMode,
   isOptimistic = false,
+  isOptimisticEditing = false,
   isFresh = false,
 }: StickyNoteCardFrameProps) {
   const articleRef = useRef<HTMLElement>(null)
@@ -619,7 +622,11 @@ function StickyNoteCardFrame({
               />
             </div>
           ) : null}
-          {isOptimistic ? <p className="text-[10px] font-bold tracking-widest text-slate-500/70">发布中…</p> : null}
+          {isOptimistic ? (
+            <p className="text-[10px] font-bold tracking-widest text-slate-500/70">发布中…</p>
+          ) : isOptimisticEditing ? (
+            <p className="text-[10px] font-bold tracking-widest text-slate-500/70">编辑中…</p>
+          ) : null}
         </div>
       </div>
     </article>
@@ -634,6 +641,7 @@ export function StickyNoteBoardCard({
   onHeightChange,
   surface = 'desktop',
   isOptimistic,
+  isOptimisticEditing,
   isFresh,
   ...props
 }: StickyNoteBoardCardProps) {
@@ -649,6 +657,7 @@ export function StickyNoteBoardCard({
       animatePosition
       dragBoundsMode={surface === 'mobile-stack' ? 'mobile-stack' : 'contained'}
       isOptimistic={isOptimistic}
+      isOptimisticEditing={isOptimisticEditing}
       isFresh={isFresh}
     />
   )
