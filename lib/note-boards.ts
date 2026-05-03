@@ -1,8 +1,9 @@
 import { cache } from 'react'
 import { attachViewerEmojiReactions, type EmojiReactionEntry } from '@/lib/comment-emojis'
 import { attachViewerReactions, type ReactionValue } from '@/lib/comment-reactions'
-import { applyViewerStateToComments, type Comment, type CommentSyncState } from '@/lib/comments'
+import { applyViewerStateToComments, type CommentSyncState } from '@/lib/comments'
 import { getCommentThread, getCommentViewerState } from '@/lib/comments-server'
+import { createGuestbookMessagesFromComments } from '@/lib/guestbook-comments'
 import { DEFAULT_NOTE_PRIORITY, isNotePriority, type NotePriority, type NoteSortMode } from '@/lib/note-priority'
 import { getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
@@ -45,25 +46,6 @@ function compareBoardMessageTime(
   return right.id.localeCompare(left.id)
 }
 
-export function createGuestbookNoteMessage(comment: Comment, archived = false): NoteMessage {
-  return {
-    id: comment.id,
-    author: comment.author,
-    content: comment.content,
-    created_at: comment.created_at,
-    updated_at: comment.updated_at,
-    priority: DEFAULT_NOTE_PRIORITY,
-    archived,
-    parent_id: comment.parent_id,
-    upvotes: comment.upvotes,
-    downvotes: comment.downvotes,
-    viewer_reaction: comment.viewer_reaction,
-    emoji_reactions: comment.emoji_reactions,
-    viewer_emojis: comment.viewer_emojis,
-    sync_state: comment.sync_state,
-  }
-}
-
 async function getGuestbookMessages(
   limit: number,
   offset: number,
@@ -78,9 +60,7 @@ async function getGuestbookMessages(
 
   const mergedThread = viewerState.length > 0 ? applyViewerStateToComments(thread, viewerState) : thread
 
-  return mergedThread
-    .filter((comment) => comment.parent_id === null)
-    .map((comment) => createGuestbookNoteMessage(comment, archived))
+  return createGuestbookMessagesFromComments(mergedThread, archived)
     .sort(compareBoardMessageTime)
     .slice(offset, offset + limit)
 }

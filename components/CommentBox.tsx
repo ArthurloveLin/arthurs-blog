@@ -25,7 +25,7 @@ import {
   saveCommentEditDraft,
 } from '@/lib/comment-draft-storage'
 import { formatCommentTimeLabel } from '@/lib/date-format'
-import { fetchEngagementPublicApi } from '@/lib/engagement-public-api'
+import { createEngagementRequestHeaders, fetchEngagementPublicApi } from '@/lib/engagement-public-api'
 import { COMMENT_MAX_LENGTH } from '@/lib/input-limits'
 import { insertTextAtSelection } from '@/lib/text-selection'
 
@@ -69,6 +69,7 @@ function getLengthTone(length: number, maxLength: number) {
 function humanizeCommentError(message: string | undefined): string {
   if (!message) return '评论发送失败。'
   if (message === 'Failed to fetch') return '网络错误，请重试。'
+  if (message === 'ENGAGEMENT_WORKER_UNAVAILABLE') return '评论服务暂时不可用。'
   if (message === 'Content too long') return `评论不能超过 ${COMMENT_MAX_LENGTH} 字。`
   return message
 }
@@ -819,26 +820,38 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
   async function handleDelete(id: string) {
     const snapshot = commentsRef.current
     setComments((prev) => prev.filter((c) => c.id !== id && c.parent_id !== id))
-    const res = await fetch(`/api/comments/${id}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identity, identities: identityAliases }),
-    })
-    if (res.ok) {
-      setError(null)
-      return
-    }
+    try {
+      const res = await fetchEngagementPublicApi(`/api/comments/${id}`, {
+        method: 'DELETE',
+        headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ identity, identities: identityAliases }),
+      })
 
-    setComments(snapshot)
-    setError(res.status === 403 ? '当前身份没有删除这条评论的权限。' : '删除评论失败。')
+      if (res.ok) {
+        setError(null)
+        return
+      }
+
+      setComments(snapshot)
+      setError(res.status === 403 ? '当前身份没有删除这条评论的权限。' : '删除评论失败。')
+    } catch (deleteError) {
+      setComments(snapshot)
+      setError(humanizeCommentError(deleteError instanceof Error ? deleteError.message : undefined))
+    }
   }
 
   async function handleUpdate(id: string, content: string) {
-    const res = await fetch(`/api/comments/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identity, identities: identityAliases, content }),
-    })
+    let res: Response
+
+    try {
+      res = await fetchEngagementPublicApi(`/api/comments/${id}`, {
+        method: 'PATCH',
+        headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ identity, identities: identityAliases, content }),
+      })
+    } catch (updateError) {
+      throw new Error(humanizeCommentError(updateError instanceof Error ? updateError.message : undefined))
+    }
 
     if (!res.ok) {
       const payload = await res.json().catch(() => null) as { error?: string } | null
