@@ -114,6 +114,12 @@ type CommentPersistedRecord = CommentQueuedRecord & {
   downvotes: number
 }
 
+type CommentEmojiReactionRow = {
+  comment_id: string
+  emoji: string
+  updated_at: string | null
+}
+
 type PostReactionValue = -1 | 0 | 1
 
 type PostReactionAggregate = {
@@ -296,6 +302,19 @@ function createPublicCommentRecord(comment: CommentQueuedRecord, syncState: 'pen
     viewer_emojis: [],
     sync_state: syncState,
   }
+}
+
+function normalizeCommentEmoji(value: unknown) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const normalized = value.trim()
+  if (!normalized || normalized.length > 24) {
+    return null
+  }
+
+  return normalized
 }
 
 function normalizeCommentEmojiReactions(value: unknown) {
@@ -548,6 +567,36 @@ function getSupabaseCommentByIdUrl(env: Cloudflare.Env, commentId: string, selec
   return url.toString()
 }
 
+function getSupabaseCommentThreadUrl(
+  env: Cloudflare.Env,
+  targetType: string,
+  targetId: string,
+  archived: boolean | null,
+  select = SUPABASE_COMMENT_SELECT,
+) {
+  const url = new URL(`${getSupabaseUrl(env)}/rest/v1/comments`)
+  url.searchParams.set('target_type', `eq.${targetType}`)
+  url.searchParams.set('target_id', `eq.${targetId}`)
+  url.searchParams.set('order', 'created_at.asc')
+
+  if (archived !== null) {
+    url.searchParams.set('archived', `eq.${archived}`)
+  }
+
+  if (select) {
+    url.searchParams.set('select', select)
+  }
+
+  return url.toString()
+}
+
+function getSupabaseCommentEmojiReactionsUrl(env: Cloudflare.Env, commentIds: string[]) {
+  const url = new URL(`${getSupabaseUrl(env)}/rest/v1/comment_emoji_reactions`)
+  url.searchParams.set('select', 'comment_id,emoji,updated_at')
+  url.searchParams.set('comment_id', `in.(${commentIds.join(',')})`)
+  return url.toString()
+}
+
 function getRequestBearerToken(request: Request) {
   const authorization = request.headers.get('Authorization')?.trim()
   if (!authorization) {
@@ -675,6 +724,152 @@ async function fetchPersistedCommentById(env: Cloudflare.Env, commentId: string)
   } finally {
     clearTimeout(timeoutId)
   }
+}
+
+async function fetchPersistedCommentThread(
+  env: Cloudflare.Env,
+  targetType: string,
+  targetId: string,
+  archived: boolean | null,
+) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+  const serviceRoleKey = getSupabaseServiceRoleKey(env)
+
+  try {
+    const response = await fetch(getSupabaseCommentThreadUrl(env, targetType, targetId, archived), {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      signal: controller.signal,
+    })
+
+    const payload = await response.json().catch(() => null)
+    if (!response.ok) {
+      throw new Error(getErrorMessage(payload, `SUPABASE_COMMENT_THREAD_${response.status}`))
+    }
+
+    if (!Array.isArray(payload) || payload.length === 0) {
+      return [] as CommentPersistedRecord[]
+    }
+
+    return payload.flatMap((entry) => {
+      const comment = normalizePersistedCommentRecord(entry)
+      return comment ? [comment] : []
+    })
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+async function getCommentEmojiSummaryMap(env: Cloudflare.Env, commentIds: string[]) {
+  if (commentIds.length === 0) {
+    return {} as Record<string, CommentPublicRecord['emoji_reactions']>
+  }
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+  const serviceRoleKey = getSupabaseServiceRoleKey(env)
+
+  try {
+    const response = await fetch(getSupabaseCommentEmojiReactionsUrl(env, commentIds), {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      signal: controller.signal,
+    })
+
+    const payload = await response.json().catch(() => null)
+    if (!response.ok) {
+      throw new Error(getErrorMessage(payload, `SUPABASE_COMMENT_EMOJIS_${response.status}`))
+    }
+
+    const summaryMap = Object.fromEntries(
+      commentIds.map((commentId) => [commentId, [] as CommentPublicRecord['emoji_reactions']]),
+    ) as Record<string, CommentPublicRecord['emoji_reactions']>
+
+    if (!Array.isArray(payload) || payload.length === 0) {
+      return summaryMap
+    }
+
+    const aggregateMap = new Map<string, Map<string, { count: number; updatedAt: string }>>()
+
+    for (const row of payload) {
+      if (!row || typeof row !== 'object') {
+        continue
+      }
+
+      const reaction = row as CommentEmojiReactionRow
+      const commentId = normalizeCommentId(reaction.comment_id)
+      const emoji = normalizeCommentEmoji(reaction.emoji)
+
+      if (!commentId || !emoji) {
+        continue
+      }
+
+      const updatedAt = typeof reaction.updated_at === 'string' ? reaction.updated_at : ''
+      const byEmoji = aggregateMap.get(commentId) ?? new Map<string, { count: number; updatedAt: string }>()
+      const current = byEmoji.get(emoji)
+
+      byEmoji.set(emoji, {
+        count: (current?.count ?? 0) + 1,
+        updatedAt: current?.updatedAt && current.updatedAt > updatedAt ? current.updatedAt : updatedAt,
+      })
+
+      aggregateMap.set(commentId, byEmoji)
+    }
+
+    for (const [commentId, byEmoji] of aggregateMap.entries()) {
+      summaryMap[commentId] = [...byEmoji.entries()]
+        .map(([emoji, meta]) => ({ emoji, count: meta.count, viewer: false, updatedAt: meta.updatedAt }))
+        .sort((left, right) => {
+          if (right.count !== left.count) {
+            return right.count - left.count
+          }
+
+          if (right.updatedAt !== left.updatedAt) {
+            return right.updatedAt.localeCompare(left.updatedAt)
+          }
+
+          return left.emoji.localeCompare(right.emoji)
+        })
+        .map(({ emoji, count, viewer }) => ({ emoji, count, viewer }))
+    }
+
+    return summaryMap
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+async function fetchPersistedCommentThreadPublicRecords(
+  env: Cloudflare.Env,
+  targetType: string,
+  targetId: string,
+  archived: boolean | null,
+) {
+  const persistedComments = await fetchPersistedCommentThread(env, targetType, targetId, archived)
+  const commentIds = persistedComments.map((comment) => comment.id)
+
+  const emojiSummaryMap = commentIds.length === 0
+    ? {} as Record<string, CommentPublicRecord['emoji_reactions']>
+    : await getCommentEmojiSummaryMap(env, commentIds).catch((error) => {
+        log('error', 'comment emoji summary load failed', {
+          targetType,
+          targetId,
+          archived,
+          error: error instanceof Error ? error.message : String(error),
+        })
+
+        return {} as Record<string, CommentPublicRecord['emoji_reactions']>
+      })
+
+  return persistedComments.map((comment) => ({
+    ...createPersistedCommentPublicRecord(comment),
+    emoji_reactions: emojiSummaryMap[comment.id] ?? [],
+  }))
 }
 
 async function updatePersistedComment(env: Cloudflare.Env, commentId: string, content: string) {
@@ -1172,7 +1367,7 @@ async function handleCommentThreadGet(request: Request, env: EngagementEnv, ctx:
 
   const cacheEntry = getCommentThreadCacheKeyFromUrl(url)
   if (!cacheEntry) {
-    return proxyRequest(request, env, url.pathname)
+    return jsonResponse({ error: 'MISSING_TARGET' }, { status: 400 })
   }
 
   const cachedResponse = await caches.default.match(cacheEntry.cacheKey)
@@ -1191,36 +1386,47 @@ async function handleCommentThreadGet(request: Request, env: EngagementEnv, ctx:
     })
   }
 
-  const [originResponse, pendingComments] = await Promise.all([
-    proxyRequest(request, env, url.pathname),
-    cacheEntry.archived === true
-      ? Promise.resolve([])
-      : requestCommentQueueDurableObject<CommentPublicRecord[]>(env, '/thread', {
-          targetType: cacheEntry.targetType,
-          targetId: cacheEntry.targetId,
-        }).catch((error) => {
-          log('error', 'pending comment thread load failed', {
-            path: url.pathname,
+  let persistedComments: CommentPublicRecord[]
+  let pendingComments: CommentPublicRecord[]
+
+  try {
+    [persistedComments, pendingComments] = await Promise.all([
+      fetchPersistedCommentThreadPublicRecords(
+        env,
+        cacheEntry.targetType,
+        cacheEntry.targetId,
+        cacheEntry.archived,
+      ),
+      cacheEntry.archived === true
+        ? Promise.resolve([])
+        : requestCommentQueueDurableObject<CommentPublicRecord[]>(env, '/thread', {
             targetType: cacheEntry.targetType,
             targetId: cacheEntry.targetId,
-            archived: cacheEntry.archived,
-            error: error instanceof Error ? error.message : String(error),
-          })
+          }).catch((error) => {
+            log('error', 'pending comment thread load failed', {
+              path: url.pathname,
+              targetType: cacheEntry.targetType,
+              targetId: cacheEntry.targetId,
+              archived: cacheEntry.archived,
+              error: error instanceof Error ? error.message : String(error),
+            })
 
-          return []
-        }),
-  ])
+            return []
+          }),
+    ])
+  } catch (error) {
+    log('error', 'persisted comment thread load failed', {
+      path: url.pathname,
+      targetType: cacheEntry.targetType,
+      targetId: cacheEntry.targetId,
+      archived: cacheEntry.archived,
+      error: error instanceof Error ? error.message : String(error),
+    })
 
-  if (!originResponse.ok) {
-    return originResponse
+    return jsonResponse({ error: '评论加载失败。' }, { status: 503 })
   }
 
-  const originPayload = normalizeCommentThreadPayload(await parseJsonResponse<unknown>(originResponse))
-  if (!originPayload) {
-    return originResponse
-  }
-
-  const response = withCommentThreadCacheHeaders(jsonResponse(mergeCommentThreads(originPayload, pendingComments)))
+  const response = withCommentThreadCacheHeaders(jsonResponse(mergeCommentThreads(persistedComments, pendingComments)))
   ctx.waitUntil(caches.default.put(cacheEntry.cacheKey, response.clone()))
 
   log('log', 'comment thread cache miss', {
