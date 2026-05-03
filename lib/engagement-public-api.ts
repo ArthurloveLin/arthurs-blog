@@ -1,6 +1,9 @@
 function resolveEngagementUrl(path: string): string {
   const workerBase = process.env.NEXT_PUBLIC_ENGAGEMENT_WORKER_URL?.replace(/\/+$/, '')
-  if (!workerBase) return path
+
+  if (!workerBase) {
+    throw new Error('ENGAGEMENT_WORKER_UNAVAILABLE')
+  }
 
   try {
     const base = new URL(workerBase)
@@ -10,10 +13,14 @@ function resolveEngagementUrl(path: string): string {
     if (search) base.search = `?${search}`
     return base.toString()
   } catch {
-    return path
+    throw new Error('ENGAGEMENT_WORKER_UNAVAILABLE')
   }
 }
 
 export function fetchEngagementPublicApi(path: string, init?: RequestInit): Promise<Response> {
-  return fetch(resolveEngagementUrl(path), init)
+  try {
+    return fetch(resolveEngagementUrl(path), init)
+  } catch (error) {
+    return Promise.reject(error)
+  }
 }

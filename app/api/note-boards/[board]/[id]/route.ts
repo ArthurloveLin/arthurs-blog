@@ -27,26 +27,34 @@ export async function DELETE(
     : undefined
 
   if (board === 'guestbook') {
-    const response = await fetchCommentWorker(`/api/comments/${id}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        identity: body.identity,
-        identities,
-      }),
-      cache: 'no-store',
-    })
+    try {
+      const response = await fetchCommentWorker(`/api/comments/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identity: body.identity,
+          identities,
+        }),
+        cache: 'no-store',
+      })
 
-    if (response && response.status !== 404) {
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null)
-        return NextResponse.json(
-          { error: getResponseErrorMessage(payload, 'Failed to delete note') },
-          { status: response.status },
-        )
+      if (!response) {
+        return NextResponse.json({ error: 'Comment service unavailable' }, { status: 503 })
       }
 
-      return new NextResponse(null, { status: 204 })
+      if (response.status !== 404) {
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null)
+          return NextResponse.json(
+            { error: getResponseErrorMessage(payload, 'Failed to delete note') },
+            { status: response.status },
+          )
+        }
+
+        return new NextResponse(null, { status: 204 })
+      }
+    } catch {
+      return NextResponse.json({ error: 'Comment service unavailable' }, { status: 503 })
     }
   }
 
@@ -95,32 +103,40 @@ export async function PATCH(
   }
 
   if (board === 'guestbook' && typeof archived === 'undefined' && typeof content === 'string') {
-    const response = await fetchCommentWorker(`/api/comments/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        identity: body.identity,
-        identities,
-        content,
-      }),
-      cache: 'no-store',
-    })
+    try {
+      const response = await fetchCommentWorker(`/api/comments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identity: body.identity,
+          identities,
+          content,
+        }),
+        cache: 'no-store',
+      })
 
-    if (response && response.status !== 404) {
-      const payload = await response.json().catch(() => null) as Record<string, unknown> | null
-
-      if (!response.ok) {
-        return NextResponse.json(
-          { error: getResponseErrorMessage(payload, 'Failed to update note') },
-          { status: response.status },
-        )
+      if (!response) {
+        return NextResponse.json({ error: 'Comment service unavailable' }, { status: 503 })
       }
 
-      if (!payload) {
-        return NextResponse.json({ error: 'Invalid engagement response' }, { status: 502 })
-      }
+      if (response.status !== 404) {
+        const payload = await response.json().catch(() => null) as Record<string, unknown> | null
 
-      return NextResponse.json(createGuestbookNoteMessage(createCommentRecord(payload as unknown as Comment), false))
+        if (!response.ok) {
+          return NextResponse.json(
+            { error: getResponseErrorMessage(payload, 'Failed to update note') },
+            { status: response.status },
+          )
+        }
+
+        if (!payload) {
+          return NextResponse.json({ error: 'Invalid engagement response' }, { status: 502 })
+        }
+
+        return NextResponse.json(createGuestbookNoteMessage(createCommentRecord(payload as unknown as Comment), false))
+      }
+    } catch {
+      return NextResponse.json({ error: 'Comment service unavailable' }, { status: 503 })
     }
   }
 

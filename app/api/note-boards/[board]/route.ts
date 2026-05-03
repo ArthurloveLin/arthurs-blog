@@ -71,21 +71,25 @@ export async function POST(
   }
 
   if (board === 'guestbook') {
-    const config = getNoteBoardConfig(board)
-    const response = await fetchCommentWorker('/api/comments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        target_type: config.targetType,
-        target_id: config.targetId,
-        author: author.trim(),
-        content: content.trim(),
-        parent_id: null,
-      }),
-      cache: 'no-store',
-    })
+    try {
+      const config = getNoteBoardConfig(board)
+      const response = await fetchCommentWorker('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target_type: config.targetType,
+          target_id: config.targetId,
+          author: author.trim(),
+          content: content.trim(),
+          parent_id: null,
+        }),
+        cache: 'no-store',
+      })
 
-    if (response) {
+      if (!response) {
+        return NextResponse.json({ error: 'Comment service unavailable' }, { status: 503 })
+      }
+
       const payload = await response.json().catch(() => null) as Record<string, unknown> | null
 
       if (!response.ok) {
@@ -100,6 +104,8 @@ export async function POST(
       }
 
       return NextResponse.json(createGuestbookNoteMessage(createCommentRecord(payload as unknown as Comment), false), { status: 201 })
+    } catch {
+      return NextResponse.json({ error: 'Comment service unavailable' }, { status: 503 })
     }
   }
 
