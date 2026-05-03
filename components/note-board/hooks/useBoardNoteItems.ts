@@ -58,8 +58,15 @@ export function useBoardNoteItems({
   setEditContent,
 }: UseBoardNoteItemsProps) {
   const noteItems = useMemo<NoteCardViewModel[]>(() => visibleMessages.map((message) => {
-    const canDelete = getDeletePermission(boardSlug, isAdmin, viewerIdentityAliases, message)
-    const canEdit = getEditPermission(isAdmin, viewerIdentityAliases, message)
+    const isLocalOptimistic = message.id.startsWith('optimistic-')
+    const isPendingSync = message.sync_state === 'pending' || isLocalOptimistic
+    const canManagePending = !isLocalOptimistic && viewerIdentityAliases.includes(message.author)
+    const canDelete = isPendingSync
+      ? canManagePending
+      : getDeletePermission(boardSlug, isAdmin, viewerIdentityAliases, message)
+    const canEdit = isPendingSync
+      ? canManagePending
+      : getEditPermission(isAdmin, viewerIdentityAliases, message)
     const isEditing = editingNoteId === message.id
     const isPriorityUpdating = Boolean(priorityUpdatingIds[message.id])
     const isOptimisticEditing = Boolean(updatingNoteIds?.[message.id])
@@ -71,12 +78,12 @@ export function useBoardNoteItems({
       isEditing,
       isPriorityUpdating,
       isOptimisticEditing,
-      isOptimistic: message.id.startsWith('optimistic-'),
+      isOptimistic: isLocalOptimistic,
       isFresh: Boolean(freshMessageIds[message.id]),
       actions: {
         delete: canDelete ? { onClick: () => void handleDelete(message.id, editingNoteId) } : undefined,
         edit: canEdit ? { onClick: () => startEditingNote(message) } : undefined,
-        archive: canEdit ? { archived: message.archived, onToggle: () => void handleToggleArchive(message, editingNoteId) } : undefined,
+        archive: canEdit && !isPendingSync ? { archived: message.archived, onToggle: () => void handleToggleArchive(message, editingNoteId) } : undefined,
       },
       priorityControl: priorityEnabled ? {
         value: message.priority ?? 0,
@@ -89,10 +96,10 @@ export function useBoardNoteItems({
         viewerReaction: message.viewer_reaction,
         emojiReactions: message.emoji_reactions,
         viewerEmojis: message.viewer_emojis,
-        pending: Boolean(reactionUpdatingIds[message.id]),
-        emojiPending: Boolean(emojiUpdatingIds[message.id]),
-        onReact: (value) => void handleReaction(message, value),
-        onEmojiReact: (emoji) => void handleEmojiReaction(message, emoji),
+        pending: isPendingSync || Boolean(reactionUpdatingIds[message.id]),
+        emojiPending: isPendingSync || Boolean(emojiUpdatingIds[message.id]),
+        onReact: isPendingSync ? () => undefined : (value) => void handleReaction(message, value),
+        onEmojiReact: isPendingSync ? () => undefined : (emoji) => void handleEmojiReaction(message, emoji),
       },
       inlineEditor: isEditing ? {
         value: editContent,

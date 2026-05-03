@@ -627,13 +627,51 @@ async function enforceCommentRateLimit(request: Request, env: Cloudflare.Env) {
 }
 
 function getCommentThreadCacheKey(requestUrl: string, targetType: string, targetId: string) {
+  return getCommentThreadVariantCacheKey(requestUrl, targetType, targetId, null)
+}
+
+function getCommentThreadVariantCacheKey(
+  requestUrl: string,
+  targetType: string,
+  targetId: string,
+  archived: boolean | null,
+) {
   const cacheUrl = new URL(requestUrl)
   cacheUrl.pathname = '/api/comments'
   cacheUrl.search = ''
   cacheUrl.searchParams.set('target_type', targetType)
   cacheUrl.searchParams.set('target_id', targetId)
 
+  if (archived !== null) {
+    cacheUrl.searchParams.set('archived', archived ? '1' : '0')
+  }
+
   return new Request(cacheUrl.toString(), { method: 'GET' })
+}
+
+function normalizeArchivedCommentThreadQuery(value: string | null) {
+  if (value === '1') {
+    return true
+  }
+
+  if (value === '0') {
+    return false
+  }
+
+  return null
+}
+
+function getCommentThreadCacheKeys(requestUrl: string, targetType: string, targetId: string) {
+  return [
+    {
+      variant: 'default',
+      cacheKey: getCommentThreadVariantCacheKey(requestUrl, targetType, targetId, null),
+    },
+    {
+      variant: 'active',
+      cacheKey: getCommentThreadVariantCacheKey(requestUrl, targetType, targetId, false),
+    },
+  ]
 }
 
 function invalidateCommentThreadCache(
@@ -643,22 +681,27 @@ function invalidateCommentThreadCache(
   targetId: string,
   reason: string,
 ) {
-  const cacheKey = getCommentThreadCacheKey(requestUrl, targetType, targetId)
   ctx.waitUntil(
-    caches.default.delete(cacheKey).then((deleted) => {
-      log('log', 'comment thread cache invalidated', {
-        targetType,
-        targetId,
-        reason,
-        deleted,
-      })
-    }),
+    Promise.all(
+      getCommentThreadCacheKeys(requestUrl, targetType, targetId).map(({ variant, cacheKey }) =>
+        caches.default.delete(cacheKey).then((deleted) => {
+          log('log', 'comment thread cache invalidated', {
+            targetType,
+            targetId,
+            reason,
+            variant,
+            deleted,
+          })
+        }),
+      ),
+    ),
   )
 }
 
 function getCommentThreadCacheKeyFromUrl(url: URL) {
   const targetType = url.searchParams.get('target_type')?.trim()
   const targetId = url.searchParams.get('target_id')?.trim()
+  const archived = normalizeArchivedCommentThreadQuery(url.searchParams.get('archived'))
 
   if (!targetType || !targetId) {
     return null
@@ -667,7 +710,8 @@ function getCommentThreadCacheKeyFromUrl(url: URL) {
   return {
     targetType,
     targetId,
-    cacheKey: getCommentThreadCacheKey(url.toString(), targetType, targetId),
+    archived,
+    cacheKey: getCommentThreadVariantCacheKey(url.toString(), targetType, targetId, archived),
   }
 }
 
@@ -878,6 +922,7 @@ async function handleCommentThreadGet(request: Request, env: EngagementEnv, ctx:
       path: url.pathname,
       targetType: cacheEntry.targetType,
       targetId: cacheEntry.targetId,
+      archived: cacheEntry.archived,
     })
 
     return new Response(cachedResponse.body, {
@@ -889,19 +934,22 @@ async function handleCommentThreadGet(request: Request, env: EngagementEnv, ctx:
 
   const [originResponse, pendingComments] = await Promise.all([
     proxyRequest(request, env, url.pathname),
-    requestCommentQueueDurableObject<CommentPublicRecord[]>(env, '/thread', {
-      targetType: cacheEntry.targetType,
-      targetId: cacheEntry.targetId,
-    }).catch((error) => {
-      log('error', 'pending comment thread load failed', {
-        path: url.pathname,
-        targetType: cacheEntry.targetType,
-        targetId: cacheEntry.targetId,
-        error: error instanceof Error ? error.message : String(error),
-      })
+    cacheEntry.archived === true
+      ? Promise.resolve([])
+      : requestCommentQueueDurableObject<CommentPublicRecord[]>(env, '/thread', {
+          targetType: cacheEntry.targetType,
+          targetId: cacheEntry.targetId,
+        }).catch((error) => {
+          log('error', 'pending comment thread load failed', {
+            path: url.pathname,
+            targetType: cacheEntry.targetType,
+            targetId: cacheEntry.targetId,
+            archived: cacheEntry.archived,
+            error: error instanceof Error ? error.message : String(error),
+          })
 
-      return []
-    }),
+          return []
+        }),
   ])
 
   if (!originResponse.ok) {
@@ -920,6 +968,7 @@ async function handleCommentThreadGet(request: Request, env: EngagementEnv, ctx:
     path: url.pathname,
     targetType: cacheEntry.targetType,
     targetId: cacheEntry.targetId,
+    archived: cacheEntry.archived,
   })
 
   return response

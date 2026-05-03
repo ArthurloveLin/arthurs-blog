@@ -1,6 +1,7 @@
 import { attachViewerEmojiReactions, getEmojiReactionSummaryMap } from '@/lib/comment-emojis'
 import { getViewerReactionMap, normalizeReactionIdentity } from '@/lib/comment-reactions'
 import { createCommentRecord, type Comment, type CommentViewerState } from '@/lib/comments'
+import { getCommentWorkerUrl } from '@/lib/comment-worker'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 type CommentRow = {
@@ -14,32 +15,34 @@ type CommentRow = {
   downvotes: number | null
 }
 
-function trimTrailingSlash(value: string | undefined) {
-  return value?.replace(/\/+$/, '') ?? ''
+interface CommentThreadRequestOptions {
+  archived?: boolean
 }
 
-function getCommentThreadUrl(targetType: string, targetId: string) {
-  const workerBaseUrl = trimTrailingSlash(process.env.NEXT_PUBLIC_ENGAGEMENT_WORKER_URL)
-  if (!workerBaseUrl) {
-    return null
+function getCommentThreadUrl(targetType: string, targetId: string, options: CommentThreadRequestOptions = {}) {
+  const searchParams = new URLSearchParams()
+  searchParams.set('target_type', targetType)
+  searchParams.set('target_id', targetId)
+
+  if (typeof options.archived === 'boolean') {
+    searchParams.set('archived', options.archived ? '1' : '0')
   }
 
-  const url = new URL(workerBaseUrl)
-  const basePath = url.pathname === '/' ? '' : trimTrailingSlash(url.pathname)
-  url.pathname = `${basePath}/api/comments`
-  url.searchParams.set('target_type', targetType)
-  url.searchParams.set('target_id', targetId)
-
-  return url.toString()
+  return getCommentWorkerUrl('/api/comments', searchParams)
 }
 
-async function getCommentRows(targetType: string, targetId: string) {
-  const { data, error } = await supabaseAdmin
+async function getCommentRows(targetType: string, targetId: string, options: CommentThreadRequestOptions = {}) {
+  let query = supabaseAdmin
     .from('comments')
     .select('id, author, content, created_at, updated_at, parent_id, upvotes, downvotes')
     .eq('target_type', targetType)
     .eq('target_id', targetId)
-    .order('created_at', { ascending: true })
+
+  if (typeof options.archived === 'boolean') {
+    query = query.eq('archived', options.archived)
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: true })
 
   if (error) {
     throw new Error(error.message)
@@ -48,17 +51,25 @@ async function getCommentRows(targetType: string, targetId: string) {
   return (data ?? []) as CommentRow[]
 }
 
-export async function getPublicComments(targetType: string, targetId: string): Promise<Comment[]> {
-  const rows = await getCommentRows(targetType, targetId)
+export async function getPublicComments(
+  targetType: string,
+  targetId: string,
+  options: CommentThreadRequestOptions = {},
+): Promise<Comment[]> {
+  const rows = await getCommentRows(targetType, targetId, options)
   const withEmojiSummary = await attachViewerEmojiReactions(rows)
 
   return withEmojiSummary.map((comment) => createCommentRecord(comment))
 }
 
-export async function getCommentThread(targetType: string, targetId: string): Promise<Comment[]> {
-  const workerUrl = getCommentThreadUrl(targetType, targetId)
+export async function getCommentThread(
+  targetType: string,
+  targetId: string,
+  options: CommentThreadRequestOptions = {},
+): Promise<Comment[]> {
+  const workerUrl = getCommentThreadUrl(targetType, targetId, options)
   if (!workerUrl) {
-    return getPublicComments(targetType, targetId)
+    return getPublicComments(targetType, targetId, options)
   }
 
   try {
@@ -82,7 +93,7 @@ export async function getCommentThread(targetType: string, targetId: string): Pr
 
     return payload.map((entry) => createCommentRecord(entry as Comment))
   } catch {
-    return getPublicComments(targetType, targetId)
+    return getPublicComments(targetType, targetId, options)
   }
 }
 

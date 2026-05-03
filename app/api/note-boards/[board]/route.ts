@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createCommentRecord, type Comment } from '@/lib/comments'
+import { fetchCommentWorker } from '@/lib/comment-worker'
 import { normalizeReactionIdentity } from '@/lib/comment-reactions'
 import { isNotePriority, isNoteSortMode } from '@/lib/note-priority'
 import {
   createBoardMessage,
+  createGuestbookNoteMessage,
   getBoardMessages,
   getNoteBoardConfig,
   isNoteBoardSlug,
 } from '@/lib/note-boards'
+
+function getResponseErrorMessage(payload: unknown, fallback: string) {
+  if (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') {
+    return payload.error
+  }
+
+  return fallback
+}
 
 export async function GET(
   req: NextRequest,
@@ -57,6 +68,39 @@ export async function POST(
 
   if (priority !== undefined && !isNotePriority(priority)) {
     return NextResponse.json({ error: 'Invalid priority' }, { status: 400 })
+  }
+
+  if (board === 'guestbook') {
+    const config = getNoteBoardConfig(board)
+    const response = await fetchCommentWorker('/api/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        target_type: config.targetType,
+        target_id: config.targetId,
+        author: author.trim(),
+        content: content.trim(),
+        parent_id: null,
+      }),
+      cache: 'no-store',
+    })
+
+    if (response) {
+      const payload = await response.json().catch(() => null) as Record<string, unknown> | null
+
+      if (!response.ok) {
+        return NextResponse.json(
+          { error: getResponseErrorMessage(payload, 'Failed to create note') },
+          { status: response.status },
+        )
+      }
+
+      if (!payload) {
+        return NextResponse.json({ error: 'Invalid engagement response' }, { status: 502 })
+      }
+
+      return NextResponse.json(createGuestbookNoteMessage(createCommentRecord(payload as unknown as Comment), false), { status: 201 })
+    }
   }
 
   try {

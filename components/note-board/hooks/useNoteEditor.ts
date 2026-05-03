@@ -180,6 +180,7 @@ export function useNoteEditor({
       viewer_reaction: 0,
       emoji_reactions: [],
       viewer_emojis: [],
+      sync_state: 'pending',
     }
 
     setIsSubmitting(true)
