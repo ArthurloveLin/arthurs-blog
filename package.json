@@ -7,9 +7,9 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "lint:workers": "eslint -c eslint.workers.config.mjs workers/cloudflare-worker/src workers/genius-worker/src workers/spotify-now-playing-worker/src workers/wardrobe-supabase-worker/src",
+    "lint:workers": "eslint -c eslint.workers.config.mjs workers/engagement-worker/src workers/cloudflare-worker/src workers/genius-worker/src workers/spotify-now-playing-worker/src workers/wardrobe-supabase-worker/src",
     "check": "tsc --noEmit && eslint . && npm run check:workers",
-    "check:workers": "npm run lint:workers && npm --prefix workers/cloudflare-worker run type-check && npm --prefix workers/genius-worker run type-check && npm --prefix workers/spotify-now-playing-worker run type-check && npm --prefix workers/wardrobe-supabase-worker run type-check",
+    "check:workers": "npm run lint:workers && npm --prefix workers/engagement-worker run type-check && npm --prefix workers/cloudflare-worker run type-check && npm --prefix workers/genius-worker run type-check && npm --prefix workers/spotify-now-playing-worker run type-check && npm --prefix workers/wardrobe-supabase-worker run type-check",
     "spotify:backfill-days": "tsx scripts/backfill-spotify-recently-played-days.ts",
     "spotify:sync-tags": "tsx scripts/sync-lastfm-tags.ts",
     "spotify:sync-tags:force": "tsx scripts/sync-lastfm-tags.ts --force"

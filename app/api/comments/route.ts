@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { attachViewerEmojiReactions } from '@/lib/comment-emojis'
-import { attachViewerReactions, normalizeReactionIdentity } from '@/lib/comment-reactions'
+import { getPublicComments } from '@/lib/comments-server'
 import { COMMENT_MAX_LENGTH } from '@/lib/input-limits'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
@@ -8,23 +7,19 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const target_type = searchParams.get('target_type')
   const target_id = searchParams.get('target_id')
-  const identity = normalizeReactionIdentity(searchParams.get('identity'))
 
   if (!target_type || !target_id) {
     return NextResponse.json({ error: 'Missing target_type or target_id' }, { status: 400 })
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('comments')
-    .select('id, author, content, created_at, updated_at, parent_id, upvotes, downvotes')
-    .eq('target_type', target_type)
-    .eq('target_id', target_id)
-    .order('created_at', { ascending: true })
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  const commentsWithReactions = await attachViewerReactions(data ?? [], identity)
-  return NextResponse.json(await attachViewerEmojiReactions(commentsWithReactions, identity))
+  try {
+    return NextResponse.json(await getPublicComments(target_type, target_id))
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to load comments' },
+      { status: 500 },
+    )
+  }
 }
 
 export async function POST(req: NextRequest) {

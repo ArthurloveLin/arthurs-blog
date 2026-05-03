@@ -8,32 +8,34 @@ import EmojiPickerButton from './emoji/EmojiPickerButton'
 import EmojiReactionSummary from './emoji/EmojiReactionSummary'
 import EditorActionBar from './EditorActionBar'
 import ReactionToggleBar from './ReactionToggleBar'
-import type { EmojiReactionEntry } from '@/lib/comment-emojis'
+import {
+  applyViewerStateToComments,
+  createCommentRecord,
+  mergeCommentThread,
+  type Comment,
+  type CommentReplyTarget,
+  type CommentViewerState,
+} from '@/lib/comments'
+import {
+  clearCommentComposerDraft,
+  clearCommentEditDraft,
+  loadCommentComposerDraft,
+  loadCommentEditDraft,
+  saveCommentComposerDraft,
+  saveCommentEditDraft,
+} from '@/lib/comment-draft-storage'
 import { formatCommentTimeLabel } from '@/lib/date-format'
+import { fetchEngagementPublicApi } from '@/lib/engagement-public-api'
 import { COMMENT_MAX_LENGTH } from '@/lib/input-limits'
-import type { ReactionValue } from '@/lib/comment-reactions'
 import { insertTextAtSelection } from '@/lib/text-selection'
 
-interface Comment {
-  id: string
-  author: string
-  content: string
-  created_at: string
-  updated_at: string | null
-  parent_id: string | null
-  upvotes: number
-  downvotes: number
-  viewer_reaction: ReactionValue
-  emoji_reactions: EmojiReactionEntry[]
-  viewer_emojis: string[]
-  optimistic?: boolean
-}
-
 interface CommentTreeContextValue {
+  targetType: string
+  targetId: string
   comments: Comment[]
   topLevelComments: Comment[]
   repliesByParentId: Record<string, Comment[]>
-  replyTo: { id: string; author: string } | null
+  replyTo: CommentReplyTarget | null
   draft: string
   submitting: boolean
   error: string | null
@@ -44,6 +46,7 @@ interface CommentTreeContextValue {
   emojiReactingIds: Record<string, boolean>
   composerRef: React.RefObject<HTMLTextAreaElement | null>
   onDraftChange: (value: string) => void
+  onClearError: () => void
   onReply: (comment: Comment) => void
   onCancelReply: () => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
@@ -63,6 +66,13 @@ function getLengthTone(length: number, maxLength: number) {
   return maxLength - length <= Math.min(40, Math.floor(maxLength * 0.12)) ? 'text-amber-600' : 'text-muted-foreground/75'
 }
 
+function humanizeCommentError(message: string | undefined): string {
+  if (!message) return '评论发送失败。'
+  if (message === 'Failed to fetch') return '网络错误，请重试。'
+  if (message === 'Content too long') return `评论不能超过 ${COMMENT_MAX_LENGTH} 字。`
+  return message
+}
+
 function useCommentTree() {
   const ctx = use(CommentTreeContext)
   if (!ctx) throw new Error('useCommentTree must be used within CommentTreeContext')
@@ -71,6 +81,10 @@ function useCommentTree() {
 
 function canModifyComment(comment: Comment, identityAliases: string[], isAdmin: boolean) {
   return isAdmin || identityAliases.includes(comment.author)
+}
+
+function isPendingComment(comment: Comment) {
+  return comment.sync_state === 'pending'
 }
 
 function applyOptimisticReactionToComment(comment: Comment, nextReaction: 1 | -1 | 0): Comment {
@@ -324,17 +338,39 @@ function CommentIconButton({
 }
 
 function CommentCard({ comment }: { comment: Comment }) {
-  const { identityAliases, isAdmin, reactingIds, emojiReactingIds, onReply, onDelete, onUpdate, onReact, onEmojiReact } = useCommentTree()
+  const { targetType, targetId, identityAliases, isAdmin, reactingIds, emojiReactingIds, onReply, onDelete, onUpdate, onReact, onEmojiReact } = useCommentTree()
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(comment.content)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const editable = canModifyComment(comment, identityAliases, isAdmin)
+  const pendingSync = isPendingComment(comment)
 
   useEffect(() => {
-    setDraft(comment.content)
-  }, [comment.content])
+    if (!isEditing) {
+      setDraft(comment.content)
+    }
+  }, [comment.content, isEditing])
+
+  useEffect(() => {
+    if (!isEditing) {
+      return
+    }
+
+    const savedDraft = loadCommentEditDraft(targetType, targetId, comment.id)
+    if (savedDraft !== null) {
+      setDraft(savedDraft)
+    }
+  }, [comment.id, isEditing, targetId, targetType])
+
+  useEffect(() => {
+    if (!isEditing) {
+      return
+    }
+
+    saveCommentEditDraft(targetType, targetId, comment.id, draft, comment.content)
+  }, [comment.content, comment.id, draft, isEditing, targetId, targetType])
 
   async function handleSave() {
     if (!draft.trim() || isSaving) return
@@ -344,6 +380,7 @@ function CommentCard({ comment }: { comment: Comment }) {
 
     try {
       await onUpdate(comment.id, draft.trim())
+      clearCommentEditDraft(targetType, targetId, comment.id)
       setIsEditing(false)
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : '评论更新失败。')
@@ -384,6 +421,7 @@ function CommentCard({ comment }: { comment: Comment }) {
             value={draft}
             onChange={setDraft}
             onCancel={() => {
+              clearCommentEditDraft(targetType, targetId, comment.id)
               setDraft(comment.content)
               setError(null)
               setIsEditing(false)
@@ -411,7 +449,7 @@ function CommentCard({ comment }: { comment: Comment }) {
         <div className="mt-3 flex items-end justify-between gap-3">
           <div className="inline-flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
             <Clock3 size={12} strokeWidth={1.9} />
-            <span>{comment.optimistic ? '发送中…' : formatCommentTimeLabel(comment.created_at, comment.updated_at)}</span>
+            <span>{comment.optimistic ? '发送中…' : pendingSync ? '边缘已接收，等待同步' : formatCommentTimeLabel(comment.created_at, comment.updated_at)}</span>
           </div>
           <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
             <ReactionToggleBar
@@ -421,8 +459,8 @@ function CommentCard({ comment }: { comment: Comment }) {
               viewerReaction={comment.viewer_reaction}
               pending={Boolean(reactingIds[comment.id])}
               emojiPending={Boolean(emojiReactingIds[comment.id])}
-              onReact={(reaction) => void onReact(comment.id, reaction)}
-              onEmojiReact={(emoji) => void onEmojiReact(comment.id, emoji)}
+              onReact={pendingSync ? () => {} : (reaction) => void onReact(comment.id, reaction)}
+              onEmojiReact={pendingSync ? () => {} : (emoji) => void onEmojiReact(comment.id, emoji)}
             />
             <CommentIconButton label="回复评论" onClick={() => onReply(comment)}>
               <MessageCircleReply size={14} strokeWidth={1.9} />
@@ -497,6 +535,7 @@ function CommentThreadComposer() {
     submitting,
     composerRef,
     onCancelReply,
+    onClearError,
     onDraftChange,
     onSubmit,
   } = useCommentTree()
@@ -543,13 +582,22 @@ function CommentThreadComposer() {
               </>
             )}
             trailing={(
-              <button
-                type="submit"
-                disabled={submitting || !draft.trim()}
-                className="rounded-full bg-slate-900 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white transition-all hover:opacity-90 disabled:opacity-30 disabled:bg-slate-400"
-              >
-                {submitting ? '发送中' : '发送'}
-              </button>
+              error ? (
+                <span className="flex items-center gap-1.5 text-[11px] text-rose-500">
+                  <span className="max-w-[200px] truncate">{error}</span>
+                  <button type="button" className="shrink-0 transition hover:text-rose-700" onClick={onClearError}>
+                    <X size={12} />
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={submitting || !draft.trim()}
+                  className="rounded-full bg-slate-900 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white transition-all hover:opacity-90 disabled:opacity-30 disabled:bg-slate-400"
+                >
+                  {submitting ? '发送中' : '发送'}
+                </button>
+              )
             )}
           />
         )}
@@ -573,7 +621,6 @@ function CommentThreadComposer() {
           已输入 {draft.length} 字，还剩 {Math.max(COMMENT_MAX_LENGTH - draft.length, 0)} 字
         </span>
       </div>
-      {error ? <p className="text-xs text-rose-600">{error}</p> : null}
     </div>
   )
 }
@@ -598,9 +645,9 @@ interface CommentBoxProps {
 export default function CommentBox({ targetType, targetId, initialComments }: CommentBoxProps) {
   const { identity, identityAliases, isAdmin, publicIdentity } = useAuth()
 
-  const [comments, setComments] = useState<Comment[]>(initialComments)
+  const [comments, setComments] = useState<Comment[]>(() => initialComments.map((comment) => createCommentRecord(comment)))
   const [draft, setDraft] = useState('')
-  const [replyTo, setReplyTo] = useState<{ id: string; author: string } | null>(null)
+  const [replyTo, setReplyTo] = useState<CommentReplyTarget | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -619,20 +666,59 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
   }, [comments])
 
   useEffect(() => {
+    if (!mounted) return
+
+    const savedComposerDraft = loadCommentComposerDraft(targetType, targetId)
+    if (!savedComposerDraft) {
+      return
+    }
+
+    setDraft((current) => current || savedComposerDraft.draft)
+    setReplyTo((current) => current ?? savedComposerDraft.replyTo)
+  }, [mounted, targetId, targetType])
+
+  useEffect(() => {
+    if (!mounted) return
+
+    saveCommentComposerDraft(targetType, targetId, draft, replyTo)
+  }, [draft, mounted, replyTo, targetId, targetType])
+
+  useEffect(() => {
+    if (!mounted) return
+
+    const controller = new AbortController()
+    const searchParams = new URLSearchParams({ target_type: targetType, target_id: targetId })
+
+    void fetchEngagementPublicApi(`/api/comments?${searchParams.toString()}`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() as Promise<Comment[]> : null)
+      .then((nextComments) => {
+        if (!nextComments) return
+
+        setComments((current) => mergeCommentThread(current, nextComments.map((comment) => createCommentRecord(comment))))
+      })
+      .catch((fetchError) => {
+        if ((fetchError as Error).name !== 'AbortError') {
+          setError((current) => current ?? '评论状态同步失败。')
+        }
+      })
+
+    return () => controller.abort()
+  }, [mounted, targetId, targetType])
+
+  useEffect(() => {
     if (!mounted || !identity) return
 
     const controller = new AbortController()
     const searchParams = new URLSearchParams({ target_type: targetType, target_id: targetId, identity })
 
-    void fetch(`/api/comments?${searchParams.toString()}`, { signal: controller.signal })
-      .then((response) => response.ok ? response.json() as Promise<Comment[]> : null)
-      .then((nextComments) => {
-        if (!nextComments) return
+    void fetch(`/api/comments/viewer-state?${searchParams.toString()}`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() as Promise<CommentViewerState[]> : null)
+      .then((viewerState) => {
+        if (!viewerState) {
+          return
+        }
 
-        setComments((current) => {
-          const optimisticComments = current.filter((comment) => comment.optimistic)
-          return [...nextComments, ...optimisticComments.filter((comment) => !nextComments.some((entry) => entry.id === comment.id))]
-        })
+        setComments((current) => applyViewerStateToComments(current, viewerState))
       })
       .catch((fetchError) => {
         if ((fetchError as Error).name !== 'AbortError') {
@@ -677,7 +763,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     const draftValue = draft.trim()
     const replyTarget = replyTo
     const optimisticId = `optimistic-${crypto.randomUUID()}`
-    const optimisticComment: Comment = {
+    const optimisticComment = createCommentRecord({
       id: optimisticId,
       author: publicIdentity,
       content: draftValue,
@@ -690,17 +776,19 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
       emoji_reactions: [],
       viewer_emojis: [],
       optimistic: true,
-    }
+      sync_state: 'pending',
+    })
 
     setSubmitting(true)
     setError(null)
     setComments((prev) => [...prev, optimisticComment])
     setDraft('')
     setReplyTo(null)
+    clearCommentComposerDraft(targetType, targetId)
     markCommentFresh(optimisticId)
 
     try {
-      const res = await fetch('/api/comments', {
+      const res = await fetchEngagementPublicApi('/api/comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -713,16 +801,16 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
       })
       if (!res.ok) {
         const payload = await res.json().catch(() => null) as { error?: string } | null
-        throw new Error(payload?.error === 'Content too long' ? `评论不能超过 ${COMMENT_MAX_LENGTH} 字。` : '评论发送失败。')
+        throw new Error(payload?.error ?? '评论发送失败。')
       }
-      const newComment: Comment = await res.json()
+      const newComment = createCommentRecord(await res.json() as Comment)
       setComments((prev) => prev.map((comment) => comment.id === optimisticId ? newComment : comment))
       markCommentFresh(newComment.id)
     } catch (submitError) {
       setComments((prev) => prev.filter((comment) => comment.id !== optimisticId))
       setDraft(draftValue)
       setReplyTo(replyTarget)
-      setError(submitError instanceof Error ? submitError.message : '评论发送失败。')
+      setError(humanizeCommentError(submitError instanceof Error ? submitError.message : undefined))
     } finally {
       setSubmitting(false)
     }
@@ -730,13 +818,13 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
 
   async function handleDelete(id: string) {
     const snapshot = commentsRef.current
+    setComments((prev) => prev.filter((c) => c.id !== id && c.parent_id !== id))
     const res = await fetch(`/api/comments/${id}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ identity, identities: identityAliases }),
     })
     if (res.ok) {
-      setComments((prev) => prev.filter((c) => c.id !== id && c.parent_id !== id))
       setError(null)
       return
     }
@@ -777,7 +865,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     if (!identity || reactingIds[id]) return
 
     const snapshot = commentsRef.current.find((comment) => comment.id === id)
-    if (!snapshot) return
+    if (!snapshot || isPendingComment(snapshot)) return
 
     const nextReaction = snapshot.viewer_reaction === reaction ? 0 : reaction
 
@@ -813,7 +901,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     if (!identity || emojiReactingIds[id]) return
 
     const snapshot = commentsRef.current.find((comment) => comment.id === id)
-    if (!snapshot) return
+    if (!snapshot || isPendingComment(snapshot)) return
 
     setEmojiReactingIds((current) => ({ ...current, [id]: true }))
     setComments((prev) => prev.map((comment) => comment.id === id ? applyOptimisticEmojiToComment(comment, emoji) : comment))
@@ -844,6 +932,8 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
   }
 
   const contextValue: CommentTreeContextValue = {
+    targetType,
+    targetId,
     comments,
     topLevelComments,
     repliesByParentId,
@@ -857,7 +947,8 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     reactingIds,
     emojiReactingIds,
     composerRef: inputRef,
-    onDraftChange: (value) => setDraft(limitCommentText(value)),
+    onDraftChange: (value) => { setDraft(limitCommentText(value)); setError(null) },
+    onClearError: () => setError(null),
     onReply: handleReply,
     onCancelReply: () => setReplyTo(null),
     onSubmit: handleSubmit,
