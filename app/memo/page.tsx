@@ -7,7 +7,7 @@ import PageHero from '@/components/PageHero'
 
 
 export const metadata = { title: 'Memo' }
-export const revalidate = 60
+export const revalidate = 300
 
 export default async function MemoPage() {
   const config = getNoteBoardConfig('memo')

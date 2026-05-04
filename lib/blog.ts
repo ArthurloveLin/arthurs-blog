@@ -53,18 +53,22 @@ export async function getPosts(limit = 20, offset = 0): Promise<Post[]> {
 }
 
 // 轻量级获取文章元数据，用于侧边栏渲染，减少序列化开销
-export async function getRecentPostsMetadata(limit = 10): Promise<Post[]> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select('id, slug, title, published_at, sticky')
-    .eq('published', true)
-    .order('sticky', { ascending: false })
-    .order('published_at', { ascending: false })
-    .limit(limit)
+export const getRecentPostsMetadata = unstable_cache(
+  async function (limit = 10): Promise<Post[]> {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('id, slug, title, published_at, sticky')
+      .eq('published', true)
+      .order('sticky', { ascending: false })
+      .order('published_at', { ascending: false })
+      .limit(limit)
 
-  if (error) throw new Error(error.message)
-  return (data ?? []) as Post[]
-}
+    if (error) throw new Error(error.message)
+    return (data ?? []) as Post[]
+  },
+  ['recent-posts-metadata'],
+  { revalidate: 3600, tags: ['posts'] }
+)
 
 export const getPostsCount = unstable_cache(
   async function (): Promise<number> {
@@ -81,7 +85,7 @@ export const getPostsCount = unstable_cache(
     }
   },
   ['posts-count'],
-  { revalidate: 300, tags: ['posts-count'] }
+  { revalidate: 3600, tags: ['posts-count'] }
 )
 
 export async function getPostsByTag(tag: string, limit = 20, offset = 0): Promise<Post[]> {
@@ -113,7 +117,7 @@ export const getPostsByTags = unstable_cache(
     return data ?? []
   },
   ['posts-by-tags'],
-  { revalidate: 60, tags: ['posts'] }
+  { revalidate: 3600, tags: ['posts'] }
 )
 
 // 通用的数据缓存包装器，确保 slug 在作为 tag 使用时经过统一的解码处理
@@ -283,7 +287,7 @@ export const getCategories = unstable_cache(
     }
   },
   ['categories'],
-  { revalidate: 300, tags: ['categories'] }
+  { revalidate: 3600, tags: ['categories'] }
 )
 
 export const getPostsByYear = unstable_cache(
@@ -304,7 +308,7 @@ export const getPostsByYear = unstable_cache(
     return data ?? []
   },
   ['posts-by-year'],
-  { revalidate: 60, tags: ['posts'] }
+  { revalidate: 3600, tags: ['posts'] }
 )
 
 export const getYearArchive = unstable_cache(
@@ -336,7 +340,7 @@ export const getYearArchive = unstable_cache(
     }
   },
   ['year-archive'],
-  { revalidate: 300, tags: ['year-archive'] }
+  { revalidate: 3600, tags: ['year-archive'] }
 )
 
 export const getAllTags = unstable_cache(
@@ -365,7 +369,7 @@ export const getAllTags = unstable_cache(
     }
   },
   ['all-tags'],
-  { revalidate: 300, tags: ['all-tags'] }
+  { revalidate: 3600, tags: ['all-tags'] }
 )
 
 export const getSiteConfig = unstable_cache(
@@ -383,7 +387,7 @@ export const getSiteConfig = unstable_cache(
     }
   },
   ['site-config'],
-  { revalidate: 300, tags: ['site-config'] }
+  { revalidate: 3600, tags: ['site-config'] }
 )
 
 export async function getCommentCount(postId: string): Promise<number> {
@@ -417,10 +421,18 @@ export const getCommentCounts = unstable_cache(
 )
 
 // 仅服务端（reindex 接口使用）
-export async function getPostsMetadata(): Promise<{ r2_key: string; updated_at: string }[]> {
+export async function getPostsMetadata(): Promise<{
+  r2_key: string
+  updated_at: string
+  slug: string
+  category: string | null
+  tags: string[]
+  published_at: string | null
+  published: boolean
+}[]> {
   const { data, error } = await supabaseAdmin
     .from('posts')
-    .select('r2_key, updated_at')
+    .select('r2_key, updated_at, slug, category, tags, published_at, published')
 
   if (error) return []
   return data ?? []

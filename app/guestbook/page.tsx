@@ -7,7 +7,7 @@ import PageHero from '@/components/PageHero'
 
 
 export const metadata = { title: 'Message' }
-export const revalidate = 60
+export const revalidate = 900
 
 export default async function GuestbookPage() {
   const config = getNoteBoardConfig('guestbook')

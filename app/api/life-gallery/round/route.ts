@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getLifeGalleryRound } from '@/lib/life-gallery'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 export async function GET() {
   try {
@@ -9,7 +9,7 @@ export async function GET() {
 
     return NextResponse.json(round, {
       headers: {
-        'Cache-Control': 'no-store, max-age=0',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
       },
     })
   } catch (error) {
@@ -20,7 +20,7 @@ export async function GET() {
       {
         status: 500,
         headers: {
-          'Cache-Control': 'no-store, max-age=0',
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
         },
       }
     )

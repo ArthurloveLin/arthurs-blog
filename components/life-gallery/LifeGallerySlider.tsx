@@ -417,7 +417,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
       setFetchError(null)
 
       try {
-        const response = await fetch('/api/life-gallery/round', { cache: 'no-store' })
+        const response = await fetch('/api/life-gallery/round')
         const data: unknown = await response.json()
 
         if (!response.ok || !isLifeGalleryRound(data)) {

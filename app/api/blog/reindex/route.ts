@@ -9,6 +9,14 @@ import { upsertPost, deletePostsNotIn, getPostsMetadata } from '@/lib/blog'
 const BLOG_BUCKET = process.env.R2_BLOG_BUCKET!
 const CONCURRENCY = 10
 
+interface IndexedPostSnapshot {
+  slug: string
+  category: string | null
+  tags: string[]
+  published_at: string | null
+  published: boolean
+}
+
 function generateSlug(r2Key: string, frontmatterSlug?: string): string {
   if (frontmatterSlug) return frontmatterSlug
   const filename = r2Key.split('/').pop()!.replace(/\.md$/i, '')
@@ -18,18 +26,21 @@ function generateSlug(r2Key: string, frontmatterSlug?: string): string {
 async function processFile(
   key: string,
   domain: string | undefined
-): Promise<{ slug: string; status: 'ok' | 'skip'; reason?: string }> {
+): Promise<{ snapshot?: IndexedPostSnapshot; status: 'ok' | 'skip'; reason?: string }> {
   const raw = await getR2Object(BLOG_BUCKET, key)
   const { data: fm, content: mdContent, excerpt } = matter(raw, { excerpt: true, excerpt_separator: '<!-- more -->' })
 
   if (fm.type === 'site_config') {
-    return { slug: '', status: 'skip', reason: 'site_config (deprecated)' }
+    return { status: 'skip', reason: 'site_config (deprecated)' }
   }
 
-  if (!fm.title) return { slug: '', status: 'skip', reason: 'missing title' }
+  if (!fm.title) return { status: 'skip', reason: 'missing title' }
   
   const published = fm.published === true
   const slug = generateSlug(key, fm.slug)
+  const publishedAt = parseBlogFrontmatterDate(fm.date)
+  const tags = Array.isArray(fm.tags) ? fm.tags : []
+  const category = typeof fm.category === 'string' ? fm.category : null
   
   // 提取摘要逻辑：优先 fm.summary，其次 <!-- more --> (fm.excerpt)，最后尝试提取正文第一段
   const firstParagraph = mdContent.split(/\n\s*\n/).find(p => p.trim() && !p.trim().startsWith('#'))?.trim()
@@ -42,8 +53,8 @@ async function processFile(
     slug,
     title: fm.title,
     summary,
-    tags: Array.isArray(fm.tags) ? fm.tags : [],
-    category: typeof fm.category === 'string' ? fm.category : null,
+    tags,
+    category,
     cover_image: (() => {
       const firstImageMatch = mdContent.match(/!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/)
       const rawImg = typeof fm.cover_image === 'string'
@@ -61,12 +72,51 @@ async function processFile(
     r2_key: key,
     search_content: searchContent,
     published,
-    published_at: parseBlogFrontmatterDate(fm.date),
+    published_at: publishedAt,
     sticky: typeof fm.sticky === 'number' ? fm.sticky : 0,
     reading_minutes,
   })
 
-  return { slug, status: 'ok' }
+  return {
+    status: 'ok',
+    snapshot: {
+      slug,
+      category,
+      tags,
+      published_at: publishedAt,
+      published,
+    },
+  }
+}
+
+function getArchiveYear(publishedAt: string | null) {
+  if (!publishedAt) return null
+
+  const parsed = new Date(publishedAt)
+  if (Number.isNaN(parsed.getTime())) return null
+
+  return parsed.getUTCFullYear().toString()
+}
+
+function addAggregationPaths(paths: {
+  tags: Set<string>
+  categories: Set<string>
+  archiveYears: Set<string>
+}, snapshot?: IndexedPostSnapshot) {
+  if (!snapshot?.published) return
+
+  for (const tag of snapshot.tags) {
+    paths.tags.add(`/tag/${encodeURIComponent(tag)}`)
+  }
+
+  if (snapshot.category) {
+    paths.categories.add(`/category/${encodeURIComponent(snapshot.category)}`)
+  }
+
+  const archiveYear = getArchiveYear(snapshot.published_at)
+  if (archiveYear) {
+    paths.archiveYears.add(`/archive/${archiveYear}`)
+  }
 }
 
 export async function POST(request: Request) {
@@ -82,19 +132,20 @@ export async function POST(request: Request) {
   const mdKeys = mdObjects.map((o) => o.key)
 
   // P1: 建立 r2_key → DB updated_at 的映射，用于跳过未变更文件
-  const dbMap = new Map(existingPosts.map((p) => [p.r2_key, new Date(p.updated_at)]))
+  const dbMap = new Map(existingPosts.map((p) => [p.r2_key, p]))
 
   const toProcess = force
     ? mdObjects
     : mdObjects.filter(({ key, lastModified }) => {
-        if (!dbMap.has(key)) return true // 新文件
+        const existing = dbMap.get(key)
+        if (!existing) return true // 新文件
         if (!lastModified) return true // R2 无时间戳，保守处理
-        return lastModified > dbMap.get(key)! // 文件在上次 reindex 后有修改
+        return lastModified > new Date(existing.updated_at) // 文件在上次 reindex 后有修改
       })
 
   const unchangedCount = mdObjects.length - toProcess.length
 
-  type Result = { key: string; slug: string; status: 'ok' | 'skip' | 'error' | 'unchanged'; reason?: string }
+  type Result = { key: string; snapshot?: IndexedPostSnapshot; status: 'ok' | 'skip' | 'error' | 'unchanged'; reason?: string }
   const results: Result[] = []
 
   // P0: 分批并行处理需要更新的文件
@@ -106,13 +157,14 @@ export async function POST(request: Request) {
           const result = await processFile(key, domain)
           return { key, ...result }
         } catch (err) {
-          return { key, slug: '', status: 'error' as const, reason: String(err) }
+          return { key, status: 'error' as const, reason: String(err) }
         }
       })
     )
     results.push(...batchResults)
   }
 
+  const deletedPosts = existingPosts.filter((post) => !mdKeys.includes(post.r2_key))
   const deleted = await deletePostsNotIn(mdKeys)
 
   const summary = {
@@ -125,28 +177,75 @@ export async function POST(request: Request) {
     deleted,
   }
 
-  revalidatePath('/')
-  revalidatePath('/blog/[slug]', 'page')
-  revalidatePath('/category/[slug]', 'page')
-  revalidatePath('/archive')
-  revalidatePath('/wardrobe')
-
-  // P1: Data Cache Invalidation (More precise than path revalidation)
-  revalidateTag('posts', 'max')
-  revalidateTag('categories', 'max')
-  revalidateTag('all-tags', 'max')
-  revalidateTag('year-archive', 'max')
-
   const updatedResults = results.filter((r) => r.status === 'ok')
 
-  // Invalidating specific post data
-  for (const { slug, key } of updatedResults) {
-    const normalizedSlug = decodeURIComponent(slug)
-    const encodedSlug = encodeURIComponent(normalizedSlug)
-    const encodedKey = encodeURIComponent(key)
-    revalidateTag(`post-meta-${encodedSlug}`, 'max')
-    revalidateTag(`post-content-${encodedSlug}`, 'max')
-    revalidateTag(`post-raw-${encodedKey}`, 'max')
+  if (toProcess.length > 0 || deleted > 0) {
+    const aggregationPaths = {
+      tags: new Set<string>(),
+      categories: new Set<string>(),
+      archiveYears: new Set<string>(),
+    }
+    const blogPaths = new Set<string>()
+
+    revalidatePath('/')
+    revalidatePath('/archive')
+    revalidatePath('/wardrobe')
+
+    revalidateTag('posts', 'max')
+    revalidateTag('posts-count', 'max')
+    revalidateTag('categories', 'max')
+    revalidateTag('all-tags', 'max')
+    revalidateTag('year-archive', 'max')
+
+    for (const deletedPost of deletedPosts) {
+      addAggregationPaths(aggregationPaths, deletedPost)
+      blogPaths.add(`/blog/${decodeURIComponent(deletedPost.slug)}`)
+    }
+
+    for (const { snapshot, key } of updatedResults) {
+      const previousSnapshot = dbMap.get(key)
+
+      addAggregationPaths(aggregationPaths, previousSnapshot)
+      addAggregationPaths(aggregationPaths, snapshot)
+
+      if (previousSnapshot?.slug) {
+        blogPaths.add(`/blog/${decodeURIComponent(previousSnapshot.slug)}`)
+      }
+
+      if (snapshot?.slug) {
+        blogPaths.add(`/blog/${decodeURIComponent(snapshot.slug)}`)
+      }
+
+      const postSlugs = new Set(
+        [previousSnapshot?.slug, snapshot?.slug].filter((value): value is string => Boolean(value))
+      )
+      const encodedKey = encodeURIComponent(key)
+
+      for (const slug of postSlugs) {
+        const normalizedSlug = decodeURIComponent(slug)
+        const encodedSlug = encodeURIComponent(normalizedSlug)
+        revalidateTag(`post-meta-${encodedSlug}`, 'max')
+        revalidateTag(`post-content-${encodedSlug}`, 'max')
+      }
+
+      revalidateTag(`post-raw-${encodedKey}`, 'max')
+    }
+
+    for (const path of blogPaths) {
+      revalidatePath(path)
+    }
+
+    for (const path of aggregationPaths.tags) {
+      revalidatePath(path)
+    }
+
+    for (const path of aggregationPaths.categories) {
+      revalidatePath(path)
+    }
+
+    for (const path of aggregationPaths.archiveYears) {
+      revalidatePath(path)
+    }
   }
 
   if (updatedResults.length > 0 && process.env.CF_ZONE_ID && process.env.CF_API_TOKEN) {
