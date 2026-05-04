@@ -79,7 +79,7 @@ export async function PATCH(
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  revalidateTag('sessions')
+  revalidateTag('sessions', 'max')
   return NextResponse.json(data)
 }
 
@@ -116,6 +116,6 @@ export async function DELETE(
 
   const { error } = await supabaseAdmin.from('sessions').delete().eq('id', session.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  revalidateTag('sessions')
+  revalidateTag('sessions', 'max')
   return new NextResponse(null, { status: 204 })
 }
