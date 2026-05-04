@@ -229,8 +229,8 @@ export async function deletePostsNotIn(r2Keys: string[]): Promise<number> {
   if (fetchError) throw new Error(fetchError.message)
 
   const toDelete = (existing ?? [])
-    .map((r) => r.r2_key as string)
-    .filter((k) => !r2Keys.includes(k))
+    .map((r: { r2_key: string }) => r.r2_key)
+    .filter((k: string) => !r2Keys.includes(k))
 
   if (toDelete.length === 0) return 0
 
@@ -381,7 +381,7 @@ export const getSiteConfig = unstable_cache(
         .select('key, value')
 
       if (error) throw new Error(error.message)
-      return Object.fromEntries((data ?? []).map((r) => [r.key, r.value]))
+      return Object.fromEntries((data ?? []).map((r: { key: string; value: string }) => [r.key, r.value]))
     } catch (error) {
       console.error('Failed to load site config from Supabase:', error)
       return {}
