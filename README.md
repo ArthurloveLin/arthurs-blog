@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# wardrobe-picks
 
-## Getting Started
+Personal blog + wardrobe management app built with Next.js 16 App Router, React 19, TypeScript, Tailwind CSS 4, Supabase, Cloudflare R2, and Cloudflare Workers.
 
-First, run the development server:
+## Commands
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run build
+npm run start
+npm run lint
+npm run check
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Architecture at a glance
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Main app**: Next.js server-rendered app for the blog, wardrobe pages, admin routes, and API routes
+- **Data**: Supabase for relational data and auth
+- **Object storage**: Cloudflare R2 for blog markdown, images, and wardrobe assets
+- **Edge workloads**: Cloudflare Workers for engagement, Spotify, and other scheduled/edge tasks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deployment direction
 
-## Learn More
+This repository is now prepared for a **single-container Docker deployment** for the main Next.js app:
 
-To learn more about Next.js, take a look at the following resources:
+- build the production image **locally or in CI**
+- push the image to a registry such as **GHCR**
+- let the VPS **pull and run** the image
+- keep **Supabase, Cloudflare R2, and Cloudflare Workers** outside the VPS
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Do **not** use production `docker compose build/up` on a 2 GB VPS for this project.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Included deployment assets
 
-## Deploy on Vercel
+- `Dockerfile` — multi-stage production image using Next.js standalone output
+- `.dockerignore` — trims the Docker build context
+- `.github/workflows/docker-image.yml` — CI workflow to build PR images and publish `main` images to GHCR
+- `MD/vps-docker-deployment.md` — detailed VPS migration and operations guide
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Environment variables
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The app expects runtime environment variables for Supabase, R2, and optional integrations. See:
+
+- `MD/vps-docker-deployment.md`
+
+That document includes:
+
+- required runtime env vars
+- optional feature-specific env vars
+- CI build args for public `NEXT_PUBLIC_*` values
+- VPS deploy, update, and rollback steps
+
+## Notes
+
+- The main CI check workflow now only validates the app and workers.
+- Automatic Vercel deployment has been removed from the default `main` workflow path.
+- Cloudflare Worker deployment remains separate from the VPS migration path.
