@@ -3,7 +3,7 @@ import { Suspense } from 'react'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import SessionList from '@/components/SessionList'
 import AdminOnly from '@/components/AdminOnly'
-export const revalidate = 3600
+export const dynamic = 'force-dynamic'
 
 export default async function WardrobePage() {
   const { data: sessions, error } = await supabaseAdmin

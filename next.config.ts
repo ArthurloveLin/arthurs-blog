@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: '/(tag|category|archive|wardrobe|life-gallery|now-watching)/:path*',
+        source: '/(tag|category|archive|life-gallery|now-watching)/:path*',
         headers: [
           {
             key: 'CDN-Cache-Control',
