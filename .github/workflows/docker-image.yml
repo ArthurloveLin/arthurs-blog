@@ -2,7 +2,7 @@ name: Docker Image
 
 on:
   push:
-    branches: [main]
+    branches: [do-vps-deploy]
     paths-ignore:
       - 'MD/**'
       - '**/*.md'
@@ -12,7 +12,7 @@ on:
       - '.claude/**'
       - 'tmp/**'
   pull_request:
-    branches: [main]
+    branches: [do-vps-deploy]
     paths-ignore:
       - 'MD/**'
       - '**/*.md'
@@ -57,7 +57,7 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
             type=sha,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=true
 
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
