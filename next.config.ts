@@ -45,6 +45,15 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: '/wardrobe',
+        headers: [
+          {
+            key: 'CDN-Cache-Control',
+            value: 'no-store',
+          },
+        ],
+      },
     ]
   },
   images: {
