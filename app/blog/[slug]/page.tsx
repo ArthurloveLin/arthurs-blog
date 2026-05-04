@@ -29,7 +29,7 @@ function formatDate(dateStr: string | null | undefined) {
   return formatBlogPublishedDate(d)
 }
 
-export const revalidate = 60
+export const revalidate = false
 
 export async function generateStaticParams() {
   const posts = await getPosts(1000, 0)

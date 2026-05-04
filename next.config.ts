@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'CDN-Cache-Control',
-            value: 'public, s-maxage=0, stale-while-revalidate=86400',
+            value: 'public, s-maxage=3600, stale-while-revalidate=86400',
           },
         ],
       },
@@ -23,16 +23,25 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'CDN-Cache-Control',
-            value: 'public, s-maxage=0, stale-while-revalidate=3600',
+            value: 'public, s-maxage=300, stale-while-revalidate=3600',
           },
         ],
       },
       {
-        source: '/(tag|blog/category|archive|wardrobe|life-gallery|now-watching)/:path*',
+        source: '/(tag|category|archive|wardrobe|life-gallery|now-watching)/:path*',
         headers: [
           {
             key: 'CDN-Cache-Control',
-            value: 'public, s-maxage=0, stale-while-revalidate=3600',
+            value: 'public, s-maxage=1800, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        source: '/(memo|guestbook)',
+        headers: [
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, s-maxage=120, stale-while-revalidate=3600',
           },
         ],
       },

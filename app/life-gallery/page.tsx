@@ -3,7 +3,7 @@ import DirectionalTransition from '@/components/DirectionalTransition'
 import LifeGallerySlider from '@/components/life-gallery/LifeGallerySlider'
 import { getLifeGalleryRound } from '@/lib/life-gallery'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 3600
 
 export const metadata: Metadata = {
   title: 'Life Gallery | Arthur & Grace',

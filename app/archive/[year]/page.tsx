@@ -5,7 +5,7 @@ import { getStableYear } from '@/lib/date-format'
 import { getNoteBoardConfig } from '@/lib/note-board-config'
 import { getBoardMessages, type NoteMessage } from '@/lib/note-boards'
 
-export const revalidate = 60
+export const revalidate = false
 
 export async function generateStaticParams() {
   const archive = await getYearArchive().catch(() => [])
