@@ -151,17 +151,9 @@ const getCachedPostContent = (r2Key: string) => {
   const encodedKey = encodeURIComponent(r2Key)
   return unstable_cache(
     async () => {
-      try {
-        if (!BLOG_BUCKET || BLOG_BUCKET === 'placeholder') {
-          throw new Error('R2_BLOG_BUCKET is not configured.')
-        }
-        const raw = await getR2Object(BLOG_BUCKET, r2Key)
-        const { content } = matter(raw)
-        return content
-      } catch (err) {
-        console.error(`Failed to get post content from R2 for ${r2Key}:`, err)
-        return 'Blog content is temporarily unavailable.'
-      }
+      const raw = await getR2Object(BLOG_BUCKET, r2Key)
+      const { content } = matter(raw)
+      return content
     },
     [`post-content-${encodedKey}`],
     { revalidate: 300, tags: [`post-raw-${encodedKey}`] }
