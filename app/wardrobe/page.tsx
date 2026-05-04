@@ -4,6 +4,7 @@ import { unstable_cache } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import SessionList from '@/components/SessionList'
 import AdminOnly from '@/components/AdminOnly'
+import BfcacheRefresh from '@/components/BfcacheRefresh'
 
 const getSessionsList = unstable_cache(
   async () => {
@@ -22,6 +23,7 @@ export default async function WardrobePage() {
 
   return (
     <main className="min-h-screen bg-background pb-12">
+      <BfcacheRefresh />
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <div className="relative border-b border-border bg-background overflow-hidden mb-8">
         {/* Blob Ornaments */}
