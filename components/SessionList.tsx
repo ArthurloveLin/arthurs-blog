@@ -30,6 +30,7 @@ export default function SessionList({ sessions }: SessionListProps) {
   const [isPending, startTransition] = useTransition()
   const [loading, setLoading] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [deletedIds, setDeletedIds] = useState<string[]>([])
 
   async function handleArchive(session: Session) {
     if (!session.archived && !confirm('确定要归档这个会话吗？归档后它将从主页移除，但仍可在“已归档”中查看。')) {
@@ -53,18 +54,27 @@ export default function SessionList({ sessions }: SessionListProps) {
   async function handleDelete(session: Session) {
     setLoading(session.id)
     setConfirmDelete(null)
+    // 增加直接从页面乐观消失的逻辑
+    setDeletedIds((prev) => [...prev, session.id])
     startTransition(async () => {
       try {
         const res = await fetch(`/api/sessions/${session.token}`, { method: 'DELETE' })
-        if (res.ok) router.refresh()
+        if (res.ok) {
+          router.refresh()
+        } else {
+          setDeletedIds((prev) => prev.filter((id) => id !== session.id))
+        }
+      } catch (err) {
+        setDeletedIds((prev) => prev.filter((id) => id !== session.id))
       } finally {
         setLoading(null)
       }
     })
   }
 
-  const visible = showArchived ? sessions : sessions.filter((s) => !s.archived)
-  const archivedCount = sessions.filter((s) => s.archived).length
+  const activeSessions = sessions.filter((s) => !deletedIds.includes(s.id))
+  const visible = showArchived ? activeSessions : activeSessions.filter((s) => !s.archived)
+  const archivedCount = activeSessions.filter((s) => s.archived).length
 
   function prefetchSession(token: string) {
     router.prefetch(`/session/${token}`)
