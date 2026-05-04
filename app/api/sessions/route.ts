@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
+import { revalidateTag } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { isAdminRequest } from '@/lib/auth'
 import { TEMPLATES, DEFAULT_TEMPLATE } from '@/lib/templates'
@@ -39,6 +39,6 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  revalidatePath('/wardrobe')
+  revalidateTag('sessions')
   return NextResponse.json(data, { status: 201 })
 }

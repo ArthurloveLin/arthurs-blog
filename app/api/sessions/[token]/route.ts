@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { deleteR2Object } from '@/lib/r2'
 import { isAdminRequest } from '@/lib/auth'
@@ -78,6 +79,7 @@ export async function PATCH(
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidateTag('sessions')
   return NextResponse.json(data)
 }
 
@@ -114,6 +116,6 @@ export async function DELETE(
 
   const { error } = await supabaseAdmin.from('sessions').delete().eq('id', session.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
+  revalidateTag('sessions')
   return new NextResponse(null, { status: 204 })
 }

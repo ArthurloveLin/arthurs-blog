@@ -1,15 +1,23 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
+import { unstable_cache } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import SessionList from '@/components/SessionList'
 import AdminOnly from '@/components/AdminOnly'
-export const dynamic = 'force-dynamic'
+
+const getSessionsList = unstable_cache(
+  async () => {
+    return supabaseAdmin
+      .from('sessions')
+      .select('*, items(count)')
+      .order('created_at', { ascending: false })
+  },
+  ['sessions-list'],
+  { tags: ['sessions'], revalidate: false }
+)
 
 export default async function WardrobePage() {
-  const { data: sessions, error } = await supabaseAdmin
-    .from('sessions')
-    .select('*, items(count)')
-    .order('created_at', { ascending: false })
+  const { data: sessions, error } = await getSessionsList()
 
 
   return (
