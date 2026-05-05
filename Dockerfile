@@ -28,18 +28,30 @@ ENV NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN --mount=type=secret,id=SUPABASE_SERVICE_ROLE_KEY,env=SUPABASE_SERVICE_ROLE_KEY \
-    --mount=type=secret,id=R2_ACCOUNT_ID,env=R2_ACCOUNT_ID \
-    --mount=type=secret,id=R2_ACCESS_KEY_ID,env=R2_ACCESS_KEY_ID \
-    --mount=type=secret,id=R2_SECRET_ACCESS_KEY,env=R2_SECRET_ACCESS_KEY \
-    --mount=type=secret,id=R2_BLOG_BUCKET,env=R2_BLOG_BUCKET \
-    --mount=type=secret,id=R2_BLOG_PUBLIC_DOMAIN,env=R2_BLOG_PUBLIC_DOMAIN \
-    --mount=type=secret,id=R2_SPOTIFY_BUCKET,env=R2_SPOTIFY_BUCKET \
-    --mount=type=secret,id=R2_SPOTIFY_PUBLIC_DOMAIN,env=R2_SPOTIFY_PUBLIC_DOMAIN \
-    --mount=type=secret,id=R2_WARDROBE_BUCKET,env=R2_WARDROBE_BUCKET \
-    --mount=type=secret,id=R2_WARDROBE_PUBLIC_URL,env=R2_WARDROBE_PUBLIC_URL \
-    --mount=type=secret,id=R2_CDN_BUCKET,env=R2_CDN_BUCKET \
-    --mount=type=secret,id=R2_CDN_PUBLIC_DOMAIN,env=R2_CDN_PUBLIC_DOMAIN \
+RUN --mount=type=secret,id=SUPABASE_SERVICE_ROLE_KEY \
+    --mount=type=secret,id=R2_ACCOUNT_ID \
+    --mount=type=secret,id=R2_ACCESS_KEY_ID \
+    --mount=type=secret,id=R2_SECRET_ACCESS_KEY \
+    --mount=type=secret,id=R2_BLOG_BUCKET \
+    --mount=type=secret,id=R2_BLOG_PUBLIC_DOMAIN \
+    --mount=type=secret,id=R2_SPOTIFY_BUCKET \
+    --mount=type=secret,id=R2_SPOTIFY_PUBLIC_DOMAIN \
+    --mount=type=secret,id=R2_WARDROBE_BUCKET \
+    --mount=type=secret,id=R2_WARDROBE_PUBLIC_URL \
+    --mount=type=secret,id=R2_CDN_BUCKET \
+    --mount=type=secret,id=R2_CDN_PUBLIC_DOMAIN \
+    SUPABASE_SERVICE_ROLE_KEY="$(cat /run/secrets/SUPABASE_SERVICE_ROLE_KEY 2>/dev/null || true)" \
+    R2_ACCOUNT_ID="$(cat /run/secrets/R2_ACCOUNT_ID 2>/dev/null || true)" \
+    R2_ACCESS_KEY_ID="$(cat /run/secrets/R2_ACCESS_KEY_ID 2>/dev/null || true)" \
+    R2_SECRET_ACCESS_KEY="$(cat /run/secrets/R2_SECRET_ACCESS_KEY 2>/dev/null || true)" \
+    R2_BLOG_BUCKET="$(cat /run/secrets/R2_BLOG_BUCKET 2>/dev/null || true)" \
+    R2_BLOG_PUBLIC_DOMAIN="$(cat /run/secrets/R2_BLOG_PUBLIC_DOMAIN 2>/dev/null || true)" \
+    R2_SPOTIFY_BUCKET="$(cat /run/secrets/R2_SPOTIFY_BUCKET 2>/dev/null || true)" \
+    R2_SPOTIFY_PUBLIC_DOMAIN="$(cat /run/secrets/R2_SPOTIFY_PUBLIC_DOMAIN 2>/dev/null || true)" \
+    R2_WARDROBE_BUCKET="$(cat /run/secrets/R2_WARDROBE_BUCKET 2>/dev/null || true)" \
+    R2_WARDROBE_PUBLIC_URL="$(cat /run/secrets/R2_WARDROBE_PUBLIC_URL 2>/dev/null || true)" \
+    R2_CDN_BUCKET="$(cat /run/secrets/R2_CDN_BUCKET 2>/dev/null || true)" \
+    R2_CDN_PUBLIC_DOMAIN="$(cat /run/secrets/R2_CDN_PUBLIC_DOMAIN 2>/dev/null || true)" \
     npm run build
 FROM node:20-bookworm-slim AS runner
 WORKDIR /app
