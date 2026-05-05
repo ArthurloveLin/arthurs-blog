@@ -64,7 +64,7 @@ export default function SessionList({ sessions }: SessionListProps) {
         } else {
           setDeletedIds((prev) => prev.filter((id) => id !== session.id))
         }
-      } catch (err) {
+      } catch {
         setDeletedIds((prev) => prev.filter((id) => id !== session.id))
       } finally {
         setLoading(null)

@@ -239,7 +239,7 @@ export async function POST(request: Request) {
       const postSlugs = new Set(
         [previousSnapshot?.slug, snapshot?.slug].filter((value): value is string => Boolean(value))
       )
-      const encodedKey = encodeURIComponent(key)
+
 
       for (const slug of postSlugs) {
         revalidateTag(getPostMetaTag(slug), 'max')
