@@ -2,8 +2,6 @@ import { getPostsByCategory, getCategories } from '@/lib/blog'
 import type { Post } from '@/lib/blog'
 import BlogPage from '@/components/BlogPage'
 import { getStableYear } from '@/lib/date-format'
-import { getNoteBoardConfig } from '@/lib/note-board-config'
-import { getBoardMessages, type NoteMessage } from '@/lib/note-boards'
 
 export const revalidate = false
 
@@ -29,24 +27,13 @@ export default async function CategoryPage({
 }) {
   const { slug } = await params
   const decodedSlug = decodeCategorySlug(slug)
-  const guestbookConfig = getNoteBoardConfig('guestbook')
   let posts: Post[] = []
-  let guestbookMessages: NoteMessage[] = []
   let fetchError = false
 
-  const [postsResult, guestbookResult] = await Promise.allSettled([
-    getPostsByCategory(decodedSlug, 50, 0),
-    getBoardMessages('guestbook', guestbookConfig.previewLimit),
-  ])
-
-  if (postsResult.status === 'fulfilled') {
-    posts = postsResult.value
-  } else {
+  try {
+    posts = await getPostsByCategory(decodedSlug, 50, 0)
+  } catch {
     fetchError = true
-  }
-
-  if (guestbookResult.status === 'fulfilled') {
-    guestbookMessages = guestbookResult.value
   }
 
 
@@ -56,8 +43,6 @@ export default async function CategoryPage({
       currentYear={getStableYear()}
       fetchError={fetchError}
       activeCategory={decodedSlug}
-      initialGuestbookMessages={guestbookMessages}
-      guestbookBoard={guestbookConfig}
       slogan={{ text1: 'The soul of content', text2: 'Purely categorized' }}
     />
 

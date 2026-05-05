@@ -1,9 +1,13 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
+import useSWR from 'swr'
 import { StickyStackPreview } from '@/components/note-board/NoteBoardExperience'
 import { useSiteConfig } from '@/components/SiteDataProvider'
+import { createCommentRecord, type Comment } from '@/lib/comments'
+import { fetchEngagementPublicApi } from '@/lib/engagement-public-api'
+import { createGuestbookMessagesFromComments } from '@/lib/guestbook-comments'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
 
@@ -26,10 +30,50 @@ interface BlogHeroProps {
   slogan?: { text1: string; text2?: string }
 }
 
+function getGuestbookPreviewKey(board: NoteBoardViewConfig) {
+  if (board.slug !== 'guestbook') {
+    return null
+  }
+
+  return `guestbook-preview:${board.targetType}:${board.targetId}:${board.previewLimit}`
+}
+
 
 export default function BlogHero({ guestbookBoard, initialGuestbookMessages, slogan }: BlogHeroProps) {
   const siteConfig = useSiteConfig()
   const [isWelcomeActive, setIsWelcomeActive] = useState(true)
+  const guestbookPreviewFallback = useMemo(
+    () => initialGuestbookMessages.slice(0, guestbookBoard.previewLimit),
+    [guestbookBoard.previewLimit, initialGuestbookMessages],
+  )
+  const { data: guestbookPreviewMessages = guestbookPreviewFallback } = useSWR<NoteMessage[]>(
+    getGuestbookPreviewKey(guestbookBoard),
+    async () => {
+      const searchParams = new URLSearchParams({
+        target_type: guestbookBoard.targetType,
+        target_id: guestbookBoard.targetId,
+        archived: '0',
+      })
+
+      const response = await fetchEngagementPublicApi(`/api/comments?${searchParams.toString()}`)
+      if (!response.ok) {
+        throw new Error('Failed to refresh guestbook preview')
+      }
+
+      const payload = await response.json().catch(() => null)
+      if (!Array.isArray(payload)) {
+        throw new Error('Invalid guestbook preview payload')
+      }
+
+      return createGuestbookMessagesFromComments(
+        payload.map((entry) => createCommentRecord(entry as Comment)),
+      ).slice(0, guestbookBoard.previewLimit)
+    },
+    {
+      fallbackData: guestbookPreviewFallback,
+      revalidateOnFocus: false,
+    },
+  )
 
   return (
     <div className="relative border-b border-border bg-background overflow-hidden">
@@ -56,7 +100,7 @@ export default function BlogHero({ guestbookBoard, initialGuestbookMessages, slo
 
 
         <div className="pointer-events-none absolute inset-0 z-20 hidden lg:block">
-          <StickyStackPreview board={guestbookBoard} messages={initialGuestbookMessages} />
+          <StickyStackPreview board={guestbookBoard} messages={guestbookPreviewMessages} />
         </div>
 
         <div className="relative z-10">
