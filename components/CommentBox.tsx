@@ -450,7 +450,7 @@ function CommentCard({ comment }: { comment: Comment }) {
         <div className="mt-3 flex items-end justify-between gap-3">
           <div className="inline-flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
             <Clock3 size={12} strokeWidth={1.9} />
-            <span>{comment.optimistic ? '发送中…' : formatCommentTimeLabel(comment.created_at, comment.updated_at)}</span>
+            <span>{formatCommentTimeLabel(comment.created_at, comment.updated_at)}</span>
           </div>
           <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
             <ReactionToggleBar

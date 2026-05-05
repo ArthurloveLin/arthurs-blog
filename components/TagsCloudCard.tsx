@@ -135,6 +135,7 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
               <Link
                 key={tag}
                 href={buildTagsUrl(activeTags, tag)}
+                scroll={false}
                 style={{
                   fontSize,
                   opacity,
