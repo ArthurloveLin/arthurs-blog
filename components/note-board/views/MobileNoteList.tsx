@@ -35,7 +35,7 @@ function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
         <span className="text-sm font-medium">{message.author}</span>
         <div className="flex items-center gap-3">
           <span className="whitespace-nowrap text-xs text-muted-foreground">
-            {isOptimistic ? '发布中…' : isOptimisticEditing ? '编辑中…' : formatCommentTimeLabel(message.created_at, message.updated_at)}
+            {formatCommentTimeLabel(message.created_at, message.updated_at)}
           </span>
           {priorityControl ? (
             <PriorityPicker.Dot
