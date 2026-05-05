@@ -10,10 +10,11 @@ import { fetchEngagementPublicApi } from '@/lib/engagement-public-api'
 import { createGuestbookMessagesFromComments } from '@/lib/guestbook-comments'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
+import { sortBoardMessages } from '@/components/note-board/utils/board'
 
 const Live2D = dynamic(() => import('@/components/Live2D'), {
   ssr: false,
-  loading: () => <div className="absolute z-10 hidden h-40 w-40 lg:block pointer-events-none" />,
+  loading: () => <div className="absolute z-10 hidden h-40 w-40 min-h-40 lg:block pointer-events-none" />,
 })
 
 const WelcomeAnimation = dynamic(() => import('@/components/WelcomeAnimation'), {
@@ -65,21 +66,26 @@ export default function BlogHero({ guestbookBoard, initialGuestbookMessages, slo
         throw new Error('Invalid guestbook preview payload')
       }
 
-      return createGuestbookMessagesFromComments(
-        payload.map((entry) => createCommentRecord(entry as Comment)),
+      return sortBoardMessages(
+        createGuestbookMessagesFromComments(
+          payload.map((entry) => createCommentRecord(entry as Comment)),
+        ),
+        'time',
       ).slice(0, guestbookBoard.previewLimit)
     },
     {
       fallbackData: guestbookPreviewFallback,
       revalidateOnFocus: false,
+      dedupingInterval: 60_000,
+      focusThrottleInterval: 60_000,
     },
   )
 
   return (
     <div className="relative border-b border-border bg-background overflow-hidden">
       {/* Blob Ornaments */}
-      <div className="absolute top-0 left-1/4 w-72 h-72 bg-blob-1 rounded-full filter blur-2xl opacity-50 animate-blob pointer-events-none"></div>
-      <div className="absolute -top-10 right-1/4 w-72 h-72 bg-blob-2 rounded-full filter blur-2xl opacity-50 animate-blob animation-delay-2000 pointer-events-none"></div>
+      <div className="absolute top-0 left-1/4 w-72 h-72 bg-blob-1 rounded-full filter blur-xl opacity-50 animate-blob pointer-events-none will-change-transform"></div>
+      <div className="absolute -top-10 right-1/4 w-72 h-72 bg-blob-2 rounded-full filter blur-xl opacity-50 animate-blob animation-delay-2000 pointer-events-none will-change-transform"></div>
 
       <div className="site-shell-triad relative z-10 pt-14 pb-12 lg:pt-20 lg:pb-16">
         <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[100px] md:inset-0 md:h-full flex items-center justify-center">

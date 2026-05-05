@@ -47,15 +47,18 @@ export default function TrendRadarDisplay({ data, formattedTime, history, curren
   }, [standalone_data]);
 
   // 3. Filtered Stats for Trend tab
-  const tags = ["全部", ...stats.map((s) => s.word)];
-  const filteredStats = activeTag === "全部" ? stats : stats.filter((s) => s.word === activeTag);
+  const tags = useMemo(() => ["全部", ...stats.map((s) => s.word)], [stats]);
+  const filteredStats = useMemo(
+    () => activeTag === "全部" ? stats : stats.filter((s) => s.word === activeTag),
+    [activeTag, stats],
+  );
 
   // Counts for tabs
-  const counts = {
+  const counts = useMemo(() => ({
     trend: stats.length,
     rss: rssBySource.length,
     hot: standalonePlatforms.length,
-  };
+  }), [stats.length, rssBySource.length, standalonePlatforms.length]);
 
   return (
     <div className="space-y-6">

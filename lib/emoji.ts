@@ -1,5 +1,3 @@
-import emojiData from '@emoji-mart/data'
-
 export const COMMON_REACTION_EMOJIS = ['❤️', '😂', '😮', '🥹', '🔥', '👏'] as const
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -50,37 +48,42 @@ export interface EmojiCategorySection {
   items: EmojiOption[]
 }
 
-const parsedEmojiData = emojiData as unknown as EmojiMartData
+function buildEmojiSections(data: EmojiMartData): EmojiCategorySection[] {
+  return data.categories
+    .map((category) => {
+      const items = category.emojis
+        .map((emojiId) => data.emojis[emojiId])
+        .filter((entry): entry is EmojiMartEmoji => Boolean(entry?.skins?.[0]?.native))
+        .map((entry) => ({
+          id: entry.id,
+          emoji: entry.skins?.[0]?.native ?? '',
+          name: entry.name,
+          keywords: entry.keywords ?? [],
+          categoryId: category.id,
+          categoryLabel: CATEGORY_LABELS[category.id] ?? category.id,
+        }))
+      return {
+        id: category.id,
+        label: CATEGORY_LABELS[category.id] ?? category.id,
+        items,
+      }
+    })
+    .filter((section) => section.items.length > 0)
+}
 
-export const ALL_EMOJI_SECTIONS: EmojiCategorySection[] = parsedEmojiData.categories
-  .map((category) => {
-    const items = category.emojis
-      .map((emojiId) => parsedEmojiData.emojis[emojiId])
-      .filter((entry): entry is EmojiMartEmoji => Boolean(entry?.skins?.[0]?.native))
-      .map((entry) => ({
-        id: entry.id,
-        emoji: entry.skins?.[0]?.native ?? '',
-        name: entry.name,
-        keywords: entry.keywords ?? [],
-        categoryId: category.id,
-        categoryLabel: CATEGORY_LABELS[category.id] ?? category.id,
-      }))
+let cachedSections: EmojiCategorySection[] | null = null
 
-    return {
-      id: category.id,
-      label: CATEGORY_LABELS[category.id] ?? category.id,
-      items,
-    }
-  })
-  .filter((section) => section.items.length > 0)
+export async function loadEmojiSections(): Promise<EmojiCategorySection[]> {
+  if (cachedSections) return cachedSections
+  const { default: data } = await import('@emoji-mart/data')
+  cachedSections = buildEmojiSections(data as unknown as EmojiMartData)
+  return cachedSections
+}
 
-export function searchEmojiSections(query: string) {
+export function searchEmojiSections(sections: EmojiCategorySection[], query: string): EmojiCategorySection[] {
   const normalizedQuery = query.trim().toLowerCase()
-  if (!normalizedQuery) {
-    return ALL_EMOJI_SECTIONS
-  }
-
-  return ALL_EMOJI_SECTIONS
+  if (!normalizedQuery) return sections
+  return sections
     .map((section) => ({
       ...section,
       items: section.items.filter((item) => {
