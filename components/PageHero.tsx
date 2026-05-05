@@ -1,4 +1,6 @@
-import React from 'react'
+'use client'
+
+import React, { useEffect, useState } from 'react'
 import HandwrittenSloganClient from '@/components/HandwrittenSloganClient'
 
 interface PageHeroProps {
@@ -29,6 +31,12 @@ export default function PageHero({
   blobColors = ['bg-primary/10', 'bg-secondary/10'],
   containerClass = 'site-shell'
 }: PageHeroProps) {
+  const [isSloganActive, setIsSloganActive] = useState(Boolean(slogan))
+
+  useEffect(() => {
+    setIsSloganActive(Boolean(slogan))
+  }, [slogan])
+
   return (
     <div className="relative border-b border-border bg-background overflow-hidden">
       <div className={`absolute top-0 left-1/4 w-72 h-72 ${blobColors[0]} rounded-full filter blur-2xl opacity-50 animate-blob pointer-events-none`}></div>
@@ -40,6 +48,7 @@ export default function PageHero({
             <HandwrittenSloganClient 
               text1={slogan.text1} 
               text2={slogan.text2} 
+              onComplete={() => setIsSloganActive(false)}
               size1={slogan.size1 || "max(32px, min(6vw, 68px))"}
               size2={slogan.size2 || "max(20px, min(4vw, 46px))"}
             />
@@ -48,7 +57,7 @@ export default function PageHero({
 
         <div className="relative z-10">
           {subtitle && (
-             <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+             <p className={`mb-4 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-opacity duration-700 ${isSloganActive ? 'max-md:opacity-0' : 'max-md:opacity-100'}`}>
                {subtitle}
              </p>
           )}

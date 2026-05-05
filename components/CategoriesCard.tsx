@@ -28,6 +28,7 @@ const CategoriesCard = memo(function CategoriesCard({ activeCategory }: Categori
             <li key={cat.slug}>
               <Link
                 href={isActive ? '/' : `/category/${cat.slug}`}
+                scroll={false}
                 className={`flex items-center justify-between py-1.5 px-1 rounded-lg transition-colors duration-150 group ${
                   isActive
                     ? 'bg-gradient-primary text-primary-foreground'

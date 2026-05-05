@@ -57,10 +57,6 @@ const NAVBAR_BOTTOM_TRANSITION_STYLE: ViewTransitionStyle = {
   viewTransitionName: 'navbar-bottom',
 }
 
-const NAVBAR_TRANSITION_STYLE: ViewTransitionStyle = {
-  viewTransitionName: 'navbar',
-}
-
 function getDrawerButtonClass(isActive: boolean) {
   return `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`
 }
@@ -327,6 +323,9 @@ function NavbarContent() {
   )
 
   const homeHref = isOnArticle ? articleHomeHref : '/'
+  const desktopChromeClass = isSearching
+    ? 'opacity-0 pointer-events-none translate-y-1'
+    : 'opacity-100 translate-y-0'
 
   const handleHomeClick = useCallback(() => {
     if (!isOnArticle) return
@@ -397,15 +396,14 @@ function NavbarContent() {
   return (
     <>
 
-    <header
-      className={
-        "sticky top-0 z-50 border-b transition-colors duration-300 " +
+      <header
+        className={
+          "sticky top-0 z-50 border-b transition-colors duration-300 " +
         // 浅色模式: 移动端减少 blur 合成，桌面保留磨砂效果
         "bg-white/92 backdrop-blur-none border-black/5 md:bg-white/80 md:backdrop-blur-md " +
         // 深色模式(独立逻辑): 替换为纯黑色，去除磨砂模糊
         "dark:bg-black dark:backdrop-blur-none dark:border-white/10"
       }
-      style={NAVBAR_TRANSITION_STYLE}
     >
       <div className="site-shell">
         <div className="h-16 flex items-center justify-between gap-4">
@@ -442,15 +440,18 @@ function NavbarContent() {
           </Link>
 
           {/* ── Center: Navigation Links ───────────────────────────── */}
-          <nav className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
-            {navLinks.map((link, index) =>
+          <nav
+            aria-hidden={isSearching}
+            className={`hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2 transition-[opacity,transform] duration-200 ${desktopChromeClass}`}
+          >
+            {navLinks.map((link) =>
               link.external ? (
                 <a
                   key={link.href}
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? `animate-apple-fade-out delay-out-${index}` : `animate-apple-fade-in delay-in-${index}`}`}
+                  className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
                   title={link.tooltip}
                 >
                   {link.label}
@@ -461,7 +462,7 @@ function NavbarContent() {
                   href={link.href === '/' ? homeHref : link.href}
                   onClick={link.href === '/' ? handleHomeClick : undefined}
                   transitionTypes={link.href === '/' && isOnArticle ? ['nav-back'] : undefined}
-                  className={`px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? `animate-apple-fade-out delay-out-${index}` : `animate-apple-fade-in delay-in-${index}`}`}
+                  className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
                   title={link.tooltip}
                 >
                   {link.label}
@@ -472,17 +473,12 @@ function NavbarContent() {
 
           {/* ── Right: Icons ───────────────────────────────────────── */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            <div className={isSearching ? 'animate-apple-fade-out delay-out-5' : 'animate-apple-fade-in delay-in-5'}>
+            <div
+              aria-hidden={isSearching}
+              className={`hidden md:flex items-center gap-1 transition-[opacity,transform] duration-200 ${desktopChromeClass}`}
+            >
               <NavbarSearch />
-            </div>
-
-            {/* Theme Toggle */}
-            <div className={isSearching ? 'animate-apple-fade-out delay-out-6' : 'animate-apple-fade-in delay-in-6'}>
               <ThemeToggle />
-            </div>
-
-            {/* Auth Status */}
-            <div className={isSearching ? 'animate-apple-fade-out delay-out-7' : 'animate-apple-fade-in delay-in-7'}>
               <NavDesktopAuthStatus />
             </div>
 
