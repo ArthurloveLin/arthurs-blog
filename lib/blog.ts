@@ -200,45 +200,32 @@ export const getPostMeta = cache(async function getPostMeta(slug: string): Promi
   )()
 })
 
-const getCachedPostContent = (r2Key: string) => {
-  const encodedKey = encodeURIComponent(r2Key)
-  return unstable_cache(
-    async () => {
-      const raw = await getR2Object(BLOG_BUCKET, r2Key)
-      const { content } = matter(raw)
-      return content
-    },
-    [`post-content-${encodedKey}`],
-    { revalidate: false, tags: [getPostRawTag(r2Key)] }
-  )()
-}
-
-
-export async function getPostContent(post: Post): Promise<string> {
+export const getPostContent = cache(async function getPostContent(post: Post): Promise<string> {
   const normalizedSlug = safeDecodeURIComponent(post.slug)
   const encodedKey = encodeURIComponent(post.r2_key)
-  
+
   return unstable_cache(
     async () => {
-      const content = (await getCachedPostContent(post.r2_key)).replace('<!-- more -->', '')
+      const raw = await getR2Object(BLOG_BUCKET, post.r2_key)
+      const { content } = matter(raw)
+      const processed = content.replace('<!-- more -->', '')
 
-      // 将 Obsidian 附件引用替换为 R2 公开域名 URL
       const noteDir = post.r2_key.includes('/')
         ? post.r2_key.split('/').slice(0, -1).join('/') + '/'
         : ''
-        
+
       return BLOG_PUBLIC_DOMAIN
-        ? content.replace(
+        ? processed.replace(
             /!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g,
             (_, filename: string) =>
               `![](https://${BLOG_PUBLIC_DOMAIN}/${noteDir}images/${encodeURIComponent(filename.trim())})`
           )
-        : content
+        : processed
     },
     [`post-rendered-content-${encodedKey}`],
-    { revalidate: false, tags: [getPostContentTag(normalizedSlug)] }
+    { revalidate: false, tags: [getPostContentTag(normalizedSlug), getPostRawTag(post.r2_key)] }
   )()
-}
+})
 
 export async function getPostBySlug(slug: string): Promise<{ post: Post; content: string } | null> {
   const post = await getPostMeta(slug)
@@ -325,23 +312,13 @@ export const getPostsByCategory = cache(async function getPostsByCategory(
 export const getCategories = unstable_cache(
   async function (): Promise<{ name: string; count: number; slug: string }[]> {
     try {
-      const { data, error } = await supabase
-        .from('posts')
-        .select('category')
-        .eq('published', true)
-        .not('category', 'is', null)
-
+      const { data, error } = await supabase.rpc('get_category_counts')
       if (error) throw new Error(error.message)
-
-      const countMap = new Map<string, number>()
-      for (const row of data ?? []) {
-        const cat = row.category as string
-        countMap.set(cat, (countMap.get(cat) ?? 0) + 1)
-      }
-
-      return Array.from(countMap.entries())
-        .map(([name, count]) => ({ name, count, slug: encodeURIComponent(name) }))
-        .sort((a, b) => b.count - a.count)
+      return (data ?? []).map((row: { name: string; count: number }) => ({
+        name: row.name,
+        count: Number(row.count),
+        slug: encodeURIComponent(row.name),
+      }))
     } catch (error) {
       console.error('Failed to load categories from Supabase:', error)
       return []
@@ -382,26 +359,12 @@ export const getPostsByYear = cache(async function getPostsByYear(
 export const getYearArchive = unstable_cache(
   async function (): Promise<{ year: number; count: number }[]> {
     try {
-      const currentYear = new Date().getFullYear()
-
-      const { data, error } = await supabase
-        .from('posts')
-        .select('published_at')
-        .eq('published', true)
-        .not('published_at', 'is', null)
-        .lt('published_at', `${currentYear}-01-01T00:00:00.000Z`)
-
+      const { data, error } = await supabase.rpc('get_year_archive')
       if (error) throw new Error(error.message)
-
-      const yearMap = new Map<number, number>()
-      for (const row of data ?? []) {
-        const year = new Date(row.published_at as string).getFullYear()
-        yearMap.set(year, (yearMap.get(year) ?? 0) + 1)
-      }
-
-      return Array.from(yearMap.entries())
-        .map(([year, count]) => ({ year, count }))
-        .sort((a, b) => b.year - a.year)
+      return (data ?? []).map((row: { year: number; count: number }) => ({
+        year: Number(row.year),
+        count: Number(row.count),
+      }))
     } catch (error) {
       console.error('Failed to load year archive from Supabase:', error)
       return []
@@ -414,23 +377,12 @@ export const getYearArchive = unstable_cache(
 export const getAllTags = unstable_cache(
   async function (): Promise<{ tag: string; count: number }[]> {
     try {
-      const { data, error } = await supabase
-        .from('posts')
-        .select('tags')
-        .eq('published', true)
-
+      const { data, error } = await supabase.rpc('get_tag_counts')
       if (error) throw new Error(error.message)
-
-      const tagMap = new Map<string, number>()
-      for (const row of data ?? []) {
-        for (const tag of (row.tags as string[]) ?? []) {
-          tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1)
-        }
-      }
-
-      return Array.from(tagMap.entries())
-        .map(([tag, count]) => ({ tag, count }))
-        .sort((a, b) => b.count - a.count)
+      return (data ?? []).map((row: { tag: string; count: number }) => ({
+        tag: row.tag,
+        count: Number(row.count),
+      }))
     } catch (error) {
       console.error('Failed to load tags from Supabase:', error)
       return []
@@ -471,16 +423,11 @@ export async function getCommentCount(postId: string): Promise<number> {
 export const getCommentCounts = unstable_cache(
   async function (postIds: string[]): Promise<Record<string, number>> {
     if (postIds.length === 0) return {}
-    const { data, error } = await supabase
-      .from('comments')
-      .select('target_id')
-      .eq('target_type', 'blog_post')
-      .in('target_id', postIds)
+    const { data, error } = await supabase.rpc('get_blog_comment_counts', { post_ids: postIds })
     if (error) throw new Error(error.message)
     const counts: Record<string, number> = {}
-    for (const row of data ?? []) {
-      const id = row.target_id as string
-      counts[id] = (counts[id] ?? 0) + 1
+    for (const row of (data ?? []) as { target_id: string; count: number }[]) {
+      counts[row.target_id] = Number(row.count)
     }
     return counts
   },
