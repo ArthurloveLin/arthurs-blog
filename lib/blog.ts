@@ -217,7 +217,6 @@ const getCachedPostContent = (r2Key: string) => {
 export async function getPostContent(post: Post): Promise<string> {
   const normalizedSlug = safeDecodeURIComponent(post.slug)
   const encodedKey = encodeURIComponent(post.r2_key)
-  const encodedKey = encodeURIComponent(post.r2_key)
   
   return unstable_cache(
     async () => {
