@@ -622,11 +622,9 @@ function StickyNoteCardFrame({
               />
             </div>
           ) : null}
-          {isOptimistic ? (
-            <p className="text-[10px] font-bold tracking-widest text-slate-500/70">发布中…</p>
-          ) : isOptimisticEditing ? (
-            <p className="text-[10px] font-bold tracking-widest text-slate-500/70">编辑中…</p>
-          ) : null}
+          <p className="text-[10px] font-bold tracking-widest text-slate-500/70">
+            {formatCommentTimeLabel(message.created_at, message.updated_at)}
+          </p>
         </div>
       </div>
     </article>
