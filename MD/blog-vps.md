@@ -53,10 +53,10 @@
 - **目标**：`next/dynamic(() => import('./TrendRadarChart'), { ssr: false })`，仅在 trend-radar 路由加载
 - **影响文件**：`components/TrendRadarDisplay.tsx`，`app/trend-radar/page.tsx`
 
-### B-2 `emoji-mart` 懒加载
-- **现状**：`CommentBox.tsx`（33.5KB）静态导入 emoji-mart + @emoji-mart/data（~1MB 数据）
-- **目标**：点击 emoji 按钮时才动态 import，配合 `React.lazy` 或 `next/dynamic`
-- **影响文件**：`components/CommentBox.tsx`，可拆出 `EmojiPickerLazy.tsx`
+### ~~B-2 `emoji-mart` 懒加载~~
+- ~~**现状**：`lib/emoji.ts` 顶层 `import emojiData from '@emoji-mart/data'`（~1MB），在所有引用 EmojiPickerButton 的页面首屏即加载~~
+- ~~**目标**：点击 emoji 按钮时才动态 import，配合 `React.lazy` 或 `next/dynamic`~~
+- ~~**实现**：`lib/emoji.ts` 去掉顶层 import，改为 `loadEmojiSections()` 异步函数（含模块级缓存）；`searchEmojiSections` 改为接受 sections 参数；`EmojiPickerButton` 在 `open` 时按需加载，未加载时显示"加载中…"占位~~
 
 ### B-3 `browser-image-compression` 懒加载
 - **现状**：UploadZone 静态导入，上传只在管理员场景使用
@@ -84,25 +84,21 @@
 
 ## Phase C：Core Web Vitals & 渲染性能（中收益，低优先级）
 
-### C-1 BlogHero blob 动画 GPU 层优化
-- **现状**（`components/BlogHero.tsx:85-86`）：`animate-blob` + `blur-2xl` 每帧触发 filter 重绘，产生额外合成层压力
-- **目标**：
-  - 给 blob 元素加 `will-change: transform`（仅需要时）
-  - 或换用 CSS `backdrop-filter` 替代 per-element blur
-  - 或降低 blur 程度（`blur-xl` 替代 `blur-2xl`）
-  - 加 `CSS contain: strict` 限制重排范围
+### ~~C-1 BlogHero blob 动画 GPU 层优化~~
+- ~~**现状**（`components/BlogHero.tsx:85-86`）：`animate-blob` + `blur-2xl` 每帧触发 filter 重绘，产生额外合成层压力~~
+- ~~**实现**：`blur-2xl` 降为 `blur-xl`，加 `will-change-transform` 提示浏览器提升合成层~~
 
-### C-2 Live2D CLS 防护
-- **现状**（`components/BlogHero.tsx:15-18`）：Live2D 以 `ssr: false` 动态加载，容器高度初始为 0
-- **目标**：给占位容器设置 `min-height`，防止 CLS（Cumulative Layout Shift）
+### ~~C-2 Live2D CLS 防护~~
+- ~~**现状**（`components/BlogHero.tsx:15-18`）：Live2D 以 `ssr: false` 动态加载，占位容器高度初始为 0~~
+- ~~**实现**：loading 占位 div 加 `min-h-40` 显式保留高度~~
 
-### C-3 SWR guestbook 重复请求收敛
-- **现状**（`components/BlogHero.tsx:50`）：每次页面访问都发起 SWR 请求，无 deduping
-- **目标**：添加 `dedupingInterval: 60000`（60秒内同 key 请求合并）和 `focusThrottleInterval`
+### ~~C-3 SWR guestbook 重复请求收敛~~
+- ~~**现状**（`components/BlogHero.tsx:50`）：每次页面访问都发起 SWR 请求，无 deduping~~
+- ~~**实现**：添加 `dedupingInterval: 60_000` 和 `focusThrottleInterval: 60_000`~~
 
-### C-4 TrendRadarDisplay 计算缓存
-- **现状**：D3 shape 计算在每次渲染时重新执行
-- **目标**：对输入数据用 `useMemo` 缓存 D3 计算结果，避免无效重算
+### ~~C-4 TrendRadarDisplay 计算缓存~~
+- ~~**现状**：`tags`、`filteredStats`、`counts` 在每次渲染时重新计算~~
+- ~~**实现**：三者均改为 `useMemo`，依赖 `stats`、`activeTag`、`rssBySource.length`、`standalonePlatforms.length`~~
 
 ### C-5 主题切换过渡改善
 - **现状**（`app/layout.tsx`）：`next-themes` 使用 `disableTransitionOnChange: true`，切换时瞬间闪烁
@@ -169,18 +165,18 @@
 
 这是原计划中唯一未完成的技术验证阶段。
 
-### E-1 Cloudflare RSC 流量分离验证
-- 验证 Cloudflare 是否把 `?_rsc=xxx` 请求作为独立 cache key（`Vary: RSC` 或 Query String 规则）
-- 工具：`curl -H "RSC: 1" https://yourdomain.com/ -I` 对比普通请求的 `CF-Cache-Status`
+### ~~E-1 Cloudflare RSC 流量分离验证~~
+- ~~验证 Cloudflare 是否把 RSC 请求作为独立 cache key~~
+- ~~**结论**：Next.js 已正确输出 `Vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding`，RSC header 分离合规。当前 `CF-Cache-Status: DYNAMIC`——Cloudflare 默认不缓存 HTML，无需额外配置 cache key；若未来启用 HTML 缓存 Cache Rule，Vary 头已就绪。~~
 
 ### E-2 流式响应不被缓冲
-- 确认 nginx 或 Cloudflare 对 `/blog/[slug]` 这类使用 Suspense 的页面不做全量缓冲
+- 确认 nginx 对 `/blog/[slug]` 等 Suspense 页面不做全量缓冲
 - nginx: `proxy_buffering off;` 对 streaming 响应
-- Cloudflare: 默认不缓冲 streaming，但 Cache Rules 可能影响
+- **待验证**：nginx 配置不在仓库中，需在 VPS 上直接检查 `/etc/nginx/` 下的 server block 是否对 Next.js 反代设置了 `proxy_buffering off;`
+- Cloudflare: 默认不缓冲 streaming，无需额外操作
 
-### E-3 proxy.ts 注释合规性复查
-- 读 `proxy.ts` 确认其中注释记录的限制（Web Lock、自定义域名不可达）在当前部署形态下是否仍然成立
-- 如已不需要 Edge sandbox 限制，评估能否从 middleware 做更多事（如请求日志、IP 限制）
+### ~~E-3 proxy.ts 注释合规性复查~~
+- ~~**结论**：VPS 上 Next.js middleware 依然运行在 Edge runtime（默认行为，未切换为 `runtime = 'nodejs'`）。`api.arthurlovegrace.top` 在 Edge sandbox 中不可达的限制仍然成立；Web Lock 竞争问题同样适用。注释内容准确，proxy.ts 无需修改。若未来想在 middleware 做更多事（请求日志、IP 限制），可在 `proxy.ts` 中加 `export const runtime = 'nodejs'`，但需同时评估 Cold Start 与 Web Lock 影响。~~
 
 **相关文件**：
 - `proxy.ts`
@@ -216,9 +212,9 @@
 | ~~**立即**~~ | ~~B-5（打包分析基准）~~ | ~~0 风险，为 B 系列决策提供依据~~ ✅ |
 | ~~**近期**~~ | ~~A-1 ~ A-5（DB 聚合下推 + 嵌套 cache 修复）~~ | ~~数据量增大后收益线性增长，改动集中在 lib/blog.ts~~ ✅ |
 | ~~**近期**~~ | ~~D-2（清除 dangerouslyAllowLocalIP）~~ | ~~安全问题，一行改动~~ ✅ |
-| **中期** | B-1（d3 动态导入，已确认现状已满足）、B-2（emoji-mart 懒加载） | 用户可感知的包体减少 |
-| **中期** | E-1 ~ E-3（CDN 兼容性验证） | 延续原计划 Phase 6 |
-| **中期** | C-1 ~ C-4（渲染性能细节） | 量变积累 |
+| ~~**中期**~~ | ~~B-1（d3 动态导入，已确认现状已满足）、B-2（emoji-mart 懒加载）~~ | ~~用户可感知的包体减少~~ ✅ |
+| ~~**中期**~~ | ~~E-1（RSC 分离验证，已确认合规）、E-3（proxy.ts 确认仍成立）~~；E-2（nginx buffering，待 VPS 验证） | ~~延续原计划 Phase 6~~ |
+| ~~**中期**~~ | ~~C-1 ~ C-4（渲染性能细节）~~ | ~~量变积累~~ ✅ |
 | **长期** | D-1、A-6、D-3 ~ D-6（基础设施 + Rankings 批量 upsert） | 依赖 VPS 访问权限，需要维护窗口 |
 | **长期** | F 系列（可观测性） | 持续价值，但实施成本低 |
 
