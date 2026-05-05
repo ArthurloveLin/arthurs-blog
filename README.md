@@ -19,39 +19,43 @@ npm run check
 - **Object storage**: Cloudflare R2 for blog markdown, images, and wardrobe assets
 - **Edge workloads**: Cloudflare Workers for engagement, Spotify, and other scheduled/edge tasks
 
-## Deployment direction
+## Deployment (VPS + Docker)
 
-This repository is now prepared for a **single-container Docker deployment** for the main Next.js app:
+This repository is deployed as a **single-container Docker application** on a VPS (e.g., 2 GB / 2 vCPU Ubuntu server), completely replacing Vercel.
 
-- build the production image **locally or in CI**
-- push the image to a registry such as **GHCR**
-- let the VPS **pull and run** the image
-- keep **Supabase, Cloudflare R2, and Cloudflare Workers** outside the VPS
+**Architecture**:
+- **VPS**: Runs 1 Next.js production container + 1 Host Reverse Proxy (Nginx/Caddy)
+- **External**: Supabase (Database/Auth), Cloudflare R2 (Object Storage), Cloudflare Workers (Edge Tasks)
 
-Do **not** use production `docker compose build/up` on a 2 GB VPS for this project.
+### Deployment Workflow
+1. **GitHub Actions**: Code pushed to `main` automatically runs type-checking & linting. If successful, it builds the Docker image and publishes it to `ghcr.io`.
+2. **VPS**: Pulls the pre-built image and runs it via `docker-compose`.
 
-## Included deployment assets
+### VPS Operations
 
-- `Dockerfile` — multi-stage production image using Next.js standalone output
-- `.dockerignore` — trims the Docker build context
-- `.github/workflows/docker-image.yml` — CI workflow to build PR images and publish `main` images to GHCR
-- `MD/vps-docker-deployment.md` — detailed VPS migration and operations guide
+*It is highly recommended NOT to run `docker-compose build` or `npm run build` directly on a 2GB VPS.*
 
-## Environment variables
+**1. Pull & Run**
+```bash
+docker pull ghcr.io/arthurlovelin/wardrobe-picks:latest
+docker-compose up -d
+```
 
-The app expects runtime environment variables for Supabase, R2, and optional integrations. See:
+**2. Update Process**
+```bash
+docker-compose pull
+docker-compose up -d
+docker image prune -f # clean up old images
+```
 
-- `MD/vps-docker-deployment.md`
+**3. Next.js Cache Persistence**
+The `docker-compose.yml` mounts a named volume `nextjs_cache:/app/.next/cache` to persist the ISR cache across container restarts.
 
-That document includes:
+### Environment Variables
 
-- required runtime env vars
-- optional feature-specific env vars
-- CI build args for public `NEXT_PUBLIC_*` values
-- VPS deploy, update, and rollback steps
+The container expects runtime variables injected via `/home/app.local` (as defined in `docker-compose.yml`).
+**Core variables required:**
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- R2 variables: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BLOG_BUCKET`, `R2_WARDROBE_BUCKET`, etc.
 
-## Notes
-
-- The main CI check workflow now only validates the app and workers.
-- Automatic Vercel deployment has been removed from the default `main` workflow path.
-- Cloudflare Worker deployment remains separate from the VPS migration path.
+*For CI builds, public environment variables (`NEXT_PUBLIC_*`) must be added to GitHub Repository Variables.*
