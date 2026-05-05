@@ -31,25 +31,50 @@ This repository is deployed as a **single-container Docker application** on a VP
 1. **GitHub Actions**: Code pushed to `main` automatically runs type-checking & linting. If successful, it builds the Docker image and publishes it to `ghcr.io`.
 2. **VPS**: Pulls the pre-built image and runs it via `docker-compose`.
 
-### VPS Operations
+### VPS Operations & Maintenance
 
 *It is highly recommended NOT to run `docker-compose build` or `npm run build` directly on a 2GB VPS.*
 
-**1. Pull & Run**
+#### 1. 启动服务
 ```bash
-docker pull ghcr.io/arthurlovelin/wardrobe-picks:latest
 docker-compose up -d
 ```
 
-**2. Update Process**
+#### 2. 升级流程 (更新镜像)
 ```bash
+# 拉取最新镜像 (GHCR)
 docker-compose pull
+# 重启服务 (无缝切换)
 docker-compose up -d
-docker image prune -f # clean up old images
+# 清理旧镜像释放磁盘
+docker image prune -f
 ```
 
-**3. Next.js Cache Persistence**
-The `docker-compose.yml` mounts a named volume `nextjs_cache:/app/.next/cache` to persist the ISR cache across container restarts.
+#### 3. 查看日志与状态
+```bash
+# 查看容器运行状态
+docker-compose ps
+# 查看实时日志 (最后 100 行)
+docker-compose logs -f --tail 100
+```
+
+#### 4. 常用维护指令
+```bash
+# 进入容器 Shell
+docker exec -it wardrobe-picks sh
+# 重启容器
+docker-compose restart
+# 查看容器占用资源
+docker stats wardrobe-picks
+```
+
+#### 5. 缓存管理
+Next.js 的 ISR 缓存持久化在命名卷 `nextjs_cache` 中。如需手动清空缓存，可以删除该卷并重建：
+```bash
+docker-compose down
+docker volume rm wardrobe-picks_nextjs_cache
+docker-compose up -d
+```
 
 ### Environment Variables
 
