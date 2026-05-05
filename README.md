@@ -29,23 +29,23 @@ This repository is deployed as a **single-container Docker application** on a VP
 
 ### Deployment Workflow
 1. **GitHub Actions**: Code pushed to `main` automatically runs type-checking & linting. If successful, it builds the Docker image and publishes it to `ghcr.io`.
-2. **VPS**: Pulls the pre-built image and runs it via `docker-compose`.
+2. **VPS**: Pulls the pre-built image and runs it via `docker compose`.
 
 ### VPS Operations & Maintenance
 
-*It is highly recommended NOT to run `docker-compose build` or `npm run build` directly on a 2GB VPS.*
+*It is highly recommended NOT to run `docker compose build` or `npm run build` directly on a 2GB VPS.*
 
 #### 1. 启动服务
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 #### 2. 升级流程 (更新镜像)
 ```bash
 # 拉取最新镜像 (GHCR)
-docker-compose pull
+docker compose pull
 # 重启服务 (无缝切换)
-docker-compose up -d
+docker compose up -d
 # 清理旧镜像释放磁盘
 docker image prune -f
 ```
@@ -53,9 +53,9 @@ docker image prune -f
 #### 3. 查看日志与状态
 ```bash
 # 查看容器运行状态
-docker-compose ps
+docker compose ps
 # 查看实时日志 (最后 100 行)
-docker-compose logs -f --tail 100
+docker compose logs -f --tail 100
 ```
 
 #### 4. 常用维护指令
@@ -63,7 +63,7 @@ docker-compose logs -f --tail 100
 # 进入容器 Shell
 docker exec -it wardrobe-picks sh
 # 重启容器
-docker-compose restart
+docker compose restart
 # 查看容器占用资源
 docker stats wardrobe-picks
 ```
@@ -71,14 +71,14 @@ docker stats wardrobe-picks
 #### 5. 缓存管理
 Next.js 的 ISR 缓存持久化在命名卷 `nextjs_cache` 中。如需手动清空缓存，可以删除该卷并重建：
 ```bash
-docker-compose down
+docker compose down
 docker volume rm wardrobe-picks_nextjs_cache
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Environment Variables
 
-The container expects runtime variables injected via `/home/app.local` (as defined in `docker-compose.yml`).
+The container expects runtime variables injected via `/home/app.local` (as defined in `docker compose.yml`).
 **Core variables required:**
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - R2 variables: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BLOG_BUCKET`, `R2_WARDROBE_BUCKET`, etc.
