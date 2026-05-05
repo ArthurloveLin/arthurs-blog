@@ -14,6 +14,8 @@ services:
         max-file: "3"
     volumes:
       - nextjs_cache:/app/.next/cache
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
 volumes:
   nextjs_cache:
