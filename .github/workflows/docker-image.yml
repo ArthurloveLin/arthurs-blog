@@ -2,7 +2,7 @@ name: Docker Image
 
 on:
   push:
-    branches: [do-vps-deploy]
+    branches: [main]
     paths-ignore:
       - 'MD/**'
       - '**/*.md'
@@ -12,7 +12,7 @@ on:
       - '.claude/**'
       - 'tmp/**'
   pull_request:
-    branches: [do-vps-deploy]
+    branches: [main]
     paths-ignore:
       - 'MD/**'
       - '**/*.md'
