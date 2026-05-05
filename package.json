@@ -21,7 +21,6 @@
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.101.1",
     "@tailwindcss/typography": "^0.5.19",
-    "@vercel/speed-insights": "^2.0.0",
     "browser-image-compression": "^2.0.2",
     "d3": "^7.9.0",
     "d3-shape": "^3.2.0",
@@ -43,6 +42,7 @@
     "rehype-highlight": "^7.0.2",
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
+    "sharp": "^0.33.3",
     "swr": "^2.4.1",
     "tegaki": "^0.12.0",
     "uuid": "^13.0.0"

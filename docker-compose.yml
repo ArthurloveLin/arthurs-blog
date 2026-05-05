@@ -1,0 +1,14 @@
+services:
+  app:
+    image: ghcr.io/arthurlovelin/wardrobe-picks:latest
+    container_name: wardrobe-picks
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - /home/app.local
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
