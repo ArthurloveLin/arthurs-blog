@@ -4,7 +4,19 @@ import matter from 'gray-matter'
 import { parseBlogFrontmatterDate } from '@/lib/date-format'
 import { stripMarkdownToText } from '@/lib/blog-search'
 import { listR2ObjectsWithMeta, getR2Object } from '@/lib/r2'
-import { upsertPost, deletePostsNotIn, getPostsMetadata } from '@/lib/blog'
+import {
+  BLOG_CACHE_TAGS,
+  deletePostsNotIn,
+  getArchivePostsTag,
+  getCategoryPostsTag,
+  getPostContentTag,
+  getPostMetaTag,
+  getPostRawTag,
+  getPostsMetadata,
+  getTagPostsTag,
+  upsertPost,
+} from '@/lib/blog'
+import { purgeCloudflareFiles } from '@/lib/cloudflare-cache'
 
 const BLOG_BUCKET = process.env.R2_BLOG_BUCKET!
 const CONCURRENCY = 10
@@ -98,24 +110,27 @@ function getArchiveYear(publishedAt: string | null) {
   return parsed.getUTCFullYear().toString()
 }
 
-function addAggregationPaths(paths: {
+function addAggregationInvalidations(paths: {
   tags: Set<string>
   categories: Set<string>
   archiveYears: Set<string>
-}, snapshot?: IndexedPostSnapshot) {
+}, cacheTags: Set<string>, snapshot?: IndexedPostSnapshot) {
   if (!snapshot?.published) return
 
   for (const tag of snapshot.tags) {
     paths.tags.add(`/tag/${encodeURIComponent(tag)}`)
+    cacheTags.add(getTagPostsTag(tag))
   }
 
   if (snapshot.category) {
     paths.categories.add(`/category/${encodeURIComponent(snapshot.category)}`)
+    cacheTags.add(getCategoryPostsTag(snapshot.category))
   }
 
   const archiveYear = getArchiveYear(snapshot.published_at)
   if (archiveYear) {
     paths.archiveYears.add(`/archive/${archiveYear}`)
+    cacheTags.add(getArchivePostsTag(archiveYear))
   }
 }
 
@@ -178,6 +193,7 @@ export async function POST(request: Request) {
   }
 
   const updatedResults = results.filter((r) => r.status === 'ok')
+  const cloudflarePurgePaths = new Set<string>()
 
   if (toProcess.length > 0 || deleted > 0) {
     const aggregationPaths = {
@@ -185,28 +201,32 @@ export async function POST(request: Request) {
       categories: new Set<string>(),
       archiveYears: new Set<string>(),
     }
+    const aggregationCacheTags = new Set<string>()
     const blogPaths = new Set<string>()
+
+    cloudflarePurgePaths.add('/')
+    cloudflarePurgePaths.add('/archive')
 
     revalidatePath('/')
     revalidatePath('/archive')
     revalidatePath('/wardrobe')
 
-    revalidateTag('posts', 'max')
-    revalidateTag('posts-count', 'max')
-    revalidateTag('categories', 'max')
-    revalidateTag('all-tags', 'max')
-    revalidateTag('year-archive', 'max')
+    revalidateTag(BLOG_CACHE_TAGS.recentPosts, 'max')
+    revalidateTag(BLOG_CACHE_TAGS.postsCount, 'max')
+    revalidateTag(BLOG_CACHE_TAGS.categories, 'max')
+    revalidateTag(BLOG_CACHE_TAGS.allTags, 'max')
+    revalidateTag(BLOG_CACHE_TAGS.yearArchive, 'max')
 
     for (const deletedPost of deletedPosts) {
-      addAggregationPaths(aggregationPaths, deletedPost)
+      addAggregationInvalidations(aggregationPaths, aggregationCacheTags, deletedPost)
       blogPaths.add(`/blog/${decodeURIComponent(deletedPost.slug)}`)
     }
 
     for (const { snapshot, key } of updatedResults) {
       const previousSnapshot = dbMap.get(key)
 
-      addAggregationPaths(aggregationPaths, previousSnapshot)
-      addAggregationPaths(aggregationPaths, snapshot)
+      addAggregationInvalidations(aggregationPaths, aggregationCacheTags, previousSnapshot)
+      addAggregationInvalidations(aggregationPaths, aggregationCacheTags, snapshot)
 
       if (previousSnapshot?.slug) {
         blogPaths.add(`/blog/${decodeURIComponent(previousSnapshot.slug)}`)
@@ -222,44 +242,40 @@ export async function POST(request: Request) {
       const encodedKey = encodeURIComponent(key)
 
       for (const slug of postSlugs) {
-        const normalizedSlug = decodeURIComponent(slug)
-        const encodedSlug = encodeURIComponent(normalizedSlug)
-        revalidateTag(`post-meta-${encodedSlug}`, 'max')
-        revalidateTag(`post-content-${encodedSlug}`, 'max')
+        revalidateTag(getPostMetaTag(slug), 'max')
+        revalidateTag(getPostContentTag(slug), 'max')
       }
 
-      revalidateTag(`post-raw-${encodedKey}`, 'max')
+      revalidateTag(getPostRawTag(key), 'max')
+    }
+
+    for (const tag of aggregationCacheTags) {
+      revalidateTag(tag, 'max')
     }
 
     for (const path of blogPaths) {
+      cloudflarePurgePaths.add(path)
       revalidatePath(path)
     }
 
     for (const path of aggregationPaths.tags) {
+      cloudflarePurgePaths.add(path)
       revalidatePath(path)
     }
 
     for (const path of aggregationPaths.categories) {
+      cloudflarePurgePaths.add(path)
       revalidatePath(path)
     }
 
     for (const path of aggregationPaths.archiveYears) {
+      cloudflarePurgePaths.add(path)
       revalidatePath(path)
     }
   }
 
-  if (updatedResults.length > 0 && process.env.CF_ZONE_ID && process.env.CF_API_TOKEN) {
-    await fetch(
-      `https://api.cloudflare.com/client/v4/zones/${process.env.CF_ZONE_ID}/purge_cache`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.CF_API_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ purge_everything: true }),
-      }
-    )
+  if ((updatedResults.length > 0 || deleted > 0) && process.env.CF_ZONE_ID && process.env.CF_API_TOKEN) {
+    await purgeCloudflareFiles(new URL(request.url).origin, cloudflarePurgePaths)
   }
 
   return NextResponse.json({ summary, details: results })

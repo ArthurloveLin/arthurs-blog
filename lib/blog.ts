@@ -39,6 +39,51 @@ interface SearchPostRow extends Post {
   total_count: number | null
 }
 
+export const BLOG_CACHE_TAGS = {
+  recentPosts: 'recent-posts',
+  postsCount: 'posts-count',
+  categories: 'categories',
+  yearArchive: 'year-archive',
+  allTags: 'all-tags',
+  siteConfig: 'site-config',
+} as const
+
+function safeDecodeURIComponent(value: string) {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+function normalizeCacheTagSegment(value: string) {
+  return encodeURIComponent(safeDecodeURIComponent(value))
+}
+
+export function getPostMetaTag(slug: string) {
+  return `post-meta-${normalizeCacheTagSegment(slug)}`
+}
+
+export function getPostContentTag(slug: string) {
+  return `post-content-${normalizeCacheTagSegment(slug)}`
+}
+
+export function getPostRawTag(r2Key: string) {
+  return `post-raw-${encodeURIComponent(r2Key)}`
+}
+
+export function getCategoryPostsTag(category: string) {
+  return `category-posts-${normalizeCacheTagSegment(category)}`
+}
+
+export function getTagPostsTag(tag: string) {
+  return `tag-posts-${normalizeCacheTagSegment(tag)}`
+}
+
+export function getArchivePostsTag(year: number | string) {
+  return `archive-posts-${year}`
+}
+
 export async function getPosts(limit = 20, offset = 0): Promise<Post[]> {
   const { data, error } = await supabase
     .from('posts')
@@ -67,7 +112,7 @@ export const getRecentPostsMetadata = unstable_cache(
     return (data ?? []) as Post[]
   },
   ['recent-posts-metadata'],
-  { revalidate: 3600, tags: ['posts'] }
+  { revalidate: false, tags: [BLOG_CACHE_TAGS.recentPosts] }
 )
 
 export const getPostsCount = unstable_cache(
@@ -85,7 +130,7 @@ export const getPostsCount = unstable_cache(
     }
   },
   ['posts-count'],
-  { revalidate: 3600, tags: ['posts-count'] }
+  { revalidate: false, tags: [BLOG_CACHE_TAGS.postsCount] }
 )
 
 export async function getPostsByTag(tag: string, limit = 20, offset = 0): Promise<Post[]> {
@@ -102,48 +147,56 @@ export async function getPostsByTag(tag: string, limit = 20, offset = 0): Promis
   return data ?? []
 }
 
-export const getPostsByTags = unstable_cache(
-  async function (tags: string[], limit = 20, offset = 0): Promise<Post[]> {
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('published', true)
-      .contains('tags', tags)
-      .order('sticky', { ascending: false })
-      .order('published_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+export const getPostsByTags = cache(async function getPostsByTags(
+  tags: string[],
+  limit = 20,
+  offset = 0,
+): Promise<Post[]> {
+  const normalizedTags = tags.map((tag) => safeDecodeURIComponent(tag)).sort((left, right) => left.localeCompare(right))
+  const encodedTags = normalizedTags.map((tag) => normalizeCacheTagSegment(tag))
 
-    if (error) throw new Error(error.message)
-    return data ?? []
-  },
-  ['posts-by-tags'],
-  { revalidate: 3600, tags: ['posts'] }
-)
+  return unstable_cache(
+    async () => {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('published', true)
+        .contains('tags', normalizedTags)
+        .order('sticky', { ascending: false })
+        .order('published_at', { ascending: false })
+        .range(offset, offset + limit - 1)
 
-// 通用的数据缓存包装器，确保 slug 在作为 tag 使用时经过统一的解码处理
-const getCachedPostMeta = unstable_cache(
-  async (slug: string) => {
-    const { data: post, error } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('slug', slug)
-      .eq('published', true)
-      .single()
-
-    if (error || !post) return null
-    return post
-  },
-  ['post-meta'],
-  { revalidate: 60, tags: ['posts'] }
-)
+      if (error) throw new Error(error.message)
+      return data ?? []
+    },
+    ['posts-by-tags', encodedTags.join(','), String(limit), String(offset)],
+    {
+      revalidate: false,
+      tags: normalizedTags.length > 0
+        ? normalizedTags.map((tag) => getTagPostsTag(tag))
+        : [BLOG_CACHE_TAGS.allTags],
+    }
+  )()
+})
 
 export const getPostMeta = cache(async function getPostMeta(slug: string): Promise<Post | null> {
-  const normalizedSlug = decodeURIComponent(slug)
-  const encodedSlug = encodeURIComponent(normalizedSlug)
+  const normalizedSlug = safeDecodeURIComponent(slug)
+  const encodedSlug = normalizeCacheTagSegment(normalizedSlug)
+
   return unstable_cache(
-    () => getCachedPostMeta(normalizedSlug),
-    [`post-meta-${encodedSlug}`],
-    { revalidate: 60, tags: ['posts', `post-meta-${encodedSlug}`] }
+    async () => {
+      const { data: post, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('slug', normalizedSlug)
+        .eq('published', true)
+        .single()
+
+      if (error || !post) return null
+      return post
+    },
+    ['post-meta', encodedSlug],
+    { revalidate: false, tags: [getPostMetaTag(normalizedSlug)] }
   )()
 })
 
@@ -156,14 +209,14 @@ const getCachedPostContent = (r2Key: string) => {
       return content
     },
     [`post-content-${encodedKey}`],
-    { revalidate: 300, tags: [`post-raw-${encodedKey}`] }
+    { revalidate: false, tags: [getPostRawTag(r2Key)] }
   )()
 }
 
 
 export async function getPostContent(post: Post): Promise<string> {
-  const normalizedSlug = decodeURIComponent(post.slug)
-  const encodedSlug = encodeURIComponent(normalizedSlug)
+  const normalizedSlug = safeDecodeURIComponent(post.slug)
+  const encodedKey = encodeURIComponent(post.r2_key)
   const encodedKey = encodeURIComponent(post.r2_key)
   
   return unstable_cache(
@@ -184,7 +237,7 @@ export async function getPostContent(post: Post): Promise<string> {
         : content
     },
     [`post-rendered-content-${encodedKey}`],
-    { revalidate: 300, tags: [`post-content-${encodedSlug}`] }
+    { revalidate: false, tags: [getPostContentTag(normalizedSlug)] }
   )()
 }
 
@@ -244,23 +297,31 @@ export async function deletePostsNotIn(r2Keys: string[]): Promise<number> {
   return data?.length ?? 0
 }
 
-export const getPostsByCategory = unstable_cache(
-  async function (category: string, limit = 20, offset = 0): Promise<Post[]> {
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('published', true)
-      .eq('category', category)
-      .order('sticky', { ascending: false })
-      .order('published_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+export const getPostsByCategory = cache(async function getPostsByCategory(
+  category: string,
+  limit = 20,
+  offset = 0,
+): Promise<Post[]> {
+  const normalizedCategory = safeDecodeURIComponent(category)
 
-    if (error) throw new Error(error.message)
-    return data ?? []
-  },
-  ['posts-by-category'],
-  { revalidate: 60, tags: ['posts'] }
-)
+  return unstable_cache(
+    async () => {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('published', true)
+        .eq('category', normalizedCategory)
+        .order('sticky', { ascending: false })
+        .order('published_at', { ascending: false })
+        .range(offset, offset + limit - 1)
+
+      if (error) throw new Error(error.message)
+      return data ?? []
+    },
+    ['posts-by-category', normalizeCacheTagSegment(normalizedCategory), String(limit), String(offset)],
+    { revalidate: false, tags: [getCategoryPostsTag(normalizedCategory)] }
+  )()
+})
 
 export const getCategories = unstable_cache(
   async function (): Promise<{ name: string; count: number; slug: string }[]> {
@@ -288,29 +349,36 @@ export const getCategories = unstable_cache(
     }
   },
   ['categories'],
-  { revalidate: 3600, tags: ['categories'] }
+  { revalidate: false, tags: [BLOG_CACHE_TAGS.categories] }
 )
 
-export const getPostsByYear = unstable_cache(
-  async function (year: number, limit = 50, offset = 0): Promise<Post[]> {
-    const start = `${year}-01-01T00:00:00.000Z`
-    const end = `${year + 1}-01-01T00:00:00.000Z`
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('published', true)
-      .gte('published_at', start)
-      .lt('published_at', end)
-      .order('sticky', { ascending: false })
-      .order('published_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+export const getPostsByYear = cache(async function getPostsByYear(
+  year: number,
+  limit = 50,
+  offset = 0,
+): Promise<Post[]> {
+  const start = `${year}-01-01T00:00:00.000Z`
+  const end = `${year + 1}-01-01T00:00:00.000Z`
 
-    if (error) throw new Error(error.message)
-    return data ?? []
-  },
-  ['posts-by-year'],
-  { revalidate: 3600, tags: ['posts'] }
-)
+  return unstable_cache(
+    async () => {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('published', true)
+        .gte('published_at', start)
+        .lt('published_at', end)
+        .order('sticky', { ascending: false })
+        .order('published_at', { ascending: false })
+        .range(offset, offset + limit - 1)
+
+      if (error) throw new Error(error.message)
+      return data ?? []
+    },
+    ['posts-by-year', String(year), String(limit), String(offset)],
+    { revalidate: false, tags: [getArchivePostsTag(year)] }
+  )()
+})
 
 export const getYearArchive = unstable_cache(
   async function (): Promise<{ year: number; count: number }[]> {
@@ -341,7 +409,7 @@ export const getYearArchive = unstable_cache(
     }
   },
   ['year-archive'],
-  { revalidate: 3600, tags: ['year-archive'] }
+  { revalidate: false, tags: [BLOG_CACHE_TAGS.yearArchive] }
 )
 
 export const getAllTags = unstable_cache(
@@ -370,7 +438,7 @@ export const getAllTags = unstable_cache(
     }
   },
   ['all-tags'],
-  { revalidate: 3600, tags: ['all-tags'] }
+  { revalidate: false, tags: [BLOG_CACHE_TAGS.allTags] }
 )
 
 export const getSiteConfig = unstable_cache(
@@ -388,7 +456,7 @@ export const getSiteConfig = unstable_cache(
     }
   },
   ['site-config'],
-  { revalidate: 3600, tags: ['site-config'] }
+  { revalidate: false, tags: [BLOG_CACHE_TAGS.siteConfig] }
 )
 
 export async function getCommentCount(postId: string): Promise<number> {

@@ -11,33 +11,6 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: '/blog/:slug',
-        headers: [
-          {
-            key: 'CDN-Cache-Control',
-            value: 'public, s-maxage=3600, stale-while-revalidate=86400',
-          },
-        ],
-      },
-      {
-        source: '/',
-        headers: [
-          {
-            key: 'CDN-Cache-Control',
-            value: 'public, s-maxage=300, stale-while-revalidate=3600',
-          },
-        ],
-      },
-      {
-        source: '/(tag|category|archive|life-gallery|now-watching)/:path*',
-        headers: [
-          {
-            key: 'CDN-Cache-Control',
-            value: 'public, s-maxage=1800, stale-while-revalidate=86400',
-          },
-        ],
-      },
-      {
         source: '/(memo|guestbook)',
         headers: [
           {
