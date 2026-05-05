@@ -12,3 +12,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    volumes:
+      - nextjs_cache:/app/.next/cache
+
+volumes:
+  nextjs_cache:
