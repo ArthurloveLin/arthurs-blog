@@ -39,7 +39,9 @@ export default function RecipeSpreadClient({ recipe, revisions, skillGraph }: Pr
             <RecipeEditForm editor={editor} side="left" />
           </div>
           <div className="bs-right-page">
-            <RecipeEditForm editor={editor} side="right" />
+            <div className="bs-right-page-scroll">
+              <RecipeEditForm editor={editor} side="right" />
+            </div>
             <RecipeBookmarks
               isAdmin={isAdmin}
               isEditing
@@ -66,24 +68,22 @@ export default function RecipeSpreadClient({ recipe, revisions, skillGraph }: Pr
           revisions={showRevisions ? revisions : revisions.slice(0, 3)}
         />
       }
-      right={
-        <>
-          <RecipeRightPage recipe={recipe} skillGraph={skillGraph} />
-          {isAdmin && (
-            <RecipeBookmarks
-              isAdmin
-              isEditing={false}
-              isSaving={false}
-              isPublished={recipe.published}
-              onEdit={editor.startEditing}
-              onCancel={editor.cancelEditing}
-              onSave={editor.save}
-              onTogglePublish={togglePublish}
-              onViewRevisions={() => setShowRevisions((v) => !v)}
-              error={null}
-            />
-          )}
-        </>
+      right={<RecipeRightPage recipe={recipe} skillGraph={skillGraph} />}
+      rightOverlay={
+        isAdmin && (
+          <RecipeBookmarks
+            isAdmin
+            isEditing={false}
+            isSaving={false}
+            isPublished={recipe.published}
+            onEdit={editor.startEditing}
+            onCancel={editor.cancelEditing}
+            onSave={editor.save}
+            onTogglePublish={togglePublish}
+            onViewRevisions={() => setShowRevisions((v) => !v)}
+            error={null}
+          />
+        )
       }
     />
   )
