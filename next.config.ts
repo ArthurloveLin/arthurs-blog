@@ -33,6 +33,15 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: '/recipe/:path*',
+        headers: [
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
     ]
   },
   images: {

@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { SpotifyProvider } from './SpotifyProvider'
 import SpotifyNowPlaying from './SpotifyNowPlaying'
-import { ShoppingBag, Newspaper, BarChart2, ExternalLink, Camera, NotebookText, MessageSquareText, Clapperboard } from 'lucide-react'
+import { ShoppingBag, Newspaper, BarChart2, ExternalLink, Camera, NotebookText, MessageSquareText, Clapperboard, ChefHat } from 'lucide-react'
 
 const AnalyticsDashboard = dynamic(() => import('./AnalyticsDashboard'), { ssr: false })
 
@@ -63,6 +63,13 @@ const tools = [
     label: 'Now Watching',
     description: '最近看过的电影海报流',
     icon: <Clapperboard className="w-4 h-4" strokeWidth={1.75} />,
+    external: false,
+  },
+  {
+    href: '/recipe',
+    label: '菜谱档案',
+    description: '我的私人菜谱书与烹饪技能树',
+    icon: <ChefHat className="w-4 h-4" strokeWidth={1.75} />,
     external: false,
   },
 ]
