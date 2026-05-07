@@ -5,6 +5,7 @@ import BookShell, { type BookmarkItem } from '@/components/recipe/BookShell'
 import BookSpread from '@/components/recipe/BookSpread'
 import TableOfContentsPage from '@/components/recipe/TableOfContentsPage'
 import RecipeSpread from '@/components/recipe/RecipeSpread'
+import RecipeAddButton from '@/components/recipe/RecipeAddButton'
 import { getRecipesList, getAllRecipesListFresh } from '@/lib/recipes'
 import { isAdminRequest } from '@/lib/auth'
 
@@ -48,6 +49,7 @@ export default async function RecipePage() {
           <BookSpread
             left={<TableOfContentsPage recipes={recipes} side="left" isAdmin={isAdmin} />}
             right={<TableOfContentsPage recipes={recipes} side="right" isAdmin={isAdmin} />}
+            rightOverlay={isAdmin && <RecipeAddButton />}
           />
           {recipes.map((recipe) => (
             <RecipeSpread key={recipe.id} recipe={recipe} isAdmin={isAdmin} />
