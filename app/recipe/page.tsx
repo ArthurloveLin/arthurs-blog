@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import PageHero from '@/components/PageHero'
-import BookShell from '@/components/recipe/BookShell'
+import BookShell, { type BookmarkItem } from '@/components/recipe/BookShell'
 import BookSpread from '@/components/recipe/BookSpread'
 import TableOfContentsPage from '@/components/recipe/TableOfContentsPage'
 import RecipeSpread from '@/components/recipe/RecipeSpread'
@@ -11,6 +11,13 @@ import { isAdminRequest } from '@/lib/auth'
 export const metadata: Metadata = {
   title: '菜谱档案',
   description: '私人菜谱书：食材步骤、风味雷达、技能图谱，长期维护的烹饪档案。',
+}
+
+function buildBookmarks(recipes: Awaited<ReturnType<typeof getRecipesList>>): BookmarkItem[] {
+  return [
+    { label: '目录' },
+    ...recipes.map((r) => ({ label: r.title })),
+  ]
 }
 
 export default async function RecipePage() {
@@ -37,7 +44,7 @@ export default async function RecipePage() {
           ← Home
         </Link>
 
-        <BookShell>
+        <BookShell bookmarks={buildBookmarks(recipes)}>
           <BookSpread
             left={<TableOfContentsPage recipes={recipes} side="left" />}
             right={<TableOfContentsPage recipes={recipes} side="right" />}
