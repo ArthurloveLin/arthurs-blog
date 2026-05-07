@@ -11,9 +11,8 @@
   initial-value: 0%;
 }
 
-/* ── Root variables (set on .bs-root) ────────────────────────────────────────
-   These match the CodePen book.webp sprite sheet:
-   9600×3000px, 5 columns, 2 rows, 7 frames total
+/* ── Root variables ───────────────────────────────────────────────────────────
+   Matches book.webp: 9600×3000px, 5 columns, 2 rows, 7 frames
    ──────────────────────────────────────────────────────────────────────────── */
 .bs-root {
   --sprite-c: 5;
@@ -22,49 +21,42 @@
   --sprite-f: 7;
   --sprite-fr: 12;
 
-  /* derived: rows */
   --sprite-r: round(up, calc(var(--sprite-f) / var(--sprite-c)), 1);
-  /* height per frame row */
   --sprite-sh: calc(var(--sprite-h) / var(--sprite-r));
-  /* target display height (half of one frame row) */
   --sprite-th: calc(var(--sprite-sh) / 2);
-  /* aspect ratio factor */
   --sprite-ar: calc(var(--sprite-th) / var(--sprite-sh));
-  /* displayed sprite height & width */
   --sprite-uh: calc(var(--sprite-h) * var(--sprite-ar));
   --sprite-uw: calc(var(--sprite-w) * var(--sprite-ar));
-  /* width of a single frame */
   --sprite-tw: calc(var(--sprite-uw) / var(--sprite-c));
 }
 
-/* ── Book outer wrapper ──────────────────────────────────────────────────────
-   Needs timeline-scope so .bs-sprite (if outside .bs-carousel) can still
-   consume the named scroll-timeline defined on .bs-carousel.
+/* ── Book outer wrapper ───────────────────────────────────────────────────────
+   isolation:isolate creates a stacking context so z-index:-1 on .bs-sprite
+   stays inside the book (not behind the page background).
+   timeline-scope shares the carousel scroll-timeline with the sprite sibling.
    ──────────────────────────────────────────────────────────────────────────── */
 .bs-book {
   position: relative;
-  /* expose the timeline to siblings/ancestors */
+  isolation: isolate;
   timeline-scope: --carousel-timeline;
-  /* centre horizontally */
   margin: 0 auto;
   width: fit-content;
 }
 
 /* ── Sprite animation overlay ────────────────────────────────────────────────
-   Absolutely positioned behind the carousel content.
-   The negative margins let it bleed outside the carousel viewport so the
-   book-border artwork (spine, covers) is visible around the text area.
+   Sibling of .bs-carousel (NOT inside it) so carousel overflow never clips it.
+   z-index:-1 places it behind all carousel content within the .bs-book context.
    ──────────────────────────────────────────────────────────────────────────── */
 .bs-sprite {
   position: absolute;
   top: 0;
   left: 0;
   pointer-events: none;
+  z-index: -1;
 
   width: calc(1px * var(--sprite-tw));
   height: calc(1px * var(--sprite-th));
 
-  /* centre the sprite over the carousel content area */
   margin-top: calc(-1px * ((var(--sprite-th) - var(--sprite-th) * 0.6107) / 2));
   margin-left: calc(-1px * ((var(--sprite-tw) - var(--sprite-tw) * 0.7042) / 2));
 
@@ -72,10 +64,6 @@
   background-repeat: no-repeat;
   background-size: calc(1px * var(--sprite-uw)) calc(1px * var(--sprite-uh));
 
-  /* z-index lower than carousel so text is readable */
-  z-index: 0;
-
-  /* current frame calculation */
   --sprite-fe: calc(var(--sprite-f) * (var(--slides, 1) - 1));
   --sprite-fs-n: mod(var(--sprite-fs), var(--sprite-f));
   --bs-row: calc(
@@ -89,13 +77,11 @@
   animation-timeline: --carousel-timeline;
 }
 
-/* ── Scroll carousel (the actual page-flip container) ────────────────────────
-   Width and height match the book interior (content area of the sprite).
+/* ── Scroll carousel ─────────────────────────────────────────────────────────
+   No position/z-index here — that was causing a stacking context that made
+   the sprite appear on top of page content.
    ──────────────────────────────────────────────────────────────────────────── */
 .bs-carousel {
-  position: relative;
-  z-index: 1;
-
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
@@ -105,7 +91,6 @@
   display: grid;
   grid: 1fr / auto-flow 100%;
 
-  /* interior dimensions derived from sprite geometry */
   width: calc(1px * (var(--sprite-tw) * 0.7042));
   height: calc(1px * (var(--sprite-th) * 0.6107));
 
@@ -116,9 +101,7 @@
   display: none;
 }
 
-/* ── Individual page spread ──────────────────────────────────────────────────
-   Each .bs-carousel-item is one spread (one "opening" of the book).
-   ──────────────────────────────────────────────────────────────────────────── */
+/* ── Individual page spread ───────────────────────────────────────────────── */
 .bs-carousel-item {
   scroll-snap-stop: always;
   scroll-snap-align: start;
@@ -128,9 +111,10 @@
   height: 100%;
 }
 
-/* Page container: left + right pages side by side */
+/* Page container: left + right pages with gap for the spine */
 .bs-page-container {
   display: flex;
+  gap: 3rem;
   height: 100%;
 
   animation: bs-stay-centered linear both;
@@ -138,7 +122,7 @@
 }
 
 /* ── Left and right pages ────────────────────────────────────────────────────
-   Transparent background so the sprite book border shows through.
+   No border between pages — the gap + spine artwork handles the separation.
    ──────────────────────────────────────────────────────────────────────────── */
 .bs-left-page,
 .bs-right-page {
@@ -146,25 +130,25 @@
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: oklch(from var(--color-border) l c h / 0.5) transparent;
-  /* warm paper background matching book interior */
   background-color: oklch(0.97 0.02 85);
+  color: oklch(0.3 0.02 50);
 }
 
 .dark .bs-left-page,
 .dark .bs-right-page {
   background-color: oklch(0.22 0.02 50);
+  color: oklch(0.85 0.02 50);
 }
 
 .bs-left-page {
-  padding: 20px 12px 20px 20px;
-  border-right: 1px solid oklch(from var(--color-border) l c h / 0.4);
+  padding: 20px 0 20px 20px;
 }
 
 .bs-right-page {
-  padding: 20px 20px 20px 12px;
+  padding: 20px 20px 20px 0;
 }
 
-/* ── Navigation bar (replaces ::scroll-button pseudo-elements) ─────────────── */
+/* ── Navigation bar ───────────────────────────────────────────────────────── */
 .bs-nav {
   display: flex;
   align-items: center;
@@ -199,39 +183,99 @@
   cursor: not-allowed;
 }
 
-/* Progress bar */
 .bs-progress {
   flex: 1;
   height: 6px;
   border-radius: 3px;
   border: 1px solid var(--color-border);
   overflow: hidden;
-  background: linear-gradient(
-      90deg,
-      var(--color-primary) 0%
-    )
-    no-repeat left center;
+  background: linear-gradient(90deg, var(--color-primary) 0%) no-repeat left center;
   --bs-progress: calc(calc(100 / var(--slides, 1)) * 1%);
   background-size: var(--bs-progress) 100%;
   animation: bs-progress linear both;
   animation-timeline: --carousel-timeline;
 }
 
-/* ── Keyframes ───────────────────────────────────────────────────────────────── */
+/* ── Skeuomorphic bookmark tabs ──────────────────────────────────────────────
+   Positioned within the sprite's right-side bleed area (book fore-edge).
+   Each tab sticks out beyond the book's right edge like a real page tab.
+   ──────────────────────────────────────────────────────────────────────────── */
+.bs-bookmarks {
+  position: absolute;
+  /* Place tabs in the sprite's right overhang (sprite-tw * 0.1479 wide) */
+  right: calc(-1px * var(--sprite-tw) * 0.11);
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 10;
+}
+
+.bs-bookmark-tab {
+  width: 26px;
+  min-height: 52px;
+  max-height: 72px;
+  padding: 8px 0;
+  border: none;
+  border-radius: 0 5px 5px 0;
+  cursor: pointer;
+
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  text-transform: uppercase;
+
+  background: var(--bm-color, oklch(0.62 0.13 50));
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+  /* Tab shadow gives depth — left edge is "inside" the book */
+  box-shadow:
+    3px 0 6px rgba(0, 0, 0, 0.25),
+    inset -3px 0 0 rgba(0, 0, 0, 0.12);
+
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bs-bookmark-tab:hover:not(.active) {
+  transform: translateX(-5px);
+  box-shadow:
+    1px 0 3px rgba(0, 0, 0, 0.15),
+    inset -3px 0 0 rgba(0, 0, 0, 0.12);
+}
+
+/* Active tab is "pressed in" — flush with the book edge */
+.bs-bookmark-tab.active {
+  transform: translateX(-10px);
+  box-shadow: none;
+  filter: brightness(0.85);
+}
+
+/* ── Keyframes ────────────────────────────────────────────────────────────── */
 @keyframes bs-frame {
   to {
     --sprite-fs: var(--sprite-fe);
   }
 }
 
+/* Matches original CodePen stay-centered keyframes exactly */
 @keyframes bs-stay-centered {
   entry 0% {
     opacity: 0;
-    translate: -60%;
+    translate: -100%;
   }
-  entry 80% {
-    opacity: 0.3;
-    translate: -10%;
+  entry 75% {
+    opacity: 0;
+    translate: -25%;
   }
   entry 100% {
     opacity: 1;
@@ -243,11 +287,11 @@
   }
   exit 50% {
     opacity: 0;
-    translate: 40%;
+    translate: 50%;
   }
   exit 100% {
     opacity: 0;
-    translate: 80%;
+    translate: 100%;
   }
 }
 
@@ -257,12 +301,14 @@
   }
 }
 
-/* ── Mobile: smaller sprite scale ────────────────────────────────────────────
-   On small screens shrink the book so it fits without horizontal overflow.
-   ──────────────────────────────────────────────────────────────────────────── */
+/* ── Mobile ───────────────────────────────────────────────────────────────── */
 @media (width < 768px) {
   .bs-root {
     --sprite-th: calc(var(--sprite-sh) / 2.5);
+  }
+
+  .bs-bookmarks {
+    display: none;
   }
 }
 
@@ -272,7 +318,7 @@
   }
 }
 
-/* ── Reduced motion: disable sprite frame animation ─────────────────────────── */
+/* ── Reduced motion ───────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .bs-sprite {
     animation: none;
@@ -289,17 +335,10 @@
   }
 }
 
-/* ── Fallback for browsers without scroll-timeline support ───────────────────
-   Hide the sprite entirely and show a simple CSS-transform-based layout.
-   ──────────────────────────────────────────────────────────────────────────── */
+/* ── Scroll-timeline fallback ─────────────────────────────────────────────── */
 @supports not (animation-timeline: scroll()) {
   .bs-sprite {
     display: none;
-  }
-
-  .bs-carousel {
-    /* without scroll-timeline, just let it scroll freely */
-    scroll-behavior: smooth;
   }
 
   .bs-page-container {
