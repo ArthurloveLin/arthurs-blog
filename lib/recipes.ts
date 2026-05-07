@@ -121,6 +121,18 @@ export const getAllRecipesList = unstable_cache(
   { revalidate: false, tags: [RECIPE_CACHE_TAGS.list] }
 )
 
+// Uncached — always hits DB. Use for admin views where stale data is unacceptable.
+export async function getAllRecipesListFresh(): Promise<Recipe[]> {
+  const { data, error } = await supabaseAdmin
+    .from('recipes')
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false })
+
+  if (error) throw new Error(`getAllRecipesListFresh: ${error.message}`)
+  return (data ?? []) as Recipe[]
+}
+
 export function getRecipeBySlug(slug: string) {
   return unstable_cache(
     async (): Promise<Recipe | null> => {

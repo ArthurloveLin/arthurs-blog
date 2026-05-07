@@ -5,7 +5,7 @@ import BookShell from '@/components/recipe/BookShell'
 import BookSpread from '@/components/recipe/BookSpread'
 import TableOfContentsPage from '@/components/recipe/TableOfContentsPage'
 import RecipeSpread from '@/components/recipe/RecipeSpread'
-import { getAllRecipesList } from '@/lib/recipes'
+import { getRecipesList, getAllRecipesListFresh } from '@/lib/recipes'
 import { isAdminRequest } from '@/lib/auth'
 
 export const metadata: Metadata = {
@@ -14,12 +14,11 @@ export const metadata: Metadata = {
 }
 
 export default async function RecipePage() {
-  const [recipes, isAdmin] = await Promise.all([
-    getAllRecipesList(),
-    isAdminRequest(),
-  ])
+  const isAdmin = await isAdminRequest()
 
-  const visibleRecipes = isAdmin ? recipes : recipes.filter((r) => r.published)
+  // Admin always gets fresh data directly from DB (no cache layer).
+  // Public gets the ISR-cached published-only list.
+  const recipes = isAdmin ? await getAllRecipesListFresh() : await getRecipesList()
 
   return (
     <main className="min-h-screen bg-background">
@@ -31,7 +30,6 @@ export default async function RecipePage() {
       />
 
       <div className="site-shell py-10">
-        {/* Back link */}
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-[11px] font-mono tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase mb-8"
@@ -39,25 +37,15 @@ export default async function RecipePage() {
           ← Home
         </Link>
 
-        {visibleRecipes.length === 0 ? (
-          <div className="text-center py-24 text-muted-foreground">
-            <p className="text-4xl mb-4">📖</p>
-            <p className="text-sm">菜谱档案正在整理中，敬请期待…</p>
-          </div>
-        ) : (
-          <BookShell>
-            {/* Spread 0: Table of Contents */}
-            <BookSpread
-              left={<TableOfContentsPage recipes={visibleRecipes} side="left" />}
-              right={<TableOfContentsPage recipes={visibleRecipes} side="right" />}
-            />
-
-            {/* One spread per recipe */}
-            {visibleRecipes.map((recipe) => (
-              <RecipeSpread key={recipe.id} recipe={recipe} isAdmin={isAdmin} />
-            ))}
-          </BookShell>
-        )}
+        <BookShell>
+          <BookSpread
+            left={<TableOfContentsPage recipes={recipes} side="left" />}
+            right={<TableOfContentsPage recipes={recipes} side="right" />}
+          />
+          {recipes.map((recipe) => (
+            <RecipeSpread key={recipe.id} recipe={recipe} isAdmin={isAdmin} />
+          ))}
+        </BookShell>
       </div>
     </main>
   )
