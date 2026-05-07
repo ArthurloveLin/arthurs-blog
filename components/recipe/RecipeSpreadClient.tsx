@@ -38,7 +38,7 @@ export default function RecipeSpreadClient({ recipe, revisions, skillGraph }: Pr
           <div className="bs-left-page">
             <RecipeEditForm editor={editor} side="left" />
           </div>
-          <div className="bs-right-page relative">
+          <div className="bs-right-page">
             <RecipeEditForm editor={editor} side="right" />
             <RecipeBookmarks
               isAdmin={isAdmin}
@@ -67,7 +67,7 @@ export default function RecipeSpreadClient({ recipe, revisions, skillGraph }: Pr
         />
       }
       right={
-        <div className="relative h-full">
+        <>
           <RecipeRightPage recipe={recipe} skillGraph={skillGraph} />
           {isAdmin && (
             <RecipeBookmarks
@@ -83,7 +83,7 @@ export default function RecipeSpreadClient({ recipe, revisions, skillGraph }: Pr
               error={null}
             />
           )}
-        </div>
+        </>
       }
     />
   )

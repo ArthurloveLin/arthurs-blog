@@ -34,13 +34,15 @@
    isolation:isolate creates a stacking context so z-index:-1 on .bs-sprite
    stays inside the book (not behind the page background).
    timeline-scope shares the carousel scroll-timeline with the sprite sibling.
+   Width equals sprite-tw so the sprite fits entirely within bs-book — no
+   horizontal overflow that could be clipped by an ancestor container.
    ──────────────────────────────────────────────────────────────────────────── */
 .bs-book {
   position: relative;
   isolation: isolate;
   timeline-scope: --carousel-timeline;
   margin: 0 auto;
-  width: fit-content;
+  width: calc(1px * var(--sprite-tw));
 }
 
 /* ── Sprite animation overlay ────────────────────────────────────────────────
@@ -57,8 +59,10 @@
   width: calc(1px * var(--sprite-tw));
   height: calc(1px * var(--sprite-th));
 
+  /* Vertical: center sprite over the carousel (sprite is taller than carousel) */
   margin-top: calc(-1px * ((var(--sprite-th) - var(--sprite-th) * 0.6107) / 2));
-  margin-left: calc(-1px * ((var(--sprite-tw) - var(--sprite-tw) * 0.7042) / 2));
+  /* Horizontal: bs-book is now sprite-tw wide, so no horizontal offset needed */
+  margin-left: 0;
 
   background-image: url('/recipe/book-sprite.webp');
   background-repeat: no-repeat;
@@ -93,6 +97,8 @@
 
   width: calc(1px * (var(--sprite-tw) * 0.7042));
   height: calc(1px * (var(--sprite-th) * 0.6107));
+  /* Center within the wider bs-book (which is now sprite-tw wide) */
+  margin: 0 auto;
 
   scroll-timeline: --carousel-timeline x;
 }
@@ -146,6 +152,7 @@
 
 .bs-right-page {
   padding: 20px 20px 20px 0;
+  position: relative;
 }
 
 /* ── Navigation bar ───────────────────────────────────────────────────────── */
@@ -197,18 +204,108 @@
 }
 
 /* ── Skeuomorphic bookmark tabs ──────────────────────────────────────────────
-   Positioned within the sprite's right-side bleed area (book fore-edge).
-   Each tab sticks out beyond the book's right edge like a real page tab.
+   bs-book is now sprite-tw wide, so right: 0 places tabs at the sprite's
+   right edge — the book's physical fore-edge, exactly where real page tabs sit.
    ──────────────────────────────────────────────────────────────────────────── */
 .bs-bookmarks {
   position: absolute;
-  /* Place tabs in the sprite's right overhang (sprite-tw * 0.1479 wide) */
-  right: calc(-1px * var(--sprite-tw) * 0.11);
+  right: 0;
   top: 16px;
   display: flex;
   flex-direction: column;
   gap: 3px;
   z-index: 10;
+}
+
+/* ── Admin control bookmarks ─────────────────────────────────────────────────
+   Absolutely positioned within .bs-right-page (position: relative).
+   Appear at the right edge of the page content — flush with the fore-edge.
+   ──────────────────────────────────────────────────────────────────────────── */
+.bs-control-bookmarks {
+  position: absolute;
+  right: 0;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 5;
+}
+
+.bs-control-bookmark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 26px;
+  min-height: 48px;
+  padding: 6px 0;
+  border: none;
+  border-radius: 4px 0 0 4px;
+  cursor: pointer;
+
+  background: oklch(0.55 0.14 50);
+  color: white;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+
+  box-shadow:
+    -3px 0 6px rgba(0, 0, 0, 0.2),
+    inset 2px 0 0 rgba(255, 255, 255, 0.1);
+
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bs-control-bookmark svg {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.bs-control-bookmark span {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.bs-control-bookmark:hover:not(:disabled) {
+  transform: translateX(-4px);
+  box-shadow: -1px 0 3px rgba(0, 0, 0, 0.1);
+}
+
+.bs-control-bookmark:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bs-control-bookmark[data-variant="success"] {
+  background: oklch(0.48 0.14 140);
+}
+
+.bs-control-bookmark[data-variant="danger"] {
+  background: oklch(0.48 0.16 20);
+}
+
+.bs-control-bookmark[data-variant="muted"] {
+  background: oklch(0.52 0.05 240);
+}
+
+.bs-control-error {
+  position: absolute;
+  right: 30px;
+  bottom: 16px;
+  font-size: 8px;
+  color: oklch(0.55 0.22 25);
+  max-width: 80px;
+  word-wrap: break-word;
+  text-align: right;
+  line-height: 1.3;
 }
 
 .bs-bookmark-tab {
