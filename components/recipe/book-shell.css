@@ -1,0 +1,310 @@
+/* ── Typed CSS properties for sprite animation ─────────────────────────────── */
+@property --sprite-fs {
+  syntax: "<integer>";
+  initial-value: 0;
+  inherits: true;
+}
+
+@property --bs-progress {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+
+/* ── Root variables (set on .bs-root) ────────────────────────────────────────
+   These match the CodePen book.webp sprite sheet:
+   9600×3000px, 5 columns, 2 rows, 7 frames total
+   ──────────────────────────────────────────────────────────────────────────── */
+.bs-root {
+  --sprite-c: 5;
+  --sprite-h: 3000;
+  --sprite-w: 9600;
+  --sprite-f: 7;
+  --sprite-fr: 12;
+
+  /* derived: rows */
+  --sprite-r: round(up, calc(var(--sprite-f) / var(--sprite-c)), 1);
+  /* height per frame row */
+  --sprite-sh: calc(var(--sprite-h) / var(--sprite-r));
+  /* target display height (half of one frame row) */
+  --sprite-th: calc(var(--sprite-sh) / 2);
+  /* aspect ratio factor */
+  --sprite-ar: calc(var(--sprite-th) / var(--sprite-sh));
+  /* displayed sprite height & width */
+  --sprite-uh: calc(var(--sprite-h) * var(--sprite-ar));
+  --sprite-uw: calc(var(--sprite-w) * var(--sprite-ar));
+  /* width of a single frame */
+  --sprite-tw: calc(var(--sprite-uw) / var(--sprite-c));
+}
+
+/* ── Book outer wrapper ──────────────────────────────────────────────────────
+   Needs timeline-scope so .bs-sprite (if outside .bs-carousel) can still
+   consume the named scroll-timeline defined on .bs-carousel.
+   ──────────────────────────────────────────────────────────────────────────── */
+.bs-book {
+  position: relative;
+  /* expose the timeline to siblings/ancestors */
+  timeline-scope: --carousel-timeline;
+  /* centre horizontally */
+  margin: 0 auto;
+  width: fit-content;
+}
+
+/* ── Sprite animation overlay ────────────────────────────────────────────────
+   Absolutely positioned behind the carousel content.
+   The negative margins let it bleed outside the carousel viewport so the
+   book-border artwork (spine, covers) is visible around the text area.
+   ──────────────────────────────────────────────────────────────────────────── */
+.bs-sprite {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+
+  width: calc(1px * var(--sprite-tw));
+  height: calc(1px * var(--sprite-th));
+
+  /* centre the sprite over the carousel content area */
+  margin-top: calc(-1px * ((var(--sprite-th) - var(--sprite-th) * 0.6107) / 2));
+  margin-left: calc(-1px * ((var(--sprite-tw) - var(--sprite-tw) * 0.7042) / 2));
+
+  background-image: url('/recipe/book-sprite.webp');
+  background-repeat: no-repeat;
+  background-size: calc(1px * var(--sprite-uw)) calc(1px * var(--sprite-uh));
+
+  /* z-index lower than carousel so text is readable */
+  z-index: 0;
+
+  /* current frame calculation */
+  --sprite-fe: calc(var(--sprite-f) * (var(--slides, 1) - 1));
+  --sprite-fs-n: mod(var(--sprite-fs), var(--sprite-f));
+  --bs-row: calc(
+    round(down, calc(calc(var(--sprite-tw) * var(--sprite-fs-n)) / var(--sprite-uw)), 1) *
+      var(--sprite-th)
+  );
+  --bs-col: mod(calc(var(--sprite-tw) * var(--sprite-fs-n)), var(--sprite-uw));
+  background-position: calc(-1px * var(--bs-col)) calc(-1px * var(--bs-row));
+
+  animation: bs-frame linear both;
+  animation-timeline: --carousel-timeline;
+}
+
+/* ── Scroll carousel (the actual page-flip container) ────────────────────────
+   Width and height match the book interior (content area of the sprite).
+   ──────────────────────────────────────────────────────────────────────────── */
+.bs-carousel {
+  position: relative;
+  z-index: 1;
+
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+
+  display: grid;
+  grid: 1fr / auto-flow 100%;
+
+  /* interior dimensions derived from sprite geometry */
+  width: calc(1px * (var(--sprite-tw) * 0.7042));
+  height: calc(1px * (var(--sprite-th) * 0.6107));
+
+  scroll-timeline: --carousel-timeline x;
+}
+
+.bs-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Individual page spread ──────────────────────────────────────────────────
+   Each .bs-carousel-item is one spread (one "opening" of the book).
+   ──────────────────────────────────────────────────────────────────────────── */
+.bs-carousel-item {
+  scroll-snap-stop: always;
+  scroll-snap-align: start;
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+}
+
+/* Page container: left + right pages side by side */
+.bs-page-container {
+  display: flex;
+  height: 100%;
+
+  animation: bs-stay-centered linear both;
+  animation-timeline: view(x);
+}
+
+/* ── Left and right pages ────────────────────────────────────────────────────
+   Transparent background so the sprite book border shows through.
+   ──────────────────────────────────────────────────────────────────────────── */
+.bs-left-page,
+.bs-right-page {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: oklch(from var(--color-border) l c h / 0.5) transparent;
+  /* warm paper background matching book interior */
+  background-color: oklch(0.97 0.02 85);
+}
+
+.dark .bs-left-page,
+.dark .bs-right-page {
+  background-color: oklch(0.22 0.02 50);
+}
+
+.bs-left-page {
+  padding: 20px 12px 20px 20px;
+  border-right: 1px solid oklch(from var(--color-border) l c h / 0.4);
+}
+
+.bs-right-page {
+  padding: 20px 20px 20px 12px;
+}
+
+/* ── Navigation bar (replaces ::scroll-button pseudo-elements) ─────────────── */
+.bs-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  width: calc(1px * (var(--sprite-tw) * 0.7042));
+  margin-inline: auto;
+}
+
+.bs-nav-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-foreground);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, opacity 0.15s;
+  font-size: 18px;
+}
+
+.bs-nav-btn:hover:not(:disabled) {
+  background: var(--color-accent);
+}
+
+.bs-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Progress bar */
+.bs-progress {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  background: linear-gradient(
+      90deg,
+      var(--color-primary) 0%
+    )
+    no-repeat left center;
+  --bs-progress: calc(calc(100 / var(--slides, 1)) * 1%);
+  background-size: var(--bs-progress) 100%;
+  animation: bs-progress linear both;
+  animation-timeline: --carousel-timeline;
+}
+
+/* ── Keyframes ───────────────────────────────────────────────────────────────── */
+@keyframes bs-frame {
+  to {
+    --sprite-fs: var(--sprite-fe);
+  }
+}
+
+@keyframes bs-stay-centered {
+  entry 0% {
+    opacity: 0;
+    translate: -60%;
+  }
+  entry 80% {
+    opacity: 0.3;
+    translate: -10%;
+  }
+  entry 100% {
+    opacity: 1;
+    translate: 0%;
+  }
+  exit 0% {
+    opacity: 1;
+    translate: 0%;
+  }
+  exit 50% {
+    opacity: 0;
+    translate: 40%;
+  }
+  exit 100% {
+    opacity: 0;
+    translate: 80%;
+  }
+}
+
+@keyframes bs-progress {
+  100% {
+    --bs-progress: 100%;
+  }
+}
+
+/* ── Mobile: smaller sprite scale ────────────────────────────────────────────
+   On small screens shrink the book so it fits without horizontal overflow.
+   ──────────────────────────────────────────────────────────────────────────── */
+@media (width < 768px) {
+  .bs-root {
+    --sprite-th: calc(var(--sprite-sh) / 2.5);
+  }
+}
+
+@media (width < 520px) {
+  .bs-root {
+    --sprite-th: calc(var(--sprite-sh) / 4);
+  }
+}
+
+/* ── Reduced motion: disable sprite frame animation ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .bs-sprite {
+    animation: none;
+  }
+
+  .bs-page-container {
+    animation: none;
+    opacity: 1;
+    translate: 0%;
+  }
+
+  .bs-progress {
+    animation: none;
+  }
+}
+
+/* ── Fallback for browsers without scroll-timeline support ───────────────────
+   Hide the sprite entirely and show a simple CSS-transform-based layout.
+   ──────────────────────────────────────────────────────────────────────────── */
+@supports not (animation-timeline: scroll()) {
+  .bs-sprite {
+    display: none;
+  }
+
+  .bs-carousel {
+    /* without scroll-timeline, just let it scroll freely */
+    scroll-behavior: smooth;
+  }
+
+  .bs-page-container {
+    animation: none;
+    opacity: 1;
+    translate: 0%;
+  }
+}
