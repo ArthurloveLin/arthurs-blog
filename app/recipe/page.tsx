@@ -46,8 +46,8 @@ export default async function RecipePage() {
 
         <BookShell bookmarks={buildBookmarks(recipes)}>
           <BookSpread
-            left={<TableOfContentsPage recipes={recipes} side="left" />}
-            right={<TableOfContentsPage recipes={recipes} side="right" />}
+            left={<TableOfContentsPage recipes={recipes} side="left" isAdmin={isAdmin} />}
+            right={<TableOfContentsPage recipes={recipes} side="right" isAdmin={isAdmin} />}
           />
           {recipes.map((recipe) => (
             <RecipeSpread key={recipe.id} recipe={recipe} isAdmin={isAdmin} />

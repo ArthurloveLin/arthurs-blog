@@ -8,6 +8,9 @@ import { buildSearchSnippet, normalizeSearchQuery, SEARCH_MIN_QUERY_LENGTH, type
 
 const BLOG_BUCKET = process.env.R2_BLOG_BUCKET!
 const BLOG_PUBLIC_DOMAIN = process.env.R2_BLOG_PUBLIC_DOMAIN
+const HAS_PUBLIC_SUPABASE = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
 
 export interface Post {
   id: string
@@ -85,16 +88,23 @@ export function getArchivePostsTag(year: number | string) {
 }
 
 export async function getPosts(limit = 20, offset = 0): Promise<Post[]> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('published', true)
-    .order('sticky', { ascending: false })
-    .order('published_at', { ascending: false })
-    .range(offset, offset + limit - 1)
+  if (!HAS_PUBLIC_SUPABASE) return []
 
-  if (error) throw new Error(error.message)
-  return data ?? []
+  try {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('published', true)
+      .order('sticky', { ascending: false })
+      .order('published_at', { ascending: false })
+      .range(offset, offset + limit - 1)
+
+    if (error) throw new Error(error.message)
+    return data ?? []
+  } catch (error) {
+    console.error('Failed to load posts from Supabase:', error)
+    return []
+  }
 }
 
 // 轻量级获取文章元数据，用于侧边栏渲染，减少序列化开销
@@ -134,17 +144,24 @@ export const getPostsCount = unstable_cache(
 )
 
 export async function getPostsByTag(tag: string, limit = 20, offset = 0): Promise<Post[]> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('published', true)
-    .contains('tags', [tag])
-    .order('sticky', { ascending: false })
-    .order('published_at', { ascending: false })
-    .range(offset, offset + limit - 1)
+  if (!HAS_PUBLIC_SUPABASE) return []
 
-  if (error) throw new Error(error.message)
-  return data ?? []
+  try {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('published', true)
+      .contains('tags', [tag])
+      .order('sticky', { ascending: false })
+      .order('published_at', { ascending: false })
+      .range(offset, offset + limit - 1)
+
+    if (error) throw new Error(error.message)
+    return data ?? []
+  } catch (error) {
+    console.error('Failed to load posts by tag from Supabase:', error)
+    return []
+  }
 }
 
 export const getPostsByTags = cache(async function getPostsByTags(
@@ -152,6 +169,8 @@ export const getPostsByTags = cache(async function getPostsByTags(
   limit = 20,
   offset = 0,
 ): Promise<Post[]> {
+  if (!HAS_PUBLIC_SUPABASE) return []
+
   const normalizedTags = tags.map((tag) => safeDecodeURIComponent(tag)).sort((left, right) => left.localeCompare(right))
   const encodedTags = normalizedTags.map((tag) => normalizeCacheTagSegment(tag))
 
@@ -180,6 +199,8 @@ export const getPostsByTags = cache(async function getPostsByTags(
 })
 
 export const getPostMeta = cache(async function getPostMeta(slug: string): Promise<Post | null> {
+  if (!HAS_PUBLIC_SUPABASE) return null
+
   const normalizedSlug = safeDecodeURIComponent(slug)
   const encodedSlug = normalizeCacheTagSegment(normalizedSlug)
 
@@ -235,26 +256,33 @@ export async function getPostBySlug(slug: string): Promise<{ post: Post; content
 }
 
 export async function getAdjacentPosts(publishedAt: string): Promise<{ prev: Post | null; next: Post | null }> {
-  const [{ data: prev }, { data: next }] = await Promise.all([
-    supabase
-      .from('posts')
-      .select('*')
-      .eq('published', true)
-      .lt('published_at', publishedAt)
-      .order('published_at', { ascending: false })
-      .limit(1)
-      .single(),
-    supabase
-      .from('posts')
-      .select('*')
-      .eq('published', true)
-      .gt('published_at', publishedAt)
-      .order('published_at', { ascending: true })
-      .limit(1)
-      .single(),
-  ])
+  if (!HAS_PUBLIC_SUPABASE) return { prev: null, next: null }
 
-  return { prev: prev ?? null, next: next ?? null }
+  try {
+    const [{ data: prev }, { data: next }] = await Promise.all([
+      supabase
+        .from('posts')
+        .select('*')
+        .eq('published', true)
+        .lt('published_at', publishedAt)
+        .order('published_at', { ascending: false })
+        .limit(1)
+        .single(),
+      supabase
+        .from('posts')
+        .select('*')
+        .eq('published', true)
+        .gt('published_at', publishedAt)
+        .order('published_at', { ascending: true })
+        .limit(1)
+        .single(),
+    ])
+
+    return { prev: prev ?? null, next: next ?? null }
+  } catch (error) {
+    console.error('Failed to load adjacent posts from Supabase:', error)
+    return { prev: null, next: null }
+  }
 }
 
 // 删除 r2_key 不在给定列表中的所有记录（reindex 用于清理已删除文件）
@@ -288,6 +316,8 @@ export const getPostsByCategory = cache(async function getPostsByCategory(
   limit = 20,
   offset = 0,
 ): Promise<Post[]> {
+  if (!HAS_PUBLIC_SUPABASE) return []
+
   const normalizedCategory = safeDecodeURIComponent(category)
 
   return unstable_cache(
@@ -333,6 +363,8 @@ export const getPostsByYear = cache(async function getPostsByYear(
   limit = 50,
   offset = 0,
 ): Promise<Post[]> {
+  if (!HAS_PUBLIC_SUPABASE) return []
+
   const start = `${year}-01-01T00:00:00.000Z`
   const end = `${year + 1}-01-01T00:00:00.000Z`
 

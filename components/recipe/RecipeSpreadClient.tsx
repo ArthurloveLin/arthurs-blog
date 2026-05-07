@@ -40,21 +40,18 @@ export default function RecipeSpreadClient({ recipe, revisions, skillGraph }: Pr
           </div>
           <div className="bs-right-page relative">
             <RecipeEditForm editor={editor} side="right" />
-            {/* Bookmarks in edit mode */}
-            <div className="absolute top-2 right-2">
-              <RecipeBookmarks
-                isAdmin={isAdmin}
-                isEditing
-                isSaving={editor.isSaving}
-                isPublished={recipe.published}
-                onEdit={editor.startEditing}
-                onCancel={editor.cancelEditing}
-                onSave={editor.save}
-                onTogglePublish={togglePublish}
-                onViewRevisions={() => setShowRevisions((v) => !v)}
-                error={editor.error}
-              />
-            </div>
+            <RecipeBookmarks
+              isAdmin={isAdmin}
+              isEditing
+              isSaving={editor.isSaving}
+              isPublished={recipe.published}
+              onEdit={editor.startEditing}
+              onCancel={editor.cancelEditing}
+              onSave={editor.save}
+              onTogglePublish={togglePublish}
+              onViewRevisions={() => setShowRevisions((v) => !v)}
+              error={editor.error}
+            />
           </div>
         </div>
       </div>
@@ -73,20 +70,18 @@ export default function RecipeSpreadClient({ recipe, revisions, skillGraph }: Pr
         <div className="relative h-full">
           <RecipeRightPage recipe={recipe} skillGraph={skillGraph} />
           {isAdmin && (
-            <div className="absolute top-2 right-2">
-              <RecipeBookmarks
-                isAdmin
-                isEditing={false}
-                isSaving={false}
-                isPublished={recipe.published}
-                onEdit={editor.startEditing}
-                onCancel={editor.cancelEditing}
-                onSave={editor.save}
-                onTogglePublish={togglePublish}
-                onViewRevisions={() => setShowRevisions((v) => !v)}
-                error={null}
-              />
-            </div>
+            <RecipeBookmarks
+              isAdmin
+              isEditing={false}
+              isSaving={false}
+              isPublished={recipe.published}
+              onEdit={editor.startEditing}
+              onCancel={editor.cancelEditing}
+              onSave={editor.save}
+              onTogglePublish={togglePublish}
+              onViewRevisions={() => setShowRevisions((v) => !v)}
+              error={null}
+            />
           )}
         </div>
       }

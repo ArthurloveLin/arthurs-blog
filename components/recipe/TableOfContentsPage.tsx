@@ -1,11 +1,13 @@
 import type { Recipe } from '@/lib/recipes'
+import RecipeAddButton from './RecipeAddButton'
 
 interface Props {
   recipes: Recipe[]
   side: 'left' | 'right'
+  isAdmin?: boolean
 }
 
-export default function TableOfContentsPage({ recipes, side }: Props) {
+export default function TableOfContentsPage({ recipes, side, isAdmin = false }: Props) {
   const categories = [...new Set(recipes.map((r) => r.category).filter(Boolean))] as string[]
 
   if (side === 'left') {
@@ -86,6 +88,11 @@ export default function TableOfContentsPage({ recipes, side }: Props) {
       </ul>
 
       <div className="mt-auto pt-3 border-t border-amber-800/20">
+        {isAdmin && (
+          <div className="mb-3">
+            <RecipeAddButton />
+          </div>
+        )}
         <p className="text-[10px] leading-relaxed text-amber-800/50">
           每一道菜都是一次实验，每一次修改都是一段成长。
           翻阅这些记录，不只是找食谱，更是回看学习的轨迹。
