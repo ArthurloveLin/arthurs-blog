@@ -115,3 +115,16 @@ jobs:
             "R2_WARDROBE_PUBLIC_URL=${{ vars.R2_WARDROBE_PUBLIC_URL || secrets.R2_WARDROBE_PUBLIC_URL }}"
             "R2_CDN_BUCKET=${{ vars.R2_CDN_BUCKET || secrets.R2_CDN_BUCKET }}"
             "R2_CDN_PUBLIC_DOMAIN=${{ vars.R2_CDN_PUBLIC_DOMAIN || secrets.R2_CDN_PUBLIC_DOMAIN }}"
+
+  deploy:
+    name: Trigger Watchtower deploy
+    needs: docker
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Call Watchtower webhook
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.WATCHTOWER_TOKEN }}" \
+            https://arthurlovegrace.top/deploy
+        timeout-minutes: 2
