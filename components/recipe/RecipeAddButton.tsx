@@ -23,31 +23,31 @@ export default function RecipeAddButton() {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  async function handleCreate() {
+  function handleCreate() {
     setError(null)
 
-    const response = await fetch('/api/recipes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: '未命名菜谱',
-        slug: buildDraftSlug(),
-        version: '1.0',
-        description: '',
-        tags: [],
-        suitable_occasions: [],
-        ingredients: [],
-        steps: [],
-      }),
-    })
+    startTransition(async () => {
+      const response = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: '未命名菜谱',
+          slug: buildDraftSlug(),
+          version: '1.0',
+          description: '',
+          tags: [],
+          suitable_occasions: [],
+          ingredients: [],
+          steps: [],
+        }),
+      })
 
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({ error: '创建失败，请稍后重试。' }))
-      setError(typeof payload?.error === 'string' ? payload.error : '创建失败，请稍后重试。')
-      return
-    }
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({ error: '创建失败，请稍后重试。' }))
+        setError(typeof payload?.error === 'string' ? payload.error : '创建失败，请稍后重试。')
+        return
+      }
 
-    startTransition(() => {
       router.refresh()
     })
   }
