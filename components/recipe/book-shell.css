@@ -112,6 +112,7 @@
   scroll-snap-stop: always;
   scroll-snap-align: start;
   position: relative;
+  overflow: hidden;
   box-sizing: border-box;
   width: 100%;
   height: 100%;
@@ -295,8 +296,8 @@
 }
 
 .bs-control-bookmark:hover:not(:disabled) {
-  transform: translateX(-4px);
-  box-shadow: -1px 0 3px rgba(0, 0, 0, 0.1);
+  transform: translateX(4px);
+  box-shadow: -5px 0 10px rgba(0, 0, 0, 0.3), inset 2px 0 0 rgba(255, 255, 255, 0.15);
 }
 
 .bs-control-bookmark:disabled {
