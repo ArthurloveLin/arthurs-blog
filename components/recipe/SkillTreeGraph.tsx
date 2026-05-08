@@ -22,8 +22,10 @@ interface SimLink extends d3.SimulationLinkDatum<SimNode> {
   skill_label: string
 }
 
-function getNodeId(node: string | SimNode) {
-  return typeof node === 'string' ? node : node.id
+function getNodeId(node: string | number | SimNode): string {
+  if (typeof node === 'string') return node
+  if (typeof node === 'number') return String(node)
+  return node.id
 }
 
 function truncateTitle(title: string, maxLength: number) {
@@ -273,7 +275,7 @@ export default function SkillTreeGraph({ graph, currentRecipeId, height = 140, v
         return
       }
 
-      const bounds = textNode.getBBox()
+      const bounds = (textNode as SVGGraphicsElement).getBBox()
 
       d3.select(this)
         .attr('x', bounds.x - 6)
