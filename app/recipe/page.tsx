@@ -3,8 +3,8 @@ import Link from 'next/link'
 import PageHero from '@/components/PageHero'
 import BookShell from '@/components/recipe/BookShell'
 import BookSpread from '@/components/recipe/BookSpread'
-import TableOfContentsPage from '@/components/recipe/TableOfContentsPage'
-import RecipeSpread from '@/components/recipe/RecipeSpread'
+import { TableOfContentsLeftPage, TableOfContentsRightPage } from '@/components/recipe/TableOfContentsPage'
+import { AdminRecipeSpread, PublicRecipeSpread } from '@/components/recipe/RecipeSpread'
 import RecipeAddButton from '@/components/recipe/RecipeAddButton'
 import { getRecipesList, getAllRecipesListFresh } from '@/lib/recipes'
 import { isAdminRequest } from '@/lib/auth'
@@ -40,13 +40,17 @@ export default async function RecipePage() {
 
         <BookShell>
           <BookSpread
-            left={<TableOfContentsPage recipes={recipes} side="left" isAdmin={isAdmin} />}
-            right={<TableOfContentsPage recipes={recipes} side="right" isAdmin={isAdmin} />}
+            left={<TableOfContentsLeftPage recipes={recipes} />}
+            right={<TableOfContentsRightPage recipes={recipes} />}
             rightOverlay={isAdmin && <RecipeAddButton />}
           />
-          {recipes.map((recipe) => (
-            <RecipeSpread key={recipe.id} recipe={recipe} isAdmin={isAdmin} />
-          ))}
+          {recipes.map((recipe) =>
+            isAdmin ? (
+              <AdminRecipeSpread key={recipe.id} recipe={recipe} />
+            ) : (
+              <PublicRecipeSpread key={recipe.id} recipe={recipe} />
+            )
+          )}
         </BookShell>
       </div>
     </main>
