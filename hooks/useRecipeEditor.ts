@@ -35,11 +35,11 @@ export function useRecipeEditor({ recipe, onSaved }: UseRecipeEditorOptions) {
     setError(null)
   }, [])
 
-  function setField<K extends keyof RecipeDraft>(key: K, value: RecipeDraft[K]) {
+  const setField = useCallback(<K extends keyof RecipeDraft>(key: K, value: RecipeDraft[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }))
-  }
+  }, [])
 
-  function addIngredient() {
+  const addIngredient = useCallback(() => {
     setDraft((prev) => ({
       ...prev,
       ingredients: [
@@ -47,46 +47,57 @@ export function useRecipeEditor({ recipe, onSaved }: UseRecipeEditorOptions) {
         { id: crypto.randomUUID(), amount: '', unit: '', name: '', note: '' } satisfies Ingredient,
       ],
     }))
-  }
+  }, [])
 
-  function removeIngredient(id: string) {
+  const removeIngredient = useCallback((id: string) => {
     setDraft((prev) => ({
       ...prev,
       ingredients: prev.ingredients.filter((ing) => ing.id !== id),
     }))
-  }
+  }, [])
 
-  function updateIngredient(id: string, patch: Partial<Ingredient>) {
+  const updateIngredient = useCallback((id: string, patch: Partial<Ingredient>) => {
     setDraft((prev) => ({
       ...prev,
       ingredients: prev.ingredients.map((ing) => (ing.id === id ? { ...ing, ...patch } : ing)),
     }))
-  }
+  }, [])
 
-  function addStep() {
-    const nextOrder = (draft.steps.at(-1)?.order ?? 0) + 1
-    setDraft((prev) => ({
-      ...prev,
-      steps: [
-        ...prev.steps,
-        { id: crypto.randomUUID(), order: nextOrder, title: '', description: '', tip: '' } satisfies RecipeStep,
-      ],
-    }))
-  }
+  const addStep = useCallback(() => {
+    setDraft((prev) => {
+      const nextOrder = (prev.steps.at(-1)?.order ?? 0) + 1
+      return {
+        ...prev,
+        steps: [
+          ...prev.steps,
+          { id: crypto.randomUUID(), order: nextOrder, title: '', description: '', tip: '' } satisfies RecipeStep,
+        ],
+      }
+    })
+  }, [])
 
-  function removeStep(id: string) {
+  const removeStep = useCallback((id: string) => {
     setDraft((prev) => ({
       ...prev,
       steps: prev.steps.filter((s) => s.id !== id),
     }))
-  }
+  }, [])
 
-  function updateStep(id: string, patch: Partial<RecipeStep>) {
+  const updateStep = useCallback((id: string, patch: Partial<RecipeStep>) => {
     setDraft((prev) => ({
       ...prev,
       steps: prev.steps.map((s) => (s.id === id ? { ...s, ...patch } : s)),
     }))
-  }
+  }, [])
+
+  const togglePublish = useCallback(async () => {
+    const res = await fetch(`/api/recipes/${recipe.slug}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ published: !recipe.published }),
+    })
+    if (res.ok) router.refresh()
+  }, [recipe.slug, recipe.published, router])
 
   const save = useCallback(async () => {
     setIsSaving(true)
@@ -120,6 +131,7 @@ export function useRecipeEditor({ recipe, onSaved }: UseRecipeEditorOptions) {
     cancelEditing,
     setField,
     save,
+    togglePublish,
     ingredientActions: { addIngredient, removeIngredient, updateIngredient },
     stepActions: { addStep, removeStep, updateStep },
   }
