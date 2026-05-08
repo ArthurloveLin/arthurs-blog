@@ -38,7 +38,7 @@ export default function RecipeLeftPage({ recipe, revisions }: Props) {
   ].filter(Boolean) as { val: number; unit: string; label: string }[]
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 18, overflowY: 'auto', color: ink }}>
+    <div className="bs-page-scroll-content" style={{ display: 'flex', flexDirection: 'column', gap: 18, color: ink }}>
 
       {/* ── Header ── */}
       <div style={{ paddingBottom: 14, borderBottom: rule }}>

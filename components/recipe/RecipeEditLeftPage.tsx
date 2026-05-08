@@ -26,7 +26,7 @@ export default function RecipeEditLeftPage({ editor }: Props) {
   const { addStep, removeStep, updateStep } = stepActions
 
   return (
-    <div className="h-full flex flex-col gap-4 overflow-y-auto" style={pageStyle}>
+    <div className="bs-page-scroll-content flex flex-col gap-4" style={pageStyle}>
       {/* Title */}
       <div className="pb-1.5 border-b border-amber-800/20">
         <SectionLabel>标题</SectionLabel>

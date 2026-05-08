@@ -31,7 +31,7 @@ export default function RecipeRightPage({ recipe }: Props) {
   const mutedStyle = { color: muted }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto', color: ink }}>
+    <div className="bs-page-scroll-content" style={{ display: 'flex', flexDirection: 'column', gap: 20, color: ink }}>
 
       {/* ── Tags ── */}
       {recipe.tags.length > 0 && (

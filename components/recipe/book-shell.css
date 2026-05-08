@@ -144,6 +144,8 @@
 .bs-left-page,
 .bs-right-page {
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
   color: oklch(0.3 0.02 50);
 }
 
@@ -153,9 +155,7 @@
 }
 
 .bs-left-page {
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: oklch(from var(--color-border) l c h / 0.5) transparent;
+  display: flex;
   padding: 28px 0 28px 28px;
 }
 
@@ -175,14 +175,23 @@
 /* The actual scroll container for right-page content. */
 .bs-right-page-scroll {
   flex: 1;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: oklch(from var(--color-border) l c h / 0.5) transparent;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
   padding: 28px 0;
 }
 
 .dark .bs-right-page-scroll {
   background-color: oklch(0.22 0.02 50 / 0.85);
+}
+
+.bs-page-scroll-content {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: oklch(from var(--color-border) l c h / 0.5) transparent;
 }
 
 /* ── Navigation bar ───────────────────────────────────────────────────────── */
@@ -337,17 +346,37 @@
 }
 
 /* ── Admin control bookmarks ─────────────────────────────────────────────────
-   Absolutely positioned within .bs-right-page (position: relative).
-   Appear at the right edge of the page content — flush with the fore-edge.
+   Mounted at the .bs-book level so they can align to the book fore-edge
+   instead of the clipped page-scroll container inside the carousel.
    ──────────────────────────────────────────────────────────────────────────── */
-.bs-control-bookmarks {
+.bs-shell-right-overlay {
+  --bs-shell-side-gutter: calc((1px * var(--sprite-tw) - (1px * var(--sprite-tw) * 0.7042)) / 2);
+  --bs-control-bookmark-width: 34px;
+  --bs-control-bookmark-buried-width: 14px;
+  --bs-control-bookmark-hover-pull: 9px;
+  --bs-control-bookmark-total-width: calc(var(--bs-control-bookmark-width) + var(--bs-control-bookmark-buried-width));
+  --bs-control-bookmark-slot-width: calc(var(--bs-control-bookmark-width) + var(--bs-control-bookmark-hover-pull));
+
   position: absolute;
-  right: 0;
-  top: 16px;
+  top: 14px;
+  left: calc(100% - var(--bs-shell-side-gutter));
+  z-index: 8;
+  pointer-events: none;
+}
+
+.bs-control-bookmarks {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  z-index: 5;
+  gap: 4px;
+  width: var(--bs-control-bookmark-slot-width);
+  pointer-events: auto;
+}
+
+.bs-control-bookmark-slot {
+  position: relative;
+  width: var(--bs-control-bookmark-slot-width);
+  overflow: hidden;
 }
 
 .bs-control-bookmark {
@@ -355,12 +384,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  width: 26px;
-  min-height: 48px;
-  padding: 6px 0;
+  gap: 3px;
+  width: var(--bs-control-bookmark-total-width);
+  min-height: 60px;
+  padding: 8px 0;
   border: none;
-  border-radius: 4px 0 0 4px;
+  border-radius: 5px 8px 8px 5px;
   cursor: pointer;
 
   background: oklch(0.55 0.14 50);
@@ -368,12 +397,13 @@
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
 
   box-shadow:
-    -3px 0 6px rgba(0, 0, 0, 0.2),
-    inset 2px 0 0 rgba(255, 255, 255, 0.1);
+    -5px 0 10px rgba(0, 0, 0, 0.18),
+    inset 3px 0 0 rgba(255, 255, 255, 0.12);
 
   transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transform: translateX(calc(var(--bs-control-bookmark-buried-width) * -1));
 
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -383,8 +413,8 @@
 }
 
 .bs-control-bookmark svg {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
 }
 
@@ -394,8 +424,8 @@
 }
 
 .bs-control-bookmark:hover:not(:disabled) {
-  transform: translateX(4px);
-  box-shadow: -5px 0 10px rgba(0, 0, 0, 0.3), inset 2px 0 0 rgba(255, 255, 255, 0.15);
+  transform: translateX(calc(var(--bs-control-bookmark-hover-pull) - var(--bs-control-bookmark-buried-width)));
+  box-shadow: -7px 0 14px rgba(0, 0, 0, 0.24), inset 3px 0 0 rgba(255, 255, 255, 0.18);
 }
 
 .bs-control-bookmark:disabled {
@@ -421,7 +451,7 @@
 
 .bs-control-error {
   position: absolute;
-  right: 30px;
+  right: calc(var(--bs-control-bookmark-slot-width) + 6px);
   bottom: 16px;
   font-size: 8px;
   color: oklch(0.55 0.22 25);
@@ -491,46 +521,30 @@
 @keyframes bs-stay-centered {
   entry 0% {
     opacity: 0;
-    translate: -100%;
   }
-  entry 75% {
+  entry 55% {
     opacity: 0;
-    translate: -25%;
   }
   entry 100% {
     opacity: 1;
-    translate: 0%;
   }
   exit 0% {
     opacity: 1;
-    translate: 0%;
   }
-  exit 50% {
+  exit 45% {
     opacity: 0;
-    translate: 50%;
-  }
-  exit 100% {
-    opacity: 0;
-    translate: 100%;
   }
 }
 
 @keyframes bs-stay-anchored {
   entry 0% {
     opacity: 0;
-    translate: -10%;
   }
   entry 100% {
     opacity: 1;
-    translate: 0%;
   }
   exit 0% {
     opacity: 1;
-    translate: 0%;
-  }
-  exit 100% {
-    opacity: 0;
-    translate: 8%;
   }
 }
 
@@ -563,6 +577,21 @@
 
   .bs-bookmarks {
     display: none;
+  }
+
+  .bs-control-bookmarks {
+    --bs-control-bookmark-width: 30px;
+    --bs-control-bookmark-buried-width: 12px;
+    --bs-control-bookmark-hover-pull: 6px;
+  }
+
+  .bs-control-bookmark {
+    min-height: 54px;
+    font-size: 7px;
+  }
+
+  .bs-shell-right-overlay {
+    top: 12px;
   }
 }
 

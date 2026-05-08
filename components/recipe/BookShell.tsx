@@ -3,6 +3,7 @@
 import './book-shell.css'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRef, Children, useCallback, useEffect, useState } from 'react'
+import { BookShellOverlayProvider, BookShellSlideIndexProvider } from './book-shell-overlay-context'
 
 const MOUNTED_SLIDE_RADIUS = 2
 
@@ -32,6 +33,7 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
   const slides = Children.toArray(children)
   const slideCount = slides.length
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [rightOverlay, setRightOverlay] = useState<React.ReactNode | null>(null)
   const canPrev = currentSlide > 0
   const canNext = currentSlide < slideCount - 1
   const progressPercent = slideCount > 0 ? ((currentSlide + 1) / slideCount) * 100 : 0
@@ -91,36 +93,41 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
   }
 
   return (
-    <div
-      className={`bs-root ${className ?? ''}`.trim()}
-      style={{ '--slides': slideCount } as React.CSSProperties}
-    >
-      <div className="bs-book">
-        {/* Sprite is a sibling of the carousel (not inside it) so carousel
-            overflow:auto never clips it, and z-index:-1 works correctly
-            within the isolation:isolate stacking context on .bs-book */}
-        <div className="bs-sprite" aria-hidden="true" />
+    <BookShellOverlayProvider value={{ currentSlide, setRightOverlay }}>
+      <div
+        className={`bs-root ${className ?? ''}`.trim()}
+        style={{ '--slides': slideCount } as React.CSSProperties}
+      >
+        <div className="bs-book">
+          {/* Sprite is a sibling of the carousel (not inside it) so carousel
+              overflow:auto never clips it, and z-index:-1 works correctly
+              within the isolation:isolate stacking context on .bs-book */}
+          <div className="bs-sprite" aria-hidden="true" />
 
-        <div
-          ref={carouselRef}
-          className="bs-carousel"
-          tabIndex={0}
-          role="region"
-          aria-label="菜谱翻页区域"
-          onKeyDown={handleKeyDown}
-        >
-          {slides.map((slide, index) => {
-            const shouldMount = Math.abs(index - currentSlide) <= MOUNTED_SLIDE_RADIUS
+          <div
+            ref={carouselRef}
+            className="bs-carousel"
+            tabIndex={0}
+            role="region"
+            aria-label="菜谱翻页区域"
+            onKeyDown={handleKeyDown}
+          >
+            {slides.map((slide, index) => {
+              const shouldMount = Math.abs(index - currentSlide) <= MOUNTED_SLIDE_RADIUS
 
-            return shouldMount ? (
-              slide
-            ) : (
-              <div key={`placeholder-${index}`} className="bs-carousel-item" aria-hidden="true" />
-            )
-          })}
-        </div>
+              return shouldMount ? (
+                <BookShellSlideIndexProvider key={`slide-${index}`} index={index}>
+                  {slide}
+                </BookShellSlideIndexProvider>
+              ) : (
+                <div key={`placeholder-${index}`} className="bs-carousel-item" aria-hidden="true" />
+              )
+            })}
+          </div>
 
-        <div className="bs-nav" aria-label="翻页控制">
+          {rightOverlay ? <div className="bs-shell-right-overlay">{rightOverlay}</div> : null}
+
+          <div className="bs-nav" aria-label="翻页控制">
           <button
             type="button"
             className="bs-nav-btn"
@@ -159,25 +166,26 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
             <span>Next</span>
             <ChevronRight size={16} />
           </button>
-        </div>
-
-        {bookmarks && bookmarks.length > 0 && (
-          <div className="bs-bookmarks" aria-label="章节书签">
-            {bookmarks.map((bm, i) => (
-              <button
-                key={i}
-                className={`bs-bookmark-tab${currentSlide === i ? ' active' : ''}`}
-                style={{ '--bm-color': BOOKMARK_COLORS[i % BOOKMARK_COLORS.length] } as React.CSSProperties}
-                onClick={() => scrollToSlide(i)}
-                title={bm.label}
-                aria-label={`跳转到 ${bm.label}`}
-              >
-                <span>{bm.label}</span>
-              </button>
-            ))}
           </div>
-        )}
+
+          {bookmarks && bookmarks.length > 0 && (
+            <div className="bs-bookmarks" aria-label="章节书签">
+              {bookmarks.map((bm, i) => (
+                <button
+                  key={i}
+                  className={`bs-bookmark-tab${currentSlide === i ? ' active' : ''}`}
+                  style={{ '--bm-color': BOOKMARK_COLORS[i % BOOKMARK_COLORS.length] } as React.CSSProperties}
+                  onClick={() => scrollToSlide(i)}
+                  title={bm.label}
+                  aria-label={`跳转到 ${bm.label}`}
+                >
+                  <span>{bm.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </BookShellOverlayProvider>
   )
 }

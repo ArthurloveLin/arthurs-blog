@@ -62,17 +62,19 @@ export default function RecipeAddButton() {
 
   return (
     <div className="bs-control-bookmarks">
-      <button
-        type="button"
-        className="bs-control-bookmark"
-        data-variant="success"
-        onClick={handleCreate}
-        disabled={isBusy}
-        title={isBusy ? '创建中...' : '新增菜谱草稿'}
-      >
-        {isBusy ? <LoaderCircle className="animate-spin" /> : <Plus />}
-        <span>{isBusy ? '创建中' : '新增'}</span>
-      </button>
+      <div className="bs-control-bookmark-slot">
+        <button
+          type="button"
+          className="bs-control-bookmark"
+          data-variant="success"
+          onClick={handleCreate}
+          disabled={isBusy}
+          title={isBusy ? '创建中...' : '新增菜谱草稿'}
+        >
+          {isBusy ? <LoaderCircle className="animate-spin" /> : <Plus />}
+          <span>{isBusy ? '创建中' : '新增'}</span>
+        </button>
+      </div>
       {error && <p className="bs-control-error">{error}</p>}
     </div>
   )
