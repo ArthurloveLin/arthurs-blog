@@ -8,6 +8,7 @@ interface Props {
   onViewRevisions: () => void
   onTogglePublish: () => void
   isPublishPending?: boolean
+  isViewingRevisions?: boolean
 }
 
 export default function RecipeViewBookmarks({
@@ -16,6 +17,7 @@ export default function RecipeViewBookmarks({
   onViewRevisions,
   onTogglePublish,
   isPublishPending = false,
+  isViewingRevisions = false,
 }: Props) {
   return (
     <div className="bs-control-bookmarks" aria-label="管理书签">
@@ -26,13 +28,13 @@ export default function RecipeViewBookmarks({
       <button
         type="button"
         className="bs-control-bookmark"
-        data-variant="muted"
+        data-variant={isViewingRevisions ? 'active' : 'muted'}
         onClick={onViewRevisions}
-        title="查看版本历史"
+        title={isViewingRevisions ? '返回当前版本' : '查看版本历史'}
         disabled={isPublishPending}
       >
         <History />
-        <span>版本</span>
+        <span>{isViewingRevisions ? '返回' : '版本'}</span>
       </button>
       <button
         type="button"

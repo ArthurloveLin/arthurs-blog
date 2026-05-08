@@ -1,4 +1,4 @@
-import type { RecipeListItem } from '@/lib/recipes'
+import type { RecipeListItem, RecipeRevision } from '@/lib/recipes'
 import { getRecipeBySlug, getRecipeRevisions } from '@/lib/recipes'
 import type { ReactNode } from 'react'
 import BookSpread from './BookSpread'
@@ -11,16 +11,18 @@ interface RecipeSpreadProps {
 }
 
 interface AdminRecipeSpreadViewProps {
+  currentVersion: string
+  revisions: RecipeRevision[]
   condensedLeftPage: ReactNode
-  fullLeftPage: ReactNode
   rightPage: ReactNode
   slug: string
   published: boolean
 }
 
 function AdminRecipeSpreadView({
+  currentVersion,
+  revisions,
   condensedLeftPage,
-  fullLeftPage,
   rightPage,
   slug,
   published,
@@ -29,8 +31,9 @@ function AdminRecipeSpreadView({
     <RecipeSpreadClient
       slug={slug}
       initialPublished={published}
+      currentVersion={currentVersion}
+      revisions={revisions}
       condensedLeftPage={condensedLeftPage}
-      fullLeftPage={fullLeftPage}
       rightPage={rightPage}
     />
   )
@@ -50,8 +53,9 @@ export async function AdminRecipeSpread({ recipe }: RecipeSpreadProps) {
     <AdminRecipeSpreadView
       slug={fullRecipe.slug}
       published={fullRecipe.published}
-      condensedLeftPage={<RecipeLeftPage recipe={fullRecipe} revisions={revisions.slice(0, 3)} />}
-      fullLeftPage={<RecipeLeftPage recipe={fullRecipe} revisions={revisions} />}
+      currentVersion={fullRecipe.version}
+      revisions={revisions}
+      condensedLeftPage={<RecipeLeftPage recipe={fullRecipe} revisions={[]} />}
       rightPage={<RecipeRightPage recipe={fullRecipe} />}
     />
   )

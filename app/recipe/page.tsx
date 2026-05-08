@@ -30,9 +30,10 @@ export default async function RecipePage() {
         title="菜谱档案"
         description="长期维护的烹饪记录：食材、步骤、风味、技能树，像翻一本书一样回看每道菜的演进。"
         blobColors={['bg-orange-400/10', 'bg-amber-400/10']}
+        containerClass="site-shell-narrow"
       />
 
-      <div className="site-shell py-10">
+      <div className="site-shell-narrow py-10">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-[11px] font-mono tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase mb-8"
