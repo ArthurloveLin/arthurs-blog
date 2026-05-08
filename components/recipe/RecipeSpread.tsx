@@ -5,29 +5,32 @@ import RecipeLeftPage from './RecipeLeftPage'
 import RecipeRightPage from './RecipeRightPage'
 import RecipeSpreadClient from './RecipeSpreadClient'
 
-interface Props {
+interface RecipeSpreadProps {
   recipe: Recipe
-  isAdmin: boolean
 }
 
-export default async function RecipeSpread({ recipe, isAdmin }: Props) {
-  const [revisions, skillGraph] = await Promise.all([
-    getRecipeRevisions(recipe.id),
+async function getRecipeSpreadData(recipeId: string) {
+  return Promise.all([
+    getRecipeRevisions(recipeId),
     getRecipeSkillGraph(),
   ])
+}
 
-  // Admin gets interactive client component (supports inline editing)
-  if (isAdmin) {
-    return (
-      <RecipeSpreadClient
-        recipe={recipe}
-        revisions={revisions}
-        skillGraph={skillGraph}
-      />
-    )
-  }
+export async function AdminRecipeSpread({ recipe }: RecipeSpreadProps) {
+  const [revisions, skillGraph] = await getRecipeSpreadData(recipe.id)
 
-  // Public: fully static server render
+  return (
+    <RecipeSpreadClient
+      recipe={recipe}
+      revisions={revisions}
+      skillGraph={skillGraph}
+    />
+  )
+}
+
+export async function PublicRecipeSpread({ recipe }: RecipeSpreadProps) {
+  const [revisions, skillGraph] = await getRecipeSpreadData(recipe.id)
+
   return (
     <BookSpread
       left={<RecipeLeftPage recipe={recipe} revisions={revisions} />}
