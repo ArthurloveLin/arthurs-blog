@@ -12,7 +12,16 @@ interface Props {
 }
 
 export default function RecipeEditLeftPage({ editor }: Props) {
-  const { draft, setField, ingredientActions, stepActions } = editor
+  const {
+    draft,
+    setField,
+    ingredientActions,
+    stepActions,
+    changeSummary,
+    setChangeSummary,
+    versionChanged,
+    originalVersion,
+  } = editor
   const { addIngredient, removeIngredient, updateIngredient } = ingredientActions
   const { addStep, removeStep, updateStep } = stepActions
 
@@ -50,6 +59,25 @@ export default function RecipeEditLeftPage({ editor }: Props) {
             placeholder="1.0"
           />
         </div>
+      </div>
+
+      <div className="rounded border border-amber-800/20 bg-amber-50/45 px-2.5 py-2">
+        <SectionLabel>版本说明</SectionLabel>
+        <p className="text-[10px] leading-relaxed mb-1.5" style={mutedStyle}>
+          只有改动版本号时，当前内容才会被归档为旧版本。发布和下线只影响公开可见性，不会自动归档。
+        </p>
+        <EditableField
+          value={changeSummary}
+          onChange={setChangeSummary}
+          isEditing
+          type="textarea"
+          placeholder={versionChanged ? '例如：调整火候，补充失败提醒，升级到 v1.1' : '版本未变更时可留空'}
+        />
+        {versionChanged && (
+          <p className="text-[9px] mt-1 text-amber-900/60">
+            保存后会把当前的 v{originalVersion} 内容归档为旧版本。
+          </p>
+        )}
       </div>
 
       {/* Metrics */}

@@ -3,15 +3,18 @@
 import dynamic from 'next/dynamic'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import type { RecipeRevision } from '@/lib/recipes'
 import BookSpread from './BookSpread'
+import RecipeRevisionArchive from './RecipeRevisionArchive'
 import RecipeViewBookmarks from './RecipeViewBookmarks'
 import RecipeSpreadSkeleton from './RecipeSpreadSkeleton'
 
 interface Props {
   slug: string
   initialPublished: boolean
+  currentVersion: string
+  revisions: RecipeRevision[]
   condensedLeftPage: React.ReactNode
-  fullLeftPage: React.ReactNode
   rightPage: React.ReactNode
 }
 
@@ -21,8 +24,9 @@ const RecipeSpreadEditor = dynamic(() => import('./RecipeSpreadEditor'), {
 })
 
 function RecipeViewingSpread({
+  currentVersion,
+  revisions,
   condensedLeftPage,
-  fullLeftPage,
   rightPage,
   onEdit,
   onTogglePublish,
@@ -31,8 +35,9 @@ function RecipeViewingSpread({
   isPublished,
   isPublishPending,
 }: {
+  currentVersion: string
+  revisions: RecipeRevision[]
   condensedLeftPage: React.ReactNode
-  fullLeftPage: React.ReactNode
   rightPage: React.ReactNode
   onEdit: () => void
   onTogglePublish: () => void
@@ -43,8 +48,9 @@ function RecipeViewingSpread({
 }) {
   return (
     <BookSpread
-      left={showAllRevisions ? fullLeftPage : condensedLeftPage}
+      left={showAllRevisions ? <RecipeRevisionArchive currentVersion={currentVersion} isPublished={isPublished} revisions={revisions} /> : condensedLeftPage}
       right={rightPage}
+      motionVariant="anchored"
       rightOverlay={
         <RecipeViewBookmarks
           isPublished={isPublished}
@@ -52,6 +58,7 @@ function RecipeViewingSpread({
           onViewRevisions={onToggleRevisions}
           onTogglePublish={onTogglePublish}
           isPublishPending={isPublishPending}
+          isViewingRevisions={showAllRevisions}
         />
       }
     />
@@ -61,8 +68,9 @@ function RecipeViewingSpread({
 export default function RecipeSpreadClient({
   slug,
   initialPublished,
+  currentVersion,
+  revisions,
   condensedLeftPage,
-  fullLeftPage,
   rightPage,
 }: Props) {
   const router = useRouter()
@@ -101,8 +109,9 @@ export default function RecipeSpreadClient({
 
   return (
     <RecipeViewingSpread
+      currentVersion={currentVersion}
+      revisions={revisions}
       condensedLeftPage={condensedLeftPage}
-      fullLeftPage={fullLeftPage}
       rightPage={rightPage}
       onEdit={() => setIsEditing(true)}
       onTogglePublish={togglePublish}

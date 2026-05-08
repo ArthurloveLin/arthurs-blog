@@ -17,6 +17,7 @@ export function useRecipeEditor({ recipe, onSaved }: UseRecipeEditorOptions) {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isRefreshPending, startTransition] = useTransition()
+  const [changeSummary, setChangeSummary] = useState('')
   const [draft, setDraft] = useState<RecipeDraft>(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = recipe
@@ -92,19 +93,37 @@ export function useRecipeEditor({ recipe, onSaved }: UseRecipeEditorOptions) {
   }, [])
 
   const save = useCallback(async () => {
+    const normalizedVersion = draft.version.trim()
+    const versionChanged = normalizedVersion !== recipe.version
+
+    if (!normalizedVersion) {
+      setError('版本号不能为空')
+      return
+    }
+
+    if (versionChanged && !changeSummary.trim()) {
+      setError('修改版本号时需要填写本次变更说明')
+      return
+    }
+
     setIsSaving(true)
     setError(null)
     try {
       const res = await fetch(`/api/recipes/${recipe.slug}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(draft),
+        body: JSON.stringify({
+          ...draft,
+          version: normalizedVersion,
+          change_summary: versionChanged ? changeSummary.trim() : undefined,
+        }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error ?? `HTTP ${res.status}`)
       }
       setIsEditing(false)
+      setChangeSummary('')
       startTransition(() => {
         router.refresh()
         onSaved?.()
@@ -114,16 +133,20 @@ export function useRecipeEditor({ recipe, onSaved }: UseRecipeEditorOptions) {
     } finally {
       setIsSaving(false)
     }
-  }, [recipe.slug, draft, router, onSaved, startTransition])
+  }, [changeSummary, draft, onSaved, recipe.slug, recipe.version, router, startTransition])
 
   return {
     isEditing,
     isSaving: isSaving || isRefreshPending,
     error,
     draft,
+    changeSummary,
+    originalVersion: recipe.version,
+    versionChanged: draft.version.trim() !== recipe.version,
     startEditing,
     cancelEditing,
     setField,
+    setChangeSummary,
     save,
     ingredientActions: { addIngredient, removeIngredient, updateIngredient },
     stepActions: { addStep, removeStep, updateStep },

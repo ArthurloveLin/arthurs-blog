@@ -55,11 +55,14 @@ export interface Recipe extends RecipeListItem {
   steps: RecipeStep[]
 }
 
+export type RecipeRevisionSnapshot = Omit<Recipe, 'id' | 'created_at' | 'updated_at'>
+
 export interface RecipeRevision {
   id: string
   recipe_id: string
   version: string
   change_summary: string
+  snapshot: RecipeRevisionSnapshot | null
   created_at: string
 }
 
@@ -131,6 +134,7 @@ export const RECIPE_REVISION_SELECT = `
   recipe_id,
   version,
   change_summary,
+  snapshot,
   created_at
 `
 

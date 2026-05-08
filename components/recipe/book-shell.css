@@ -7,8 +7,8 @@
 
 @property --bs-progress {
   syntax: "<percentage>";
-  inherits: false;
   initial-value: 0%;
+  inherits: false;
 }
 
 /* ── Root variables ───────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@
 
   --sprite-r: round(up, calc(var(--sprite-f) / var(--sprite-c)), 1);
   --sprite-sh: calc(var(--sprite-h) / var(--sprite-r));
-  --sprite-th: calc(var(--sprite-sh) / 2);
+  --sprite-th: calc(var(--sprite-sh) / 1.8);
   --sprite-ar: calc(var(--sprite-th) / var(--sprite-sh));
   --sprite-uh: calc(var(--sprite-h) * var(--sprite-ar));
   --sprite-uw: calc(var(--sprite-w) * var(--sprite-ar));
@@ -103,6 +103,11 @@
   scroll-timeline: --carousel-timeline x;
 }
 
+.bs-carousel:focus-visible {
+  outline: 1px solid oklch(0.6 0.18 35 / 0.55);
+  outline-offset: 10px;
+}
+
 .bs-carousel::-webkit-scrollbar {
   display: none;
 }
@@ -126,6 +131,10 @@
 
   animation: bs-stay-centered linear both;
   animation-timeline: view(x);
+}
+
+.bs-page-container[data-motion='anchored'] {
+  animation-name: bs-stay-anchored;
 }
 
 /* ── Left and right pages ────────────────────────────────────────────────────
@@ -178,50 +187,139 @@
 
 /* ── Navigation bar ───────────────────────────────────────────────────────── */
 .bs-nav {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 14px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 12px;
+  margin-top: 16px;
   width: calc(1px * (var(--sprite-tw) * 0.7042));
   margin-inline: auto;
 }
 
+.bs-nav-btn,
+.bs-progress-shell {
+  position: relative;
+  border: 2px solid oklch(0.42 0.08 55);
+  border-radius: 0;
+  background: linear-gradient(180deg, oklch(0.94 0.05 88) 0%, oklch(0.84 0.11 73) 100%);
+  box-shadow:
+    0 0 0 2px oklch(0.98 0.02 90 / 0.65) inset,
+    4px 4px 0 0 oklch(0.57 0.13 55 / 0.95);
+}
+
 .bs-nav-btn {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--color-border);
-  background: var(--color-card);
-  color: var(--color-foreground);
-  cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, opacity 0.15s;
-  font-size: 18px;
+  gap: 6px;
+  min-width: 88px;
+  min-height: 48px;
+  padding: 0 12px;
+  color: oklch(0.3 0.03 45);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition:
+    transform 0.12s steps(2, end),
+    box-shadow 0.12s steps(2, end),
+    filter 0.12s steps(2, end);
 }
 
 .bs-nav-btn:hover:not(:disabled) {
-  background: var(--color-accent);
+  transform: translate(2px, 2px);
+  box-shadow:
+    0 0 0 2px oklch(0.98 0.02 90 / 0.65) inset,
+    2px 2px 0 0 oklch(0.57 0.13 55 / 0.95);
+  filter: saturate(1.05);
+}
+
+.bs-nav-btn:active:not(:disabled) {
+  transform: translate(4px, 4px);
+  box-shadow:
+    0 0 0 2px oklch(0.98 0.02 90 / 0.65) inset,
+    0 0 0 0 oklch(0.57 0.13 55 / 0.95);
 }
 
 .bs-nav-btn:disabled {
-  opacity: 0.35;
+  opacity: 0.55;
   cursor: not-allowed;
+  filter: grayscale(0.2);
+}
+
+.bs-nav-btn svg {
+  flex-shrink: 0;
+  stroke-width: 2.4;
+}
+
+.bs-progress-shell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 7px 10px 8px;
+}
+
+.bs-progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: oklch(0.34 0.03 45 / 0.9);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .bs-progress {
-  flex: 1;
-  height: 6px;
-  border-radius: 3px;
-  border: 1px solid var(--color-border);
+  --bs-progress: 0%;
+  position: relative;
+  height: 14px;
   overflow: hidden;
-  background: linear-gradient(90deg, var(--color-primary) 0%) no-repeat left center;
-  --bs-progress: calc(calc(100 / var(--slides, 1)) * 1%);
-  background-size: var(--bs-progress) 100%;
-  animation: bs-progress linear both;
-  animation-timeline: --carousel-timeline;
+  border: 2px solid oklch(0.42 0.08 55);
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, oklch(0.78 0.08 72) 0%, oklch(0.7 0.09 63) 100%),
+    repeating-linear-gradient(
+      90deg,
+      oklch(0.73 0.09 64) 0 10px,
+      oklch(0.68 0.1 58) 10px 20px
+    );
+  box-shadow: 0 0 0 2px oklch(0.98 0.02 90 / 0.4) inset;
+}
+
+.bs-progress::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, oklch(0.98 0.02 95 / 0.2), transparent 45%),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 10px,
+      oklch(0.42 0.08 55 / 0.18) 10px 12px
+    );
+  pointer-events: none;
+}
+
+.bs-progress-fill {
+  height: 100%;
+  border-right: 2px solid oklch(0.38 0.08 52 / 0.8);
+  background:
+    linear-gradient(180deg, oklch(0.92 0.12 95) 0%, oklch(0.82 0.15 78) 100%),
+    repeating-linear-gradient(
+      90deg,
+      oklch(0.9 0.11 92) 0 10px,
+      oklch(0.82 0.15 75) 10px 20px
+    );
+  box-shadow: 0 0 0 2px oklch(0.98 0.02 95 / 0.28) inset;
+  transition: width 0.18s steps(10, end);
 }
 
 /* ── Skeuomorphic bookmark tabs ──────────────────────────────────────────────
@@ -315,6 +413,10 @@
 
 .bs-control-bookmark[data-variant="muted"] {
   background: oklch(0.52 0.05 240);
+}
+
+.bs-control-bookmark[data-variant="active"] {
+  background: oklch(0.55 0.18 35);
 }
 
 .bs-control-error {
@@ -413,14 +515,42 @@
   }
 }
 
-@keyframes bs-progress {
-  100% {
-    --bs-progress: 100%;
+@keyframes bs-stay-anchored {
+  entry 0% {
+    opacity: 0;
+    translate: -10%;
+  }
+  entry 100% {
+    opacity: 1;
+    translate: 0%;
+  }
+  exit 0% {
+    opacity: 1;
+    translate: 0%;
+  }
+  exit 100% {
+    opacity: 0;
+    translate: 8%;
   }
 }
 
 /* ── Mobile ───────────────────────────────────────────────────────────────── */
+@media (width < 1100px) {
+  .bs-root {
+    --sprite-th: calc(var(--sprite-sh) / 2);
+  }
+}
+
 @media (width < 768px) {
+  .bs-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .bs-nav-btn,
+  .bs-progress-shell {
+    min-height: 44px;
+  }
+
   .bs-root {
     --sprite-th: calc(var(--sprite-sh) / 2.5);
   }
@@ -446,10 +576,6 @@
     animation: none;
     opacity: 1;
     translate: 0%;
-  }
-
-  .bs-progress {
-    animation: none;
   }
 }
 

@@ -1,8 +1,8 @@
 'use client'
 
 import './book-shell.css'
-import { useRef, Children, useCallback, useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useRef, Children, useCallback, useEffect, useState } from 'react'
 
 const MOUNTED_SLIDE_RADIUS = 2
 
@@ -31,19 +31,19 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
   const carouselRef = useRef<HTMLDivElement>(null)
   const slides = Children.toArray(children)
   const slideCount = slides.length
-  const [canPrev, setCanPrev] = useState(false)
-  const [canNext, setCanNext] = useState(slideCount > 1)
   const [currentSlide, setCurrentSlide] = useState(0)
+  const canPrev = currentSlide > 0
+  const canNext = currentSlide < slideCount - 1
+  const progressPercent = slideCount > 0 ? ((currentSlide + 1) / slideCount) * 100 : 0
 
   const updateNavState = useCallback(() => {
     const el = carouselRef.current
     if (!el) return
-    setCanPrev(el.scrollLeft > 4)
-    setCanNext(el.scrollLeft < el.scrollWidth - el.clientWidth - 4)
     if (el.clientWidth > 0) {
-      setCurrentSlide(Math.round(el.scrollLeft / el.clientWidth))
+      const nextSlide = Math.round(el.scrollLeft / el.clientWidth)
+      setCurrentSlide(Math.max(0, Math.min(slideCount - 1, nextSlide)))
     }
-  }, [])
+  }, [slideCount])
 
   useEffect(() => {
     const el = carouselRef.current
@@ -56,18 +56,43 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
   function scrollToSlide(index: number) {
     const el = carouselRef.current
     if (!el) return
-    el.scrollTo({ left: el.clientWidth * index, behavior: 'smooth' })
+    const safeIndex = Math.max(0, Math.min(slideCount - 1, index))
+    el.scrollTo({ left: el.clientWidth * safeIndex, behavior: 'smooth' })
   }
 
   function scrollBy(dir: 'prev' | 'next') {
-    const el = carouselRef.current
-    if (!el) return
-    el.scrollBy({ left: dir === 'next' ? el.clientWidth : -el.clientWidth, behavior: 'smooth' })
+    const delta = dir === 'next' ? 1 : -1
+    scrollToSlide(currentSlide + delta)
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      scrollToSlide(currentSlide - 1)
+      return
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault()
+      scrollToSlide(currentSlide + 1)
+      return
+    }
+
+    if (event.key === 'Home') {
+      event.preventDefault()
+      scrollToSlide(0)
+      return
+    }
+
+    if (event.key === 'End') {
+      event.preventDefault()
+      scrollToSlide(slideCount - 1)
+    }
   }
 
   return (
     <div
-      className={`bs-root ${className ?? ''}`}
+      className={`bs-root ${className ?? ''}`.trim()}
       style={{ '--slides': slideCount } as React.CSSProperties}
     >
       <div className="bs-book">
@@ -76,7 +101,14 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
             within the isolation:isolate stacking context on .bs-book */}
         <div className="bs-sprite" aria-hidden="true" />
 
-        <div ref={carouselRef} className="bs-carousel">
+        <div
+          ref={carouselRef}
+          className="bs-carousel"
+          tabIndex={0}
+          role="region"
+          aria-label="菜谱翻页区域"
+          onKeyDown={handleKeyDown}
+        >
           {slides.map((slide, index) => {
             const shouldMount = Math.abs(index - currentSlide) <= MOUNTED_SLIDE_RADIUS
 
@@ -88,23 +120,44 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
           })}
         </div>
 
-        <div className="bs-nav">
+        <div className="bs-nav" aria-label="翻页控制">
           <button
+            type="button"
             className="bs-nav-btn"
             onClick={() => scrollBy('prev')}
             disabled={!canPrev}
             aria-label="上一页"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={16} />
+            <span>Prev</span>
           </button>
-          <div className="bs-progress" role="progressbar" aria-label="阅读进度" />
+
+          <div className="bs-progress-shell">
+            <div className="bs-progress-meta" aria-hidden="true">
+              <span>Page</span>
+              <span>{currentSlide + 1}/{slideCount}</span>
+            </div>
+            <div
+              className="bs-progress"
+              role="progressbar"
+              aria-label="阅读进度"
+              aria-valuemin={1}
+              aria-valuemax={slideCount}
+              aria-valuenow={Math.min(slideCount, currentSlide + 1)}
+            >
+              <div className="bs-progress-fill" style={{ width: `${progressPercent}%` }} />
+            </div>
+          </div>
+
           <button
+            type="button"
             className="bs-nav-btn"
             onClick={() => scrollBy('next')}
             disabled={!canNext}
             aria-label="下一页"
           >
-            <ChevronRight size={18} />
+            <span>Next</span>
+            <ChevronRight size={16} />
           </button>
         </div>
 
