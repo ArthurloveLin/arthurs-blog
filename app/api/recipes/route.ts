@@ -5,7 +5,7 @@ import { isAdminRequest } from '@/lib/auth'
 import { RECIPE_CACHE_TAGS } from '@/lib/recipes'
 
 // GET /api/recipes — list all recipes (admin: all; public: published only)
-export async function GET(_request: NextRequest) {
+export async function GET() {
   const isAdmin = await isAdminRequest()
   const query = supabaseAdmin
     .from('recipes')

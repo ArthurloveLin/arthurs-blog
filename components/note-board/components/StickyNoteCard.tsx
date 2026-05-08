@@ -103,7 +103,6 @@ function StickyNoteCardFrame({
   animatePosition,
   dragBoundsMode,
   isOptimistic = false,
-  isOptimisticEditing = false,
   isFresh = false,
 }: StickyNoteCardFrameProps) {
   const articleRef = useRef<HTMLElement>(null)

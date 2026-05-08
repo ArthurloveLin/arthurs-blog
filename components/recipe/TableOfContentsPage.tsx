@@ -6,7 +6,7 @@ interface Props {
   isAdmin?: boolean
 }
 
-export default function TableOfContentsPage({ recipes, side, isAdmin = false }: Props) {
+export default function TableOfContentsPage({ recipes, side }: Props) {
   const categories = [...new Set(recipes.map((r) => r.category).filter(Boolean))] as string[]
 
   if (side === 'left') {
