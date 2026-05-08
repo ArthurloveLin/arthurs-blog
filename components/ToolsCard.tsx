@@ -67,7 +67,7 @@ const tools = [
   },
   {
     href: '/recipe',
-    label: '菜谱档案',
+    label: 'Recipe',
     description: '我的私人菜谱书与烹饪技能树',
     icon: <ChefHat className="w-4 h-4" strokeWidth={1.75} />,
     external: false,
