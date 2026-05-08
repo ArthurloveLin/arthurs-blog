@@ -1,10 +1,11 @@
-import type { RecipeListItem, RecipeRevision } from '@/lib/recipes'
+import type { Recipe, RecipeListItem, RecipeRevision } from '@/lib/recipes'
 import { getRecipeBySlug, getRecipeRevisions } from '@/lib/recipes'
 import type { ReactNode } from 'react'
 import BookSpread from './BookSpread'
 import RecipeLeftPage from './RecipeLeftPage'
 import RecipeRightPage from './RecipeRightPage'
 import RecipeSpreadClient from './RecipeSpreadClient'
+import type { RecipeRevisionPreview } from './revision-preview'
 
 interface RecipeSpreadProps {
   recipe: RecipeListItem
@@ -12,16 +13,55 @@ interface RecipeSpreadProps {
 
 interface AdminRecipeSpreadViewProps {
   currentVersion: string
-  revisions: RecipeRevision[]
+  revisionPreviews: RecipeRevisionPreview[]
   condensedLeftPage: ReactNode
   rightPage: ReactNode
   slug: string
   published: boolean
 }
 
+function buildRevisionPreviews(recipeId: string, revisions: RecipeRevision[]): RecipeRevisionPreview[] {
+  return revisions.map((revision) => {
+    const snapshot = revision.snapshot
+
+    if (!snapshot) {
+      return {
+        id: revision.id,
+        version: revision.version,
+        createdAt: revision.created_at,
+        changeSummary: revision.change_summary,
+        hasSnapshot: false,
+        snapshotTitle: null,
+        snapshotCategory: null,
+        leftPage: null,
+        rightPage: null,
+      }
+    }
+
+    const previewRecipe: Recipe = {
+      ...snapshot,
+      id: recipeId,
+      created_at: revision.created_at,
+      updated_at: revision.created_at,
+    }
+
+    return {
+      id: revision.id,
+      version: revision.version,
+      createdAt: revision.created_at,
+      changeSummary: revision.change_summary,
+      hasSnapshot: true,
+      snapshotTitle: snapshot.title ?? null,
+      snapshotCategory: snapshot.category,
+      leftPage: <RecipeLeftPage recipe={previewRecipe} revisions={[]} />,
+      rightPage: <RecipeRightPage recipe={previewRecipe} />,
+    }
+  })
+}
+
 function AdminRecipeSpreadView({
   currentVersion,
-  revisions,
+  revisionPreviews,
   condensedLeftPage,
   rightPage,
   slug,
@@ -32,7 +72,7 @@ function AdminRecipeSpreadView({
       slug={slug}
       initialPublished={published}
       currentVersion={currentVersion}
-      revisions={revisions}
+      revisionPreviews={revisionPreviews}
       condensedLeftPage={condensedLeftPage}
       rightPage={rightPage}
     />
@@ -49,12 +89,14 @@ export async function AdminRecipeSpread({ recipe }: RecipeSpreadProps) {
     return null
   }
 
+  const revisionPreviews = buildRevisionPreviews(fullRecipe.id, revisions)
+
   return (
     <AdminRecipeSpreadView
       slug={fullRecipe.slug}
       published={fullRecipe.published}
       currentVersion={fullRecipe.version}
-      revisions={revisions}
+      revisionPreviews={revisionPreviews}
       condensedLeftPage={<RecipeLeftPage recipe={fullRecipe} revisions={[]} />}
       rightPage={<RecipeRightPage recipe={fullRecipe} />}
     />

@@ -19,7 +19,7 @@ function RecipeEditorContent({ recipe, onCancel, onSaved }: { recipe: Recipe; on
 
   return (
     <div className="bs-carousel-item">
-      <div className="bs-page-container" data-motion="anchored">
+      <div className="bs-page-container" data-motion="page">
         <div className="bs-left-page">
           <RecipeEditLeftPage editor={editor} />
         </div>
@@ -76,7 +76,7 @@ export default function RecipeSpreadEditor({ slug, onCancel, onSaved }: Props) {
   if (error) {
     return (
       <div className="bs-carousel-item">
-        <div className="bs-page-container" data-motion="anchored">
+        <div className="bs-page-container" data-motion="page">
           <div className="bs-left-page flex items-center justify-center text-xs text-amber-900/60">
             {error}
           </div>
