@@ -23,7 +23,7 @@
 
   --sprite-r: round(up, calc(var(--sprite-f) / var(--sprite-c)), 1);
   --sprite-sh: calc(var(--sprite-h) / var(--sprite-r));
-  --sprite-th: calc(var(--sprite-sh) / 1.8);
+  --sprite-th: calc(var(--sprite-sh) / 1.154);
   --sprite-ar: calc(var(--sprite-th) / var(--sprite-sh));
   --sprite-uh: calc(var(--sprite-h) * var(--sprite-ar));
   --sprite-uw: calc(var(--sprite-w) * var(--sprite-ar));
@@ -126,7 +126,7 @@
 /* Page container: left + right pages with gap for the spine */
 .bs-page-container {
   display: flex;
-  gap: 3rem;
+  gap: 4rem;
   height: 100%;
 
   animation: bs-stay-centered linear both;
@@ -156,7 +156,7 @@
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: oklch(from var(--color-border) l c h / 0.5) transparent;
-  padding: 20px 0 20px 20px;
+  padding: 28px 0 28px 28px;
 }
 
 .dark .bs-left-page {
@@ -169,7 +169,7 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  padding-right: 20px;
+  padding-right: 28px;
 }
 
 /* The actual scroll container for right-page content. */
@@ -178,7 +178,7 @@
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: oklch(from var(--color-border) l c h / 0.5) transparent;
-  padding: 20px 0;
+  padding: 28px 0;
 }
 
 .dark .bs-right-page-scroll {
@@ -191,7 +191,7 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: stretch;
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 32px;
   width: calc(1px * (var(--sprite-tw) * 0.7042));
   margin-inline: auto;
 }
@@ -534,7 +534,13 @@
   }
 }
 
-/* ── Mobile ───────────────────────────────────────────────────────────────── */
+/* ── Responsive scale-down ────────────────────────────────────────────────── */
+@media (width < 1800px) {
+  .bs-root {
+    --sprite-th: calc(var(--sprite-sh) / 1.5);
+  }
+}
+
 @media (width < 1100px) {
   .bs-root {
     --sprite-th: calc(var(--sprite-sh) / 2);

@@ -4,37 +4,55 @@ interface TableOfContentsProps {
   recipes: RecipeListItem[]
 }
 
-function TableOfContentsFrame({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="h-full flex flex-col gap-3 text-sm" style={{ color: 'oklch(0.3 0.02 50)' }}>
-      {children}
-    </div>
-  )
-}
+const ink = 'oklch(0.22 0.03 50)'
+const muted = 'oklch(0.52 0.03 50)'
+const accent = 'oklch(0.55 0.18 35)'
+const accentFaded = 'oklch(0.65 0.18 35 / 0.5)'
+const rule = '1px solid oklch(0.65 0.18 35 / 0.18)'
 
 function CategoryRecipeList({ recipes }: TableOfContentsProps) {
   const categories = [...new Set(recipes.map((r) => r.category).filter(Boolean))] as string[]
 
   if (categories.length > 0) {
     return (
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         {categories.map((cat) => {
           const items = recipes.filter((recipe) => recipe.category === cat)
           return (
             <div key={cat}>
-              <p className="text-[10px] font-mono tracking-widest uppercase text-amber-800/50 mb-1">
+              <p style={{
+                fontSize: 10,
+                fontFamily: 'monospace',
+                textTransform: 'uppercase',
+                letterSpacing: '0.2em',
+                color: accentFaded,
+                fontWeight: 600,
+                marginBottom: 8,
+              }}>
                 {cat}
               </p>
-              <ul className="space-y-0.5">
+              <ul style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {items.map((recipe, index) => (
-                  <li key={recipe.id} className="flex items-baseline gap-1.5 text-xs">
-                    <span className="text-amber-800/40 shrink-0 w-4 text-right tabular-nums">
+                  <li key={recipe.id} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 13 }}>
+                    <span style={{
+                      fontSize: 10,
+                      fontFamily: 'monospace',
+                      color: accentFaded,
+                      flexShrink: 0,
+                      width: 18,
+                      textAlign: 'right',
+                    }}>
                       {index + 1}
                     </span>
-                    <span className="flex-1 border-b border-dotted border-amber-800/20 pb-px">
+                    <span style={{
+                      flex: 1,
+                      borderBottom: `1px dotted oklch(0.65 0.18 35 / 0.22)`,
+                      paddingBottom: 1,
+                      color: ink,
+                    }}>
                       {recipe.title}
                     </span>
-                    <span className="text-amber-800/40 shrink-0 text-[10px]">
+                    <span style={{ fontSize: 10, fontFamily: 'monospace', color: accentFaded, flexShrink: 0 }}>
                       v{recipe.version}
                     </span>
                   </li>
@@ -48,14 +66,18 @@ function CategoryRecipeList({ recipes }: TableOfContentsProps) {
   }
 
   return (
-    <ul className="space-y-0.5">
+    <ul style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {recipes.map((recipe, index) => (
-        <li key={recipe.id} className="flex items-baseline gap-1.5 text-xs">
-          <span className="text-amber-800/40 shrink-0 w-4 text-right tabular-nums">{index + 1}</span>
-          <span className="flex-1 border-b border-dotted border-amber-800/20 pb-px">
+        <li key={recipe.id} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 13 }}>
+          <span style={{ fontSize: 10, fontFamily: 'monospace', color: accentFaded, flexShrink: 0, width: 18, textAlign: 'right' }}>
+            {index + 1}
+          </span>
+          <span style={{ flex: 1, borderBottom: `1px dotted oklch(0.65 0.18 35 / 0.22)`, paddingBottom: 1, color: ink }}>
             {recipe.title}
           </span>
-          <span className="text-amber-800/40 shrink-0 text-[10px]">v{recipe.version}</span>
+          <span style={{ fontSize: 10, fontFamily: 'monospace', color: accentFaded, flexShrink: 0 }}>
+            v{recipe.version}
+          </span>
         </li>
       ))}
     </ul>
@@ -64,33 +86,65 @@ function CategoryRecipeList({ recipes }: TableOfContentsProps) {
 
 export function TableOfContentsLeftPage({ recipes }: TableOfContentsProps) {
   return (
-    <TableOfContentsFrame>
-      <div className="border-b border-amber-800/20 pb-2 mb-1">
-        <p className="text-[10px] font-mono tracking-widest uppercase text-amber-800/60">目录</p>
-        <h2 className="text-lg font-bold leading-tight mt-0.5">菜谱档案</h2>
-        <p className="text-[11px] text-amber-800/60 mt-0.5">共 {recipes.length} 道菜</p>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 16, color: ink }}>
+      {/* Header */}
+      <div style={{ paddingBottom: 14, borderBottom: rule }}>
+        <p style={{
+          fontSize: 10,
+          fontFamily: 'monospace',
+          textTransform: 'uppercase',
+          letterSpacing: '0.22em',
+          color: accent,
+          fontWeight: 600,
+          marginBottom: 8,
+        }}>
+          目录
+        </p>
+        <h2 style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.1, color: ink, letterSpacing: '-0.01em' }}>
+          菜谱档案
+        </h2>
+        <p style={{ fontSize: 12, color: muted, marginTop: 6 }}>
+          共 {recipes.length} 道菜
+        </p>
       </div>
-      <CategoryRecipeList recipes={recipes} />
-    </TableOfContentsFrame>
+
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <CategoryRecipeList recipes={recipes} />
+      </div>
+    </div>
   )
 }
 
 export function TableOfContentsRightPage({ recipes }: TableOfContentsProps) {
   const recent = [...recipes]
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    .slice(0, 5)
+    .slice(0, 6)
 
   return (
-    <TableOfContentsFrame>
-      <div className="border-b border-amber-800/20 pb-2 mb-1">
-        <p className="text-[10px] font-mono tracking-widest uppercase text-amber-800/60">最近更新</p>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 16, color: ink }}>
+      {/* Header */}
+      <div style={{ paddingBottom: 14, borderBottom: rule }}>
+        <p style={{
+          fontSize: 10,
+          fontFamily: 'monospace',
+          textTransform: 'uppercase',
+          letterSpacing: '0.22em',
+          color: accent,
+          fontWeight: 600,
+        }}>
+          最近更新
+        </p>
       </div>
-      <ul className="space-y-2">
+
+      <ul style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {recent.map((r) => (
-          <li key={r.id} className="text-xs">
-            <p className="font-medium">{r.title}</p>
-            <p className="text-[10px] text-amber-800/50">
-              v{r.version} ·{' '}
+          <li key={r.id} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: ink, lineHeight: 1.25 }}>
+              {r.title}
+            </p>
+            <p style={{ fontSize: 11, color: muted, fontFamily: 'monospace', letterSpacing: '0.04em' }}>
+              v{r.version}
+              {' · '}
               {new Date(r.updated_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
               {r.category && ` · ${r.category}`}
             </p>
@@ -98,12 +152,12 @@ export function TableOfContentsRightPage({ recipes }: TableOfContentsProps) {
         ))}
       </ul>
 
-      <div className="mt-auto pt-3 border-t border-amber-800/20">
-        <p className="text-[10px] leading-relaxed text-amber-800/50">
+      <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: rule }}>
+        <p style={{ fontSize: 12, lineHeight: 1.75, color: muted, fontStyle: 'italic' }}>
           每一道菜都是一次实验，每一次修改都是一段成长。
           翻阅这些记录，不只是找食谱，更是回看学习的轨迹。
         </p>
       </div>
-    </TableOfContentsFrame>
+    </div>
   )
 }

@@ -5,26 +5,52 @@ interface Props {
   recipe: Recipe
 }
 
+const ink = 'oklch(0.22 0.03 50)'
+const muted = 'oklch(0.52 0.03 50)'
+const accent = 'oklch(0.55 0.18 35)'
+const accentBg = 'oklch(0.65 0.18 35 / 0.10)'
+const rule = '1px solid oklch(0.65 0.18 35 / 0.18)'
+
+function PageLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p style={{
+      fontSize: 10,
+      fontFamily: 'monospace',
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.2em',
+      color: muted,
+      marginBottom: 10,
+      fontWeight: 600,
+    }}>
+      {children}
+    </p>
+  )
+}
+
 export default function RecipeRightPage({ recipe }: Props) {
-  const pageStyle = { color: 'oklch(0.3 0.02 50)' }
-  const mutedStyle = { color: 'oklch(0.55 0.03 50)' }
-  const accentStyle = { color: 'oklch(0.55 0.18 35)' }
+  const mutedStyle = { color: muted }
 
   return (
-    <div className="h-full flex flex-col gap-2.5 text-xs overflow-y-auto" style={pageStyle}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto', color: ink }}>
 
-      {/* Tags */}
+      {/* ── Tags ── */}
       {recipe.tags.length > 0 && (
         <div>
-          <p className="text-[9px] font-mono tracking-widest uppercase mb-1" style={mutedStyle}>
-            标签
-          </p>
-          <div className="flex flex-wrap gap-1">
+          <PageLabel>标签</PageLabel>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {recipe.tags.map((tag) => (
               <span
                 key={tag}
-                className="text-[9px] px-1.5 py-0.5 rounded-full border"
-                style={{ borderColor: 'oklch(0.65 0.18 35 / 0.35)', ...accentStyle }}
+                style={{
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  letterSpacing: '0.06em',
+                  padding: '4px 11px',
+                  borderRadius: 100,
+                  border: `1px solid oklch(0.65 0.18 35 / 0.35)`,
+                  color: accent,
+                  background: accentBg,
+                }}
               >
                 {tag}
               </span>
@@ -33,85 +59,88 @@ export default function RecipeRightPage({ recipe }: Props) {
         </div>
       )}
 
-      {/* Proficiency */}
+      {/* ── Proficiency ── */}
       {recipe.proficiency != null && (
         <div>
-          <p className="text-[9px] font-mono tracking-widest uppercase mb-1" style={mutedStyle}>
-            熟练度
-          </p>
-          <div className="flex gap-1">
+          <PageLabel>熟练度</PageLabel>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {Array.from({ length: 5 }).map((_, i) => (
-              <span
+              <div
                 key={i}
-                className="text-[13px]"
-                style={{ opacity: i < (recipe.proficiency ?? 0) ? 1 : 0.2 }}
-              >
-                ⭐
-              </span>
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  background: i < (recipe.proficiency ?? 0)
+                    ? accent
+                    : 'oklch(0.88 0.02 80)',
+                  flexShrink: 0,
+                }}
+              />
             ))}
+            <span style={{ fontSize: 11, color: muted, marginLeft: 4, fontFamily: 'monospace' }}>
+              {recipe.proficiency} / 5
+            </span>
           </div>
         </div>
       )}
 
+      {/* ── Skill graph ── */}
       <RecipeSkillGraphPanel currentRecipeId={recipe.id} mutedStyle={mutedStyle} />
 
-      {/* Suitable occasions */}
+      {/* ── Suitable occasions ── */}
       {recipe.suitable_occasions.length > 0 && (
         <div>
-          <p className="text-[9px] font-mono tracking-widest uppercase mb-1" style={mutedStyle}>
-            适合场景
-          </p>
-          <ul className="space-y-0.5">
+          <PageLabel>适合场景</PageLabel>
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {recipe.suitable_occasions.map((occ, i) => (
-              <li key={i} className="text-[10px] flex gap-1">
-                <span style={mutedStyle}>·</span>
-                <span>{occ}</span>
+              <li key={i} style={{ display: 'flex', gap: 8, fontSize: 13 }}>
+                <span style={{ color: accent, flexShrink: 0, fontSize: 16, lineHeight: 0.85 }}>·</span>
+                <span style={{ color: ink, lineHeight: 1.5 }}>{occ}</span>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Failure notes */}
+      {/* ── Failure notes ── */}
       {recipe.failure_notes && (
-        <div className="rounded border-l-2 pl-2" style={{ borderColor: 'oklch(0.65 0.18 35 / 0.4)' }}>
-          <p className="text-[9px] font-mono tracking-widest uppercase mb-0.5" style={mutedStyle}>
-            失败提醒
-          </p>
-          <p className="text-[10px] leading-relaxed" style={mutedStyle}>
+        <div style={{ borderLeft: `2.5px solid oklch(0.65 0.18 35 / 0.45)`, paddingLeft: 12 }}>
+          <PageLabel>失败提醒</PageLabel>
+          <p style={{ fontSize: 12, color: muted, lineHeight: 1.7 }}>
             {recipe.failure_notes}
           </p>
         </div>
       )}
 
-      {/* Life notes */}
+      {/* ── Life notes ── */}
       {recipe.life_notes && (
-        <div>
-          <p className="text-[9px] font-mono tracking-widest uppercase mb-0.5" style={mutedStyle}>
-            生活化备注
-          </p>
-          <p className="text-[10px] leading-relaxed italic" style={mutedStyle}>
+        <div style={{
+          padding: '12px 14px',
+          background: 'oklch(0.96 0.02 85)',
+          borderRadius: 6,
+        }}>
+          <PageLabel>生活化备注</PageLabel>
+          <p style={{ fontSize: 12, color: muted, lineHeight: 1.7, fontStyle: 'italic' }}>
             {recipe.life_notes}
           </p>
         </div>
       )}
 
-      {/* Pairing suggestions */}
+      {/* ── Pairing suggestions ── */}
       {recipe.pairing_suggestions && (
         <div>
-          <p className="text-[9px] font-mono tracking-widest uppercase mb-0.5" style={mutedStyle}>
-            搭配建议
-          </p>
-          <p className="text-[10px] leading-relaxed" style={mutedStyle}>
+          <PageLabel>搭配建议</PageLabel>
+          <p style={{ fontSize: 12, color: muted, lineHeight: 1.7 }}>
             {recipe.pairing_suggestions}
           </p>
         </div>
       )}
 
-      {/* Published date */}
+      {/* ── Published date ── */}
       {recipe.published_at && (
-        <div className="mt-auto pt-2 border-t border-amber-800/15">
-          <p className="text-[9px] text-right" style={mutedStyle}>
+        <div style={{ marginTop: 'auto', paddingTop: 14, borderTop: rule }}>
+          <p style={{ fontSize: 10, color: muted, textAlign: 'right', fontFamily: 'monospace' }}>
             首发于{' '}
             {new Date(recipe.published_at).toLocaleDateString('zh-CN', {
               year: 'numeric',

@@ -33,14 +33,16 @@ export default async function RecipePage() {
         containerClass="site-shell-narrow"
       />
 
-      <div className="site-shell-narrow py-10">
+      <div className="site-shell pt-10 pb-4">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-[11px] font-mono tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase mb-8"
+          className="inline-flex items-center gap-1.5 text-[11px] font-mono tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase"
         >
           ← Home
         </Link>
+      </div>
 
+      <div className="w-full px-6 pb-12">
         <RecipeSkillGraphProvider graph={skillGraph}>
           <BookShell>
             <BookSpread

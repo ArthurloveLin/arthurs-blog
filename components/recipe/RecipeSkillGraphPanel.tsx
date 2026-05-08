@@ -240,7 +240,6 @@ export default function RecipeSkillGraphPanel({ currentRecipeId, mutedStyle }: P
   }, [currentRecipeId, graph.links, nodeMap])
 
   const currentRecipeTitle = nodeMap.get(currentRecipeId)?.title ?? '当前菜谱'
-  const hasDirectConnections = prerequisites.length > 0 || continuations.length > 0
 
   if (!hasSkillLinks) {
     return null
@@ -248,19 +247,11 @@ export default function RecipeSkillGraphPanel({ currentRecipeId, mutedStyle }: P
 
   return (
     <>
-      <div className="space-y-2.5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[9px] font-mono tracking-widest uppercase" style={mutedStyle}>
-              技能路径
-            </p>
-            <p className="mt-1 text-[10px] leading-relaxed" style={mutedStyle}>
-              {hasDirectConnections
-                ? '左侧是做这道菜之前建议先掌握的菜谱，右侧是完成后可继续延伸的菜谱，卡片下方说明的是具体衔接技能。'
-                : '当前菜谱还没接入明确的局部链路。可以直接展开全局视图，检查整体结构并补齐关系。'}
-            </p>
-          </div>
-
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[9px] font-mono tracking-widest uppercase" style={mutedStyle}>
+            技能路径
+          </p>
           <button
             type="button"
             data-bs-no-drag="true"
@@ -272,50 +263,7 @@ export default function RecipeSkillGraphPanel({ currentRecipeId, mutedStyle }: P
           </button>
         </div>
 
-        <button
-          type="button"
-          data-bs-no-drag="true"
-          onClick={() => setIsGlobalOpen(true)}
-          className="block w-full rounded-[22px] border border-amber-800/15 bg-linear-to-br from-white/86 via-amber-50/55 to-orange-50/35 p-3 text-left shadow-[0_18px_40px_rgba(120,53,15,0.08)] transition hover:border-amber-800/25 hover:shadow-[0_22px_48px_rgba(120,53,15,0.12)]"
-        >
-          {hasDirectConnections ? (
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-3">
-              <RelationColumn
-                title={`前置 ${prerequisites.length}`}
-                emptyLabel="暂无前置菜谱"
-                items={prerequisites}
-                mutedStyle={mutedStyle}
-                align="right"
-              />
-
-              <div className="min-w-[8.5rem] self-stretch rounded-2xl border border-amber-800/18 bg-amber-100/55 px-3 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
-                <p className="text-[9px] font-mono uppercase tracking-[0.24em]" style={mutedStyle}>
-                  当前菜谱
-                </p>
-                <p className="mt-2 text-[11px] font-semibold leading-snug text-amber-950/90">
-                  {currentRecipeTitle}
-                </p>
-                <p className="mt-3 text-[9px] leading-relaxed" style={mutedStyle}>
-                  单击展开全局图谱
-                </p>
-              </div>
-
-              <RelationColumn
-                title={`后续 ${continuations.length}`}
-                emptyLabel="暂无后续延伸"
-                items={continuations}
-                mutedStyle={mutedStyle}
-              />
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-amber-800/18 px-3 py-4">
-              <p className="text-[11px] font-semibold text-amber-950/85">{currentRecipeTitle}</p>
-              <p className="mt-2 text-[10px] leading-relaxed" style={mutedStyle}>
-                这道菜目前没有前置或后续关系。单击这里展开全局视图，可以确认整体技能网络是否需要补充节点关联。
-              </p>
-            </div>
-          )}
-        </button>
+        <SkillTreeGraph graph={graph} currentRecipeId={currentRecipeId} height={140} variant="inline" />
       </div>
 
       <SkillGraphModal
