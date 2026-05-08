@@ -11,14 +11,23 @@ import { AdminRecipeSpread, PublicRecipeSpread } from '@/components/recipe/Recip
 import RecipeAddButton from '@/components/recipe/RecipeAddButton'
 import { getAllRecipesList, getRecipeSkillGraph, getRecipesList } from '@/lib/recipes'
 import { isAdminRequest } from '@/lib/auth'
+import { getSiteConfig } from '@/lib/blog'
+import { getRecipePageCopy } from '@/lib/recipe-page-copy'
 
-export const metadata: Metadata = {
-  title: '菜谱档案',
-  description: '私人菜谱书：食材步骤、风味雷达、技能图谱，长期维护的烹饪档案。',
+export async function generateMetadata(): Promise<Metadata> {
+  const config = await getSiteConfig()
+  const { hero } = getRecipePageCopy(config)
+  
+  return {
+    title: `${hero.titleHighlight}${hero.titleHighlight2}${hero.titleRest}`,
+    description: hero.description,
+  }
 }
 
 export default async function RecipePage() {
   const isAdmin = await isAdminRequest()
+  const config = await getSiteConfig()
+  const { hero } = getRecipePageCopy(config)
 
   const recipesPromise = isAdmin ? getAllRecipesList() : getRecipesList()
   const [recipes, skillGraph] = await Promise.all([recipesPromise, getRecipeSkillGraph()])
@@ -26,11 +35,17 @@ export default async function RecipePage() {
   return (
     <main className="min-h-screen bg-background">
       <PageHero
-        subtitle="私人档案"
-        title="菜谱档案"
-        description="长期维护的烹饪记录：食材、步骤、风味、技能树，像翻一本书一样回看每道菜的演进。"
+        subtitle={hero.subtitle}
+        title={
+          <>
+            {hero.titleHighlight && <span className="block text-gradient-primary">{hero.titleHighlight}</span>}
+            {hero.titleHighlight2 && <span className="block text-gradient-primary">{hero.titleHighlight2}</span>}
+            {hero.titleRest}
+          </>
+        }
+        description={hero.description}
+        slogan={hero.slogan1 ? { text1: hero.slogan1, text2: hero.slogan2 } : undefined}
         blobColors={['bg-orange-400/10', 'bg-amber-400/10']}
-        containerClass="site-shell-narrow"
       />
 
       <div className="site-shell pt-10 pb-4">

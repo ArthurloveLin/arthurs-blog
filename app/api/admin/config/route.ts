@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isAdminRequest } from '@/lib/auth'
 import { upsertSiteConfig, getSiteConfig } from '@/lib/blog'
 import { SPOTIFY_SITE_CONFIG_KEYS } from '@/lib/spotify-page-copy'
+import { RECIPE_SITE_CONFIG_KEYS } from '@/lib/recipe-page-copy'
 import { revalidateTag, revalidatePath } from 'next/cache'
 
 export async function GET() {
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
       'news_slogan_1',
       'news_slogan_2',
       ...SPOTIFY_SITE_CONFIG_KEYS,
+      ...RECIPE_SITE_CONFIG_KEYS,
       'live2d_model_url',
       'live2d_engine_js_url',
       'live2d_canvas_width',

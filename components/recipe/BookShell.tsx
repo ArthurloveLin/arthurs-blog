@@ -2,10 +2,11 @@
 
 import './book-shell.css'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useRef, Children, useCallback, useEffect, useState } from 'react'
+import { useRef, Children, useState } from 'react'
 import { BookShellOverlayProvider, BookShellSlideIndexProvider } from './book-shell-overlay-context'
 
 const MOUNTED_SLIDE_RADIUS = 2
+const SPRITE_F = 7
 
 const BOOKMARK_COLORS = [
   'oklch(0.55 0.16 30)',
@@ -29,7 +30,7 @@ interface BookShellProps {
 }
 
 export default function BookShell({ children, bookmarks, className }: BookShellProps) {
-  const carouselRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
   const slides = Children.toArray(children)
   const slideCount = slides.length
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -38,74 +39,37 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
   const canNext = currentSlide < slideCount - 1
   const progressPercent = slideCount > 0 ? ((currentSlide + 1) / slideCount) * 100 : 0
 
-  const updateNavState = useCallback(() => {
-    const el = carouselRef.current
-    if (!el) return
-    if (el.clientWidth > 0) {
-      const nextSlide = Math.round(el.scrollLeft / el.clientWidth)
-      setCurrentSlide(Math.max(0, Math.min(slideCount - 1, nextSlide)))
-    }
-  }, [slideCount])
-
-  useEffect(() => {
-    const el = carouselRef.current
-    if (!el) return
-    el.addEventListener('scroll', updateNavState, { passive: true })
-    updateNavState()
-    return () => el.removeEventListener('scroll', updateNavState)
-  }, [updateNavState])
-
-  function scrollToSlide(index: number) {
-    const el = carouselRef.current
-    if (!el) return
+  function goToSlide(index: number) {
     const safeIndex = Math.max(0, Math.min(slideCount - 1, index))
-    el.scrollTo({ left: el.clientWidth * safeIndex, behavior: 'smooth' })
+    setCurrentSlide(safeIndex)
+    rootRef.current?.style.setProperty('--sprite-fs', String(safeIndex * SPRITE_F))
   }
 
-  function scrollBy(dir: 'prev' | 'next') {
-    const delta = dir === 'next' ? 1 : -1
-    scrollToSlide(currentSlide + delta)
+  function go(dir: 'prev' | 'next') {
+    goToSlide(currentSlide + (dir === 'next' ? 1 : -1))
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'ArrowLeft') {
-      event.preventDefault()
-      scrollToSlide(currentSlide - 1)
-      return
-    }
-
-    if (event.key === 'ArrowRight') {
-      event.preventDefault()
-      scrollToSlide(currentSlide + 1)
-      return
-    }
-
-    if (event.key === 'Home') {
-      event.preventDefault()
-      scrollToSlide(0)
-      return
-    }
-
-    if (event.key === 'End') {
-      event.preventDefault()
-      scrollToSlide(slideCount - 1)
-    }
+    if (event.key === 'ArrowLeft') { event.preventDefault(); goToSlide(currentSlide - 1); return }
+    if (event.key === 'ArrowRight') { event.preventDefault(); goToSlide(currentSlide + 1); return }
+    if (event.key === 'Home') { event.preventDefault(); goToSlide(0); return }
+    if (event.key === 'End') { event.preventDefault(); goToSlide(slideCount - 1) }
   }
 
   return (
     <BookShellOverlayProvider value={{ currentSlide, setRightOverlay }}>
       <div
+        ref={rootRef}
         className={`bs-root ${className ?? ''}`.trim()}
         style={{ '--slides': slideCount } as React.CSSProperties}
       >
         <div className="bs-book">
           {/* Sprite is a sibling of the carousel (not inside it) so carousel
-              overflow:auto never clips it, and z-index:-1 works correctly
+              overflow:hidden never clips it, and z-index:-1 works correctly
               within the isolation:isolate stacking context on .bs-book */}
           <div className="bs-sprite" aria-hidden="true" />
 
           <div
-            ref={carouselRef}
             className="bs-carousel"
             tabIndex={0}
             role="region"
@@ -113,14 +77,22 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
             onKeyDown={handleKeyDown}
           >
             {slides.map((slide, index) => {
+              const isActive = index === currentSlide
               const shouldMount = Math.abs(index - currentSlide) <= MOUNTED_SLIDE_RADIUS
 
-              return shouldMount ? (
-                <BookShellSlideIndexProvider key={`slide-${index}`} index={index}>
-                  {slide}
-                </BookShellSlideIndexProvider>
-              ) : (
-                <div key={`placeholder-${index}`} className="bs-carousel-item" aria-hidden="true" />
+              return (
+                <div
+                  key={`slide-${index}`}
+                  className="bs-slide-wrapper"
+                  data-active={isActive ? 'true' : undefined}
+                  aria-hidden={!isActive}
+                >
+                  {shouldMount && (
+                    <BookShellSlideIndexProvider index={index}>
+                      {slide}
+                    </BookShellSlideIndexProvider>
+                  )}
+                </div>
               )
             })}
           </div>
@@ -131,7 +103,7 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
           <button
             type="button"
             className="bs-nav-btn"
-            onClick={() => scrollBy('prev')}
+            onClick={() => go('prev')}
             disabled={!canPrev}
             aria-label="上一页"
           >
@@ -159,7 +131,7 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
           <button
             type="button"
             className="bs-nav-btn"
-            onClick={() => scrollBy('next')}
+            onClick={() => go('next')}
             disabled={!canNext}
             aria-label="下一页"
           >
@@ -175,7 +147,7 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
                   key={i}
                   className={`bs-bookmark-tab${currentSlide === i ? ' active' : ''}`}
                   style={{ '--bm-color': BOOKMARK_COLORS[i % BOOKMARK_COLORS.length] } as React.CSSProperties}
-                  onClick={() => scrollToSlide(i)}
+                  onClick={() => goToSlide(i)}
                   title={bm.label}
                   aria-label={`跳转到 ${bm.label}`}
                 >

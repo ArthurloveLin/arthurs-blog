@@ -120,6 +120,7 @@ export default function RecipeSpreadClient({
   const [selectedRevisionId, setSelectedRevisionId] = useState<string | null>(revisionPreviews[0]?.id ?? null)
   const [isEditing, setIsEditing] = useState(false)
   const [isPublished, setIsPublished] = useState(initialPublished)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   const selectedRevision = revisionPreviews.find((revision) => revision.id === selectedRevisionId) ?? revisionPreviews[0] ?? null
@@ -140,14 +141,25 @@ export default function RecipeSpreadClient({
     })
   }
 
+  async function handleDelete() {
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/recipes/${slug}`, { method: 'DELETE' })
+      if (res.ok) {
+        router.refresh()
+      }
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (isEditing) {
     return (
       <RecipeSpreadEditor
         slug={slug}
         onCancel={() => setIsEditing(false)}
-        onSaved={() => {
-          setIsEditing(false)
-        }}
+        onSaved={() => setIsEditing(false)}
+        onDelete={handleDelete}
       />
     )
   }

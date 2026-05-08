@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react'
 import 'react-image-crop/dist/ReactCrop.css'
 
 import { SPOTIFY_SITE_CONFIG_DEFAULTS } from '@/lib/spotify-page-copy'
+import { RECIPE_SITE_CONFIG_DEFAULTS } from '@/lib/recipe-page-copy'
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 
@@ -65,6 +66,13 @@ interface ConfigData {
   live2d_engine_js_url?: string
   live2d_canvas_width?: string
   live2d_canvas_height?: string
+  recipe_hero_subtitle?: string
+  recipe_hero_title_highlight?: string
+  recipe_hero_title_highlight_2?: string
+  recipe_hero_title_rest?: string
+  recipe_hero_description?: string
+  recipe_slogan_1?: string
+  recipe_slogan_2?: string
 }
 
 const LIVE2D_PRESETS = [
@@ -342,7 +350,7 @@ function SpotifyPageSectionsSettingsGroup({
 
 export default function SiteSettingsForm({ initialData }: { initialData: Record<string, string> }) {
   const router = useRouter()
-  const [data, setData] = useState<ConfigData>({ ...SPOTIFY_SITE_CONFIG_DEFAULTS, ...initialData })
+  const [data, setData] = useState<ConfigData>({ ...SPOTIFY_SITE_CONFIG_DEFAULTS, ...RECIPE_SITE_CONFIG_DEFAULTS, ...initialData })
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
@@ -714,6 +722,9 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
 
         {/* ── 音乐库文案模块 ── */}
         <HeroSettingsGroup title="音乐库头图文案 (Spotify Hero)" prefix="spotify" data={data} onChange={handleChange} />
+
+        {/* ── 菜谱档案文案模块 ── */}
+        <HeroSettingsGroup title="菜谱档案头图文案 (Recipe Hero)" prefix="recipe" data={data} onChange={handleChange} />
 
         {/* ── Spotify 页面分区文案 ── */}
         <SpotifyPageSectionsSettingsGroup data={data} onChange={handleChange} />

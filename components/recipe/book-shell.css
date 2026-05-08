@@ -33,14 +33,12 @@
 /* ── Book outer wrapper ───────────────────────────────────────────────────────
    isolation:isolate creates a stacking context so z-index:-1 on .bs-sprite
    stays inside the book (not behind the page background).
-   timeline-scope shares the carousel scroll-timeline with the sprite sibling.
    Width equals sprite-tw so the sprite fits entirely within bs-book — no
    horizontal overflow that could be clipped by an ancestor container.
    ──────────────────────────────────────────────────────────────────────────── */
 .bs-book {
   position: relative;
   isolation: isolate;
-  timeline-scope: --carousel-timeline;
   margin: 0 auto;
   width: calc(1px * var(--sprite-tw));
 }
@@ -48,6 +46,8 @@
 /* ── Sprite animation overlay ────────────────────────────────────────────────
    Sibling of .bs-carousel (NOT inside it) so carousel overflow never clips it.
    z-index:-1 places it behind all carousel content within the .bs-book context.
+   --sprite-fs is driven by JS (set on .bs-root) and transitions via steps()
+   to play through the 7 page-turn frames on each slide change.
    ──────────────────────────────────────────────────────────────────────────── */
 .bs-sprite {
   position: absolute;
@@ -68,7 +68,6 @@
   background-repeat: no-repeat;
   background-size: calc(1px * var(--sprite-uw)) calc(1px * var(--sprite-uh));
 
-  --sprite-fe: calc(var(--sprite-f) * (var(--slides, 1) - 1));
   --sprite-fs-n: mod(var(--sprite-fs), var(--sprite-f));
   --bs-row: calc(
     round(down, calc(calc(var(--sprite-tw) * var(--sprite-fs-n)) / var(--sprite-uw)), 1) *
@@ -77,30 +76,21 @@
   --bs-col: mod(calc(var(--sprite-tw) * var(--sprite-fs-n)), var(--sprite-uw));
   background-position: calc(-1px * var(--bs-col)) calc(-1px * var(--bs-row));
 
-  animation: bs-frame linear both;
-  animation-timeline: --carousel-timeline;
+  transition: --sprite-fs 0.5s steps(7, end);
 }
 
-/* ── Scroll carousel ─────────────────────────────────────────────────────────
-   No position/z-index here — that was causing a stacking context that made
-   the sprite appear on top of page content.
+/* ── Slide carousel ──────────────────────────────────────────────────────────
+   Position-relative container; all slides are absolute children stacked on
+   top of each other. JS controls which slide is visible via opacity.
    ──────────────────────────────────────────────────────────────────────────── */
 .bs-carousel {
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  overscroll-behavior-x: contain;
-  scroll-behavior: smooth;
-  scrollbar-width: none;
-
-  display: grid;
-  grid: 1fr / auto-flow 100%;
+  position: relative;
+  overflow: hidden;
 
   width: calc(1px * (var(--sprite-tw) * 0.7042));
   height: calc(1px * (var(--sprite-th) * 0.6107));
   /* Center within the wider bs-book (which is now sprite-tw wide) */
   margin: 0 auto;
-
-  scroll-timeline: --carousel-timeline x;
 }
 
 .bs-carousel:focus-visible {
@@ -108,15 +98,26 @@
   outline-offset: 10px;
 }
 
-.bs-carousel::-webkit-scrollbar {
-  display: none;
+/* ── Slide wrapper: stacked absolute layers, one per spread ──────────────── */
+.bs-slide-wrapper {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  /* Exit: disappear quickly so the sprite page-turn covers the gap */
+  transition: opacity 0.08s ease;
+}
+
+.bs-slide-wrapper[data-active] {
+  opacity: 1;
+  pointer-events: auto;
+  /* Entry: wait for sprite (0.5s steps) to nearly finish before revealing content.
+     CSS uses the after-change transition, so entry gets the delay, exit does not. */
+  transition: opacity 0.16s ease 0.38s;
 }
 
 /* ── Individual page spread ───────────────────────────────────────────────── */
 .bs-carousel-item {
-  scroll-snap-stop: always;
-  scroll-snap-align: start;
-  position: relative;
   overflow: hidden;
   box-sizing: border-box;
   width: 100%;
@@ -128,13 +129,6 @@
   display: flex;
   gap: 4rem;
   height: 100%;
-
-  animation: bs-stay-centered linear both;
-  animation-timeline: view(x);
-}
-
-.bs-page-container[data-motion='anchored'] {
-  animation-name: bs-stay-anchored;
 }
 
 /* ── Left and right pages ────────────────────────────────────────────────────
@@ -510,43 +504,6 @@
   filter: brightness(0.85);
 }
 
-/* ── Keyframes ────────────────────────────────────────────────────────────── */
-@keyframes bs-frame {
-  to {
-    --sprite-fs: var(--sprite-fe);
-  }
-}
-
-/* Matches original CodePen stay-centered keyframes exactly */
-@keyframes bs-stay-centered {
-  entry 0% {
-    opacity: 0;
-  }
-  entry 55% {
-    opacity: 0;
-  }
-  entry 100% {
-    opacity: 1;
-  }
-  exit 0% {
-    opacity: 1;
-  }
-  exit 45% {
-    opacity: 0;
-  }
-}
-
-@keyframes bs-stay-anchored {
-  entry 0% {
-    opacity: 0;
-  }
-  entry 100% {
-    opacity: 1;
-  }
-  exit 0% {
-    opacity: 1;
-  }
-}
 
 /* ── Responsive scale-down ────────────────────────────────────────────────── */
 @media (width < 1800px) {
@@ -604,25 +561,11 @@
 /* ── Reduced motion ───────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .bs-sprite {
-    animation: none;
+    transition: none;
   }
 
-  .bs-page-container {
-    animation: none;
-    opacity: 1;
-    translate: 0%;
-  }
-}
-
-/* ── Scroll-timeline fallback ─────────────────────────────────────────────── */
-@supports not (animation-timeline: scroll()) {
-  .bs-sprite {
-    display: none;
-  }
-
-  .bs-page-container {
-    animation: none;
-    opacity: 1;
-    translate: 0%;
+  .bs-slide-wrapper,
+  .bs-slide-wrapper[data-active] {
+    transition: none;
   }
 }
