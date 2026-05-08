@@ -17,11 +17,11 @@ interface Props {
 }
 
 export default function FlavorRadar({ recipe, color = 'oklch(0.65 0.18 35)' }: Props) {
-  const cx = 80
-  const cy = 85
-  const r = 58
+  const cx = 110
+  const cy = 115
+  const r = 82
   const n = AXES.length
-  const labelOffset = r + 16
+  const labelOffset = r + 24
 
   const angles = Array.from({ length: n }, (_, i) =>
     ((-90 + (360 / n) * i) * Math.PI) / 180
@@ -45,7 +45,7 @@ export default function FlavorRadar({ recipe, color = 'oklch(0.65 0.18 35)' }: P
     : null
 
   return (
-    <svg viewBox="0 0 160 170" className="w-full max-w-[160px]">
+    <svg viewBox="0 0 220 252" className="w-full max-w-[220px]">
       {/* Grid rings */}
       {[1, 2, 3, 4, 5].map((level) => {
         const pts = angles.map((_, i) => point(level, i))
@@ -56,8 +56,8 @@ export default function FlavorRadar({ recipe, color = 'oklch(0.65 0.18 35)' }: P
             d={d}
             fill="none"
             stroke="oklch(0.5 0.02 50)"
-            strokeWidth="0.6"
-            strokeOpacity="0.3"
+            strokeWidth={level === 5 ? 0.8 : 0.6}
+            strokeOpacity={level === 5 ? 0.25 : 0.18}
           />
         )
       })}
@@ -72,7 +72,7 @@ export default function FlavorRadar({ recipe, color = 'oklch(0.65 0.18 35)' }: P
             x2={outer.x.toFixed(1)} y2={outer.y.toFixed(1)}
             stroke="oklch(0.5 0.02 50)"
             strokeWidth="0.6"
-            strokeOpacity="0.3"
+            strokeOpacity="0.22"
           />
         )
       })}
@@ -82,9 +82,9 @@ export default function FlavorRadar({ recipe, color = 'oklch(0.65 0.18 35)' }: P
         <path
           d={dataPath}
           fill={color}
-          fillOpacity={0.2}
+          fillOpacity={0.18}
           stroke={color}
-          strokeWidth={1.5}
+          strokeWidth={1.8}
           strokeLinejoin="round"
         />
       )}
@@ -101,8 +101,8 @@ export default function FlavorRadar({ recipe, color = 'oklch(0.65 0.18 35)' }: P
               y={ly.toFixed(1)}
               textAnchor="middle"
               dominantBaseline="middle"
-              fontSize="9"
-              fill="oklch(0.4 0.03 50)"
+              fontSize="11"
+              fill="oklch(0.38 0.03 50)"
               fontWeight="600"
             >
               {ax.label}
@@ -110,12 +110,12 @@ export default function FlavorRadar({ recipe, color = 'oklch(0.65 0.18 35)' }: P
             {val != null && (
               <text
                 x={lx.toFixed(1)}
-                y={(ly + 9).toFixed(1)}
+                y={(ly + 12).toFixed(1)}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fontSize="7"
+                fontSize="9"
                 fill={color}
-                fillOpacity="0.8"
+                fillOpacity="0.85"
               >
                 {val}
               </text>
@@ -129,7 +129,7 @@ export default function FlavorRadar({ recipe, color = 'oklch(0.65 0.18 35)' }: P
           x={cx} y={cy}
           textAnchor="middle"
           dominantBaseline="middle"
-          fontSize="8"
+          fontSize="10"
           fill="oklch(0.6 0.02 50)"
         >
           未设置

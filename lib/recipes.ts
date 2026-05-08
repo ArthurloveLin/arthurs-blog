@@ -80,7 +80,7 @@ export interface RecipeWithPrerequisites extends Recipe {
 
 export interface SkillGraphData {
   nodes: { id: string; slug: string; title: string; published: boolean }[]
-  links: { source: string; target: string; skill_label: string }[]
+  links: { id: string; source: string; target: string; skill_label: string }[]
 }
 
 export const RECIPE_LIST_SELECT = `
@@ -210,7 +210,7 @@ export const getRecipeSkillGraph = unstable_cache(
   async (): Promise<SkillGraphData> => {
     const [recipesResult, prereqsResult] = await Promise.all([
       supabaseAdmin.from('recipes').select('id, slug, title, published'),
-      supabaseAdmin.from('recipe_prerequisites').select('from_recipe_id, to_recipe_id, skill_label'),
+      supabaseAdmin.from('recipe_prerequisites').select('id, from_recipe_id, to_recipe_id, skill_label'),
     ])
 
     if (recipesResult.error) throw new Error(`getRecipeSkillGraph recipes: ${recipesResult.error.message}`)
@@ -219,6 +219,7 @@ export const getRecipeSkillGraph = unstable_cache(
     return {
       nodes: (recipesResult.data ?? []) as SkillGraphData['nodes'],
       links: (prereqsResult.data ?? []).map((p) => ({
+        id: p.id,
         source: p.from_recipe_id,
         target: p.to_recipe_id,
         skill_label: p.skill_label,

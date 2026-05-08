@@ -136,6 +136,7 @@ export function useRecipeEditor({ recipe, onSaved }: UseRecipeEditorOptions) {
   }, [changeSummary, draft, onSaved, recipe.slug, recipe.version, router, startTransition])
 
   return {
+    recipeId: recipe.id,
     isEditing,
     isSaving: isSaving || isRefreshPending,
     error,

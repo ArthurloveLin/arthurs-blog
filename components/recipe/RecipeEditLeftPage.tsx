@@ -26,7 +26,7 @@ export default function RecipeEditLeftPage({ editor }: Props) {
   const { addStep, removeStep, updateStep } = stepActions
 
   return (
-    <div className="h-full flex flex-col gap-2.5 text-xs overflow-y-auto" style={pageStyle}>
+    <div className="h-full flex flex-col gap-4 overflow-y-auto" style={pageStyle}>
       {/* Title */}
       <div className="pb-1.5 border-b border-amber-800/20">
         <SectionLabel>标题</SectionLabel>
@@ -128,19 +128,19 @@ export default function RecipeEditLeftPage({ editor }: Props) {
 
       {/* Ingredients */}
       <div>
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between mb-1.5">
           <SectionLabel>食材</SectionLabel>
           <button
             onClick={addIngredient}
-            style={{ color: 'oklch(0.55 0.18 35)', fontSize: 9, display: 'flex', alignItems: 'center', gap: 2 }}
+            style={{ color: 'oklch(0.55 0.18 35)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 3 }}
           >
-            <Plus size={9} /> 添加
+            <Plus size={11} /> 添加
           </button>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {draft.ingredients.map((ing) => (
-            <div key={ing.id} className="flex items-center gap-1">
-              <GripVertical size={9} style={mutedStyle} />
+            <div key={ing.id} className="flex items-center gap-1.5">
+              <GripVertical size={11} style={mutedStyle} />
               <input
                 value={ing.name}
                 onChange={(e) => updateIngredient(ing.id, { name: e.target.value })}
@@ -160,7 +160,7 @@ export default function RecipeEditLeftPage({ editor }: Props) {
                 style={{ flex: 1, ...inputStyle }}
               />
               <button onClick={() => removeIngredient(ing.id)}>
-                <Trash2 size={9} style={{ color: 'oklch(0.5 0.15 15)' }} />
+                <Trash2 size={11} style={{ color: 'oklch(0.5 0.15 15)' }} />
               </button>
             </div>
           ))}
@@ -169,25 +169,25 @@ export default function RecipeEditLeftPage({ editor }: Props) {
 
       {/* Steps */}
       <div>
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between mb-1.5">
           <SectionLabel>步骤</SectionLabel>
           <button
             onClick={addStep}
-            style={{ color: 'oklch(0.55 0.18 35)', fontSize: 9, display: 'flex', alignItems: 'center', gap: 2 }}
+            style={{ color: 'oklch(0.55 0.18 35)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 3 }}
           >
-            <Plus size={9} /> 添加
+            <Plus size={11} /> 添加
           </button>
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {draft.steps.map((step, i) => (
-            <div key={step.id} className="flex gap-1 items-start">
+            <div key={step.id} className="flex gap-1.5 items-start">
               <span
-                className="shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold mt-0.5"
+                className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold mt-0.5"
                 style={{ background: 'oklch(0.65 0.18 35 / 0.15)', color: 'oklch(0.55 0.18 35)' }}
               >
                 {i + 1}
               </span>
-              <div className="flex-1 space-y-0.5">
+              <div className="flex-1 space-y-1">
                 <input
                   value={step.title}
                   onChange={(e) => updateStep(step.id, { title: e.target.value })}
@@ -203,7 +203,7 @@ export default function RecipeEditLeftPage({ editor }: Props) {
                 />
               </div>
               <button onClick={() => removeStep(step.id)}>
-                <Trash2 size={9} style={{ color: 'oklch(0.5 0.15 15)' }} />
+                <Trash2 size={11} style={{ color: 'oklch(0.5 0.15 15)' }} />
               </button>
             </div>
           ))}

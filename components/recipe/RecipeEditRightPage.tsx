@@ -3,6 +3,7 @@
 import type { useRecipeEditor } from '@/hooks/useRecipeEditor'
 import { EditableField, EditableTags } from './InlineEditor'
 import { pageStyle, inputStyle, SectionLabel } from './recipe-edit-shared'
+import RecipePrerequisiteEditor from './RecipePrerequisiteEditor'
 
 type EditorReturn = ReturnType<typeof useRecipeEditor>
 
@@ -23,7 +24,7 @@ export default function RecipeEditRightPage({ editor }: Props) {
   const { draft, setField } = editor
 
   return (
-    <div className="h-full flex flex-col gap-2.5 text-xs overflow-y-auto pr-14" style={pageStyle}>
+    <div className="h-full flex flex-col gap-4 overflow-y-auto pr-16" style={pageStyle}>
 
       {/* Tags */}
       <div>
@@ -43,27 +44,32 @@ export default function RecipeEditRightPage({ editor }: Props) {
           min={1} max={5}
           value={draft.proficiency ?? ''}
           onChange={(e) => setField('proficiency', e.target.value ? parseInt(e.target.value) : null)}
-          style={{ width: 48, ...inputStyle }}
+          style={{ width: 60, ...inputStyle }}
         />
       </div>
 
       {/* Flavor radar */}
       <div>
         <SectionLabel>风味雷达 (0-5，空=未设置)</SectionLabel>
-        <div className="grid grid-cols-3 gap-1">
+        <div className="grid grid-cols-3 gap-1.5">
           {flavorKeys.map(({ key, label }) => (
-            <div key={key} className="flex items-center gap-1">
-              <span style={{ color: 'oklch(0.55 0.03 50)', width: 12 }}>{label}</span>
+            <div key={key} className="flex items-center gap-1.5">
+              <span style={{ color: 'oklch(0.55 0.03 50)', width: 16, fontSize: 12 }}>{label}</span>
               <input
                 type="number"
                 min={0} max={5}
                 value={draft[key] ?? ''}
                 onChange={(e) => setField(key, e.target.value ? parseInt(e.target.value) : null)}
-                style={{ width: 32, ...inputStyle }}
+                style={{ width: 40, ...inputStyle }}
               />
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Prerequisites */}
+      <div>
+        <RecipePrerequisiteEditor recipeId={editor.recipeId} />
       </div>
 
       {/* Suitable occasions */}

@@ -20,41 +20,44 @@ function buildDraftSlug() {
 
 export default function RecipeAddButton() {
   const router = useRouter()
+  const [isCreating, setIsCreating] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  function handleCreate() {
+  const isBusy = isCreating || isPending
+
+  async function handleCreate() {
     setError(null)
+    setIsCreating(true)
+    try {
+      const response = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: '未命名菜谱',
+          slug: buildDraftSlug(),
+          version: '1.0',
+          description: '',
+          tags: [],
+          suitable_occasions: [],
+          ingredients: [],
+          steps: [],
+        }),
+      })
 
-    startTransition(async () => {
-      try {
-        const response = await fetch('/api/recipes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: '未命名菜谱',
-            slug: buildDraftSlug(),
-            version: '1.0',
-            description: '',
-            tags: [],
-            suitable_occasions: [],
-            ingredients: [],
-            steps: [],
-          }),
-        })
-
-        if (!response.ok) {
-          const payload = await response.json().catch(() => ({ error: '创建失败，请稍后重试。' }))
-          setError(typeof payload?.error === 'string' ? payload.error : '创建失败，请稍后重试。')
-          return
-        }
-
-        router.refresh()
-      } catch (err) {
-        console.error('[RecipeAddButton]', err)
-        setError('网络错误，请重试')
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({ error: '创建失败，请稍后重试。' }))
+        setError(typeof payload?.error === 'string' ? payload.error : '创建失败，请稍后重试。')
+        return
       }
-    })
+
+      startTransition(() => { router.refresh() })
+    } catch (err) {
+      console.error('[RecipeAddButton]', err)
+      setError('网络错误，请重试')
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   return (
@@ -64,11 +67,11 @@ export default function RecipeAddButton() {
         className="bs-control-bookmark"
         data-variant="success"
         onClick={handleCreate}
-        disabled={isPending}
-        title={isPending ? '创建中...' : '新增菜谱草稿'}
+        disabled={isBusy}
+        title={isBusy ? '创建中...' : '新增菜谱草稿'}
       >
-        {isPending ? <LoaderCircle className="animate-spin" /> : <Plus />}
-        <span>{isPending ? '创建中' : '新增'}</span>
+        {isBusy ? <LoaderCircle className="animate-spin" /> : <Plus />}
+        <span>{isBusy ? '创建中' : '新增'}</span>
       </button>
       {error && <p className="bs-control-error">{error}</p>}
     </div>

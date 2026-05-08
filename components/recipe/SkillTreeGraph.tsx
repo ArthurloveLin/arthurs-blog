@@ -286,18 +286,46 @@ export default function SkillTreeGraph({ graph, currentRecipeId, height = 140, v
 
     nodeGroup.attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0})`)
 
-    const graphBounds = zoomLayer.node()?.getBBox()
-    if (graphBounds && graphBounds.width > 0 && graphBounds.height > 0) {
-      const maxScale = variant === 'modal' ? 1.18 : 1.05
-      const scale = Math.min(
-        maxScale,
-        0.88 / Math.max(graphBounds.width / W, graphBounds.height / H, 0.0001)
-      )
-      const tx = W / 2 - scale * (graphBounds.x + graphBounds.width / 2)
-      const ty = H / 2 - scale * (graphBounds.y + graphBounds.height / 2)
-      const transform = d3.zoomIdentity.translate(tx, ty).scale(scale)
+    // Find most-connected node (highest degree) to focus on
+    const nodeDegree = new Map<string, number>()
+    for (const link of links) {
+      const s = getNodeId(link.source)
+      const t = getNodeId(link.target)
+      nodeDegree.set(s, (nodeDegree.get(s) ?? 0) + 1)
+      nodeDegree.set(t, (nodeDegree.get(t) ?? 0) + 1)
+    }
 
-      root.call(zoom.transform, transform)
+    // For modal: anchor on currentRecipeId; for inline: anchor on highest-degree node
+    let focusNodeId = currentRecipeId
+    if (variant === 'inline') {
+      let maxDeg = 0
+      for (const [id, deg] of nodeDegree) {
+        if (deg > maxDeg) { maxDeg = deg; focusNodeId = id }
+      }
+    }
+
+    const focusNode = nodes.find((n) => n.id === focusNodeId)
+    const fx = focusNode?.x
+    const fy = focusNode?.y
+
+    if (fx != null && fy != null) {
+      const scale = variant === 'modal' ? 1.25 : 1.5
+      const tx = W / 2 - scale * fx
+      const ty = H / 2 - scale * fy
+      root.call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale))
+    } else {
+      // Fallback: fit whole graph
+      const graphBounds = zoomLayer.node()?.getBBox()
+      if (graphBounds && graphBounds.width > 0 && graphBounds.height > 0) {
+        const maxScale = variant === 'modal' ? 1.18 : 1.05
+        const scale = Math.min(
+          maxScale,
+          0.88 / Math.max(graphBounds.width / W, graphBounds.height / H, 0.0001)
+        )
+        const tx = W / 2 - scale * (graphBounds.x + graphBounds.width / 2)
+        const ty = H / 2 - scale * (graphBounds.y + graphBounds.height / 2)
+        root.call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale))
+      }
     }
 
     return () => {
