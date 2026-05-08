@@ -7,8 +7,10 @@ import { useRecipeEditor } from '@/hooks/useRecipeEditor'
 import BookSpread from './BookSpread'
 import RecipeLeftPage from './RecipeLeftPage'
 import RecipeRightPage from './RecipeRightPage'
-import RecipeBookmarks from './RecipeBookmarks'
-import RecipeEditForm from './RecipeEditForm'
+import RecipeViewBookmarks from './RecipeViewBookmarks'
+import RecipeEditBookmarks from './RecipeEditBookmarks'
+import RecipeEditLeftPage from './RecipeEditLeftPage'
+import RecipeEditRightPage from './RecipeEditRightPage'
 
 interface Props {
   recipe: Recipe
@@ -21,39 +23,27 @@ export default function RecipeSpreadClient({ recipe, revisions, skillGraph }: Pr
   const [showRevisions, setShowRevisions] = useState(false)
 
   const editor = useRecipeEditor({ recipe })
-
-  async function togglePublish() {
-    const res = await fetch(`/api/recipes/${recipe.slug}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ published: !recipe.published }),
-    })
-    if (res.ok) window.location.reload()
-  }
+  const { togglePublish } = editor
 
   if (editor.isEditing) {
     return (
       <div className="bs-carousel-item">
         <div className="bs-page-container">
           <div className="bs-left-page">
-            <RecipeEditForm editor={editor} side="left" />
+            <RecipeEditLeftPage editor={editor} />
           </div>
           <div className="bs-right-page">
             <div className="bs-right-page-scroll">
-              <RecipeEditForm editor={editor} side="right" />
+              <RecipeEditRightPage editor={editor} />
             </div>
-            <RecipeBookmarks
-              isAdmin={isAdmin}
-              isEditing
-              isSaving={editor.isSaving}
-              isPublished={recipe.published}
-              onEdit={editor.startEditing}
-              onCancel={editor.cancelEditing}
-              onSave={editor.save}
-              onTogglePublish={togglePublish}
-              onViewRevisions={() => setShowRevisions((v) => !v)}
-              error={editor.error}
-            />
+            {isAdmin && (
+              <RecipeEditBookmarks
+                isSaving={editor.isSaving}
+                onSave={editor.save}
+                onCancel={editor.cancelEditing}
+                error={editor.error}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -71,17 +61,11 @@ export default function RecipeSpreadClient({ recipe, revisions, skillGraph }: Pr
       right={<RecipeRightPage recipe={recipe} skillGraph={skillGraph} />}
       rightOverlay={
         isAdmin && (
-          <RecipeBookmarks
-            isAdmin
-            isEditing={false}
-            isSaving={false}
+          <RecipeViewBookmarks
             isPublished={recipe.published}
             onEdit={editor.startEditing}
-            onCancel={editor.cancelEditing}
-            onSave={editor.save}
-            onTogglePublish={togglePublish}
             onViewRevisions={() => setShowRevisions((v) => !v)}
-            error={null}
+            onTogglePublish={togglePublish}
           />
         )
       }
