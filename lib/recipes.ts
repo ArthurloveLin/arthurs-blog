@@ -19,15 +19,23 @@ export interface RecipeStep {
   tip?: string
 }
 
-export interface Recipe {
+export interface RecipeListItem {
   id: string
   slug: string
   title: string
+  category: string | null
+  version: string
+  published: boolean
+  published_at: string | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Recipe extends RecipeListItem {
   description: string | null
   cover_image: string | null
   cover_image_key: string | null
-  category: string | null
-  version: string
   prep_time_minutes: number | null
   cook_time_minutes: number | null
   servings: number | null
@@ -45,11 +53,6 @@ export interface Recipe {
   pairing_suggestions: string | null
   ingredients: Ingredient[]
   steps: RecipeStep[]
-  published: boolean
-  published_at: string | null
-  sort_order: number
-  created_at: string
-  updated_at: string
 }
 
 export interface RecipeRevision {
@@ -77,6 +80,60 @@ export interface SkillGraphData {
   links: { source: string; target: string; skill_label: string }[]
 }
 
+export const RECIPE_LIST_SELECT = `
+  id,
+  slug,
+  title,
+  category,
+  version,
+  published,
+  published_at,
+  sort_order,
+  created_at,
+  updated_at
+`
+
+export const RECIPE_DETAIL_SELECT = `
+  id,
+  slug,
+  title,
+  description,
+  cover_image,
+  cover_image_key,
+  category,
+  version,
+  prep_time_minutes,
+  cook_time_minutes,
+  servings,
+  flavor_sour,
+  flavor_sweet,
+  flavor_bitter,
+  flavor_spicy,
+  flavor_umami,
+  flavor_aromatic,
+  proficiency,
+  tags,
+  suitable_occasions,
+  failure_notes,
+  life_notes,
+  pairing_suggestions,
+  ingredients,
+  steps,
+  published,
+  published_at,
+  sort_order,
+  created_at,
+  updated_at
+`
+
+export const RECIPE_REVISION_SELECT = `
+  id,
+  recipe_id,
+  version,
+  change_summary,
+  created_at
+`
+
 // ── Cache tags ───────────────────────────────────────────────────────────────
 
 export const RECIPE_CACHE_TAGS = {
@@ -88,57 +145,49 @@ export function getRecipeTag(slug: string) {
   return `recipe-${slug}`
 }
 
+export function getRecipeRevisionsTag(recipeId: string) {
+  return `recipe-revisions-${recipeId}`
+}
+
 // ── Queries ──────────────────────────────────────────────────────────────────
 
 export const getRecipesList = unstable_cache(
-  async (): Promise<Recipe[]> => {
+  async (): Promise<RecipeListItem[]> => {
     const { data, error } = await supabaseAdmin
       .from('recipes')
-      .select('*')
+      .select(RECIPE_LIST_SELECT)
       .eq('published', true)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false })
 
     if (error) throw new Error(`getRecipesList: ${error.message}`)
-    return (data ?? []) as Recipe[]
+    return (data ?? []) as RecipeListItem[]
   },
   ['recipes-list'],
   { revalidate: false, tags: [RECIPE_CACHE_TAGS.list] }
 )
 
 export const getAllRecipesList = unstable_cache(
-  async (): Promise<Recipe[]> => {
+  async (): Promise<RecipeListItem[]> => {
     const { data, error } = await supabaseAdmin
       .from('recipes')
-      .select('*')
+      .select(RECIPE_LIST_SELECT)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false })
 
     if (error) throw new Error(`getAllRecipesList: ${error.message}`)
-    return (data ?? []) as Recipe[]
+    return (data ?? []) as RecipeListItem[]
   },
   ['recipes-list-all'],
   { revalidate: false, tags: [RECIPE_CACHE_TAGS.list] }
 )
-
-// Uncached — always hits DB. Use for admin views where stale data is unacceptable.
-export async function getAllRecipesListFresh(): Promise<Recipe[]> {
-  const { data, error } = await supabaseAdmin
-    .from('recipes')
-    .select('*')
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: false })
-
-  if (error) throw new Error(`getAllRecipesListFresh: ${error.message}`)
-  return (data ?? []) as Recipe[]
-}
 
 export function getRecipeBySlug(slug: string) {
   return unstable_cache(
     async (): Promise<Recipe | null> => {
       const { data, error } = await supabaseAdmin
         .from('recipes')
-        .select('*')
+        .select(RECIPE_DETAIL_SELECT)
         .eq('slug', slug)
         .single()
 
@@ -176,15 +225,21 @@ export const getRecipeSkillGraph = unstable_cache(
   { revalidate: false, tags: [RECIPE_CACHE_TAGS.list, RECIPE_CACHE_TAGS.skillGraph] }
 )
 
-export async function getRecipeRevisions(recipeId: string): Promise<RecipeRevision[]> {
-  const { data, error } = await supabaseAdmin
-    .from('recipe_revisions')
-    .select('*')
-    .eq('recipe_id', recipeId)
-    .order('created_at', { ascending: false })
+export function getRecipeRevisions(recipeId: string) {
+  return unstable_cache(
+    async (): Promise<RecipeRevision[]> => {
+      const { data, error } = await supabaseAdmin
+        .from('recipe_revisions')
+        .select(RECIPE_REVISION_SELECT)
+        .eq('recipe_id', recipeId)
+        .order('created_at', { ascending: false })
 
-  if (error) throw new Error(`getRecipeRevisions: ${error.message}`)
-  return (data ?? []) as RecipeRevision[]
+      if (error) throw new Error(`getRecipeRevisions(${recipeId}): ${error.message}`)
+      return (data ?? []) as RecipeRevision[]
+    },
+    ['recipe-revisions', recipeId],
+    { revalidate: false, tags: [getRecipeRevisionsTag(recipeId)] }
+  )()
 }
 
 export async function getRecipeCategories(): Promise<string[]> {

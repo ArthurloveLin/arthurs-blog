@@ -4,6 +4,8 @@ import './book-shell.css'
 import { useRef, Children, useCallback, useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
+const MOUNTED_SLIDE_RADIUS = 2
+
 const BOOKMARK_COLORS = [
   'oklch(0.55 0.16 30)',
   'oklch(0.55 0.14 50)',
@@ -27,7 +29,8 @@ interface BookShellProps {
 
 export default function BookShell({ children, bookmarks, className }: BookShellProps) {
   const carouselRef = useRef<HTMLDivElement>(null)
-  const slideCount = Children.count(children)
+  const slides = Children.toArray(children)
+  const slideCount = slides.length
   const [canPrev, setCanPrev] = useState(false)
   const [canNext, setCanNext] = useState(slideCount > 1)
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -74,7 +77,15 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
         <div className="bs-sprite" aria-hidden="true" />
 
         <div ref={carouselRef} className="bs-carousel">
-          {children}
+          {slides.map((slide, index) => {
+            const shouldMount = Math.abs(index - currentSlide) <= MOUNTED_SLIDE_RADIUS
+
+            return shouldMount ? (
+              slide
+            ) : (
+              <div key={`placeholder-${index}`} className="bs-carousel-item" aria-hidden="true" />
+            )
+          })}
         </div>
 
         <div className="bs-nav">

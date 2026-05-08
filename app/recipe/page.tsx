@@ -1,12 +1,15 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import PageHero from '@/components/PageHero'
 import BookShell from '@/components/recipe/BookShell'
 import BookSpread from '@/components/recipe/BookSpread'
+import { RecipeSkillGraphProvider } from '@/components/recipe/RecipeSkillGraphProvider'
+import RecipeSpreadSkeleton from '@/components/recipe/RecipeSpreadSkeleton'
 import { TableOfContentsLeftPage, TableOfContentsRightPage } from '@/components/recipe/TableOfContentsPage'
 import { AdminRecipeSpread, PublicRecipeSpread } from '@/components/recipe/RecipeSpread'
 import RecipeAddButton from '@/components/recipe/RecipeAddButton'
-import { getRecipesList, getAllRecipesListFresh } from '@/lib/recipes'
+import { getAllRecipesList, getRecipeSkillGraph, getRecipesList } from '@/lib/recipes'
 import { isAdminRequest } from '@/lib/auth'
 
 export const metadata: Metadata = {
@@ -17,9 +20,8 @@ export const metadata: Metadata = {
 export default async function RecipePage() {
   const isAdmin = await isAdminRequest()
 
-  // Admin always gets fresh data directly from DB (no cache layer).
-  // Public gets the ISR-cached published-only list.
-  const recipes = isAdmin ? await getAllRecipesListFresh() : await getRecipesList()
+  const recipesPromise = isAdmin ? getAllRecipesList() : getRecipesList()
+  const [recipes, skillGraph] = await Promise.all([recipesPromise, getRecipeSkillGraph()])
 
   return (
     <main className="min-h-screen bg-background">
@@ -38,20 +40,24 @@ export default async function RecipePage() {
           ← Home
         </Link>
 
-        <BookShell>
-          <BookSpread
-            left={<TableOfContentsLeftPage recipes={recipes} />}
-            right={<TableOfContentsRightPage recipes={recipes} />}
-            rightOverlay={isAdmin && <RecipeAddButton />}
-          />
-          {recipes.map((recipe) =>
-            isAdmin ? (
-              <AdminRecipeSpread key={recipe.id} recipe={recipe} />
-            ) : (
-              <PublicRecipeSpread key={recipe.id} recipe={recipe} />
-            )
-          )}
-        </BookShell>
+        <RecipeSkillGraphProvider graph={skillGraph}>
+          <BookShell>
+            <BookSpread
+              left={<TableOfContentsLeftPage recipes={recipes} />}
+              right={<TableOfContentsRightPage recipes={recipes} />}
+              rightOverlay={isAdmin && <RecipeAddButton />}
+            />
+            {recipes.map((recipe) =>
+              <Suspense key={recipe.id} fallback={<RecipeSpreadSkeleton />}>
+                {isAdmin ? (
+                  <AdminRecipeSpread recipe={recipe} />
+                ) : (
+                  <PublicRecipeSpread recipe={recipe} />
+                )}
+              </Suspense>
+            )}
+          </BookShell>
+        </RecipeSkillGraphProvider>
       </div>
     </main>
   )

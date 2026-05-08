@@ -1,21 +1,14 @@
-import type { Recipe, SkillGraphData } from '@/lib/recipes'
-import SkillTreeGraph from './SkillTreeGraph'
+import type { Recipe } from '@/lib/recipes'
+import RecipeSkillGraphPanel from './RecipeSkillGraphPanel'
 
 interface Props {
   recipe: Recipe
-  skillGraph: SkillGraphData
 }
 
-export default function RecipeRightPage({ recipe, skillGraph }: Props) {
+export default function RecipeRightPage({ recipe }: Props) {
   const pageStyle = { color: 'oklch(0.3 0.02 50)' }
   const mutedStyle = { color: 'oklch(0.55 0.03 50)' }
   const accentStyle = { color: 'oklch(0.55 0.18 35)' }
-
-  // Is this recipe connected in the skill graph?
-  const hasSkillLinks =
-    skillGraph.links.some(
-      (l) => l.source === recipe.id || l.target === recipe.id
-    ) || skillGraph.nodes.length > 1
 
   return (
     <div className="h-full flex flex-col gap-2.5 text-xs overflow-y-auto" style={pageStyle}>
@@ -60,15 +53,7 @@ export default function RecipeRightPage({ recipe, skillGraph }: Props) {
         </div>
       )}
 
-      {/* Skill graph */}
-      {hasSkillLinks && (
-        <div>
-          <p className="text-[9px] font-mono tracking-widest uppercase mb-1" style={mutedStyle}>
-            技能图谱
-          </p>
-          <SkillTreeGraph graph={skillGraph} currentRecipeId={recipe.id} />
-        </div>
-      )}
+      <RecipeSkillGraphPanel currentRecipeId={recipe.id} mutedStyle={mutedStyle} />
 
       {/* Suitable occasions */}
       {recipe.suitable_occasions.length > 0 && (

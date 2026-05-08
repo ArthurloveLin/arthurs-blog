@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { isAdminRequest } from '@/lib/auth'
+import { RECIPE_REVISION_SELECT, getRecipeRevisionsTag } from '@/lib/recipes'
 
 type Params = { params: Promise<{ slug: string }> }
 
@@ -25,7 +27,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const { data, error } = await supabaseAdmin
     .from('recipe_revisions')
-    .select('*')
+    .select(RECIPE_REVISION_SELECT)
     .eq('recipe_id', recipe.id)
     .order('created_at', { ascending: false })
 
@@ -59,9 +61,10 @@ export async function POST(request: NextRequest, { params }: Params) {
   const { data, error } = await supabaseAdmin
     .from('recipe_revisions')
     .insert({ recipe_id: recipe.id, version, change_summary })
-    .select()
+    .select(RECIPE_REVISION_SELECT)
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidateTag(getRecipeRevisionsTag(recipe.id), 'max')
   return NextResponse.json(data, { status: 201 })
 }

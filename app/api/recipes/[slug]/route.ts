@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { isAdminRequest } from '@/lib/auth'
-import { RECIPE_CACHE_TAGS, getRecipeTag } from '@/lib/recipes'
+import { RECIPE_CACHE_TAGS, RECIPE_DETAIL_SELECT, RECIPE_LIST_SELECT, getRecipeTag } from '@/lib/recipes'
 
 type Params = { params: Promise<{ slug: string }> }
 
@@ -11,7 +11,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const { slug } = await params
   const isAdmin = await isAdminRequest()
 
-  const query = supabaseAdmin.from('recipes').select('*').eq('slug', slug).single()
+  const query = supabaseAdmin.from('recipes').select(RECIPE_DETAIL_SELECT).eq('slug', slug).single()
 
   const { data, error } = await query
   if (error) {
@@ -57,7 +57,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     .from('recipes')
     .update(updateData)
     .eq('slug', slug)
-    .select()
+    .select(RECIPE_LIST_SELECT)
     .single()
 
   if (error) {
@@ -66,6 +66,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   revalidateTag(RECIPE_CACHE_TAGS.list, 'max')
+  revalidateTag(RECIPE_CACHE_TAGS.skillGraph, 'max')
   revalidateTag(getRecipeTag(slug), 'max')
   return NextResponse.json(data)
 }
@@ -86,6 +87,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   revalidateTag(RECIPE_CACHE_TAGS.list, 'max')
+  revalidateTag(RECIPE_CACHE_TAGS.skillGraph, 'max')
   revalidateTag(getRecipeTag(slug), 'max')
   return new NextResponse(null, { status: 204 })
 }

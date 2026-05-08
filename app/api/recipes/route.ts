@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { isAdminRequest } from '@/lib/auth'
-import { RECIPE_CACHE_TAGS } from '@/lib/recipes'
+import { RECIPE_CACHE_TAGS, RECIPE_LIST_SELECT } from '@/lib/recipes'
 
 // GET /api/recipes — list all recipes (admin: all; public: published only)
 export async function GET() {
   const isAdmin = await isAdminRequest()
   const query = supabaseAdmin
     .from('recipes')
-    .select('*')
+    .select(RECIPE_LIST_SELECT)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false })
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabaseAdmin
     .from('recipes')
     .insert({ title, slug, ...rest })
-    .select()
+    .select(RECIPE_LIST_SELECT)
     .single()
 
   if (error) {
@@ -47,5 +47,6 @@ export async function POST(request: NextRequest) {
   }
 
   revalidateTag(RECIPE_CACHE_TAGS.list, 'max')
+  revalidateTag(RECIPE_CACHE_TAGS.skillGraph, 'max')
   return NextResponse.json(data, { status: 201 })
 }
