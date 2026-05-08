@@ -1,7 +1,7 @@
-import type { Recipe } from '@/lib/recipes'
+import type { RecipeListItem } from '@/lib/recipes'
 
 interface TableOfContentsProps {
-  recipes: Recipe[]
+  recipes: RecipeListItem[]
 }
 
 function TableOfContentsFrame({ children }: { children: React.ReactNode }) {

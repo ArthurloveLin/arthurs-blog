@@ -1,100 +1,115 @@
 'use client'
 
-import { useState } from 'react'
-import type { Recipe, RecipeRevision, SkillGraphData } from '@/lib/recipes'
-import { useRecipeEditor } from '@/hooks/useRecipeEditor'
+import dynamic from 'next/dynamic'
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import BookSpread from './BookSpread'
-import RecipeLeftPage from './RecipeLeftPage'
-import RecipeRightPage from './RecipeRightPage'
 import RecipeViewBookmarks from './RecipeViewBookmarks'
-import RecipeEditBookmarks from './RecipeEditBookmarks'
-import RecipeEditLeftPage from './RecipeEditLeftPage'
-import RecipeEditRightPage from './RecipeEditRightPage'
+import RecipeSpreadSkeleton from './RecipeSpreadSkeleton'
 
 interface Props {
-  recipe: Recipe
-  revisions: RecipeRevision[]
-  skillGraph: SkillGraphData
+  slug: string
+  initialPublished: boolean
+  condensedLeftPage: React.ReactNode
+  fullLeftPage: React.ReactNode
+  rightPage: React.ReactNode
 }
 
-type RecipeEditor = ReturnType<typeof useRecipeEditor>
-
-function RecipeEditingSpread({ editor }: { editor: RecipeEditor }) {
-  return (
-    <div className="bs-carousel-item">
-      <div className="bs-page-container">
-        <div className="bs-left-page">
-          <RecipeEditLeftPage editor={editor} />
-        </div>
-        <div className="bs-right-page">
-          <div className="bs-right-page-scroll">
-            <RecipeEditRightPage editor={editor} />
-          </div>
-          <RecipeEditBookmarks
-            isSaving={editor.isSaving}
-            onSave={editor.save}
-            onCancel={editor.cancelEditing}
-            error={editor.error}
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-interface RecipeViewingSpreadProps extends Props {
-  onEdit: () => void
-  onTogglePublish: () => void
-  showAllRevisions: boolean
-  onToggleRevisions: () => void
-}
+const RecipeSpreadEditor = dynamic(() => import('./RecipeSpreadEditor'), {
+  ssr: false,
+  loading: () => <RecipeSpreadSkeleton />,
+})
 
 function RecipeViewingSpread({
-  recipe,
-  revisions,
-  skillGraph,
+  condensedLeftPage,
+  fullLeftPage,
+  rightPage,
   onEdit,
   onTogglePublish,
   showAllRevisions,
   onToggleRevisions,
-}: RecipeViewingSpreadProps) {
-  const visibleRevisions = showAllRevisions ? revisions : revisions.slice(0, 3)
-
+  isPublished,
+  isPublishPending,
+}: {
+  condensedLeftPage: React.ReactNode
+  fullLeftPage: React.ReactNode
+  rightPage: React.ReactNode
+  onEdit: () => void
+  onTogglePublish: () => void
+  showAllRevisions: boolean
+  onToggleRevisions: () => void
+  isPublished: boolean
+  isPublishPending: boolean
+}) {
   return (
     <BookSpread
-      left={<RecipeLeftPage recipe={recipe} revisions={visibleRevisions} />}
-      right={<RecipeRightPage recipe={recipe} skillGraph={skillGraph} />}
+      left={showAllRevisions ? fullLeftPage : condensedLeftPage}
+      right={rightPage}
       rightOverlay={
         <RecipeViewBookmarks
-          isPublished={recipe.published}
+          isPublished={isPublished}
           onEdit={onEdit}
           onViewRevisions={onToggleRevisions}
           onTogglePublish={onTogglePublish}
+          isPublishPending={isPublishPending}
         />
       }
     />
   )
 }
 
-export default function RecipeSpreadClient({ recipe, revisions, skillGraph }: Props) {
+export default function RecipeSpreadClient({
+  slug,
+  initialPublished,
+  condensedLeftPage,
+  fullLeftPage,
+  rightPage,
+}: Props) {
+  const router = useRouter()
   const [showAllRevisions, setShowAllRevisions] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isPublished, setIsPublished] = useState(initialPublished)
+  const [isPending, startTransition] = useTransition()
 
-  const editor = useRecipeEditor({ recipe })
-  const { togglePublish } = editor
+  function togglePublish() {
+    startTransition(async () => {
+      const nextPublished = !isPublished
+      const res = await fetch(`/api/recipes/${slug}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ published: nextPublished }),
+      })
 
-  if (editor.isEditing) {
-    return <RecipeEditingSpread editor={editor} />
+      if (res.ok) {
+        setIsPublished(nextPublished)
+        router.refresh()
+      }
+    })
+  }
+
+  if (isEditing) {
+    return (
+      <RecipeSpreadEditor
+        slug={slug}
+        onCancel={() => setIsEditing(false)}
+        onSaved={() => {
+          setIsEditing(false)
+        }}
+      />
+    )
   }
 
   return (
     <RecipeViewingSpread
-      recipe={recipe}
-      revisions={revisions}
-      skillGraph={skillGraph}
-      onEdit={editor.startEditing}
+      condensedLeftPage={condensedLeftPage}
+      fullLeftPage={fullLeftPage}
+      rightPage={rightPage}
+      onEdit={() => setIsEditing(true)}
       onTogglePublish={togglePublish}
       showAllRevisions={showAllRevisions}
       onToggleRevisions={() => setShowAllRevisions((value) => !value)}
+      isPublished={isPublished}
+      isPublishPending={isPending}
     />
   )
 }

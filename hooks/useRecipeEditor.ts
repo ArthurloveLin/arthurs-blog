@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Recipe, Ingredient, RecipeStep } from '@/lib/recipes'
 
@@ -16,6 +16,7 @@ export function useRecipeEditor({ recipe, onSaved }: UseRecipeEditorOptions) {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isRefreshPending, startTransition] = useTransition()
   const [draft, setDraft] = useState<RecipeDraft>(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = recipe
@@ -90,15 +91,6 @@ export function useRecipeEditor({ recipe, onSaved }: UseRecipeEditorOptions) {
     }))
   }, [])
 
-  const togglePublish = useCallback(async () => {
-    const res = await fetch(`/api/recipes/${recipe.slug}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ published: !recipe.published }),
-    })
-    if (res.ok) router.refresh()
-  }, [recipe.slug, recipe.published, router])
-
   const save = useCallback(async () => {
     setIsSaving(true)
     setError(null)
@@ -113,25 +105,26 @@ export function useRecipeEditor({ recipe, onSaved }: UseRecipeEditorOptions) {
         throw new Error(body.error ?? `HTTP ${res.status}`)
       }
       setIsEditing(false)
-      router.refresh()
-      onSaved?.()
+      startTransition(() => {
+        router.refresh()
+        onSaved?.()
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存失败')
     } finally {
       setIsSaving(false)
     }
-  }, [recipe.slug, draft, router, onSaved])
+  }, [recipe.slug, draft, router, onSaved, startTransition])
 
   return {
     isEditing,
-    isSaving,
+    isSaving: isSaving || isRefreshPending,
     error,
     draft,
     startEditing,
     cancelEditing,
     setField,
     save,
-    togglePublish,
     ingredientActions: { addIngredient, removeIngredient, updateIngredient },
     stepActions: { addStep, removeStep, updateStep },
   }
