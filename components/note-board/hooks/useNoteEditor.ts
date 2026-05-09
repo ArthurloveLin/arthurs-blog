@@ -92,7 +92,7 @@ export function useNoteEditor({
   }, [isMobileViewport, scrollToEditor, setError])
 
   const saveEditingNote = useCallback(async () => {
-    if (!editingMessage || isUpdatingNote) return
+    if (!editingMessage || isUpdatingNote || !identity) return
 
     const nextContent = editContent.trim()
     if (!nextContent) {
@@ -101,10 +101,6 @@ export function useNoteEditor({
     }
 
     async function commitNoteUpdate(message: NoteMessage, content: string, priority: NotePriority) {
-      if (!identity) {
-        return
-      }
-
       const originalContent = message.content
       const originalPriority = message.priority
 
