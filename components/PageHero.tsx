@@ -3,6 +3,8 @@
 import React, { useMemo, useState } from 'react'
 import HandwrittenSloganClient from '@/components/HandwrittenSloganClient'
 
+const SLOGAN_SIGNATURE_SEPARATOR = '::'
+
 interface PageHeroProps {
   /** The main h1 title of the page */
   title: React.ReactNode
@@ -31,7 +33,10 @@ export default function PageHero({
   blobColors = ['bg-primary/10', 'bg-secondary/10'],
   containerClass = 'site-shell'
 }: PageHeroProps) {
-  const sloganSignature = useMemo(() => slogan ? [slogan.text1, slogan.text2, slogan.size1, slogan.size2].join('::') : null, [slogan])
+  const sloganSignature = useMemo(
+    () => slogan ? [slogan.text1, slogan.text2, slogan.size1, slogan.size2].join(SLOGAN_SIGNATURE_SEPARATOR) : null,
+    [slogan],
+  )
   const [completedSloganSignature, setCompletedSloganSignature] = useState<string | null>(null)
   const isSloganActive = Boolean(sloganSignature) && completedSloganSignature !== sloganSignature
 
