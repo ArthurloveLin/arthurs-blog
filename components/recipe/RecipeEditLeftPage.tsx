@@ -27,9 +27,26 @@ export default function RecipeEditLeftPage({ editor }: Props) {
 
   return (
     <div className="bs-page-scroll-content flex flex-col gap-4" style={pageStyle}>
-      {/* Title */}
+      {/* Title + Rating */}
       <div className="pb-1.5 border-b border-amber-800/20">
-        <SectionLabel>标题</SectionLabel>
+        <div className="flex items-center justify-between">
+          <SectionLabel>标题</SectionLabel>
+          <div className="flex gap-1 items-center">
+            <span className="text-[10px] text-amber-800/40 uppercase mr-1">推荐指数</span>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                onClick={() => setField('recommendation_rating', star)}
+                className={`text-sm transition-colors ${
+                  star <= (draft.recommendation_rating || 0) ? 'text-amber-600' : 'text-amber-200 hover:text-amber-400'
+                }`}
+              >
+                ★
+              </button>
+            ))}
+          </div>
+        </div>
         <EditableField
           value={draft.title}
           onChange={(v) => setField('title', v)}
@@ -111,6 +128,75 @@ export default function RecipeEditLeftPage({ editor }: Props) {
             type="number"
             placeholder="2"
           />
+        </div>
+      </div>
+
+      {/* Gallery */}
+      <div>
+        <SectionLabel>菜品照片 (第一张将作为封面)</SectionLabel>
+        <div className="grid grid-cols-3 gap-2 mt-2">
+          {(draft.gallery_images || []).map((img, idx) => (
+            <div key={img.key} className="relative aspect-square rounded overflow-hidden border border-amber-800/10 group">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img.url} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+              <button
+                onClick={async () => {
+                  if (confirm('确定要删除这张照片吗？此操作也会从云端删除文件。')) {
+                    try {
+                      const res = await fetch('/api/admin/delete-recipe-image', {
+                        method: 'POST',
+                        body: JSON.stringify({ key: img.key }),
+                      })
+                      if (res.ok) editor.galleryActions.removeGalleryImage(img.key)
+                    } catch (e) {
+                      console.error('Delete failed', e)
+                    }
+                  }
+                }}
+                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+          <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-amber-800/20 rounded cursor-pointer hover:bg-amber-50 transition-colors">
+            <Plus size={20} className="text-amber-800/40" />
+            <span className="text-[10px] text-amber-800/40 mt-1">上传照片</span>
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const files = e.target.files
+                if (!files) return
+                
+                const { compressImage } = await import('@/lib/compress')
+                
+                for (const file of Array.from(files)) {
+                  try {
+                    // Compress client-side
+                    const compressedFile = await compressImage(file)
+                    
+                    const formData = new FormData()
+                    formData.append('file', compressedFile)
+                    formData.append('recipeSlug', draft.slug)
+                    
+                    const res = await fetch('/api/admin/upload-recipe-image', {
+                      method: 'POST',
+                      body: formData,
+                    })
+                    if (res.ok) {
+                      const data = await res.json()
+                      editor.galleryActions.addGalleryImage({ url: data.url, key: data.key })
+                    }
+                  } catch (err) {
+                    console.error('Upload failed', err)
+                  }
+                }
+              }}
+            />
+          </label>
         </div>
       </div>
 

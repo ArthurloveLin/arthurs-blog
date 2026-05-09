@@ -1,7 +1,6 @@
 'use client'
 
 import './book-shell.css'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRef, Children, useState } from 'react'
 import { BookShellOverlayProvider, BookShellSlideIndexProvider } from './book-shell-overlay-context'
 
@@ -37,7 +36,6 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
   const [rightOverlay, setRightOverlay] = useState<React.ReactNode | null>(null)
   const canPrev = currentSlide > 0
   const canNext = currentSlide < slideCount - 1
-  const progressPercent = slideCount > 0 ? ((currentSlide + 1) / slideCount) * 100 : 0
 
   function goToSlide(index: number) {
     const safeIndex = Math.max(0, Math.min(slideCount - 1, index))
@@ -99,46 +97,29 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
 
           {rightOverlay ? <div className="bs-shell-right-overlay">{rightOverlay}</div> : null}
 
-          <div className="bs-nav" aria-label="翻页控制">
           <button
             type="button"
-            className="bs-nav-btn"
+            className="bs-side-nav bs-side-nav-prev"
             onClick={() => go('prev')}
             disabled={!canPrev}
             aria-label="上一页"
           >
-            <ChevronLeft size={16} />
-            <span>Prev</span>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 4h2v2h-2V4zm-2 2h2v2h-2V6zm-2 2h2v2H8V8zm-2 2h2v2H6v-2zm2 2h2v2H8v-2zm2 2h2v2h-2v-2zm2 2h2v2h-2v-2z" />
+            </svg>
           </button>
-
-          <div className="bs-progress-shell">
-            <div className="bs-progress-meta" aria-hidden="true">
-              <span>Page</span>
-              <span>{currentSlide + 1}/{slideCount}</span>
-            </div>
-            <div
-              className="bs-progress"
-              role="progressbar"
-              aria-label="阅读进度"
-              aria-valuemin={1}
-              aria-valuemax={slideCount}
-              aria-valuenow={Math.min(slideCount, currentSlide + 1)}
-            >
-              <div className="bs-progress-fill" style={{ width: `${progressPercent}%` }} />
-            </div>
-          </div>
 
           <button
             type="button"
-            className="bs-nav-btn"
+            className="bs-side-nav bs-side-nav-next"
             onClick={() => go('next')}
             disabled={!canNext}
             aria-label="下一页"
           >
-            <span>Next</span>
-            <ChevronRight size={16} />
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M10 4h2v2h-2V4zm2 2h2v2h-2V6zm2 2h2v2h-2V8zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm-2 2h2v2h-2v-2z" />
+            </svg>
           </button>
-          </div>
 
           {bookmarks && bookmarks.length > 0 && (
             <div className="bs-bookmarks" aria-label="章节书签">

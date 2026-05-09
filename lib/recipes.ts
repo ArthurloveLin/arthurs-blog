@@ -3,6 +3,11 @@ import { supabaseAdmin } from './supabase-admin'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+export interface RecipeImage {
+  url: string
+  key: string
+}
+
 export interface Ingredient {
   id: string
   amount: string
@@ -53,6 +58,8 @@ export interface Recipe extends RecipeListItem {
   pairing_suggestions: string | null
   ingredients: Ingredient[]
   steps: RecipeStep[]
+  gallery_images: RecipeImage[]
+  recommendation_rating: number | null
 }
 
 export type RecipeRevisionSnapshot = Omit<Recipe, 'id' | 'created_at' | 'updated_at'>
@@ -122,6 +129,8 @@ export const RECIPE_DETAIL_SELECT = `
   pairing_suggestions,
   ingredients,
   steps,
+  gallery_images,
+  recommendation_rating,
   published,
   published_at,
   sort_order,

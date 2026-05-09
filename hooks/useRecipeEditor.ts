@@ -114,6 +114,8 @@ export function useRecipeEditor({ recipe, onSaved }: UseRecipeEditorOptions) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...draft,
+          cover_image: draft.gallery_images?.[0]?.url || null,
+          cover_image_key: draft.gallery_images?.[0]?.key || null,
           version: normalizedVersion,
           change_summary: versionChanged ? changeSummary.trim() : undefined,
         }),
@@ -151,5 +153,22 @@ export function useRecipeEditor({ recipe, onSaved }: UseRecipeEditorOptions) {
     save,
     ingredientActions: { addIngredient, removeIngredient, updateIngredient },
     stepActions: { addStep, removeStep, updateStep },
+    galleryActions: {
+      addGalleryImage: (img: { url: string; key: string }) => {
+        setDraft((prev) => ({
+          ...prev,
+          gallery_images: [...(prev.gallery_images || []), img],
+        }))
+      },
+      removeGalleryImage: (key: string) => {
+        setDraft((prev) => ({
+          ...prev,
+          gallery_images: (prev.gallery_images || []).filter((img) => img.key !== key),
+        }))
+      },
+      setGalleryImages: (images: { url: string; key: string }[]) => {
+        setDraft((prev) => ({ ...prev, gallery_images: images }))
+      },
+    },
   }
 }

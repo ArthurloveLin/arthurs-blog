@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Maximize2, X } from 'lucide-react'
 import { useRecipeSkillGraph } from './RecipeSkillGraphProvider'
 
@@ -91,6 +92,13 @@ function SkillGraphModal({
   prerequisites: RelationItem[]
   continuations: RelationItem[]
 }) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true)
+  }, [])
+
   useEffect(() => {
     if (!open) {
       return
@@ -113,12 +121,12 @@ function SkillGraphModal({
     }
   }, [onClose, open])
 
-  if (!open) {
+  if (!open || !mounted) {
     return null
   }
 
-  return (
-    <div className="fixed inset-0 z-50 bg-stone-950/72 p-4 backdrop-blur-sm md:p-8" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[100] bg-stone-950/72 p-4 backdrop-blur-sm md:p-8" onClick={onClose}>
       <div
         className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[28px] border border-white/12 bg-[#120d08]/95 text-stone-50 shadow-[0_28px_120px_rgba(0,0,0,0.55)]"
         onClick={(event) => event.stopPropagation()}
@@ -188,7 +196,8 @@ function SkillGraphModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -256,10 +265,10 @@ export default function RecipeSkillGraphPanel({ currentRecipeId, mutedStyle }: P
             type="button"
             data-bs-no-drag="true"
             onClick={() => setIsGlobalOpen(true)}
-            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-800/15 bg-white/70 px-2.5 py-1 text-[10px] font-medium text-amber-950/80 transition hover:border-amber-800/25 hover:bg-white"
+            className="inline-flex shrink-0 items-center gap-1.5 text-[9px] font-mono tracking-[0.15em] uppercase text-stone-500/60 transition hover:text-stone-700 hover:opacity-100"
           >
-            <Maximize2 size={12} />
-            全局图
+            <Maximize2 size={11} strokeWidth={2.5} />
+            <span>全局图</span>
           </button>
         </div>
 
