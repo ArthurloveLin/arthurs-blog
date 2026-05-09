@@ -87,3 +87,20 @@ export function parseNoteContent(content: string) {
     checklistItems,
   }
 }
+
+export function toggleChecklistLine(content: string, lineIndex: number) {
+  const lines = content.split('\n')
+
+  if (lineIndex < 0 || lineIndex >= lines.length) {
+    return content
+  }
+
+  const targetLine = lines[lineIndex]
+  const match = targetLine.match(CHECKLIST_PARSE_PATTERN)
+  if (!match) {
+    return content
+  }
+
+  lines[lineIndex] = `- [${match[1].toLowerCase() === 'x' ? ' ' : 'x'}] ${match[2]}`
+  return lines.join('\n')
+}

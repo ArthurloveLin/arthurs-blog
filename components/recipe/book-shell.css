@@ -437,31 +437,20 @@
   }
 
   .bs-root[data-mobile="true"] {
-    /* Mobile dock uses three fixed actions in current UI. */
-    --bs-mobile-dock-columns: 3;
-    --bs-mobile-dock-bg-light: rgba(250, 249, 245, 0.96);
-    --bs-mobile-dock-bg-light-clear: rgba(250, 249, 245, 0);
-    --bs-mobile-dock-bg-dark: rgba(26, 25, 24, 0.96);
-    --bs-mobile-dock-bg-dark-clear: rgba(26, 25, 24, 0);
     --bs-mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
-    /* Tuned for single-screen layout: dock + status + breathing room for scroll end. */
-    --bs-mobile-dock-height: 5.2rem;
-    --bs-mobile-status-height: 1.2rem;
-    --bs-mobile-status-gap: 0.6rem;
-    --bs-mobile-content-padding: 0.7rem;
-    --bs-mobile-content-bottom-space: calc(
-      var(--bs-mobile-dock-height) + var(--bs-mobile-status-height) + var(--bs-mobile-status-gap) + var(--bs-mobile-content-padding)
-    );
+    --bs-mobile-toolbar-height: 2.75rem;
+    --bs-mobile-toolbar-gap: 0.85rem;
+    --bs-mobile-toolbar-space: calc(var(--bs-mobile-toolbar-height) + var(--bs-mobile-toolbar-gap));
 
     position: relative;
     width: 100%;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .bs-root[data-mobile="true"] .bs-book {
     width: 100%;
     max-width: none;
-    height: 100dvh;
+    height: auto;
   }
 
   .bs-root[data-mobile="true"] .bs-sprite,
@@ -473,18 +462,19 @@
 
   .bs-root[data-mobile="true"] .bs-carousel {
     width: 100%;
-    height: 100%;
-    overflow: hidden;
+    height: auto;
+    overflow: visible;
     margin: 0;
+    padding-top: var(--bs-mobile-toolbar-space);
   }
 
   .bs-root[data-mobile="true"] .bs-slide-wrapper,
   .bs-root[data-mobile="true"] .bs-slide-wrapper[data-active] {
     display: none;
-    position: absolute;
-    inset: 0;
+    position: relative;
+    inset: auto;
     opacity: 1;
-    pointer-events: none;
+    pointer-events: auto;
     transition: none;
   }
 
@@ -497,28 +487,31 @@
   .bs-root[data-mobile="true"] .bs-left-page,
   .bs-root[data-mobile="true"] .bs-right-page,
   .bs-root[data-mobile="true"] .bs-right-page-scroll {
-    overflow: hidden;
+    overflow: visible;
   }
 
   .bs-root[data-mobile="true"] .bs-page-container {
-    width: 200%;
+    display: block;
+    width: 100%;
     gap: 0;
-    height: 100%;
-    transform: translateX(0);
-    transition: transform 0.28s ease;
-  }
-
-  .bs-root[data-mobile="true"] .bs-slide-wrapper[data-page-side="right"] .bs-page-container {
-    transform: translateX(-50%);
+    height: auto;
+    transform: none;
+    transition: none;
   }
 
   .bs-root[data-mobile="true"] .bs-left-page,
   .bs-root[data-mobile="true"] .bs-right-page {
-    flex: 0 0 50%;
-    min-width: 50%;
-    height: 100%;
+    display: none;
+    flex: none;
+    min-width: 100%;
+    height: auto;
     padding: 0;
     color: oklch(0.3 0.02 50);
+  }
+
+  .bs-root[data-mobile="true"] .bs-slide-wrapper[data-page-side="left"] .bs-left-page,
+  .bs-root[data-mobile="true"] .bs-slide-wrapper[data-page-side="right"] .bs-right-page {
+    display: flex;
   }
 
   .bs-root[data-mobile="true"] .bs-right-page {
@@ -533,8 +526,8 @@
   .bs-root[data-mobile="true"] .bs-left-page > *,
   .bs-root[data-mobile="true"] .bs-right-page-scroll > * {
     width: 100%;
-    height: 100%;
-    min-height: 0;
+    height: auto;
+    min-height: auto;
     border: none;
     border-radius: 0;
     background: transparent;
@@ -548,14 +541,14 @@
   }
 
   .bs-root[data-mobile="true"] .bs-page-scroll-content {
-    height: 100% !important;
-    min-height: 0;
-    overflow-y: auto;
+    height: auto !important;
+    min-height: auto;
+    overflow: visible;
     overflow-x: hidden;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    padding-bottom: calc(var(--bs-mobile-safe-bottom) + var(--bs-mobile-content-bottom-space));
+    overscroll-behavior-y: auto;
+    -webkit-overflow-scrolling: auto;
+    scrollbar-width: auto;
+    padding-bottom: calc(var(--bs-mobile-safe-bottom) + 1rem);
   }
 
   .bs-root[data-mobile="true"] .recipe-page,
@@ -594,39 +587,64 @@
   .bs-root[data-mobile="true"] .bs-mobile-status {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 0.5rem;
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: calc(var(--bs-mobile-safe-bottom) + var(--bs-mobile-dock-height) + var(--bs-mobile-status-gap));
-    padding: 0 10px;
+    top: 0.45rem;
+    left: 0.75rem;
+    right: auto;
+    bottom: auto;
+    padding: 0;
+    min-height: var(--bs-mobile-toolbar-height);
     font-size: 11px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: oklch(0.45 0.02 50 / 0.72);
+    color: oklch(0.45 0.02 50 / 0.75);
     pointer-events: none;
+    z-index: 6;
+  }
+
+  .bs-root[data-mobile="true"] .bs-mobile-status span:first-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3rem;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid oklch(0.78 0.03 70 / 0.75);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.84);
+    backdrop-filter: blur(14px);
+  }
+
+  .dark .bs-root[data-mobile="true"] .bs-mobile-status span:first-child {
+    border-color: oklch(0.36 0.02 240 / 0.92);
+    background: rgba(26, 25, 24, 0.78);
+  }
+
+  .bs-root[data-mobile="true"] .bs-mobile-status span:last-child {
+    display: none;
   }
 
   .bs-root[data-mobile="true"] .bs-mobile-overlay {
-    display: block;
+    display: flex;
+    justify-content: flex-end;
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    min-height: var(--bs-mobile-dock-height);
-    padding: 8px 10px calc(var(--bs-mobile-safe-bottom) + 8px);
-    background: linear-gradient(to top, var(--bs-mobile-dock-bg-light), var(--bs-mobile-dock-bg-light-clear));
-  }
-
-  .dark .bs-root[data-mobile="true"] .bs-mobile-overlay {
-    background: linear-gradient(to top, var(--bs-mobile-dock-bg-dark), var(--bs-mobile-dock-bg-dark-clear));
+    top: 0.45rem;
+    right: 0.75rem;
+    left: auto;
+    bottom: auto;
+    min-height: var(--bs-mobile-toolbar-height);
+    padding: 0;
+    z-index: 7;
+    pointer-events: none;
   }
 
   .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-bookmarks {
-    display: grid;
-    grid-template-columns: repeat(var(--bs-mobile-dock-columns), minmax(88px, 1fr));
-    gap: 8px;
-    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    width: auto;
+    pointer-events: auto;
   }
 
   .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-bookmark-slot {
@@ -635,34 +653,59 @@
   }
 
   .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-bookmark {
-    width: 100%;
-    min-height: 58px;
-    padding: 10px 12px;
-    border-radius: 16px;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0;
+    border: 1px solid oklch(0.82 0.03 75 / 0.95);
+    border-radius: 999px;
     transform: none;
-    box-shadow:
-      0 14px 30px rgba(120, 53, 15, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.18);
-    gap: 6px;
-    font-size: 10px;
-    letter-spacing: 0.08em;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    background: rgba(255, 255, 255, 0.84);
+    backdrop-filter: blur(14px);
+    color: oklch(0.38 0.04 40);
+    text-shadow: none;
+    gap: 0;
+    font-size: 0;
+    letter-spacing: 0;
   }
 
   .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-bookmark:hover:not(:disabled) {
     transform: translateY(-1px);
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.12);
+  }
+
+  .dark .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-bookmark {
+    border-color: oklch(0.36 0.02 240 / 0.92);
+    background: rgba(26, 25, 24, 0.78);
+    color: oklch(0.88 0.02 60);
+  }
+
+  .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-bookmark svg {
+    width: 1.1rem;
+    height: 1.1rem;
   }
 
   .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-bookmark span {
-    writing-mode: initial;
-    text-orientation: initial;
+    display: none;
   }
 
   .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-error {
-    position: static;
-    margin-top: 8px;
-    max-width: none;
-    text-align: left;
+    position: absolute;
+    top: calc(100% + 0.45rem);
+    right: 0;
+    margin-top: 0;
+    max-width: 11rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    text-align: right;
     font-size: 10px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  }
+
+  .dark .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-error {
+    background: rgba(26, 25, 24, 0.88);
   }
 
   .bs-root[data-mobile="true"] .recipe-edit-page {
