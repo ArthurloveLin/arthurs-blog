@@ -439,7 +439,7 @@
   .bs-root[data-mobile="true"] {
     /* Mobile admin dock has exactly 3 actions: edit / history / publish. */
     --bs-mobile-dock-columns: 3;
-    --bs-mobile-safe-bottom: env(safe-area-inset-bottom);
+    --bs-mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
     --bs-mobile-dock-height: 5.2rem;
     --bs-mobile-status-height: 1.2rem;
     --bs-mobile-status-gap: 0.6rem;
@@ -610,6 +610,7 @@
     bottom: 0;
     min-height: var(--bs-mobile-dock-height);
     padding: 8px 10px calc(var(--bs-mobile-safe-bottom) + 8px);
+    background: linear-gradient(to top, rgba(250, 249, 245, 0.96), rgba(250, 249, 245, 0));
     background: linear-gradient(to top, oklch(from var(--color-background) l c h / 0.96), oklch(from var(--color-background) l c h / 0));
   }
 
