@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import HandwrittenSloganClient from '@/components/HandwrittenSloganClient'
 
 interface PageHeroProps {
@@ -31,11 +31,9 @@ export default function PageHero({
   blobColors = ['bg-primary/10', 'bg-secondary/10'],
   containerClass = 'site-shell'
 }: PageHeroProps) {
-  const [isSloganActive, setIsSloganActive] = useState(Boolean(slogan))
-
-  useEffect(() => {
-    setIsSloganActive(Boolean(slogan))
-  }, [slogan])
+  const sloganSignature = useMemo(() => slogan ? [slogan.text1, slogan.text2, slogan.size1, slogan.size2].join('::') : null, [slogan])
+  const [completedSloganSignature, setCompletedSloganSignature] = useState<string | null>(null)
+  const isSloganActive = Boolean(sloganSignature) && completedSloganSignature !== sloganSignature
 
   return (
     <div className="relative border-b border-border bg-background overflow-hidden">
@@ -48,7 +46,7 @@ export default function PageHero({
             <HandwrittenSloganClient 
               text1={slogan.text1} 
               text2={slogan.text2} 
-              onComplete={() => setIsSloganActive(false)}
+              onComplete={() => setCompletedSloganSignature(sloganSignature)}
               size1={slogan.size1 || "max(32px, min(6vw, 68px))"}
               size2={slogan.size2 || "max(20px, min(4vw, 46px))"}
             />

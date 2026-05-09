@@ -406,8 +406,14 @@ export function useNoteEditor({
   useEffect(() => {
     if (!editingNoteId) return
     if (!messages.some((message) => message.id === editingNoteId)) {
-      setEditingNoteId(null)
-      setEditContent('')
+      const frameId = window.requestAnimationFrame(() => {
+        setEditingNoteId(null)
+        setEditContent('')
+      })
+
+      return () => {
+        window.cancelAnimationFrame(frameId)
+      }
     }
   }, [editingNoteId, messages])
 
