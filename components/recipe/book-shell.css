@@ -437,10 +437,12 @@
   }
 
   .bs-root[data-mobile="true"] {
-    /* Mobile admin dock currently uses a fixed 3-slot grid. */
+    /* Keep this in sync with the rendered mobile dock action count. */
     --bs-mobile-dock-columns: 3;
     --bs-mobile-dock-bg-light: rgba(250, 249, 245, 0.96);
+    --bs-mobile-dock-bg-light-clear: rgba(250, 249, 245, 0);
     --bs-mobile-dock-bg-dark: rgba(26, 25, 24, 0.96);
+    --bs-mobile-dock-bg-dark-clear: rgba(26, 25, 24, 0);
     --bs-mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
     --bs-mobile-dock-height: 5.2rem;
     --bs-mobile-status-height: 1.2rem;
@@ -612,11 +614,11 @@
     bottom: 0;
     min-height: var(--bs-mobile-dock-height);
     padding: 8px 10px calc(var(--bs-mobile-safe-bottom) + 8px);
-    background: linear-gradient(to top, var(--bs-mobile-dock-bg-light), rgba(250, 249, 245, 0));
+    background: linear-gradient(to top, var(--bs-mobile-dock-bg-light), var(--bs-mobile-dock-bg-light-clear));
   }
 
   .dark .bs-root[data-mobile="true"] .bs-mobile-overlay {
-    background: linear-gradient(to top, var(--bs-mobile-dock-bg-dark), rgba(26, 25, 24, 0));
+    background: linear-gradient(to top, var(--bs-mobile-dock-bg-dark), var(--bs-mobile-dock-bg-dark-clear));
   }
 
   .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-bookmarks {
