@@ -169,7 +169,11 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
             </div>
           ) : null}
 
-          {rightOverlay ? <div className="bs-shell-right-overlay">{rightOverlay}</div> : null}
+          {rightOverlay ? (
+            isMobile
+              ? <div className="bs-mobile-overlay">{rightOverlay}</div>
+              : <div className="bs-shell-right-overlay">{rightOverlay}</div>
+          ) : null}
 
           <button
             type="button"

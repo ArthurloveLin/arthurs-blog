@@ -24,7 +24,7 @@ export default function RecipeEditRightPage({ editor }: Props) {
   const { draft, setField } = editor
 
   return (
-    <div className="bs-page-scroll-content flex flex-col gap-4 pr-16" style={pageStyle}>
+    <div className="bs-page-scroll-content recipe-edit-page recipe-edit-right-content flex flex-col gap-4 pr-16" style={pageStyle}>
 
       {/* Tags */}
       <div>
@@ -51,7 +51,7 @@ export default function RecipeEditRightPage({ editor }: Props) {
       {/* Flavor radar */}
       <div>
         <SectionLabel>风味雷达 (0-5，空=未设置)</SectionLabel>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="recipe-edit-flavor-grid grid grid-cols-3 gap-1.5">
           {flavorKeys.map(({ key, label }) => (
             <div key={key} className="flex items-center gap-1.5">
               <span style={{ color: 'oklch(0.55 0.03 50)', width: 16, fontSize: 12 }}>{label}</span>
