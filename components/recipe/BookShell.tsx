@@ -31,12 +31,11 @@ interface BookShellProps {
 export default function BookShell({ children, bookmarks, className }: BookShellProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
-  const previousIsMobileRef = useRef(false)
   const slides = Children.toArray(children)
   const slideCount = slides.length
-  const [currentPosition, setCurrentPosition] = useState(0)
-  const [isMobile, setIsMobile] = useState(false)
+  const [navigation, setNavigation] = useState({ currentPosition: 0, isMobile: false })
   const [rightOverlay, setRightOverlay] = useState<React.ReactNode | null>(null)
+  const { currentPosition, isMobile } = navigation
   const totalPositions = isMobile ? slideCount * 2 : slideCount
   const currentSlide = isMobile ? Math.floor(currentPosition / 2) : currentPosition
   const currentPageSide = isMobile && currentPosition % 2 === 1 ? 'right' : 'left'
@@ -46,7 +45,18 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 767px)')
     const updateViewport = () => {
-      setIsMobile(mediaQuery.matches)
+      const nextIsMobile = mediaQuery.matches
+
+      setNavigation((current) => {
+        if (current.isMobile === nextIsMobile) {
+          return current
+        }
+
+        return {
+          isMobile: nextIsMobile,
+          currentPosition: nextIsMobile ? current.currentPosition * 2 : Math.floor(current.currentPosition / 2),
+        }
+      })
     }
 
     updateViewport()
@@ -58,21 +68,12 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
   }, [])
 
   useEffect(() => {
-    if (previousIsMobileRef.current === isMobile) {
-      return
-    }
-
-    setCurrentPosition((previous) => (isMobile ? previous * 2 : Math.floor(previous / 2)))
-    previousIsMobileRef.current = isMobile
-  }, [isMobile])
-
-  useEffect(() => {
     rootRef.current?.style.setProperty('--sprite-fs', String(currentSlide * SPRITE_F))
   }, [currentSlide])
 
   function goToPosition(index: number) {
     const safeIndex = Math.max(0, Math.min(totalPositions - 1, index))
-    setCurrentPosition(safeIndex)
+    setNavigation((current) => ({ ...current, currentPosition: safeIndex }))
   }
 
   function goToSlide(index: number) {
