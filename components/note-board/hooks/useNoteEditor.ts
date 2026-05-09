@@ -100,8 +100,6 @@ export function useNoteEditor({
       return
     }
 
-    const updatedId = editingMessage.id
-
     async function commitNoteUpdate(message: NoteMessage, content: string, priority: NotePriority) {
       if (!identity) {
         return
