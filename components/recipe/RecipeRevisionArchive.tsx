@@ -20,7 +20,7 @@ export default function RecipeRevisionArchive({
   const selectedRevision = revisions.find((revision) => revision.id === selectedRevisionId) ?? revisions[0] ?? null
 
   return (
-    <div className="bs-page-scroll-content flex flex-col gap-3 text-xs" style={{ color: 'oklch(0.3 0.02 50)' }}>
+    <div className="bs-page-scroll-content recipe-page recipe-revision-archive flex flex-col gap-3 text-xs" style={{ color: 'oklch(0.3 0.02 50)' }}>
       <div className="shrink-0 pb-2 border-b border-amber-800/20">
         <p className="text-[9px] font-mono tracking-[0.18em] uppercase text-amber-900/50">版本档案</p>
         <h2 className="text-sm font-bold mt-1">当前版本 v{currentVersion}</h2>

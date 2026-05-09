@@ -79,7 +79,7 @@ export default function RecipeLeftPage({ recipe, revisions }: Props) {
   const prevImg = () => setCurrentImgIndex((prev) => (prev - 1 + images.length) % images.length)
 
   return (
-    <div className="bs-page-scroll-content" style={{ 
+    <div className="bs-page-scroll-content recipe-page recipe-left-content" style={{ 
       padding: '24px 28px',
       color: KAMI.nearBlack,
       fontFamily: KAMI.serif,
@@ -119,7 +119,7 @@ export default function RecipeLeftPage({ recipe, revisions }: Props) {
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' }}>
-          <h1 style={{
+          <h1 className="recipe-title" style={{
             fontSize: 28,
             fontWeight: 500,
             lineHeight: 1.1,
@@ -142,7 +142,7 @@ export default function RecipeLeftPage({ recipe, revisions }: Props) {
         </div>
 
         {recipe.description && (
-          <p style={{
+          <p className="recipe-description" style={{
             fontSize: 12.5,
             color: KAMI.olive,
             lineHeight: 1.5,
@@ -154,7 +154,7 @@ export default function RecipeLeftPage({ recipe, revisions }: Props) {
       </header>
 
       {/* ── Key Metrics ── */}
-      <div style={{ 
+      <div className="recipe-metrics-grid" style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(3, 1fr)', 
         gap: 16,
@@ -189,12 +189,12 @@ export default function RecipeLeftPage({ recipe, revisions }: Props) {
               />
               {images.length > 1 && (
                 <>
-                  <button onClick={prevImg} style={{ left: 8, color: KAMI.ink }} className="absolute top-1/2 -translate-y-1/2 bg-white/90 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm border border-slate-200">
-                    <ChevronLeft size={14} />
-                  </button>
-                  <button onClick={nextImg} style={{ right: 8, color: KAMI.ink }} className="absolute top-1/2 -translate-y-1/2 bg-white/90 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm border border-slate-200">
-                    <ChevronRight size={14} />
-                  </button>
+                   <button onClick={prevImg} style={{ left: 8, color: KAMI.ink }} className="recipe-image-nav absolute top-1/2 -translate-y-1/2 bg-white/90 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm border border-slate-200">
+                     <ChevronLeft size={14} />
+                   </button>
+                   <button onClick={nextImg} style={{ right: 8, color: KAMI.ink }} className="recipe-image-nav absolute top-1/2 -translate-y-1/2 bg-white/90 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm border border-slate-200">
+                     <ChevronRight size={14} />
+                   </button>
                   <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
                     {images.map((_, i) => (
                       <div key={i} className={`w-1 h-1 rounded-full transition-all ${i === currentImgIndex ? 'bg-white w-2' : 'bg-white/40'}`} />
@@ -219,10 +219,10 @@ export default function RecipeLeftPage({ recipe, revisions }: Props) {
       {recipe.ingredients.length > 0 && (
         <section>
           <SectionTitle>食材清单 · {recipe.ingredients.length}</SectionTitle>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '1fr 1fr', 
-            gap: '4px 16px',
+          <div className="recipe-ingredients-grid" style={{ 
+             display: 'grid', 
+             gridTemplateColumns: '1fr 1fr', 
+             gap: '4px 16px',
           }}>
             {recipe.ingredients.map((ing) => (
               <div key={ing.id} style={{ 
@@ -285,12 +285,12 @@ export default function RecipeLeftPage({ recipe, revisions }: Props) {
       )}
 
       {/* ── Secondary Analysis ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
-        <div>
-          <SectionTitle>风味雷达</SectionTitle>
-          <div style={{ transform: 'scale(0.9)', transformOrigin: 'top left', marginTop: -10 }}>
-            <FlavorRadar recipe={recipe} />
-          </div>
+       <div className="recipe-secondary-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
+         <div>
+           <SectionTitle>风味雷达</SectionTitle>
+           <div className="recipe-flavor-radar" style={{ transform: 'scale(0.9)', transformOrigin: 'top left', marginTop: -10 }}>
+             <FlavorRadar recipe={recipe} />
+           </div>
         </div>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

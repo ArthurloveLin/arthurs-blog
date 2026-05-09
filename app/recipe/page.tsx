@@ -48,7 +48,7 @@ export default async function RecipePage() {
       />
 
 
-      <div className="w-full px-6 pt-16 pb-12">
+      <div className="w-full px-4 pt-10 pb-12 md:px-6 md:pt-16">
         <RecipeSkillGraphProvider graph={skillGraph}>
           <BookShell>
             <BookSpread
