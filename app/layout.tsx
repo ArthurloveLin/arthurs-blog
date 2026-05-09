@@ -99,6 +99,12 @@ export default async function RootLayout({
           <Script
              src="https://analytics.arthurlovegrace.top/script.js"
              data-website-id="ec4e0366-0b25-4529-a142-2fea5492cf32"
+             data-performance="true"
+             strategy="afterInteractive"
+          />
+          <Script
+             src="https://analytics.arthurlovegrace.top/recorder.js"
+             data-website-id="ec4e0366-0b25-4529-a142-2fea5492cf32"
              strategy="afterInteractive"
           />
         </body>

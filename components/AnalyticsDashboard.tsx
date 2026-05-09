@@ -16,6 +16,7 @@ type AnalyticsResponse = {
     realtime: number
   }
   trend: Array<{ x: string; y: number }>
+  performance: Record<string, { p50: number; p75: number; p95: number }> | null
 }
 
 const fetcher = async (url: string): Promise<AnalyticsResponse> => {
@@ -55,6 +56,50 @@ function formatCompactNumber(value: number) {
   return numberFormatter.format(value)
 }
 
+function getPerformanceStatus(metric: string, value: number) {
+  if (metric === 'lcp') {
+    if (value <= 2500) return 'good'
+    if (value <= 4000) return 'needs-improvement'
+    return 'poor'
+  }
+  if (metric === 'cls') {
+    if (value <= 0.1) return 'good'
+    if (value <= 0.25) return 'needs-improvement'
+    return 'poor'
+  }
+  if (metric === 'inp') {
+    if (value <= 200) return 'good'
+    if (value <= 500) return 'needs-improvement'
+    return 'poor'
+  }
+  if (metric === 'fcp') {
+    if (value <= 1800) return 'good'
+    if (value <= 3000) return 'needs-improvement'
+    return 'poor'
+  }
+  if (metric === 'ttfb') {
+    if (value <= 800) return 'good'
+    if (value <= 1800) return 'needs-improvement'
+    return 'poor'
+  }
+  return 'unknown'
+}
+
+function getStatusColor(status: string) {
+  switch (status) {
+    case 'good': return 'text-emerald-500'
+    case 'needs-improvement': return 'text-amber-500'
+    case 'poor': return 'text-rose-500'
+    default: return 'text-muted-foreground'
+  }
+}
+
+function formatMetricValue(metric: string, value: number) {
+  if (metric === 'cls') return value.toFixed(3)
+  if (value >= 1000) return `${(value / 1000).toFixed(2)}s`
+  return `${Math.round(value)}ms`
+}
+
 export default function AnalyticsDashboard({ placement }: { placement: 'desktop' | 'mobile' }) {
   const [range, setRange] = useState<RangeKey>('7d')
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai'
@@ -80,6 +125,7 @@ export default function AnalyticsDashboard({ placement }: { placement: 'desktop'
   }, [data?.trend])
 
   const stats = data?.summary
+  const performance = data?.performance
 
   return (
     <section className="mt-4 rounded-xl border border-border/60 bg-background/80 p-4">
@@ -174,6 +220,29 @@ export default function AnalyticsDashboard({ placement }: { placement: 'desktop'
               <p className="text-sm font-semibold mt-1">{formatCompactNumber(stats.realtime)}</p>
             </div>
           </div>
+
+          {performance && (
+            <div className="rounded-lg border border-border/60 p-2.5">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] text-muted-foreground">性能指标 (p75)</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {['lcp', 'cls', 'inp'].map((key) => {
+                  const val = performance[key]?.p75
+                  if (val === undefined || val === null) return null
+                  const status = getPerformanceStatus(key, val)
+                  return (
+                    <div key={key} className="text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase">{key}</p>
+                      <p className={`text-xs font-medium mt-0.5 ${getStatusColor(status)}`}>
+                        {formatMetricValue(key, val)}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {trendBars.length > 0 && (
             <div className="rounded-lg border border-border/60 p-2.5">
