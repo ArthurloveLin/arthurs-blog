@@ -437,8 +437,10 @@
   }
 
   .bs-root[data-mobile="true"] {
-    /* Mobile admin dock has exactly 3 actions: edit / history / publish. */
+    /* Mobile admin dock currently uses a fixed 3-slot grid. */
     --bs-mobile-dock-columns: 3;
+    --bs-mobile-dock-bg-light: rgba(250, 249, 245, 0.96);
+    --bs-mobile-dock-bg-dark: rgba(26, 25, 24, 0.96);
     --bs-mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
     --bs-mobile-dock-height: 5.2rem;
     --bs-mobile-status-height: 1.2rem;
@@ -610,11 +612,11 @@
     bottom: 0;
     min-height: var(--bs-mobile-dock-height);
     padding: 8px 10px calc(var(--bs-mobile-safe-bottom) + 8px);
-    background: linear-gradient(to top, rgba(250, 249, 245, 0.96), rgba(250, 249, 245, 0));
+    background: linear-gradient(to top, var(--bs-mobile-dock-bg-light), rgba(250, 249, 245, 0));
   }
 
   .dark .bs-root[data-mobile="true"] .bs-mobile-overlay {
-    background: linear-gradient(to top, rgba(26, 25, 24, 0.96), rgba(26, 25, 24, 0));
+    background: linear-gradient(to top, var(--bs-mobile-dock-bg-dark), rgba(26, 25, 24, 0));
   }
 
   .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-bookmarks {
