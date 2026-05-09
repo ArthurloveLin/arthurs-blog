@@ -73,6 +73,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
                 {onToggleChecklistItem && lineIndex !== null ? (
                 <button
                   type="button"
+                  aria-label={item.checked ? `取消勾选：${item.text}` : `勾选清单项：${item.text}`}
                   className="flex w-full items-start gap-2 text-left disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={checklistPending}
                   onPointerDown={(event) => event.stopPropagation()}
