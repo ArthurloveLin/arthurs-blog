@@ -437,13 +437,14 @@
   }
 
   .bs-root[data-mobile="true"] {
-    /* Keep this in sync with the rendered mobile dock action count. */
+    /* Mobile dock uses three fixed actions in current UI. */
     --bs-mobile-dock-columns: 3;
     --bs-mobile-dock-bg-light: rgba(250, 249, 245, 0.96);
     --bs-mobile-dock-bg-light-clear: rgba(250, 249, 245, 0);
     --bs-mobile-dock-bg-dark: rgba(26, 25, 24, 0.96);
     --bs-mobile-dock-bg-dark-clear: rgba(26, 25, 24, 0);
     --bs-mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
+    /* Tuned for single-screen layout: dock + status + breathing room for scroll end. */
     --bs-mobile-dock-height: 5.2rem;
     --bs-mobile-status-height: 1.2rem;
     --bs-mobile-status-gap: 0.6rem;
@@ -623,7 +624,7 @@
 
   .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-bookmarks {
     display: grid;
-    grid-template-columns: repeat(var(--bs-mobile-dock-columns), minmax(0, 1fr));
+    grid-template-columns: repeat(var(--bs-mobile-dock-columns), minmax(88px, 1fr));
     gap: 8px;
     width: 100%;
   }
