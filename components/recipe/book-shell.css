@@ -613,6 +613,10 @@
     background: linear-gradient(to top, rgba(250, 249, 245, 0.96), rgba(250, 249, 245, 0));
   }
 
+  .dark .bs-root[data-mobile="true"] .bs-mobile-overlay {
+    background: linear-gradient(to top, rgba(26, 25, 24, 0.96), rgba(26, 25, 24, 0));
+  }
+
   .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-bookmarks {
     display: grid;
     grid-template-columns: repeat(var(--bs-mobile-dock-columns), minmax(0, 1fr));
