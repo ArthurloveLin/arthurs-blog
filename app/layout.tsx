@@ -105,6 +105,9 @@ export default async function RootLayout({
           <Script
              src="https://analytics.arthurlovegrace.top/recorder.js"
              data-website-id="ec4e0366-0b25-4529-a142-2fea5492cf32"
+             data-sample-rate="0.15"
+             data-mask-level="moderate"
+             data-max-duration="300000"
              strategy="afterInteractive"
           />
         </body>
