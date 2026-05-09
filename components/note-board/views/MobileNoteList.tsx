@@ -23,7 +23,7 @@ export function MobileNoteList({ items }: MobileNoteListProps) {
 }
 
 function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
-  const { message, actions, canDelete, canEdit, priorityControl, isPriorityUpdating, reactionControl, isOptimistic, isOptimisticEditing, isFresh } = item
+  const { message, actions, canDelete, canEdit, priorityControl, isPriorityUpdating, reactionControl, checklistControl, isOptimistic, isOptimisticEditing, isFresh } = item
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
 
   return (
@@ -101,7 +101,12 @@ function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
         </div>
       ) : null}
       <div className="text-sm leading-relaxed text-foreground/90">
-        <NoteContent content={message.content} variant="board" />
+        <NoteContent
+          content={message.content}
+          variant="board"
+          onToggleChecklistItem={checklistControl?.onToggle}
+          checklistPending={checklistControl?.pending}
+        />
       </div>
       <EmojiReactionSummary
         entries={reactionControl.emojiReactions}

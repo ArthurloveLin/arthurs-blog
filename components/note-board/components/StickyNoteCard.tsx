@@ -16,6 +16,7 @@ import type {
   Size,
   StickyNoteCardActions,
   StickyNoteCardInlineEditor,
+  StickyNoteCardChecklistControl,
   StickyNoteCardLinkAction,
   StickyNoteCardPriorityControl,
   StickyNoteCardReactionControl,
@@ -51,6 +52,7 @@ interface StickyNoteBoardCardProps extends StickyNoteCardSharedProps {
   actions?: StickyNoteCardActions
   priorityControl?: StickyNoteCardPriorityControl
   reactionControl: StickyNoteCardReactionControl
+  checklistControl?: StickyNoteCardChecklistControl
   inlineEditor?: StickyNoteCardInlineEditor
   onHeightChange?: (height: number) => void
   surface?: 'desktop' | 'mobile-stack'
@@ -69,6 +71,7 @@ interface StickyNoteCardFrameProps extends StickyNoteCardSharedProps {
   actions?: StickyNoteCardActions
   priorityControl?: StickyNoteCardPriorityControl
   reactionControl?: StickyNoteCardReactionControl
+  checklistControl?: StickyNoteCardChecklistControl
   inlineEditor?: StickyNoteCardInlineEditor
   onHeightChange?: (height: number) => void
   animatePosition: boolean
@@ -96,6 +99,7 @@ function StickyNoteCardFrame({
   actions,
   priorityControl,
   reactionControl,
+  checklistControl,
   inlineEditor,
   onLift,
   onCommit,
@@ -598,7 +602,12 @@ function StickyNoteCardFrame({
               />
             </div>
           ) : (
-            <NoteContent content={message.content} variant={variant} />
+            <NoteContent
+              content={message.content}
+              variant={variant}
+              onToggleChecklistItem={checklistControl?.onToggle}
+              checklistPending={checklistControl?.pending}
+            />
           )}
           {!isPreview && reactionControl ? (
             <div className="mt-auto pt-1" onPointerDown={(event) => event.stopPropagation()}>
@@ -634,6 +643,7 @@ export function StickyNoteBoardCard({
   actions,
   priorityControl,
   reactionControl,
+  checklistControl,
   inlineEditor,
   onHeightChange,
   surface = 'desktop',
@@ -649,6 +659,7 @@ export function StickyNoteBoardCard({
       actions={actions}
       priorityControl={priorityControl}
       reactionControl={reactionControl}
+      checklistControl={checklistControl}
       inlineEditor={inlineEditor}
       onHeightChange={onHeightChange}
       animatePosition

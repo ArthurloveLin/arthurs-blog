@@ -297,6 +297,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     cancelEditingNote,
     startEditingNote,
     saveEditingNote,
+    toggleChecklistItem,
     submitDraft,
   } = useNoteEditor({
     board,
@@ -368,6 +369,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     handleReaction,
     handleEmojiReaction,
     saveEditingNote,
+    toggleChecklistItem,
     cancelEditingNote,
     setEditContent,
   })

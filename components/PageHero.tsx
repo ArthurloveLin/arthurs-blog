@@ -44,7 +44,7 @@ export default function PageHero({
 
       <div className={`${containerClass} relative pt-14 pb-12 lg:pt-20 lg:pb-16 z-10`}>
         {slogan && (
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[100px] md:inset-0 md:h-full flex items-center justify-center">
+          <div className="pointer-events-none relative z-0 mb-4 flex h-[84px] items-center justify-center overflow-hidden md:absolute md:inset-0 md:mb-0 md:h-full">
             <HandwrittenSloganClient 
               text1={slogan.text1} 
               text2={slogan.text2} 

@@ -99,6 +99,11 @@ export interface StickyNoteCardReactionControl {
   onEmojiReact: (emoji: string) => void
 }
 
+export interface StickyNoteCardChecklistControl {
+  pending?: boolean
+  onToggle?: (lineIndex: number) => void
+}
+
 export interface NoteCardViewModel {
   message: NoteMessage
   canDelete: boolean
@@ -106,6 +111,7 @@ export interface NoteCardViewModel {
   actions: StickyNoteCardActions
   priorityControl?: StickyNoteCardPriorityControl
   reactionControl: StickyNoteCardReactionControl
+  checklistControl?: StickyNoteCardChecklistControl
   inlineEditor?: StickyNoteCardInlineEditor
   isEditing: boolean
   isPriorityUpdating: boolean

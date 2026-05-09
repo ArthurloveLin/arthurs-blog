@@ -6,6 +6,7 @@ import type { NoteMessage } from '@/lib/note-boards'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { DEFAULT_NOTE_PRIORITY, type NotePriority } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
+import { toggleChecklistLine } from '@/components/note-board/utils/editor'
 
 function getResponseErrorMessage(payload: unknown) {
   if (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') {
@@ -91,7 +92,7 @@ export function useNoteEditor({
   }, [isMobileViewport, scrollToEditor, setError])
 
   const saveEditingNote = useCallback(async () => {
-    if (!editingMessage || !identity || isUpdatingNote) return
+    if (!editingMessage || isUpdatingNote) return
 
     const nextContent = editContent.trim()
     if (!nextContent) {
@@ -100,101 +101,202 @@ export function useNoteEditor({
     }
 
     const updatedId = editingMessage.id
-    const originalContent = editingMessage.content
-    const originalPriority = editingMessage.priority
+
+    async function commitNoteUpdate(message: NoteMessage, content: string, priority: NotePriority) {
+      if (!identity) {
+        return
+      }
+
+      const originalContent = message.content
+      const originalPriority = message.priority
+
+      setError(null)
+      setUpdatingNoteIds((prev) => ({ ...prev, [message.id]: true }))
+      replaceMessages((current) => current.map((currentMessage) => currentMessage.id === message.id
+        ? {
+          ...currentMessage,
+          content,
+          priority,
+        }
+        : currentMessage), { resetPositions: false })
+
+      try {
+        let updatedMessage: NoteMessage
+
+        if (board.slug === 'guestbook') {
+          const response = await fetchEngagementPublicApi(`/api/comments/${message.id}`, {
+            method: 'PATCH',
+            headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ identity, identities: viewerIdentityAliases, content }),
+          })
+
+          const payload = await response.json().catch(() => null) as Comment | { error?: string } | null
+          if (!response.ok) {
+            if (response.status === 403) {
+              throw new Error('当前身份没有编辑权限。')
+            }
+
+            throw new Error(humanizeGuestbookMutationError(getResponseErrorMessage(payload), '便签更新失败，请稍后再试。'))
+          }
+
+          if (!payload) {
+            throw new Error('便签更新失败，请稍后再试。')
+          }
+
+          updatedMessage = createGuestbookNoteMessage(createCommentRecord(payload as Comment))
+        } else {
+          const response = await fetch(`/api/note-boards/${board.slug}/${message.id}`, {
+            method: 'PATCH',
+            headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ identity, identities: viewerIdentityAliases, content, priority }),
+          })
+
+          if (!response.ok) {
+            const payload = await response.json().catch(() => null) as { error?: string } | null
+            if (response.status === 403) {
+              throw new Error('当前身份没有编辑权限。')
+            }
+            throw new Error(payload?.error === 'Content too long' ? `便签不能超过 ${NOTE_MAX_LENGTH} 字。` : '便签更新失败，请稍后再试。')
+          }
+
+          updatedMessage = (await response.json()) as NoteMessage
+        }
+
+        replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedMessage.id
+          ? {
+            ...updatedMessage,
+            visual_seed: currentMessage.visual_seed,
+            upvotes: currentMessage.upvotes,
+            downvotes: currentMessage.downvotes,
+            viewer_reaction: currentMessage.viewer_reaction,
+            emoji_reactions: currentMessage.emoji_reactions,
+            viewer_emojis: currentMessage.viewer_emojis,
+          }
+          : currentMessage), { resetPositions: false })
+      } catch (updateError) {
+        replaceMessages((current) => current.map((currentMessage) => currentMessage.id === message.id
+          ? {
+            ...currentMessage,
+            content: originalContent,
+            priority: originalPriority,
+          }
+          : currentMessage), { resetPositions: false })
+        setError(updateError instanceof Error ? updateError.message : '便签更新失败，请稍后再试。')
+      } finally {
+        setUpdatingNoteIds((prev) => {
+          const next = { ...prev }
+          delete next[message.id]
+          return next
+        })
+      }
+    }
 
     setIsUpdatingNote(true)
-    setError(null)
-
-    // Reset local editing state immediately to restore card view/shape
     setEditingNoteId(null)
     setEditContent('')
     setEditPriority(DEFAULT_NOTE_PRIORITY)
 
-    // Mark note as updating for loading indicator
-    setUpdatingNoteIds((prev) => ({ ...prev, [updatedId]: true }))
-
-    // Optimistically update message in state
-    replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedId
-      ? {
-        ...currentMessage,
-        content: nextContent,
-        priority: editPriority,
-      }
-      : currentMessage), { resetPositions: false })
-
     try {
-      let updatedMessage: NoteMessage
-
-      if (board.slug === 'guestbook') {
-        const response = await fetchEngagementPublicApi(`/api/comments/${updatedId}`, {
-          method: 'PATCH',
-          headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ identity, identities: viewerIdentityAliases, content: nextContent }),
-        })
-
-        const payload = await response.json().catch(() => null) as Comment | { error?: string } | null
-        if (!response.ok) {
-          if (response.status === 403) {
-            throw new Error('当前身份没有编辑权限。')
-          }
-
-          throw new Error(humanizeGuestbookMutationError(getResponseErrorMessage(payload), '便签更新失败，请稍后再试。'))
-        }
-
-        if (!payload) {
-          throw new Error('便签更新失败，请稍后再试。')
-        }
-
-        updatedMessage = createGuestbookNoteMessage(createCommentRecord(payload as Comment))
-      } else {
-        const response = await fetch(`/api/note-boards/${board.slug}/${updatedId}`, {
-          method: 'PATCH',
-          headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ identity, identities: viewerIdentityAliases, content: nextContent, priority: editPriority }),
-        })
-
-        if (!response.ok) {
-          const payload = await response.json().catch(() => null) as { error?: string } | null
-          if (response.status === 403) {
-            throw new Error('当前身份没有编辑权限。')
-          }
-          throw new Error(payload?.error === 'Content too long' ? `便签不能超过 ${NOTE_MAX_LENGTH} 字。` : '便签更新失败，请稍后再试。')
-        }
-
-        updatedMessage = (await response.json()) as NoteMessage
-      }
-
-      replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedMessage.id
-        ? {
-          ...updatedMessage,
-          visual_seed: currentMessage.visual_seed,
-          upvotes: currentMessage.upvotes,
-          downvotes: currentMessage.downvotes,
-          viewer_reaction: currentMessage.viewer_reaction,
-          emoji_reactions: currentMessage.emoji_reactions,
-          viewer_emojis: currentMessage.viewer_emojis,
-        }
-        : currentMessage), { resetPositions: false })
-    } catch (updateError) {
-      // Revert if error occurs
-      replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedId
-        ? {
-          ...currentMessage,
-          content: originalContent,
-          priority: originalPriority,
-        }
-        : currentMessage), { resetPositions: false })
-      setError(updateError instanceof Error ? updateError.message : '便签更新失败，请稍后再试。')
+      await commitNoteUpdate(editingMessage, nextContent, editPriority)
     } finally {
       setIsUpdatingNote(false)
-      setUpdatingNoteIds((prev) => {
-        const next = { ...prev }
-        delete next[updatedId]
-        return next
-      })
     }
   }, [board.slug, editContent, editPriority, editingMessage, identity, isUpdatingNote, replaceMessages, setError, viewerIdentityAliases])
+
+  const toggleChecklistItem = useCallback((message: NoteMessage, lineIndex: number) => {
+    if (!identity || editingNoteId === message.id || updatingNoteIds[message.id]) {
+      return
+    }
+
+    const nextContent = toggleChecklistLine(message.content, lineIndex)
+    if (nextContent === message.content) {
+      return
+    }
+
+    void (async () => {
+      const originalContent = message.content
+      const originalPriority = message.priority
+
+      setError(null)
+      setUpdatingNoteIds((prev) => ({ ...prev, [message.id]: true }))
+      replaceMessages((current) => current.map((currentMessage) => currentMessage.id === message.id
+        ? {
+          ...currentMessage,
+          content: nextContent,
+        }
+        : currentMessage), { resetPositions: false })
+
+      try {
+        let updatedMessage: NoteMessage
+
+        if (board.slug === 'guestbook') {
+          const response = await fetchEngagementPublicApi(`/api/comments/${message.id}`, {
+            method: 'PATCH',
+            headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ identity, identities: viewerIdentityAliases, content: nextContent }),
+          })
+
+          const payload = await response.json().catch(() => null) as Comment | { error?: string } | null
+          if (!response.ok) {
+            if (response.status === 403) {
+              throw new Error('当前身份没有编辑权限。')
+            }
+
+            throw new Error(humanizeGuestbookMutationError(getResponseErrorMessage(payload), '便签更新失败，请稍后再试。'))
+          }
+
+          if (!payload) {
+            throw new Error('便签更新失败，请稍后再试。')
+          }
+
+          updatedMessage = createGuestbookNoteMessage(createCommentRecord(payload as Comment))
+        } else {
+          const response = await fetch(`/api/note-boards/${board.slug}/${message.id}`, {
+            method: 'PATCH',
+            headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ identity, identities: viewerIdentityAliases, content: nextContent, priority: message.priority }),
+          })
+
+          if (!response.ok) {
+            const payload = await response.json().catch(() => null) as { error?: string } | null
+            if (response.status === 403) {
+              throw new Error('当前身份没有编辑权限。')
+            }
+            throw new Error(payload?.error === 'Content too long' ? `便签不能超过 ${NOTE_MAX_LENGTH} 字。` : '便签更新失败，请稍后再试。')
+          }
+
+          updatedMessage = (await response.json()) as NoteMessage
+        }
+
+        replaceMessages((current) => current.map((currentMessage) => currentMessage.id === updatedMessage.id
+          ? {
+            ...updatedMessage,
+            visual_seed: currentMessage.visual_seed,
+            upvotes: currentMessage.upvotes,
+            downvotes: currentMessage.downvotes,
+            viewer_reaction: currentMessage.viewer_reaction,
+            emoji_reactions: currentMessage.emoji_reactions,
+            viewer_emojis: currentMessage.viewer_emojis,
+          }
+          : currentMessage), { resetPositions: false })
+      } catch (updateError) {
+        replaceMessages((current) => current.map((currentMessage) => currentMessage.id === message.id
+          ? {
+            ...currentMessage,
+            content: originalContent,
+            priority: originalPriority,
+          }
+          : currentMessage), { resetPositions: false })
+        setError(updateError instanceof Error ? updateError.message : '便签更新失败，请稍后再试。')
+      } finally {
+        setUpdatingNoteIds((prev) => {
+          const next = { ...prev }
+          delete next[message.id]
+          return next
+        })
+      }
+    })()
+  }, [board.slug, editingNoteId, identity, replaceMessages, setError, updatingNoteIds, viewerIdentityAliases])
 
   const submitDraft = useCallback(async () => {
     if (!draft.trim() || !identity || !canWrite || isSubmitting) return
@@ -328,6 +430,7 @@ export function useNoteEditor({
     cancelEditingNote,
     startEditingNote,
     saveEditingNote,
+    toggleChecklistItem,
     submitDraft,
   }
 }
