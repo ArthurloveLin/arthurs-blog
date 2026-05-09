@@ -26,7 +26,7 @@ export default function RecipeEditLeftPage({ editor }: Props) {
   const { addStep, removeStep, updateStep } = stepActions
 
   return (
-    <div className="bs-page-scroll-content flex flex-col gap-4" style={pageStyle}>
+    <div className="bs-page-scroll-content recipe-edit-page recipe-edit-left-content flex flex-col gap-4" style={pageStyle}>
       {/* Title + Rating */}
       <div className="pb-1.5 border-b border-amber-800/20">
         <div className="flex items-center justify-between">
@@ -57,7 +57,7 @@ export default function RecipeEditLeftPage({ editor }: Props) {
       </div>
 
       {/* Category + version */}
-      <div className="flex gap-2">
+      <div className="recipe-edit-meta-grid flex gap-2">
         <div className="flex-1">
           <SectionLabel>分类</SectionLabel>
           <EditableField
@@ -98,7 +98,7 @@ export default function RecipeEditLeftPage({ editor }: Props) {
       </div>
 
       {/* Metrics */}
-      <div className="flex gap-2">
+      <div className="recipe-edit-metrics-grid flex gap-2">
         <div className="flex-1">
           <SectionLabel>备料(分钟)</SectionLabel>
           <EditableField
@@ -134,7 +134,7 @@ export default function RecipeEditLeftPage({ editor }: Props) {
       {/* Gallery */}
       <div>
         <SectionLabel>菜品照片 (第一张将作为封面)</SectionLabel>
-        <div className="grid grid-cols-3 gap-2 mt-2">
+        <div className="recipe-edit-gallery-grid grid grid-cols-3 gap-2 mt-2">
           {(draft.gallery_images || []).map((img, idx) => (
             <div key={img.key} className="relative aspect-square rounded overflow-hidden border border-amber-800/10 group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -225,7 +225,7 @@ export default function RecipeEditLeftPage({ editor }: Props) {
         </div>
         <div className="space-y-1.5">
           {draft.ingredients.map((ing) => (
-            <div key={ing.id} className="flex items-center gap-1.5">
+            <div key={ing.id} className="recipe-edit-ingredient-row flex items-center gap-1.5">
               <GripVertical size={11} style={mutedStyle} />
               <input
                 value={ing.name}
@@ -266,14 +266,14 @@ export default function RecipeEditLeftPage({ editor }: Props) {
         </div>
         <div className="space-y-2">
           {draft.steps.map((step, i) => (
-            <div key={step.id} className="flex gap-1.5 items-start">
+            <div key={step.id} className="recipe-edit-step-row flex gap-1.5 items-start">
               <span
                 className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold mt-0.5"
                 style={{ background: 'oklch(0.65 0.18 35 / 0.15)', color: 'oklch(0.55 0.18 35)' }}
               >
                 {i + 1}
               </span>
-              <div className="flex-1 space-y-1">
+              <div className="recipe-edit-step-fields flex-1 space-y-1">
                 <input
                   value={step.title}
                   onChange={(e) => updateStep(step.id, { title: e.target.value })}
