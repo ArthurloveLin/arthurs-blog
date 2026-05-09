@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { fetchUmami, getUmamiAuthToken, getUmamiConfig } from '@/lib/umami'
+import { fetchUmami, getUmamiAuthToken, getUmamiConfig, postUmami } from '@/lib/umami'
 
 type RangeKey = '7d' | '30d'
 
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       timezone,
     }
 
-    const [statsResult, activeVisitorsResult, pageviewsResult] = await Promise.allSettled([
+    const [statsResult, activeVisitorsResult, pageviewsResult, performanceResult] = await Promise.allSettled([
       fetchUmami<{
         pageviews: number
         visitors: number
@@ -52,6 +52,17 @@ export async function GET(request: NextRequest) {
         pageviews: Array<{ x: string; y: number }>
         sessions: Array<{ x: string; y: number }>
       }>(cfg.endpoint, token, `/websites/${cfg.websiteId}/pageviews`, commonQuery),
+      postUmami<{
+        summary: Record<string, { p50: number; p75: number; p95: number }>
+      }>(cfg.endpoint, token, `/reports/performance`, {
+        websiteId: cfg.websiteId,
+        type: 'performance',
+        parameters: {
+          startDate: new Date(startAt).toISOString(),
+          endDate: new Date(endAt).toISOString(),
+          timezone,
+        },
+      }),
     ])
 
     const warnings: string[] = []
@@ -67,6 +78,11 @@ export async function GET(request: NextRequest) {
     const pageviewsData = pageviewsResult.status === 'fulfilled' ? pageviewsResult.value : { pageviews: [], sessions: [] }
     if (pageviewsResult.status === 'rejected') {
       warnings.push(`pageviews: ${String(pageviewsResult.reason)}`)
+    }
+
+    const performanceData = performanceResult.status === 'fulfilled' ? performanceResult.value : null
+    if (performanceResult.status === 'rejected') {
+      warnings.push(`performance: ${String(performanceResult.reason)}`)
     }
 
     if (!stats && activeVisitorsResult.status === 'rejected' && pageviewsResult.status === 'rejected') {
@@ -93,6 +109,7 @@ export async function GET(request: NextRequest) {
           realtime: activeVisitors,
         },
         trend: pageviewsData.pageviews,
+        performance: performanceData?.summary ?? null,
       },
       {
         headers: {

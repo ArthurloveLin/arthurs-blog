@@ -149,3 +149,53 @@ export async function fetchUmami<T>(
 
   throw new Error(`Umami API request failed after retries at ${path}`)
 }
+
+export async function postUmami<T>(
+  endpoint: string,
+  token: string,
+  path: string,
+  body: Record<string, unknown>,
+): Promise<T> {
+  for (let attempt = 0; attempt <= UPSTREAM_RETRIES; attempt += 1) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+
+    try {
+      const response = await fetch(`${endpoint}/api${path}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+
+      if (!response.ok) {
+        if (response.status >= 500 && attempt < UPSTREAM_RETRIES) {
+          continue
+        }
+
+        throw new Error(`Umami API POST failed (${response.status}) at ${path}`)
+      }
+
+      return response.json() as Promise<T>
+    } catch (error) {
+      const isAbort = error instanceof DOMException && error.name === 'AbortError'
+      const isLastAttempt = attempt === UPSTREAM_RETRIES
+
+      if (!isAbort && isLastAttempt) {
+        throw error
+      }
+
+      if (isAbort && isLastAttempt) {
+        throw new Error(`Umami API POST timeout at ${path}`)
+      }
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+
+  throw new Error(`Umami API POST failed after retries at ${path}`)
+}
