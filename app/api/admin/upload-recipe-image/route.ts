@@ -7,7 +7,7 @@ import { RECIPE_CACHE_TAGS, getRecipeTag } from '@/lib/recipes'
 
 const WARDROBE_BUCKET = process.env.R2_WARDROBE_BUCKET!
 const WARDROBE_PUBLIC_URL = process.env.R2_WARDROBE_PUBLIC_URL!
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024
 
 export async function POST(request: NextRequest) {
   if (!await isAdminRequest()) {
@@ -52,12 +52,6 @@ export async function POST(request: NextRequest) {
     })
 
     const imageUrl = `https://${WARDROBE_PUBLIC_URL}/${imagePath}`
-
-    // Update the recipe's cover_image field
-    await supabaseAdmin
-      .from('recipes')
-      .update({ cover_image: imageUrl, cover_image_key: imagePath })
-      .eq('id', recipe.id)
 
     revalidateTag(RECIPE_CACHE_TAGS.list, 'max')
     revalidateTag(getRecipeTag(recipeSlug), 'max')

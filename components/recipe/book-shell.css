@@ -188,141 +188,46 @@
   scrollbar-color: oklch(from var(--color-border) l c h / 0.5) transparent;
 }
 
-/* ── Navigation bar ───────────────────────────────────────────────────────── */
-.bs-nav {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: stretch;
-  gap: 12px;
-  margin-top: 32px;
-  width: calc(1px * (var(--sprite-tw) * 0.7042));
-  margin-inline: auto;
-}
-
-.bs-nav-btn,
-.bs-progress-shell {
-  position: relative;
-  border: 2px solid oklch(0.42 0.08 55);
-  border-radius: 0;
-  background: linear-gradient(180deg, oklch(0.94 0.05 88) 0%, oklch(0.84 0.11 73) 100%);
-  box-shadow:
-    0 0 0 2px oklch(0.98 0.02 90 / 0.65) inset,
-    4px 4px 0 0 oklch(0.57 0.13 55 / 0.95);
-}
-
-.bs-nav-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 88px;
-  min-height: 48px;
-  padding: 0 12px;
-  color: oklch(0.3 0.03 45);
-  cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  transition:
-    transform 0.12s steps(2, end),
-    box-shadow 0.12s steps(2, end),
-    filter 0.12s steps(2, end);
-}
-
-.bs-nav-btn:hover:not(:disabled) {
-  transform: translate(2px, 2px);
-  box-shadow:
-    0 0 0 2px oklch(0.98 0.02 90 / 0.65) inset,
-    2px 2px 0 0 oklch(0.57 0.13 55 / 0.95);
-  filter: saturate(1.05);
-}
-
-.bs-nav-btn:active:not(:disabled) {
-  transform: translate(4px, 4px);
-  box-shadow:
-    0 0 0 2px oklch(0.98 0.02 90 / 0.65) inset,
-    0 0 0 0 oklch(0.57 0.13 55 / 0.95);
-}
-
-.bs-nav-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  filter: grayscale(0.2);
-}
-
-.bs-nav-btn svg {
-  flex-shrink: 0;
-  stroke-width: 2.4;
-}
-
-.bs-progress-shell {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 7px;
-  min-width: 0;
-  min-height: 48px;
-  padding: 7px 10px 8px;
-}
-
-.bs-progress-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  color: oklch(0.34 0.03 45 / 0.9);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.bs-progress {
-  --bs-progress: 0%;
-  position: relative;
-  height: 14px;
-  overflow: hidden;
-  border: 2px solid oklch(0.42 0.08 55);
-  border-radius: 0;
-  background:
-    linear-gradient(180deg, oklch(0.78 0.08 72) 0%, oklch(0.7 0.09 63) 100%),
-    repeating-linear-gradient(
-      90deg,
-      oklch(0.73 0.09 64) 0 10px,
-      oklch(0.68 0.1 58) 10px 20px
-    );
-  box-shadow: 0 0 0 2px oklch(0.98 0.02 90 / 0.4) inset;
-}
-
-.bs-progress::before {
-  content: '';
+/* ── Side Navigation ──────────────────────────────────────────────────────── */
+.bs-side-nav {
   position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, oklch(0.98 0.02 95 / 0.2), transparent 45%),
-    repeating-linear-gradient(
-      90deg,
-      transparent 0 10px,
-      oklch(0.42 0.08 55 / 0.18) 10px 12px
-    );
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border: none;
+  background: transparent;
+  color: #000000; /* True black */
+  cursor: pointer;
+  transition: all 0.2s steps(4, end);
+  opacity: 0.5; /* Increased default opacity */
+}
+
+.bs-side-nav:hover:not(:disabled) {
+  opacity: 1;
+  transform: translateY(-50%) scale(1.25);
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+}
+
+.bs-side-nav:active:not(:disabled) {
+  transform: translateY(-50%) scale(0.9);
+}
+
+.bs-side-nav:disabled {
+  opacity: 0;
   pointer-events: none;
 }
 
-.bs-progress-fill {
-  height: 100%;
-  border-right: 2px solid oklch(0.38 0.08 52 / 0.8);
-  background:
-    linear-gradient(180deg, oklch(0.92 0.12 95) 0%, oklch(0.82 0.15 78) 100%),
-    repeating-linear-gradient(
-      90deg,
-      oklch(0.9 0.11 92) 0 10px,
-      oklch(0.82 0.15 75) 10px 20px
-    );
-  box-shadow: 0 0 0 2px oklch(0.98 0.02 95 / 0.28) inset;
-  transition: width 0.18s steps(10, end);
+.bs-side-nav-prev {
+  left: calc((1px * var(--sprite-tw) - (1px * var(--sprite-tw) * 0.7042)) / 4 - 32px);
+}
+
+.bs-side-nav-next {
+  right: calc((1px * var(--sprite-tw) - (1px * var(--sprite-tw) * 0.7042)) / 4 - 32px);
 }
 
 /* ── Skeuomorphic bookmark tabs ──────────────────────────────────────────────
@@ -519,15 +424,6 @@
 }
 
 @media (width < 768px) {
-  .bs-nav {
-    grid-template-columns: 1fr;
-  }
-
-  .bs-nav-btn,
-  .bs-progress-shell {
-    min-height: 44px;
-  }
-
   .bs-root {
     --sprite-th: calc(var(--sprite-sh) / 2.5);
   }
