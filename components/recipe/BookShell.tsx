@@ -43,7 +43,7 @@ export default function BookShell({ children, bookmarks, className }: BookShellP
   const canNext = currentPosition < totalPositions - 1
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 767px)')
+    const mediaQuery = window.matchMedia('(width < 768px)')
     const updateViewport = () => {
       const nextIsMobile = mediaQuery.matches
 
