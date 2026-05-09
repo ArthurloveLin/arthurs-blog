@@ -437,6 +437,14 @@
   }
 
   .bs-root[data-mobile="true"] {
+    --bs-mobile-dock-columns: 3;
+    --bs-mobile-dock-height: 5.2rem;
+    --bs-mobile-status-height: 1.2rem;
+    --bs-mobile-status-gap: 0.6rem;
+    --bs-mobile-content-bottom-space: calc(
+      var(--bs-mobile-dock-height) + var(--bs-mobile-status-height) + var(--bs-mobile-status-gap) + 0.7rem
+    );
+
     position: relative;
     width: 100%;
     overflow: hidden;
@@ -539,7 +547,7 @@
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    padding-bottom: calc(env(safe-area-inset-bottom) + 7.5rem);
+    padding-bottom: calc(env(safe-area-inset-bottom) + var(--bs-mobile-content-bottom-space));
   }
 
   .bs-root[data-mobile="true"] .recipe-page,
@@ -582,7 +590,7 @@
     position: absolute;
     left: 0;
     right: 0;
-    bottom: calc(env(safe-area-inset-bottom) + 5.8rem);
+    bottom: calc(env(safe-area-inset-bottom) + var(--bs-mobile-dock-height) + var(--bs-mobile-status-gap));
     padding: 0 10px;
     font-size: 11px;
     letter-spacing: 0.08em;
@@ -597,13 +605,14 @@
     left: 0;
     right: 0;
     bottom: 0;
+    min-height: var(--bs-mobile-dock-height);
     padding: 8px 10px calc(env(safe-area-inset-bottom) + 8px);
     background: linear-gradient(to top, oklch(from var(--color-background) l c h / 0.96), oklch(from var(--color-background) l c h / 0));
   }
 
   .bs-root[data-mobile="true"] .bs-mobile-overlay .bs-control-bookmarks {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--bs-mobile-dock-columns), minmax(0, 1fr));
     gap: 8px;
     width: 100%;
   }
