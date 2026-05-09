@@ -40,7 +40,7 @@ export default function RecipeRightPage({ recipe }: Props) {
   const mutedStyle = { color: KAMI.stone }
 
   return (
-    <div className="bs-page-scroll-content" style={{ 
+    <div className="bs-page-scroll-content recipe-page recipe-right-content" style={{ 
       padding: '24px 28px',
       color: KAMI.nearBlack,
       fontFamily: KAMI.serif,
@@ -54,7 +54,7 @@ export default function RecipeRightPage({ recipe }: Props) {
       {/* ── Skill graph ── */}
       <section>
         <SectionTitle>技能分布</SectionTitle>
-        <div style={{ transform: 'scale(0.95)', transformOrigin: 'top left' }}>
+        <div className="recipe-skill-graph" style={{ transform: 'scale(0.95)', transformOrigin: 'top left' }}>
           <RecipeSkillGraphPanel currentRecipeId={recipe.id} mutedStyle={mutedStyle} />
         </div>
       </section>

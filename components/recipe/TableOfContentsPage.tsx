@@ -97,7 +97,7 @@ function CategoryRecipeList({ recipes }: TableOfContentsProps) {
 
 export function TableOfContentsLeftPage({ recipes }: TableOfContentsProps) {
   return (
-    <div style={{ 
+    <div className="toc-page" style={{ 
       padding: '24px 28px',
       color: KAMI.nearBlack,
       fontFamily: KAMI.serif,
@@ -134,7 +134,7 @@ export function TableOfContentsLeftPage({ recipes }: TableOfContentsProps) {
         </p>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', paddingTop: 8 }} className="bs-page-scroll-content">
+      <div style={{ flex: 1, overflowY: 'auto', paddingTop: 8 }} className="bs-page-scroll-content toc-list-scroll">
         <CategoryRecipeList recipes={recipes} />
       </div>
     </div>
@@ -147,7 +147,7 @@ export function TableOfContentsRightPage({ recipes }: TableOfContentsProps) {
     .slice(0, 7)
 
   return (
-    <div style={{ 
+    <div className="toc-page" style={{ 
       padding: '24px 28px',
       color: KAMI.nearBlack,
       fontFamily: KAMI.serif,

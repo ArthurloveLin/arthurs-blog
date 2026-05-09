@@ -409,6 +409,10 @@
   filter: brightness(0.85);
 }
 
+.bs-mobile-status {
+  display: none;
+}
+
 
 /* ── Responsive scale-down ────────────────────────────────────────────────── */
 @media (width < 1800px) {
@@ -426,6 +430,151 @@
 @media (width < 768px) {
   .bs-root {
     --sprite-th: calc(var(--sprite-sh) / 2.5);
+  }
+
+  .bs-root[data-mobile="true"] .bs-book {
+    width: min(100%, 42rem);
+  }
+
+  .bs-root[data-mobile="true"] .bs-sprite,
+  .bs-root[data-mobile="true"] .bs-bookmarks,
+  .bs-root[data-mobile="true"] .bs-side-nav,
+  .bs-root[data-mobile="true"] .bs-shell-right-overlay {
+    display: none;
+  }
+
+  .bs-root[data-mobile="true"] .bs-carousel {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    margin: 0;
+  }
+
+  .bs-root[data-mobile="true"] .bs-slide-wrapper,
+  .bs-root[data-mobile="true"] .bs-slide-wrapper[data-active] {
+    display: none;
+    position: relative;
+    opacity: 1;
+    pointer-events: none;
+    transition: none;
+  }
+
+  .bs-root[data-mobile="true"] .bs-slide-wrapper[data-active] {
+    display: block;
+    pointer-events: auto;
+  }
+
+  .bs-root[data-mobile="true"] .bs-carousel-item,
+  .bs-root[data-mobile="true"] .bs-left-page,
+  .bs-root[data-mobile="true"] .bs-right-page,
+  .bs-root[data-mobile="true"] .bs-right-page-scroll {
+    overflow: visible;
+  }
+
+  .bs-root[data-mobile="true"] .bs-page-container {
+    width: 200%;
+    gap: 0;
+    height: auto;
+    transform: translateX(0);
+    transition: transform 0.28s ease;
+  }
+
+  .bs-root[data-mobile="true"] .bs-slide-wrapper[data-page-side="right"] .bs-page-container {
+    transform: translateX(-50%);
+  }
+
+  .bs-root[data-mobile="true"] .bs-left-page,
+  .bs-root[data-mobile="true"] .bs-right-page {
+    flex: 0 0 50%;
+    min-width: 50%;
+    padding: 0;
+    color: oklch(0.3 0.02 50);
+  }
+
+  .bs-root[data-mobile="true"] .bs-right-page {
+    padding-right: 0;
+  }
+
+  .bs-root[data-mobile="true"] .bs-right-page-scroll {
+    padding: 0;
+    background: transparent;
+  }
+
+  .bs-root[data-mobile="true"] .bs-left-page > *,
+  .bs-root[data-mobile="true"] .bs-right-page-scroll > * {
+    width: 100%;
+    min-height: calc(100svh - 10rem);
+    border: 1px solid oklch(0.45 0.02 50 / 0.18);
+    border-radius: 28px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 244, 237, 0.98)),
+      #faf9f5;
+    box-shadow:
+      0 18px 50px rgba(120, 53, 15, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  .dark .bs-root[data-mobile="true"] .bs-left-page > *,
+  .dark .bs-root[data-mobile="true"] .bs-right-page-scroll > * {
+    border-color: oklch(0.4 0.02 50 / 0.45);
+    background:
+      linear-gradient(180deg, oklch(0.24 0.02 50 / 0.96), oklch(0.18 0.02 50 / 0.98)),
+      oklch(0.2 0.02 50);
+    box-shadow:
+      0 18px 50px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .bs-root[data-mobile="true"] .bs-page-scroll-content {
+    height: auto !important;
+    min-height: calc(100svh - 10rem);
+    overflow: visible;
+    scrollbar-width: auto;
+  }
+
+  .bs-root[data-mobile="true"] .recipe-page,
+  .bs-root[data-mobile="true"] .toc-page {
+    gap: 16px !important;
+    padding: 20px !important;
+  }
+
+  .bs-root[data-mobile="true"] .recipe-description {
+    max-width: none !important;
+  }
+
+  .bs-root[data-mobile="true"] .recipe-metrics-grid {
+    gap: 12px !important;
+  }
+
+  .bs-root[data-mobile="true"] .recipe-ingredients-grid,
+  .bs-root[data-mobile="true"] .recipe-secondary-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bs-root[data-mobile="true"] .recipe-image-nav {
+    opacity: 1 !important;
+  }
+
+  .bs-root[data-mobile="true"] .recipe-flavor-radar,
+  .bs-root[data-mobile="true"] .recipe-skill-graph {
+    transform: none !important;
+    margin-top: 0 !important;
+  }
+
+  .bs-root[data-mobile="true"] .toc-list-scroll {
+    padding-top: 0 !important;
+  }
+
+  .bs-root[data-mobile="true"] .bs-mobile-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 14px;
+    padding: 0 6px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: oklch(0.45 0.02 50 / 0.72);
   }
 
   .bs-bookmarks {
