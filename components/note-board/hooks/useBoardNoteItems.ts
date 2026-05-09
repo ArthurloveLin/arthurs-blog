@@ -28,6 +28,7 @@ export interface UseBoardNoteItemsProps {
   handleReaction: (message: NoteMessage, value: 1 | -1) => void
   handleEmojiReaction: (message: NoteMessage, emoji: string) => void
   saveEditingNote: () => Promise<void>
+  toggleChecklistItem: (message: NoteMessage, lineIndex: number) => void
   cancelEditingNote: () => void
   setEditContent: (value: string) => void
 }
@@ -54,6 +55,7 @@ export function useBoardNoteItems({
   handleReaction,
   handleEmojiReaction,
   saveEditingNote,
+  toggleChecklistItem,
   cancelEditingNote,
   setEditContent,
 }: UseBoardNoteItemsProps) {
@@ -101,6 +103,10 @@ export function useBoardNoteItems({
         onReact: isPendingSync ? () => undefined : (value) => void handleReaction(message, value),
         onEmojiReact: isPendingSync ? () => undefined : (emoji) => void handleEmojiReaction(message, emoji),
       },
+      checklistControl: canEdit && !isPendingSync ? {
+        pending: Boolean(updatingNoteIds?.[message.id]),
+        onToggle: (lineIndex) => void toggleChecklistItem(message, lineIndex),
+      } : undefined,
       inlineEditor: isEditing ? {
         value: editContent,
         isSaving: isUpdatingNote,
@@ -132,6 +138,7 @@ export function useBoardNoteItems({
     handleReaction,
     handleEmojiReaction,
     saveEditingNote,
+    toggleChecklistItem,
     cancelEditingNote,
     setEditContent,
   ])

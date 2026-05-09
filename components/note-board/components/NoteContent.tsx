@@ -1,5 +1,6 @@
 'use client'
 
+import { Check } from 'lucide-react'
 import { memo, useMemo, type ReactNode } from 'react'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
 import { parseNoteContent } from '@/components/note-board/utils/editor'
@@ -7,6 +8,8 @@ import { parseNoteContent } from '@/components/note-board/utils/editor'
 interface NoteContentProps {
   content: string
   variant: 'preview' | 'board'
+  onToggleChecklistItem?: (lineIndex: number) => void
+  checklistPending?: boolean
 }
 
 function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[] {
@@ -44,7 +47,7 @@ function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[]
   return nodes.length > 0 ? nodes : [text]
 }
 
-function NoteContentComponent({ content, variant }: NoteContentProps) {
+function NoteContentComponent({ content, variant, onToggleChecklistItem, checklistPending = false }: NoteContentProps) {
   const parsed = useMemo(() => parseNoteContent(content), [content])
   const bodyLines = useMemo(() => parsed.body.length > 0 ? parsed.body.split('\n') : [], [parsed.body])
   const textClassName = [styles.text, variant === 'preview' ? styles.previewText : styles.boardText].join(' ')
@@ -62,14 +65,46 @@ function NoteContentComponent({ content, variant }: NoteContentProps) {
       ) : null}
       {parsed.checklistItems.length > 0 ? (
         <ul className="space-y-1.5 text-sm leading-relaxed text-slate-800/90">
-          {parsed.checklistItems.map((item) => (
-            <li key={item.id} className="flex items-start gap-2">
-              <span className="mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-slate-700/35 text-[10px]">
-                {item.checked ? 'x' : ''}
-              </span>
-              <span className={item.checked ? 'line-through text-slate-700/65' : ''}>{renderInlineFormattedText(item.text, `${variant}-check-${item.id}`)}</span>
-            </li>
-          ))}
+          {parsed.checklistItems.map((item) => {
+            const lineIndex = typeof item.lineIndex === 'number' ? item.lineIndex : null
+
+            return (
+              <li key={item.id} className="flex items-start gap-2">
+                {onToggleChecklistItem && lineIndex !== null ? (
+                <button
+                  type="button"
+                  aria-label={item.checked ? `取消勾选：${item.text}` : `勾选清单项：${item.text}`}
+                  className="flex w-full items-start gap-2 text-left disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={checklistPending}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onToggleChecklistItem(lineIndex)
+                  }}
+                >
+                  <span className={[
+                    'mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] transition-colors',
+                    item.checked
+                      ? 'border-slate-800 bg-slate-900 text-white'
+                      : 'border-slate-700/35 text-transparent',
+                  ].join(' ')}>
+                    <Check size={10} strokeWidth={2.4} />
+                  </span>
+                  <span className={item.checked ? 'line-through text-slate-700/65' : ''}>
+                    {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`)}
+                  </span>
+                </button>
+                ) : (
+                  <>
+                    <span className="mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-slate-700/35 text-[10px]">
+                      {item.checked ? 'x' : ''}
+                    </span>
+                    <span className={item.checked ? 'line-through text-slate-700/65' : ''}>{renderInlineFormattedText(item.text, `${variant}-check-${item.id}`)}</span>
+                  </>
+                )}
+              </li>
+            )
+          })}
         </ul>
       ) : null}
     </div>
