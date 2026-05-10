@@ -2,6 +2,7 @@
 
 import { Save, X, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import RecipeDesktopThemeBookmarkSlot from './RecipeDesktopThemeBookmark'
 
 interface Props {
   isSaving: boolean
@@ -26,6 +27,7 @@ export default function RecipeEditBookmarks({ isSaving, isDeleting = false, onSa
 
   return (
     <div className="bs-control-bookmarks" aria-label="管理书签">
+      <RecipeDesktopThemeBookmarkSlot />
       <div className="bs-control-bookmark-slot">
         <button
           type="button"

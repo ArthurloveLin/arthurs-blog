@@ -1,0 +1,260 @@
+.rt-root {
+  --rt-page-fill: oklch(0.96 0.02 80);
+  --rt-page-fill-dark: oklch(0.22 0.02 50);
+  --rt-pages-left-inset: 4.45%;
+  --rt-overlay-top: calc(4% + 0.9rem);
+
+  width: 100%;
+}
+
+.rt-book-wrapper {
+  position: relative;
+  width: min(100%, 1080px);
+  margin: 0 auto;
+  aspect-ratio: 670 / 500;
+  user-select: none;
+}
+
+.rt-book-cover {
+  position: absolute;
+  inset: 0;
+  background-image: url('https://github.com/slyka85/assets/blob/master/bookcover2.png?raw=true');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  filter: drop-shadow(15px 5px 5px rgba(73, 67, 56, 0.78));
+  pointer-events: none;
+}
+
+.rt-pages-container {
+  position: absolute;
+  top: 4%;
+  left: var(--rt-pages-left-inset);
+  right: 0;
+  bottom: 0;
+  width: 91.5%;
+  height: 91%;
+  overflow: visible;
+}
+
+.rt-pages {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.rt-pages[data-ready='false'] {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(1.4rem, 2.8vw, 2.4rem);
+}
+
+.rt-pages[data-ready='false'] > .rt-page {
+  display: none;
+}
+
+.rt-pages[data-ready='false'] > .rt-page[data-fallback-visible='true'] {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.rt-pages[data-ready='false'] > .rt-page[data-fallback-visible='true'] .rt-page-surface {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.rt-pages[data-ready='false'] > .rt-page-cover {
+  display: none;
+}
+
+.rt-pages:focus-visible {
+  outline: 1px solid oklch(0.6 0.18 35 / 0.55);
+  outline-offset: 10px;
+}
+
+.rt-pages .page-wrapper,
+.rt-pages .page {
+  background: transparent;
+  overflow: visible;
+}
+
+.rt-pages [class^='page-num-'] {
+  position: relative;
+  background-color: var(--rt-page-fill);
+  background-image: none;
+  overflow: visible;
+}
+
+.rt-page {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.rt-page-surface {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow: visible;
+  background: var(--rt-page-fill);
+}
+
+.rt-page-cover {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+.rt-page-cover-surface {
+  background: transparent;
+}
+
+.rt-page-pane {
+  width: 100%;
+  min-width: 0;
+}
+
+.rt-page .bs-carousel-item,
+.rt-page .bs-page-container,
+.rt-page .bs-left-page,
+.rt-page .bs-right-page,
+.rt-page .bs-right-page-scroll {
+  height: 100%;
+}
+
+.rt-page .bs-carousel-item {
+  position: relative;
+  padding: clamp(1.2rem, 1.8vw, 1.9rem) clamp(1.5rem, 2.2vw, 2.4rem);
+}
+
+.rt-page .bs-page-container {
+  gap: clamp(2rem, 4vw, 4rem);
+}
+
+.rt-page .bs-left-page {
+  padding: 0 0 0 clamp(0.45rem, 1vw, 0.85rem);
+}
+
+.rt-page .bs-right-page {
+  padding-right: clamp(0.45rem, 1vw, 0.85rem);
+}
+
+.rt-page .bs-right-page-scroll {
+  padding: 0;
+}
+
+.rt-page .bs-left-page,
+.rt-page .bs-right-page,
+.rt-page .bs-right-page-scroll {
+  background: var(--rt-page-fill);
+}
+
+.dark .rt-page .bs-left-page,
+.dark .rt-page .bs-right-page,
+.dark .rt-page .bs-right-page-scroll {
+  background: var(--rt-page-fill-dark);
+}
+
+.rt-side-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border: none;
+  background: transparent;
+  color: #111111;
+  cursor: pointer;
+  opacity: 0.5;
+  transform: translateY(-50%);
+  transition: transform 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
+}
+
+.rt-side-nav:hover:not(:disabled) {
+  opacity: 1;
+  transform: translateY(-50%) scale(1.1);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+}
+
+.rt-side-nav:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rt-side-nav-prev {
+  left: -1.25rem;
+}
+
+.rt-side-nav-next {
+  right: -1.25rem;
+}
+
+.rt-shell-right-overlay {
+  --bs-shell-side-gutter: 0px;
+  --bs-control-bookmark-width: 34px;
+  --bs-control-bookmark-buried-width: 14px;
+  --bs-control-bookmark-hover-pull: 9px;
+  --bs-control-bookmark-total-width: calc(var(--bs-control-bookmark-width) + var(--bs-control-bookmark-buried-width));
+  --bs-control-bookmark-slot-width: calc(var(--bs-control-bookmark-width) + var(--bs-control-bookmark-hover-pull));
+
+  position: absolute;
+  top: var(--rt-overlay-top);
+  right: -0.2rem;
+  z-index: 13;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.rt-shell-right-overlay .bs-control-bookmarks {
+  width: var(--bs-control-bookmark-slot-width);
+  min-width: var(--bs-control-bookmark-slot-width);
+  pointer-events: auto;
+}
+
+.rt-shell-right-overlay .bs-control-bookmark-slot {
+  width: var(--bs-control-bookmark-slot-width);
+  min-width: var(--bs-control-bookmark-slot-width);
+}
+
+.rt-shell-right-overlay .bs-control-bookmark {
+  width: var(--bs-control-bookmark-total-width);
+  min-width: var(--bs-control-bookmark-total-width);
+  flex-shrink: 0;
+}
+
+.rt-bookmarks {
+  position: absolute;
+  top: var(--rt-overlay-top);
+  left: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 12;
+}
+
+@media (max-width: 1180px) {
+  .rt-book-wrapper {
+    width: min(100%, 980px);
+  }
+
+  .rt-side-nav-prev {
+    left: -0.5rem;
+  }
+
+  .rt-side-nav-next {
+    right: -0.5rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .rt-book-wrapper {
+    width: min(100%, 860px);
+  }
+}

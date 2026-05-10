@@ -5,6 +5,7 @@ import BookSpread from './BookSpread'
 import RecipeLeftPage from './RecipeLeftPage'
 import RecipeRightPage from './RecipeRightPage'
 import RecipeSpreadClient from './RecipeSpreadClient'
+import { RecipeDesktopThemeBookmarkGroup } from './RecipeDesktopThemeBookmark'
 import type { RecipeRevisionPreview } from './revision-preview'
 
 interface RecipeSpreadProps {
@@ -117,6 +118,7 @@ export async function PublicRecipeSpread({ recipe }: RecipeSpreadProps) {
     <BookSpread
       left={<RecipeLeftPage recipe={fullRecipe} revisions={revisions} />}
       right={<RecipeRightPage recipe={fullRecipe} />}
+      rightOverlay={<RecipeDesktopThemeBookmarkGroup />}
     />
   )
 }

@@ -9,6 +9,7 @@ interface BookShellOverlayContextValue {
 
 const BookShellOverlayContext = createContext<BookShellOverlayContextValue | null>(null)
 const BookShellSlideIndexContext = createContext<number | null>(null)
+const BookShellRenderModeContext = createContext<'pixel' | 'page-turn'>('pixel')
 
 export function BookShellOverlayProvider({
   value,
@@ -30,6 +31,16 @@ export function BookShellSlideIndexProvider({
   return <BookShellSlideIndexContext.Provider value={index}>{children}</BookShellSlideIndexContext.Provider>
 }
 
+export function BookShellRenderModeProvider({
+  mode,
+  children,
+}: {
+  mode: 'pixel' | 'page-turn'
+  children: React.ReactNode
+}) {
+  return <BookShellRenderModeContext.Provider value={mode}>{children}</BookShellRenderModeContext.Provider>
+}
+
 export function useBookShellOverlay() {
   const value = useContext(BookShellOverlayContext)
 
@@ -48,4 +59,12 @@ export function useBookShellSlideIndex() {
   }
 
   return value
+}
+
+export function useOptionalBookShellSlideIndex() {
+  return useContext(BookShellSlideIndexContext)
+}
+
+export function useBookShellRenderMode() {
+  return useContext(BookShellRenderModeContext)
 }
