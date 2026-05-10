@@ -172,7 +172,7 @@ export default function PageTurnBookShell({ children, bookmarks, className }: Pa
       instance.turn({
         acceleration: true,
         display: 'double',
-        duration: 1500,
+        duration: 600,
         elevation: 300,
         gradients: true,
         height: pageSize.height,
@@ -180,16 +180,19 @@ export default function PageTurnBookShell({ children, bookmarks, className }: Pa
         turnCorners: 'bl,br',
         width: pageSize.width,
         when: {
-          turning: (_event: unknown, page: number) => {
+          turning: (_event: unknown, page: number, view: unknown) => {
             if (page < FIRST_CONTENT_PAGE) {
               return false
             }
 
+            // Anticipate the next slide index to start the thickness transition earlier
+            setCurrentSlide(getSlideIndexFromView(view, slideCount))
             return undefined
           },
           turned: (_event: unknown, _page: number, view: unknown) => {
             setCurrentSlide(getSlideIndexFromView(view, slideCount))
-            pagesRef.current?.focus()
+            // Removed programmatic focus to prevent unwanted blue rings during mouse navigation
+            // pagesRef.current?.focus()
           },
         },
       })
@@ -283,7 +286,13 @@ export default function PageTurnBookShell({ children, bookmarks, className }: Pa
   return (
     <BookShellRenderModeProvider mode="page-turn">
       <BookShellOverlayProvider value={{ currentSlide: safeCurrentSlide, setRightOverlay }}>
-        <div className={`rt-root ${className ?? ''}`.trim()}>
+        <div 
+          className={`rt-root ${className ?? ''}`.trim()} 
+          style={{ 
+            '--slide-count': slideCount,
+            '--current-slide': safeCurrentSlide 
+          } as React.CSSProperties}
+        >
           <div className="rt-book-wrapper">
             <div className="rt-book-cover" aria-hidden="true" />
             <div ref={hostRef} className="rt-pages-container">
