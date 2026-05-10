@@ -1,6 +1,7 @@
 'use client'
 
 import { Pencil, History, Eye, EyeOff } from 'lucide-react'
+import RecipeDesktopThemeBookmarkSlot from './RecipeDesktopThemeBookmark'
 
 interface Props {
   isPublished: boolean
@@ -21,6 +22,7 @@ export default function RecipeViewBookmarks({
 }: Props) {
   return (
     <div className="bs-control-bookmarks" aria-label="管理书签">
+      <RecipeDesktopThemeBookmarkSlot />
       <div className="bs-control-bookmark-slot">
         <button type="button" className="bs-control-bookmark" onClick={onEdit} title="编辑此页" disabled={isPublishPending}>
           <Pencil />

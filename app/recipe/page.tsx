@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import PageHero from '@/components/PageHero'
-import BookShell from '@/components/recipe/BookShell'
+import RecipeBookShell from '@/components/recipe/RecipeBookShell'
 import BookSpread from '@/components/recipe/BookSpread'
+import { RecipeDesktopThemeBookmarkGroup } from '@/components/recipe/RecipeDesktopThemeBookmark'
 import { RecipeSkillGraphProvider } from '@/components/recipe/RecipeSkillGraphProvider'
 import RecipeSpreadSkeleton from '@/components/recipe/RecipeSpreadSkeleton'
 import { TableOfContentsLeftPage, TableOfContentsRightPage } from '@/components/recipe/TableOfContentsPage'
@@ -50,11 +51,11 @@ export default async function RecipePage() {
 
       <div className="w-full px-4 pt-10 pb-12 md:px-6 md:pt-16">
         <RecipeSkillGraphProvider graph={skillGraph}>
-          <BookShell>
+          <RecipeBookShell>
             <BookSpread
               left={<TableOfContentsLeftPage recipes={recipes} />}
               right={<TableOfContentsRightPage recipes={recipes} />}
-              rightOverlay={isAdmin && <RecipeAddButton />}
+              rightOverlay={isAdmin ? <RecipeAddButton /> : <RecipeDesktopThemeBookmarkGroup />}
             />
             {recipes.map((recipe) =>
               <Suspense key={recipe.id} fallback={<RecipeSpreadSkeleton />}>
@@ -65,7 +66,7 @@ export default async function RecipePage() {
                 )}
               </Suspense>
             )}
-          </BookShell>
+          </RecipeBookShell>
         </RecipeSkillGraphProvider>
       </div>
     </main>

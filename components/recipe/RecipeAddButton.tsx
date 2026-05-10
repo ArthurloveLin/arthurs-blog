@@ -3,6 +3,7 @@
 import { useTransition, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LoaderCircle, Plus } from 'lucide-react'
+import RecipeDesktopThemeBookmarkSlot from './RecipeDesktopThemeBookmark'
 
 function buildDraftSlug() {
   const now = new Date()
@@ -75,6 +76,7 @@ export default function RecipeAddButton() {
           <span>{isBusy ? '创建中' : '新增'}</span>
         </button>
       </div>
+      <RecipeDesktopThemeBookmarkSlot />
       {error && <p className="bs-control-error">{error}</p>}
     </div>
   )

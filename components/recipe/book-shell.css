@@ -264,17 +264,26 @@
 }
 
 .bs-control-bookmarks {
+  --bs-control-bookmark-width: 34px;
+  --bs-control-bookmark-buried-width: 14px;
+  --bs-control-bookmark-hover-pull: 9px;
+  --bs-control-bookmark-total-width: calc(var(--bs-control-bookmark-width) + var(--bs-control-bookmark-buried-width));
+  --bs-control-bookmark-slot-width: calc(var(--bs-control-bookmark-width) + var(--bs-control-bookmark-hover-pull));
+
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
   width: var(--bs-control-bookmark-slot-width);
+  min-width: var(--bs-control-bookmark-slot-width);
   pointer-events: auto;
 }
 
 .bs-control-bookmark-slot {
   position: relative;
   width: var(--bs-control-bookmark-slot-width);
+  min-width: var(--bs-control-bookmark-slot-width);
+  flex-shrink: 0;
   overflow: hidden;
 }
 
@@ -285,6 +294,7 @@
   justify-content: center;
   gap: 3px;
   width: var(--bs-control-bookmark-total-width);
+  min-width: var(--bs-control-bookmark-total-width);
   min-height: 60px;
   padding: 8px 0;
   border: none;
@@ -309,6 +319,7 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .bs-control-bookmark svg {
