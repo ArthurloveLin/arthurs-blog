@@ -1,6 +1,6 @@
 'use client'
 
-import { Bold, Check, Highlighter, Italic, ListTodo, X } from 'lucide-react'
+import { Bold, Check, Code, Highlighter, Italic, ListTodo, X } from 'lucide-react'
 import { useEffect, useRef, type ReactNode } from 'react'
 import EmojiPickerButton from '@/components/emoji/EmojiPickerButton'
 import EditorActionBar from '@/components/EditorActionBar'
@@ -200,6 +200,15 @@ export function NoteEditor({
               </ToolbarIconButton>
               <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '=='))} label="高亮">
                 <Highlighter size={iconSize} strokeWidth={1.8} />
+              </ToolbarIconButton>
+              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => {
+                const isMultiline = text.slice(start, end).includes('\n')
+                if (isMultiline) {
+                  return wrapSelectionWithSyntax(text, start, end, '```\n', '\n```')
+                }
+                return wrapSelectionWithSyntax(text, start, end, '`')
+              })} label="插入代码">
+                <Code size={iconSize} strokeWidth={1.8} />
               </ToolbarIconButton>
             </>
           )}
