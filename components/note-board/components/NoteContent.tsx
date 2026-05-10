@@ -14,7 +14,7 @@ interface NoteContentProps {
 
 function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = []
-  const pattern = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==)/g
+  const pattern = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==|`[^`]+`)/g
   let cursor = 0
   let match = pattern.exec(text)
   let index = 0
@@ -33,6 +33,8 @@ function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[]
       nodes.push(<em key={`${keyPrefix}-em-${index}`} className="italic">{token.slice(1, -1)}</em>)
     } else if (token.startsWith('==') && token.endsWith('==')) {
       nodes.push(<mark key={`${keyPrefix}-mark-${index}`} className="rounded-[0.35em] bg-amber-200/85 px-1 py-[0.05em] text-slate-900">{token.slice(2, -2)}</mark>)
+    } else if (token.startsWith('`') && token.endsWith('`')) {
+      nodes.push(<code key={`${keyPrefix}-code-${index}`} className={styles.inlineCode}>{token.slice(1, -1)}</code>)
     }
 
     cursor = tokenStart + token.length
@@ -49,18 +51,63 @@ function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[]
 
 function NoteContentComponent({ content, variant, onToggleChecklistItem, checklistPending = false }: NoteContentProps) {
   const parsed = useMemo(() => parseNoteContent(content), [content])
-  const bodyLines = useMemo(() => parsed.body.length > 0 ? parsed.body.split('\n') : [], [parsed.body])
+  const bodyElements = useMemo(() => {
+    if (parsed.body.length === 0) return []
+    
+    const lines = parsed.body.split('\n')
+    const result: ReactNode[] = []
+    let inCodeBlock = false
+    let currentCode: string[] = []
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (line.startsWith('```')) {
+        if (inCodeBlock) {
+          // Close block
+          result.push(
+            <pre key={`body-code-${i}`} className={styles.codeBlock}>
+              <code>{currentCode.join('\n')}</code>
+            </pre>
+          )
+          currentCode = []
+          inCodeBlock = false
+        } else {
+          // Open block
+          inCodeBlock = true
+        }
+        continue
+      }
+
+      if (inCodeBlock) {
+        currentCode.push(line)
+      } else {
+        result.push(
+          <p key={`body-text-${i}`} className="w-full whitespace-pre-wrap break-words">
+            {line.length > 0 ? renderInlineFormattedText(line, `${variant}-${i}`) : <span>&nbsp;</span>}
+          </p>
+        )
+      }
+    }
+
+    // Handle unclosed code block
+    if (inCodeBlock && currentCode.length > 0) {
+      result.push(
+        <pre key={`body-code-final`} className={styles.codeBlock}>
+          <code>{currentCode.join('\n')}</code>
+        </pre>
+      )
+    }
+
+    return result
+  }, [parsed.body, variant])
+
   const textClassName = [styles.text, variant === 'preview' ? styles.previewText : styles.boardText].join(' ')
 
   return (
     <div className="space-y-3">
-      {bodyLines.length > 0 ? (
+      {bodyElements.length > 0 ? (
         <div className={textClassName}>
-          {bodyLines.map((line, index) => (
-            <p key={`${variant}-body-${index}`} className="w-full whitespace-pre-wrap break-words">
-              {line.length > 0 ? renderInlineFormattedText(line, `${variant}-${index}`) : <span>&nbsp;</span>}
-            </p>
-          ))}
+          {bodyElements}
         </div>
       ) : null}
       {parsed.checklistItems.length > 0 ? (
