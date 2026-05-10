@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
+import { cookies, headers } from 'next/headers'
 import PageHero from '@/components/PageHero'
 import RecipeBookShell from '@/components/recipe/RecipeBookShell'
 import BookSpread from '@/components/recipe/BookSpread'
@@ -13,6 +14,7 @@ import { getAllRecipesList, getRecipeSkillGraph, getRecipesList } from '@/lib/re
 import { isAdminRequest } from '@/lib/auth'
 import { getSiteConfig } from '@/lib/blog'
 import { getRecipePageCopy } from '@/lib/recipe-page-copy'
+import type { RecipeBookTheme } from '@/components/recipe/recipe-book-theme-context'
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig()
@@ -28,6 +30,13 @@ export default async function RecipePage() {
   const isAdmin = await isAdminRequest()
   const config = await getSiteConfig()
   const { hero } = getRecipePageCopy(config)
+  
+  const [cookieStore, headersList] = await Promise.all([cookies(), headers()])
+  const themeCookie = cookieStore.get('recipe-book-shell-theme')?.value
+  const initialTheme = (themeCookie === 'page-turn' || themeCookie === 'pixel' ? themeCookie : 'pixel') as RecipeBookTheme
+  
+  const userAgent = headersList.get('user-agent') || ''
+  const isMobile = /mobile/i.test(userAgent)
 
   const recipesPromise = isAdmin ? getAllRecipesList() : getRecipesList()
   const [recipes, skillGraph] = await Promise.all([recipesPromise, getRecipeSkillGraph()])
@@ -51,7 +60,7 @@ export default async function RecipePage() {
 
       <div className="w-full px-4 pt-10 pb-12 md:px-6 md:pt-16">
         <RecipeSkillGraphProvider graph={skillGraph}>
-          <RecipeBookShell>
+          <RecipeBookShell initialTheme={initialTheme} initialIsMobile={isMobile}>
             <BookSpread
               left={<TableOfContentsLeftPage recipes={recipes} />}
               right={<TableOfContentsRightPage recipes={recipes} />}

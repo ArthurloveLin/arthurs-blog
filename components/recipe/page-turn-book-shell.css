@@ -36,6 +36,69 @@
   overflow: visible;
 }
 
+/* Dynamic Page Stack (Thickness Distribution) */
+.rt-pages-container {
+  --total-thickness: clamp(4px, calc(4px + var(--slide-count, 0) * 0.12px), 14px);
+  /* Use max(1, ...) to avoid division by zero if there's only 1 slide */
+  --max-slide-idx: max(1, calc(var(--slide-count, 1) - 1));
+  --left-ratio: calc(var(--current-slide, 0) / var(--max-slide-idx));
+  --right-ratio: calc(1 - var(--left-ratio));
+}
+
+.rt-pages-container::before,
+.rt-pages-container::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    to right,
+    oklch(0.92 0.01 80),
+    oklch(0.92 0.01 80) 1px,
+    oklch(0.85 0.02 80) 1px,
+    oklch(0.85 0.02 80) 2px
+  );
+  pointer-events: none;
+  transition: width 0.6s ease, opacity 0.6s ease;
+}
+
+/* Left side stack - grows as you flip forward */
+.rt-pages-container::before {
+  right: 100%;
+  width: calc(var(--total-thickness) * var(--left-ratio));
+  opacity: clamp(0, calc(var(--left-ratio) * 10), 1);
+  border-radius: 2px 0 0 2px;
+  box-shadow: -1px 0 2px rgba(0,0,0,0.12);
+}
+
+/* Right side stack - shrinks as you flip forward */
+.rt-pages-container::after {
+  left: 100%;
+  width: calc(var(--total-thickness) * var(--right-ratio));
+  opacity: clamp(0, calc(var(--right-ratio) * 10), 1);
+  border-radius: 0 2px 2px 0;
+  box-shadow: 1px 0 2px rgba(0,0,0,0.12);
+}
+
+.dark .rt-pages-container::before,
+.dark .rt-pages-container::after {
+  background: repeating-linear-gradient(
+    to right,
+    oklch(0.28 0.02 50),
+    oklch(0.28 0.02 50) 1px,
+    oklch(0.22 0.02 50) 1px,
+    oklch(0.22 0.02 50) 2px
+  );
+}
+
+.dark .rt-pages-container::before {
+  box-shadow: -1px 0 3px rgba(0,0,0,0.4);
+}
+
+.dark .rt-pages-container::after {
+  box-shadow: 1px 0 3px rgba(0,0,0,0.4);
+}
+
 .rt-pages {
   position: relative;
   width: 100%;
@@ -71,9 +134,14 @@
   display: none;
 }
 
+.rt-pages:focus {
+  outline: none;
+}
+
 .rt-pages:focus-visible {
-  outline: 1px solid oklch(0.6 0.18 35 / 0.55);
-  outline-offset: 10px;
+  outline: 2px solid oklch(0.6 0.18 35 / 0.25);
+  outline-offset: 12px;
+  border-radius: 4px;
 }
 
 .rt-pages .page-wrapper,
@@ -105,12 +173,45 @@
 }
 
 .rt-page-cover {
-  background: transparent !important;
+  background: var(--rt-page-fill) !important;
   background-image: none !important;
 }
 
 .rt-page-cover-surface {
-  background: transparent;
+  background: var(--rt-page-fill);
+}
+
+/* Spine Shadow Effect */
+.rt-page-sheet-left .rt-page-surface::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: clamp(20px, 4vw, 40px);
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.08), transparent);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.rt-page-sheet-right .rt-page-surface::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: clamp(20px, 4vw, 40px);
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.08), transparent);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.dark .rt-page-sheet-left .rt-page-surface::after {
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.3), transparent);
+}
+
+.dark .rt-page-sheet-right .rt-page-surface::after {
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.3), transparent);
 }
 
 .rt-page-pane {
@@ -145,6 +246,12 @@
 
 .rt-page .bs-right-page-scroll {
   padding: 0;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.rt-page .bs-right-page-scroll::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 .rt-page .bs-left-page,
@@ -206,7 +313,8 @@
 
   position: absolute;
   top: var(--rt-overlay-top);
-  right: -0.2rem;
+  /* Aligned to the very edge of the book wrapper */
+  right: 0; 
   z-index: 13;
   overflow: visible;
   pointer-events: none;
@@ -227,6 +335,14 @@
   width: var(--bs-control-bookmark-total-width);
   min-width: var(--bs-control-bookmark-total-width);
   flex-shrink: 0;
+  /* Shadow that makes it look tucked between pages */
+  box-shadow: 
+    -2px 0 5px rgba(0, 0, 0, 0.15),
+    inset 2px 0 3px rgba(0, 0, 0, 0.1);
+}
+
+.rt-shell-right-overlay .bs-control-bookmark:hover:not(:disabled) {
+  transform: translateX(calc(var(--bs-control-bookmark-hover-pull) * -1));
 }
 
 .rt-bookmarks {

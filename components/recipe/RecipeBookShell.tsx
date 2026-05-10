@@ -1,18 +1,23 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
-import BookShell from './BookShell'
+import dynamic from 'next/dynamic'
 import type { BookmarkItem } from './BookShell'
-import PageTurnBookShell from './PageTurnBookShell'
 import { RecipeBookThemeProvider, type RecipeBookTheme } from './recipe-book-theme-context'
+
+const BookShell = dynamic(() => import('./BookShell'))
+const PageTurnBookShell = dynamic(() => import('./PageTurnBookShell'))
 
 interface RecipeBookShellProps {
   children: React.ReactNode
   bookmarks?: BookmarkItem[]
   className?: string
+  initialTheme: RecipeBookTheme
+  initialIsMobile: boolean
 }
 
 const STORAGE_KEY = 'recipe-book-shell-theme'
+const COOKIE_KEY = 'recipe-book-shell-theme'
 const MEDIA_QUERY = '(width < 768px)'
 const THEME_CHANGE_EVENT = 'recipe-book-shell-theme-change'
 
@@ -82,19 +87,21 @@ function subscribeViewport(onStoreChange: () => void) {
   }
 }
 
-export default function RecipeBookShell({ children, bookmarks, className }: RecipeBookShellProps) {
+export default function RecipeBookShell({ children, bookmarks, className, initialTheme, initialIsMobile }: RecipeBookShellProps) {
   const isClientReady = useSyncExternalStore(subscribeClientReady, () => true, () => false)
-  const theme = useSyncExternalStore<RecipeBookTheme>(subscribeTheme, getThemeSnapshot, () => 'pixel')
-  const isMobile = useSyncExternalStore(subscribeViewport, getViewportSnapshot, () => false)
+  const theme = useSyncExternalStore<RecipeBookTheme>(subscribeTheme, getThemeSnapshot, () => initialTheme)
+  const isMobile = useSyncExternalStore(subscribeViewport, getViewportSnapshot, () => initialIsMobile)
 
   function setTheme(nextTheme: RecipeBookTheme) {
     window.localStorage.setItem(STORAGE_KEY, nextTheme)
+    document.cookie = `${COOKIE_KEY}=${nextTheme}; path=/; max-age=31536000; SameSite=Lax`
     window.dispatchEvent(new Event(THEME_CHANGE_EVENT))
   }
 
-  const activeTheme: RecipeBookTheme = isClientReady ? theme : 'pixel'
+  const activeTheme: RecipeBookTheme = isClientReady ? theme : initialTheme
   const value = { isMobile, setTheme, theme: activeTheme }
-  const shell = !isClientReady || isMobile || activeTheme === 'pixel'
+  
+  const shell = isMobile || activeTheme === 'pixel'
     ? <BookShell bookmarks={bookmarks} className={className}>{children}</BookShell>
     : <PageTurnBookShell bookmarks={bookmarks} className={className}>{children}</PageTurnBookShell>
 
