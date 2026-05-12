@@ -7,7 +7,7 @@ import { parseNoteContent } from '@/components/note-board/utils/editor'
 
 interface NoteContentProps {
   content: string
-  variant: 'preview' | 'board'
+  variant: 'preview' | 'board' | 'stream'
   onToggleChecklistItem?: (lineIndex: number) => void
   checklistPending?: boolean
 }
@@ -77,6 +77,8 @@ const BLOCKQUOTE_PATTERN = /^>\s?(.*)$/
 const HR_PATTERN = /^---+$/
 const TABLE_ROW_PATTERN = /^\|.+\|$/
 const INLINE_IMAGE_PATTERN = /^!\[([^\]]*)\]\(([^)]+)\)$/
+const UL_PATTERN = /^[-*+]\s+(.+)$/
+const OL_PATTERN = /^\d+\.\s+(.+)$/
 
 const HEADING_CLASS: Record<number, string> = {
   1: 'text-[1.1em] font-bold leading-snug text-slate-900',
@@ -138,6 +140,9 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
     let currentCode: string[] = []
     let tableBuffer: string[] = []
     let tableStart = 0
+    let listBuffer: string[] = []
+    let listType: 'ul' | 'ol' | null = null
+    let listStart = 0
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     function flushTable(_untilIndex: number) {
@@ -146,12 +151,29 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       tableBuffer = []
     }
 
+    function flushList() {
+      if (listBuffer.length === 0 || !listType) return
+      const Tag = listType
+      result.push(
+        <Tag key={`${variant}-${listType}-${listStart}`} className={listType === 'ul' ? 'my-1 ml-4 list-disc space-y-0.5' : 'my-1 ml-4 list-decimal space-y-0.5'}>
+          {listBuffer.map((text, idx) => (
+            <li key={idx} className="pl-0.5">
+              {renderInlineFormattedText(text, `${variant}-li-${listStart}-${idx}`)}
+            </li>
+          ))}
+        </Tag>
+      )
+      listBuffer = []
+      listType = null
+    }
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
 
       // Code block fence
       if (line.startsWith('```')) {
         flushTable(i)
+        flushList()
         if (inCodeBlock) {
           result.push(
             <pre key={`cb-${i}`} className={styles.codeBlock}>
@@ -173,12 +195,34 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
 
       // Table rows
       if (TABLE_ROW_PATTERN.test(line)) {
+        flushList()
         if (tableBuffer.length === 0) tableStart = i
         tableBuffer.push(line)
         continue
       } else {
         flushTable(i)
       }
+
+      // Unordered list
+      const ulMatch = line.match(UL_PATTERN)
+      if (ulMatch) {
+        if (listType === 'ol') flushList()
+        if (listBuffer.length === 0) { listType = 'ul'; listStart = i }
+        listBuffer.push(ulMatch[1])
+        continue
+      }
+
+      // Ordered list
+      const olMatch = line.match(OL_PATTERN)
+      if (olMatch) {
+        if (listType === 'ul') flushList()
+        if (listBuffer.length === 0) { listType = 'ol'; listStart = i }
+        listBuffer.push(olMatch[1])
+        continue
+      }
+
+      // Non-list line flushes any open list
+      flushList()
 
       // Heading
       const headingMatch = line.match(HEADING_PATTERN)
@@ -236,8 +280,9 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       )
     }
 
-    // Flush trailing table or code block
+    // Flush trailing table, list, or code block
     flushTable(lines.length)
+    flushList()
     if (inCodeBlock && currentCode.length > 0) {
       result.push(
         <pre key="cb-final" className={styles.codeBlock}>
@@ -249,7 +294,9 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
     return result
   }, [parsed.body, variant])
 
-  const textClassName = [styles.text, variant === 'preview' ? styles.previewText : styles.boardText].join(' ')
+  const textClassName = variant === 'stream'
+    ? styles.streamText
+    : [styles.text, variant === 'preview' ? styles.previewText : styles.boardText].join(' ')
 
   return (
     <div className="space-y-3">

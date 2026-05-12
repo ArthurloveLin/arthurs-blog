@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Layers, LayoutList, Search, Tag, X } from 'lucide-react'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
@@ -21,6 +21,11 @@ import { splitHighlightedText } from '@/lib/blog-search'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
 export { StickyStackPreview } from '@/components/note-board/views/StickyStackPreview'
+
+const MemosStreamView = dynamic(
+  () => import('@/components/note-board/views/MemosStreamView').then((m) => m.MemosStreamView),
+  { ssr: false },
+)
 
 const MobileNoteList = dynamic(
   () => import('@/components/note-board/views/MobileNoteList').then((module) => module.MobileNoteList),
@@ -176,7 +181,12 @@ function SearchResultsList() {
   )
 }
 
-function NoteBoardControls() {
+interface NoteBoardControlsProps {
+  viewMode?: 'sticky' | 'stream'
+  onToggleViewMode?: () => void
+}
+
+function NoteBoardControls({ viewMode, onToggleViewMode }: NoteBoardControlsProps) {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
   const meta = useNoteBoardMeta()
@@ -244,7 +254,17 @@ function NoteBoardControls() {
 
         <div className="flex items-center gap-2">
           {meta.board.slug === 'memo' ? <SearchBar /> : null}
-          {state.viewportReady && state.isMobileViewport && !isSearchMode ? (
+          {viewMode !== undefined && onToggleViewMode ? (
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent"
+              onClick={onToggleViewMode}
+            >
+              <LayoutList size={14} />
+              流式视图
+            </button>
+          ) : null}
+          {state.viewportReady && state.isMobileViewport && !isSearchMode && meta.board.slug !== 'memo' ? (
             <button
               type="button"
               className="flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent"
@@ -380,7 +400,7 @@ function NoteBoardControls() {
   )
 }
 
-function NoteBoardEditorSection() {
+function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?: boolean }) {
   const state = useNoteBoardEditorState()
   const boardState = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
@@ -429,7 +449,7 @@ function NoteBoardEditorSection() {
                 menuDirection="up"
               />
             ) : undefined}
-            autoFocus={state.editorMode === 'edit' && boardState.isMobileViewport}
+            autoFocus={state.editorMode === 'edit' && (boardState.isMobileViewport || autoFocusOnEdit)}
           />
         </form>
       ) : (
@@ -458,10 +478,34 @@ function NoteBoardToast() {
 }
 
 function NoteBoardExperience() {
+  const meta = useNoteBoardMeta()
+  const isMemoBoard = meta.board.slug === 'memo'
+
+  const [viewMode, setViewMode] = useState<'sticky' | 'stream'>(() => {
+    if (typeof window === 'undefined' || !isMemoBoard) return 'sticky'
+    return window.localStorage.getItem('memo-view-mode') === 'stream' ? 'stream' : 'sticky'
+  })
+
+  useEffect(() => {
+    if (isMemoBoard) window.localStorage.setItem('memo-view-mode', viewMode)
+  }, [viewMode, isMemoBoard])
+
+  const toggleViewMode = useCallback(
+    () => setViewMode((v) => (v === 'sticky' ? 'stream' : 'sticky')),
+    [],
+  )
+
   return (
     <div className="space-y-6">
-      <NoteBoardControls />
-      <NoteBoardEditorSection />
+      {isMemoBoard && viewMode === 'stream' ? (
+        <MemosStreamView onToggleViewMode={toggleViewMode} />
+      ) : (
+        <NoteBoardControls
+          viewMode={isMemoBoard ? viewMode : undefined}
+          onToggleViewMode={isMemoBoard ? toggleViewMode : undefined}
+        />
+      )}
+      <NoteBoardEditorSection autoFocusOnEdit={viewMode === 'stream'} />
       <NoteBoardToast />
     </div>
   )

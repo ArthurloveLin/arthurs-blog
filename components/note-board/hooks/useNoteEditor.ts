@@ -432,5 +432,6 @@ export function useNoteEditor({
     saveEditingNote,
     toggleChecklistItem,
     submitDraft,
+    scrollToEditor,
   }
 }
