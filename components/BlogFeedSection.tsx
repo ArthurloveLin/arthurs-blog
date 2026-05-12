@@ -1,19 +1,47 @@
 'use client'
 
 import Link from 'next/link'
-import { ViewTransition } from 'react'
+import { ViewTransition, useState, useEffect } from 'react'
 import type { Post } from '@/lib/blog'
 import PostCard, { EagerPostCard } from '@/components/PostCard'
 import AdminOnly from '@/components/AdminOnly'
 import ReindexButton from '@/components/ReindexButton'
+import { BLOG_RETURN_PATHNAME_KEY, BLOG_RETURN_POST_SLUG_KEY } from '@/lib/blog-return'
 
 interface BlogFeedSectionProps {
   posts: Post[]
-  returningPostSlug: string | null
   fetchError?: boolean
   activeCategory?: string | null
   activeTags?: string[]
   activeYear?: number | null
+}
+
+function getInitialReturningPostSlug() {
+  if (typeof window === 'undefined') return null
+  const storedPathname = sessionStorage.getItem(BLOG_RETURN_PATHNAME_KEY)
+  const storedPostSlug = sessionStorage.getItem(BLOG_RETURN_POST_SLUG_KEY)
+  if (storedPathname !== window.location.pathname || !storedPostSlug) return null
+  return storedPostSlug
+}
+
+function useReturningPost() {
+  const [returningPostSlug, setReturningPostSlug] = useState<string | null>(getInitialReturningPostSlug)
+
+  useEffect(() => {
+    if (!returningPostSlug) {
+      sessionStorage.removeItem(BLOG_RETURN_PATHNAME_KEY)
+      sessionStorage.removeItem(BLOG_RETURN_POST_SLUG_KEY)
+      return
+    }
+    const clear = window.setTimeout(() => {
+      setReturningPostSlug(null)
+      sessionStorage.removeItem(BLOG_RETURN_PATHNAME_KEY)
+      sessionStorage.removeItem(BLOG_RETURN_POST_SLUG_KEY)
+    }, 1200)
+    return () => window.clearTimeout(clear)
+  }, [returningPostSlug])
+
+  return returningPostSlug
 }
 
 function getPostCardComponent(isReturningPost: boolean) {
@@ -22,12 +50,12 @@ function getPostCardComponent(isReturningPost: boolean) {
 
 export default function BlogFeedSection({
   posts,
-  returningPostSlug,
   fetchError = false,
   activeCategory = null,
   activeTags = [],
   activeYear = null,
 }: BlogFeedSectionProps) {
+  const returningPostSlug = useReturningPost()
   return (
     <section className="min-w-0 md:col-span-8 lg:col-span-1">
       {/* Feed header / Category filter banner */}

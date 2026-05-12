@@ -11,10 +11,16 @@
   inherits: false;
 }
 
+@keyframes bs-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* ── Root variables ───────────────────────────────────────────────────────────
    Matches book.webp: 9600×3000px, 5 columns, 2 rows, 7 frames
    ──────────────────────────────────────────────────────────────────────────── */
 .bs-root {
+  animation: bs-fadein 0.35s ease-out both;
   --sprite-c: 5;
   --sprite-h: 3000;
   --sprite-w: 9600;

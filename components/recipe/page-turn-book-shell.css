@@ -1,3 +1,8 @@
+@keyframes rt-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 .rt-root {
   --rt-page-fill: oklch(0.96 0.02 80);
   --rt-page-fill-dark: oklch(0.22 0.02 50);
@@ -5,6 +10,7 @@
   --rt-overlay-top: calc(4% + 0.9rem);
 
   width: 100%;
+  animation: rt-fadein 0.35s ease-out both;
 }
 
 .rt-book-wrapper {

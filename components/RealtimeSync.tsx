@@ -2,7 +2,9 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-client'
+
+const supabase = createClient()
 
 interface RealtimeSyncProps {
   sessionId: string
