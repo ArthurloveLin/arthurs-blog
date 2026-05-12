@@ -1,27 +1,23 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { useRecipeEditor } from '@/hooks/useRecipeEditor'
+import type { Recipe } from '@/lib/recipes'
 import BookSpread from './BookSpread'
 import RecipeRevisionArchive from './RecipeRevisionArchive'
 import RecipeViewBookmarks from './RecipeViewBookmarks'
-import RecipeSpreadSkeleton from './RecipeSpreadSkeleton'
+import RecipeEditBookmarks from './RecipeEditBookmarks'
+import RecipeEditLeftPage from './RecipeEditLeftPage'
+import RecipeEditRightPage from './RecipeEditRightPage'
 import type { RecipeRevisionPreview } from './revision-preview'
 
 interface Props {
-  slug: string
-  initialPublished: boolean
-  currentVersion: string
+  recipe: Recipe
   revisionPreviews: RecipeRevisionPreview[]
   condensedLeftPage: React.ReactNode
   rightPage: React.ReactNode
 }
-
-const RecipeSpreadEditor = dynamic(() => import('./RecipeSpreadEditor'), {
-  ssr: false,
-  loading: () => <RecipeSpreadSkeleton />,
-})
 
 function RecipeRevisionPlaceholder({
   selectedRevision,
@@ -41,76 +37,8 @@ function RecipeRevisionPlaceholder({
   )
 }
 
-function RecipeViewingSpread({
-  currentVersion,
-  revisionPreviews,
-  selectedRevision,
-  condensedLeftPage,
-  rightPage,
-  onEdit,
-  onTogglePublish,
-  showAllRevisions,
-  onToggleRevisions,
-  onSelectRevision,
-  isPublished,
-  isPublishPending,
-}: {
-  currentVersion: string
-  revisionPreviews: RecipeRevisionPreview[]
-  selectedRevision: RecipeRevisionPreview | null
-  condensedLeftPage: React.ReactNode
-  rightPage: React.ReactNode
-  onEdit: () => void
-  onTogglePublish: () => void
-  showAllRevisions: boolean
-  onToggleRevisions: () => void
-  onSelectRevision: (revisionId: string) => void
-  isPublished: boolean
-  isPublishPending: boolean
-}) {
-  return (
-    <BookSpread
-      left={
-        showAllRevisions ? (
-          <RecipeRevisionArchive
-            currentVersion={currentVersion}
-            isPublished={isPublished}
-            revisions={revisionPreviews}
-            selectedRevisionId={selectedRevision?.id ?? null}
-            onSelectRevision={onSelectRevision}
-          />
-        ) : (
-          condensedLeftPage
-        )
-      }
-      right={
-        showAllRevisions
-          ? (selectedRevision?.rightPage ?? (
-              <RecipeRevisionPlaceholder
-                selectedRevision={selectedRevision}
-                revisionCount={revisionPreviews.length}
-              />
-            ))
-          : rightPage
-      }
-      rightOverlay={
-        <RecipeViewBookmarks
-          isPublished={isPublished}
-          onEdit={onEdit}
-          onViewRevisions={onToggleRevisions}
-          onTogglePublish={onTogglePublish}
-          isPublishPending={isPublishPending}
-          isViewingRevisions={showAllRevisions}
-        />
-      }
-    />
-  )
-}
-
 export default function RecipeSpreadClient({
-  slug,
-  initialPublished,
-  currentVersion,
+  recipe,
   revisionPreviews,
   condensedLeftPage,
   rightPage,
@@ -119,15 +47,33 @@ export default function RecipeSpreadClient({
   const [showAllRevisions, setShowAllRevisions] = useState(false)
   const [selectedRevisionId, setSelectedRevisionId] = useState<string | null>(revisionPreviews[0]?.id ?? null)
   const [isEditing, setIsEditing] = useState(false)
-  const [isPublished, setIsPublished] = useState(initialPublished)
+  const [isPublished, setIsPublished] = useState(recipe.published)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  const selectedRevision = revisionPreviews.find((revision) => revision.id === selectedRevisionId) ?? revisionPreviews[0] ?? null
+  const editor = useRecipeEditor({
+    recipe,
+    onSaved: () => setIsEditing(false),
+  })
+
+  const selectedRevision = revisionPreviews.find((r) => r.id === selectedRevisionId) ?? revisionPreviews[0] ?? null
+
+  function handleStartEdit() {
+    // Reset draft from current recipe prop before entering edit mode,
+    // so cancelled edits don't bleed into the next session.
+    editor.startEditing()
+    setIsEditing(true)
+  }
+
+  function handleCancelEdit() {
+    editor.cancelEditing()
+    setIsEditing(false)
+  }
 
   function togglePublish() {
     startTransition(async () => {
       const nextPublished = !isPublished
-      const res = await fetch(`/api/recipes/${slug}`, {
+      const res = await fetch(`/api/recipes/${recipe.slug}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ published: nextPublished }),
@@ -141,37 +87,67 @@ export default function RecipeSpreadClient({
   }
 
   async function handleDelete() {
-    const res = await fetch(`/api/recipes/${slug}`, { method: 'DELETE' })
-    if (res.ok) {
-      router.refresh()
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/recipes/${recipe.slug}`, { method: 'DELETE' })
+      if (res.ok) {
+        router.refresh()
+      }
+    } finally {
+      setIsDeleting(false)
     }
   }
 
-  if (isEditing) {
-    return (
-      <RecipeSpreadEditor
-        slug={slug}
-        onCancel={() => setIsEditing(false)}
-        onSaved={() => setIsEditing(false)}
-        onDelete={handleDelete}
-      />
-    )
-  }
+  // Always render a single BookSpread so the .rt-page DOM nodes stay stable.
+  // Switching component types (e.g. RecipeViewingSpread → RecipeSpreadEditor) would cause
+  // React to call removeChild on .rt-page elements that turn.js has already moved into
+  // its own wrapper divs, producing a NotFoundError.
+  const left = isEditing
+    ? <RecipeEditLeftPage editor={editor} />
+    : showAllRevisions
+      ? (
+          <RecipeRevisionArchive
+            currentVersion={recipe.version}
+            isPublished={isPublished}
+            revisions={revisionPreviews}
+            selectedRevisionId={selectedRevision?.id ?? null}
+            onSelectRevision={setSelectedRevisionId}
+          />
+        )
+      : condensedLeftPage
 
-  return (
-    <RecipeViewingSpread
-      currentVersion={currentVersion}
-      revisionPreviews={revisionPreviews}
-      selectedRevision={selectedRevision}
-      condensedLeftPage={condensedLeftPage}
-      rightPage={rightPage}
-      onEdit={() => setIsEditing(true)}
-      onTogglePublish={togglePublish}
-      showAllRevisions={showAllRevisions}
-      onToggleRevisions={() => setShowAllRevisions((value) => !value)}
-      onSelectRevision={setSelectedRevisionId}
-      isPublished={isPublished}
-      isPublishPending={isPending}
-    />
-  )
+  const right = isEditing
+    ? <RecipeEditRightPage editor={editor} />
+    : showAllRevisions
+      ? (selectedRevision?.rightPage ?? (
+          <RecipeRevisionPlaceholder
+            selectedRevision={selectedRevision}
+            revisionCount={revisionPreviews.length}
+          />
+        ))
+      : rightPage
+
+  const overlay = isEditing
+    ? (
+        <RecipeEditBookmarks
+          isSaving={editor.isSaving}
+          isDeleting={isDeleting}
+          onSave={editor.save}
+          onCancel={handleCancelEdit}
+          onDelete={handleDelete}
+          error={editor.error}
+        />
+      )
+    : (
+        <RecipeViewBookmarks
+          isPublished={isPublished}
+          onEdit={handleStartEdit}
+          onViewRevisions={() => setShowAllRevisions((v) => !v)}
+          onTogglePublish={togglePublish}
+          isPublishPending={isPending}
+          isViewingRevisions={showAllRevisions}
+        />
+      )
+
+  return <BookSpread left={left} right={right} rightOverlay={overlay} />
 }
