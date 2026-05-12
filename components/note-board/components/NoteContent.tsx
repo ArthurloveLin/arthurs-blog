@@ -139,7 +139,8 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
     let tableBuffer: string[] = []
     let tableStart = 0
 
-    function flushTable(untilIndex: number) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    function flushTable(_untilIndex: number) {
       if (tableBuffer.length === 0) return
       result.push(renderTableRows(tableBuffer, `${variant}-tbl-${tableStart}`))
       tableBuffer = []
@@ -214,6 +215,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       const imgMatch = line.match(INLINE_IMAGE_PATTERN)
       if (imgMatch) {
         result.push(
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             key={`img-${i}`}
             src={imgMatch[2]}

@@ -1,6 +1,6 @@
 'use client'
 
-import { Bold, Check, Code, Heading2, Highlighter, Image, Italic, Link2, ListTodo, Quote, Strikethrough, X } from 'lucide-react'
+import { Bold, Check, Code, Heading2, Highlighter, Image as ImageIcon, Italic, Link2, ListTodo, Quote, Strikethrough, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import EmojiPickerButton from '@/components/emoji/EmojiPickerButton'
 import EditorActionBar from '@/components/EditorActionBar'
@@ -311,7 +311,7 @@ export function NoteEditor({
                     <Link2 size={iconSize} strokeWidth={1.8} />
                   </ToolbarIconButton>
                   <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={handleImageButtonClick} disabled={isUploading} label="上传图片">
-                    <Image size={iconSize} strokeWidth={1.8} />
+                    <ImageIcon size={iconSize} strokeWidth={1.8} />
                   </ToolbarIconButton>
                 </>
               ) : null}
