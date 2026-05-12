@@ -31,9 +31,11 @@ export async function GET(
   const sort = isNoteSortMode(rawSort) ? rawSort : 'time'
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), config?.pageSize ?? 24) : config?.initialPageLimit ?? 48
   const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0
+  const searchQuery = searchParams.get('q') ?? null
+  const tagFilter = searchParams.get('tag') ?? null
 
   try {
-    const messages = await getBoardMessages(board, limit, offset, archived, sort, identity)
+    const messages = await getBoardMessages(board, limit, offset, archived, sort, identity, searchQuery, tagFilter)
     return NextResponse.json({ messages, nextOffset: offset + messages.length, hasMore: messages.length === limit })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to load board' }, { status: 500 })

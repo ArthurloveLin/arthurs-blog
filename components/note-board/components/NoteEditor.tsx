@@ -1,13 +1,13 @@
 'use client'
 
-import { Bold, Check, Code, Highlighter, Italic, ListTodo, X } from 'lucide-react'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { Bold, Check, Code, Heading2, Highlighter, Image, Italic, Link2, ListTodo, Quote, Strikethrough, X } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import EmojiPickerButton from '@/components/emoji/EmojiPickerButton'
 import EditorActionBar from '@/components/EditorActionBar'
 import type { TextEditResult, TextSelectionRange } from '@/components/note-board/types'
 import { clamp } from '@/components/note-board/utils/board'
 import { insertTextAtSelection } from '@/lib/text-selection'
-import { insertChecklistSyntax, wrapSelectionWithSyntax } from '@/components/note-board/utils/editor'
+import { insertChecklistSyntax, insertLinePrefixSyntax, wrapSelectionWithSyntax } from '@/components/note-board/utils/editor'
 
 export interface NoteEditorProps {
   value: string
@@ -69,6 +69,21 @@ function ToolbarIconButton({
   )
 }
 
+async function uploadImageFile(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch('/api/note-boards/upload-image', {
+    method: 'POST',
+    body: formData,
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({})) as { error?: string }
+    throw new Error(err.error ?? 'Upload failed')
+  }
+  const { url } = await response.json() as { url: string }
+  return url
+}
+
 export function NoteEditor({
   value,
   onChange,
@@ -95,11 +110,11 @@ export function NoteEditor({
   const iconSize = buttonSize === 'sm' ? 11 : 13
   const currentLength = value.length
   const remainingLength = typeof maxLength === 'number' ? Math.max(maxLength - currentLength, 0) : null
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
-  // Auto-selection restoration after programmatic value changes
   useEffect(() => {
     if (!pendingSelectionRef.current || !textareaRef.current) return
-
     const nextSelection = pendingSelectionRef.current
     pendingSelectionRef.current = null
     textareaRef.current.focus()
@@ -108,7 +123,6 @@ export function NoteEditor({
 
   useEffect(() => {
     if (!autoFocus || !textareaRef.current) return
-
     textareaRef.current.focus()
     const caret = textareaRef.current.value.length
     textareaRef.current.setSelectionRange(caret, caret)
@@ -120,7 +134,6 @@ export function NoteEditor({
       start: clamp(result.selection.start, 0, nextValue.length),
       end: clamp(result.selection.end, 0, nextValue.length),
     }
-
     pendingSelectionRef.current = nextSelection
     onChange(nextValue)
   }
@@ -129,6 +142,70 @@ export function NoteEditor({
     const textarea = textareaRef.current
     if (!textarea) return
     commitTextEdit(transform(value, textarea.selectionStart, textarea.selectionEnd))
+  }
+
+  function insertLinkTemplate() {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const { selectionStart, selectionEnd } = textarea
+    const selectedText = value.slice(selectionStart, selectionEnd)
+    const insertion = selectedText ? `[${selectedText}](url)` : '[链接文字](url)'
+    const result = insertTextAtSelection(value, insertion, selectionStart, selectionEnd)
+    // Place cursor inside the URL part
+    const urlStart = selectionStart + (selectedText ? selectedText.length : 5) + 3
+    pendingSelectionRef.current = { start: urlStart, end: urlStart + 3 }
+    onChange(typeof maxLength === 'number' ? result.value.slice(0, maxLength) : result.value)
+  }
+
+  async function handleImageUpload(file: File) {
+    if (!file.type.startsWith('image/')) return
+    setIsUploading(true)
+    setUploadError(null)
+    try {
+      const url = await uploadImageFile(file)
+      const textarea = textareaRef.current
+      const pos = textarea ? textarea.selectionStart : value.length
+      const insertion = `![](${url})`
+      const result = insertTextAtSelection(value, insertion, pos, pos)
+      const nextValue = typeof maxLength === 'number' ? result.value.slice(0, maxLength) : result.value
+      pendingSelectionRef.current = { start: result.selectionStart, end: result.selectionEnd }
+      onChange(nextValue)
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : '图片上传失败')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  function handlePaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = event.clipboardData.items
+    for (const item of items) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        event.preventDefault()
+        const file = item.getAsFile()
+        if (file) void handleImageUpload(file)
+        return
+      }
+    }
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLTextAreaElement>) {
+    const file = event.dataTransfer.files[0]
+    if (file?.type.startsWith('image/')) {
+      event.preventDefault()
+      void handleImageUpload(file)
+    }
+  }
+
+  function handleImageButtonClick() {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = () => {
+      const file = input.files?.[0]
+      if (file) void handleImageUpload(file)
+    }
+    input.click()
   }
 
   return (
@@ -141,32 +218,47 @@ export function NoteEditor({
           maxLength={maxLength}
           placeholder={placeholder}
           rows={1}
-          className={`${minHeightClassName} col-start-1 row-start-1 w-full resize-none overflow-hidden rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-primary/30 focus:ring-2 focus:ring-primary/20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
+          disabled={isUploading}
+          onPaste={handlePaste}
+          onDrop={handleDrop}
+          onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault() }}
+          className={`${minHeightClassName} col-start-1 row-start-1 w-full resize-none overflow-hidden rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-primary/30 focus:ring-2 focus:ring-primary/20 disabled:opacity-60 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
         />
-        {/* Ghost element for zero-JS auto-height */}
-        <div 
-          className={`${minHeightClassName} col-start-1 row-start-1 invisible pointer-events-none whitespace-pre-wrap break-words px-3 py-3 text-sm leading-6`} 
+        <div
+          className={`${minHeightClassName} col-start-1 row-start-1 invisible pointer-events-none whitespace-pre-wrap break-words px-3 py-3 text-sm leading-6`}
           aria-hidden="true"
         >
           {value + (value.endsWith('\n') ? ' ' : '')}
         </div>
       </div>
+
+      {isUploading ? (
+        <div className="flex items-center gap-2 px-1 text-[11px] text-slate-500">
+          <span className="inline-block h-3 w-3 animate-spin rounded-full border border-slate-400 border-t-transparent" />
+          图片上传中…
+        </div>
+      ) : null}
+      {uploadError ? (
+        <p className="px-1 text-[11px] text-rose-600">{uploadError}</p>
+      ) : null}
+
       {typeof maxLength === 'number' ? (
         counterVariant === 'full' ? (
           <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground/80">
             <span>最多 {maxLength} 字</span>
-            <span className={remainingLength !== null && remainingLength <= Math.min(20, Math.floor(maxLength * 0.12)) ? 'text-amber-600' : undefined}>
+            <span className={remainingLength !== null && remainingLength <= Math.min(200, Math.floor(maxLength * 0.05)) ? 'text-amber-600' : undefined}>
               已输入 {currentLength} 字，还剩 {remainingLength} 字
             </span>
           </div>
         ) : (
           <div className="-mt-1.5 flex justify-end px-2 text-[10px] text-slate-400/80">
-            <span className={remainingLength !== null && remainingLength <= Math.min(20, Math.floor(maxLength * 0.12)) ? 'font-bold text-amber-600' : undefined}>
+            <span className={remainingLength !== null && remainingLength <= Math.min(200, Math.floor(maxLength * 0.05)) ? 'font-bold text-amber-600' : undefined}>
               剩 {remainingLength} 字
             </span>
           </div>
         )
       ) : null}
+
       <div className={shellClassName}>
         <EditorActionBar
           noWrap
@@ -180,13 +272,7 @@ export function NoteEditor({
                 triggerVariant={emojiTriggerVariant}
                 onSelect={(emoji) => withSelection((text, start, end) => {
                   const result = insertTextAtSelection(text, emoji, start, end)
-                  return {
-                    value: result.value,
-                    selection: {
-                      start: result.selectionStart,
-                      end: result.selectionEnd,
-                    },
-                  }
+                  return { value: result.value, selection: { start: result.selectionStart, end: result.selectionEnd } }
                 })}
               />
               <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection(insertChecklistSyntax)} label="插入 checklist">
@@ -203,12 +289,25 @@ export function NoteEditor({
               </ToolbarIconButton>
               <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => {
                 const isMultiline = text.slice(start, end).includes('\n')
-                if (isMultiline) {
-                  return wrapSelectionWithSyntax(text, start, end, '```\n', '\n```')
-                }
+                if (isMultiline) return wrapSelectionWithSyntax(text, start, end, '```\n', '\n```')
                 return wrapSelectionWithSyntax(text, start, end, '`')
               })} label="插入代码">
                 <Code size={iconSize} strokeWidth={1.8} />
+              </ToolbarIconButton>
+              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '~~'))} label="删除线">
+                <Strikethrough size={iconSize} strokeWidth={1.8} />
+              </ToolbarIconButton>
+              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => insertLinePrefixSyntax(text, start, end, '## '))} label="标题 H2">
+                <Heading2 size={iconSize} strokeWidth={1.8} />
+              </ToolbarIconButton>
+              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => insertLinePrefixSyntax(text, start, end, '> '))} label="引用块">
+                <Quote size={iconSize} strokeWidth={1.8} />
+              </ToolbarIconButton>
+              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={insertLinkTemplate} label="插入链接">
+                <Link2 size={iconSize} strokeWidth={1.8} />
+              </ToolbarIconButton>
+              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={handleImageButtonClick} disabled={isUploading} label="上传图片">
+                <Image size={iconSize} strokeWidth={1.8} />
               </ToolbarIconButton>
             </>
           )}
@@ -219,7 +318,7 @@ export function NoteEditor({
                   <X size={iconSize} strokeWidth={1.8} />
                 </ToolbarIconButton>
               ) : null}
-              <ToolbarIconButton size={buttonSize} onClick={onSave} label={isSaving ? '保存中' : saveLabel} disabled={isSaving || saveDisabled} emphasize>
+              <ToolbarIconButton size={buttonSize} onClick={onSave} label={isSaving ? '保存中' : saveLabel} disabled={isSaving || saveDisabled || isUploading} emphasize>
                 <Check size={iconSize} strokeWidth={2} />
               </ToolbarIconButton>
             </>

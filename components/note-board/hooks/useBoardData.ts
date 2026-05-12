@@ -11,13 +11,14 @@ import type { NoteMessage } from '@/lib/note-boards'
 
 const DESKTOP_NOTES_PER_PAGE = 10
 
-function getBoardQueryKey(boardSlug: string, archived: boolean, sort: NoteSortMode) {
-  return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}`
+function getBoardQueryKey(boardSlug: string, archived: boolean, sort: NoteSortMode, searchQuery: string, activeTag: string) {
+  return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:q=${searchQuery}:tag=${activeTag}`
 }
 
 export interface UseBoardDataProps {
   board: NoteBoardViewConfig
   initialMessages: NoteMessage[]
+  initialQuery?: string
   reactionIdentity: string | undefined
   isDesktopViewport: boolean
   cancelEditingNoteRef: React.MutableRefObject<() => void>
@@ -37,6 +38,7 @@ export interface BoardSurfaceRefs {
 export function useBoardData({
   board,
   initialMessages,
+  initialQuery = '',
   reactionIdentity,
   isDesktopViewport,
   cancelEditingNoteRef,
@@ -52,12 +54,14 @@ export function useBoardData({
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
   const [showArchived, setShowArchived] = useState(false)
   const [sortMode, setSortMode] = useState<NoteSortMode>('time')
+  const [searchQuery, setSearchQuery] = useState(initialQuery)
+  const [activeTag, setActiveTag] = useState('')
   const [isPending, startTransition] = useTransition()
 
   const messagesRef = useRef(initialSortedMessages)
   const activeBoardQueryKey = useMemo(
-    () => getBoardQueryKey(board.slug, showArchived, sortMode) + `:${reactionIdentity || 'anon'}`,
-    [board.slug, reactionIdentity, showArchived, sortMode],
+    () => getBoardQueryKey(board.slug, showArchived, sortMode, searchQuery, activeTag) + `:${reactionIdentity || 'anon'}`,
+    [board.slug, reactionIdentity, showArchived, sortMode, searchQuery, activeTag],
   )
   const activeBoardQueryKeyRef = useRef(activeBoardQueryKey)
 
@@ -81,6 +85,8 @@ export function useBoardData({
     sort = sortMode,
     offset = 0,
     limit = board.initialPageLimit,
+    q = searchQuery,
+    tag = activeTag,
   ) => {
     if (board.slug === 'guestbook') {
       const threadSearchParams = new URLSearchParams({
@@ -139,6 +145,12 @@ export function useBoardData({
 
     if (reactionIdentity) {
       searchParams.set('identity', reactionIdentity)
+    }
+
+    if (q.trim()) {
+      searchParams.set('q', q.trim())
+    } else if (tag.trim()) {
+      searchParams.set('tag', tag.trim())
     }
 
     const response = await fetch(`/api/note-boards/${board.slug}?${searchParams.toString()}`)
@@ -268,10 +280,28 @@ export function useBoardData({
     setNextOffset((current) => current + 1)
   }, [surfaceRefs])
 
+  const handleSearch = useCallback((q: string) => {
+    if (q === searchQuery) return
+    setError(null)
+    setCurrentPageIndex(0)
+    setActiveTag('')
+    setSearchQuery(q)
+  }, [searchQuery, setError])
+
+  const handleTagFilter = useCallback((tag: string) => {
+    const next = tag === activeTag ? '' : tag
+    setError(null)
+    setCurrentPageIndex(0)
+    setSearchQuery('')
+    setActiveTag(next)
+  }, [activeTag, setError])
+
   const handleSwitchArchiveView = useCallback((archived: boolean) => {
     if (archived === showArchived || isRefreshingBoard) return
 
     setError(null)
+    setSearchQuery('')
+    setActiveTag('')
     if (cancelEditingNoteRef.current) {
       cancelEditingNoteRef.current()
     }
@@ -288,6 +318,8 @@ export function useBoardData({
       cancelEditingNoteRef.current()
     }
     setCurrentPageIndex(0)
+    setSearchQuery('')
+    setActiveTag('')
     setSortMode(nextSortMode)
   }, [isRefreshingBoard, sortMode, setError, cancelEditingNoteRef])
 
@@ -413,6 +445,8 @@ export function useBoardData({
     currentPageIndex,
     showArchived,
     sortMode,
+    searchQuery,
+    activeTag,
     isPending,
     isRefreshingBoard,
     messagesRef,
@@ -423,6 +457,8 @@ export function useBoardData({
     restoreMessageSnapshot,
     handleSwitchArchiveView,
     handleSortModeChange,
+    handleSearch,
+    handleTagFilter,
     handleLoadMore,
     handlePreviousPage,
     handleNextPage,

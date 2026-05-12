@@ -104,6 +104,8 @@ export const getBoardMessages = cache(async (
   archived = false,
   sort: NoteSortMode = 'time',
   viewerIdentity?: string | null,
+  searchQuery?: string | null,
+  tagFilter?: string | null,
 ) => {
   const config = getNoteBoardConfig(board)
 
@@ -119,6 +121,12 @@ export const getBoardMessages = cache(async (
     .eq('archived', archived)
     .is('parent_id', null)
     .range(offset, offset + limit - 1)
+
+  if (searchQuery?.trim()) {
+    query = query.ilike('content', `%${searchQuery.trim()}%`)
+  } else if (tagFilter?.trim()) {
+    query = query.ilike('content', `%#${tagFilter.trim()}%`)
+  }
 
   if (sort === 'priority') {
     query = query.order('priority', { ascending: false })

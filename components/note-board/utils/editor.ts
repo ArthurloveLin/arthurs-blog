@@ -88,6 +88,32 @@ export function parseNoteContent(content: string) {
   }
 }
 
+export function insertLinePrefixSyntax(value: string, start: number, end: number, prefix: string): TextEditResult {
+  const block = getSelectionBlock(value, start, end)
+  const lines = block.text.split('\n')
+  const alreadyPrefixed = lines.every((line) => line.startsWith(prefix))
+  const converted = alreadyPrefixed
+    ? lines.map((line) => line.slice(prefix.length)).join('\n')
+    : lines.map((line) => `${prefix}${line}`).join('\n')
+  return replaceRange(value, block.start, block.end, converted, block.start, block.start + converted.length)
+}
+
+const HASHTAG_PATTERN = /#([\p{L}\p{N}_-]+)/gu
+
+export function parseHashtags(content: string): string[] {
+  const seen = new Set<string>()
+  let match: RegExpExecArray | null
+  HASHTAG_PATTERN.lastIndex = 0
+  while ((match = HASHTAG_PATTERN.exec(content)) !== null) {
+    const tag = match[1].toLowerCase()
+    if (tag.length > 0 && tag.length <= 32) {
+      seen.add(tag)
+    }
+    HASHTAG_PATTERN.lastIndex = match.index + 1
+  }
+  return [...seen].sort()
+}
+
 export function toggleChecklistLine(content: string, lineIndex: number) {
   const lines = content.split('\n')
 
