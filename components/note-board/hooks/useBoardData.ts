@@ -160,7 +160,7 @@ export function useBoardData({
 
     const payload = await response.json() as { messages: NoteMessage[]; nextOffset: number; hasMore: boolean }
     return createBoardPayload(payload.messages, archived, sort, payload.nextOffset, payload.hasMore)
-  }, [board.initialPageLimit, board.slug, board.targetId, board.targetType, reactionIdentity, sortMode])
+  }, [activeTag, board.initialPageLimit, board.slug, board.targetId, board.targetType, reactionIdentity, searchQuery, sortMode])
 
   const {
     data: boardPayload,

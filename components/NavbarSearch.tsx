@@ -161,7 +161,7 @@ const SearchSuggestionsList = memo(({
     return (
       <div className="px-8 py-12 text-center animate-apple-fade-in" style={{ animationDelay: `${baseDelay}ms`, animationFillMode: 'both' }}>
         <p className="text-lg text-muted-foreground font-medium">
-          没有找到与 "{normalizedQuery}" 相关的结果。
+          没有找到与 &ldquo;{normalizedQuery}&rdquo; 相关的结果。
         </p>
       </div>
     )
