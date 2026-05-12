@@ -176,6 +176,18 @@
   text-align: center;
 }
 
+.streamText {
+  display: block;
+  font-family: inherit;
+  font-weight: inherit;
+  text-align: left;
+  line-height: 1.7;
+  color: inherit;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 .time {
   display: inline-block;
   color: rgba(42, 49, 64, 0.78);

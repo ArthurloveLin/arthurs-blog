@@ -112,6 +112,7 @@ interface NoteBoardActions {
   updateEditorPriority: (value: NotePriority) => void
   submitEditor: () => Promise<void>
   cancelEditingNote: () => void
+  scrollToEditor: () => void
 }
 
 interface NoteBoardContextValue {
@@ -124,6 +125,7 @@ interface NoteBoardContextValue {
 interface NoteBoardBoardState {
   messages: NoteMessage[]
   noteItems: NoteCardViewModel[]
+  allNoteItems: NoteCardViewModel[]
   customPositions: Record<string, NotePosition>
   cardZIndices: Record<string, number>
   mobileView: 'stack' | 'list'
@@ -311,6 +313,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     saveEditingNote,
     toggleChecklistItem,
     submitDraft,
+    scrollToEditor,
   } = useNoteEditor({
     board,
     messages,
@@ -398,6 +401,33 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     setEditContent,
   })
 
+  const { noteItems: allNoteItems } = useBoardNoteItems({
+    visibleMessages: messages,
+    boardSlug: board.slug,
+    isAdmin,
+    viewerIdentityAliases,
+    editingNoteId,
+    editContent,
+    isUpdatingNote,
+    priorityUpdatingIds,
+    reactionUpdatingIds,
+    emojiUpdatingIds,
+    freshMessageIds,
+    measuredHeights,
+    priorityEnabled,
+    updatingNoteIds,
+    handleDelete,
+    startEditingNote,
+    handleToggleArchive,
+    handlePriorityChange,
+    handleReaction,
+    handleEmojiReaction,
+    saveEditingNote,
+    toggleChecklistItem,
+    cancelEditingNote,
+    setEditContent,
+  })
+
   const handleSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (editingMessage && isMobileViewport) {
@@ -411,6 +441,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
   const boardState = useMemo<NoteBoardBoardState>(() => ({
     messages: visibleMessages,
     noteItems,
+    allNoteItems,
     customPositions,
     cardZIndices,
     mobileView,
@@ -431,6 +462,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     isMobileViewport: Boolean(isMobileViewport),
     viewportReady,
   }), [
+    allNoteItems,
     allTags,
     activeTag,
     cardZIndices,
@@ -503,6 +535,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     updateEditorPriority: editingMessage ? setEditPriority : setDraftPriority,
     submitEditor: editingMessage ? saveEditingNote : submitDraft,
     cancelEditingNote,
+    scrollToEditor,
   }), [
     bringCardToFront,
     cancelEditingNote,
@@ -522,6 +555,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     setDraftPriority,
     setEditContent,
     setEditPriority,
+    scrollToEditor,
     submitDraft,
     toggleMobileView,
   ])
