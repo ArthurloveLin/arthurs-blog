@@ -481,10 +481,14 @@ function NoteBoardExperience() {
   const meta = useNoteBoardMeta()
   const isMemoBoard = meta.board.slug === 'memo'
 
-  const [viewMode, setViewMode] = useState<'sticky' | 'stream'>(() => {
-    if (typeof window === 'undefined' || !isMemoBoard) return 'sticky'
-    return window.localStorage.getItem('memo-view-mode') === 'stream' ? 'stream' : 'sticky'
-  })
+  const [viewMode, setViewMode] = useState<'sticky' | 'stream'>('sticky')
+
+  // Restore persisted view mode after mount (localStorage is client-only;
+  // initializing from it in useState causes a hydration mismatch)
+  useEffect(() => {
+    if (!isMemoBoard) return
+    if (window.localStorage.getItem('memo-view-mode') === 'stream') setViewMode('stream')
+  }, [isMemoBoard])
 
   useEffect(() => {
     if (isMemoBoard) window.localStorage.setItem('memo-view-mode', viewMode)
