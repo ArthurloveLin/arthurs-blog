@@ -5,8 +5,24 @@ import dynamic from 'next/dynamic'
 import type { BookmarkItem } from './BookShell'
 import { RecipeBookThemeProvider, type RecipeBookTheme } from './recipe-book-theme-context'
 
-const BookShell = dynamic(() => import('./BookShell'))
-const PageTurnBookShell = dynamic(() => import('./PageTurnBookShell'))
+function BookShellFallback() {
+  return (
+    <div className="w-full flex justify-center">
+      <div
+        className="w-full animate-pulse"
+        style={{ maxWidth: 'min(100%, 1080px)', aspectRatio: '670 / 500' }}
+      >
+        <div className="h-full flex gap-[4%] px-[5%] py-[5%]">
+          <div className="flex-1 rounded-sm bg-amber-900/8" />
+          <div className="flex-1 rounded-sm bg-amber-900/8" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const BookShell = dynamic(() => import('./BookShell'), { loading: BookShellFallback })
+const PageTurnBookShell = dynamic(() => import('./PageTurnBookShell'), { loading: BookShellFallback })
 
 interface RecipeBookShellProps {
   children: React.ReactNode
