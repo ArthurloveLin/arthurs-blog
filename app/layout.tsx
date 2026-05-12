@@ -29,9 +29,11 @@ const caveat = Caveat({
   weight: ["400", "500", "600", "700"],
 });
 import AuthProvider from "@/components/AuthProvider";
+import type { AuthState } from "@/components/AuthProvider";
 import { ThemeProvider } from "next-themes";
 import { getSiteConfig, getPostsCount, getCategories, getAllTags, getYearArchive, getRecentPostsMetadata } from "@/lib/blog";
 import { SiteDataProvider } from "@/components/SiteDataProvider"
+import { getCurrentUser, getUserRole } from "@/lib/auth";
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -44,14 +46,22 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [config, totalPostsCount, categories, tags, yearArchive, recentPosts] = await Promise.all([
+  const [config, totalPostsCount, categories, tags, yearArchive, recentPosts, authUser, authRole] = await Promise.all([
     getSiteConfig().catch(() => ({} as Record<string, string>)),
     getPostsCount().catch(() => 0),
     getCategories().catch(() => []),
     getAllTags().catch(() => []),
     getYearArchive().catch(() => []),
     getRecentPostsMetadata(10).catch(() => []),
+    getCurrentUser().catch(() => null),
+    getUserRole().catch(() => 'guest' as const),
   ]);
+
+  const initialAuth: AuthState = {
+    role: authRole,
+    email: authUser?.email ?? null,
+    display_name: authUser?.user_metadata?.display_name ?? null,
+  };
 
   return (
     <html lang="zh-CN"
@@ -74,7 +84,7 @@ export default async function RootLayout({
             themes={["light", "dark", "ocean", "sunset", "forest"]}
             disableTransitionOnChange
           >
-            <AuthProvider>
+            <AuthProvider initialData={initialAuth}>
               <SiteDataProvider
                 initialState={{
                   config: config || {},

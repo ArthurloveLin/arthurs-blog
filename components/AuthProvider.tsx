@@ -1,8 +1,6 @@
 'use client'
 
-import { createContext, use, useEffect, useRef, useState, ReactNode } from 'react'
-import { usePathname } from 'next/navigation'
-import useSWR from 'swr'
+import { createContext, use, useEffect, useState, ReactNode } from 'react'
 import { getGuestDisplayName, getGuestIdentityAliases, getOrCreateGuestId } from '@/lib/guest'
 import { createClient } from '@/lib/supabase-client'
 
@@ -56,51 +54,62 @@ export function useAuthIdentity() {
   return useAuth().identity
 }
 
-const fetcher = (url: string): Promise<AuthState | null> =>
-  fetch(url, { cache: 'no-store' }).then((response) => (response.ok ? response.json() : null))
-
 interface AuthProviderProps {
   children: ReactNode
   initialData?: AuthState
 }
 
 export default function AuthProvider({ children, initialData }: AuthProviderProps) {
-  const pathname = usePathname()
+  const [authState, setAuthState] = useState<AuthState>(initialData ?? GUEST_AUTH_STATE)
+  const [loading, setLoading] = useState(!initialData)
+
   const [guestId] = useState(() =>
     typeof window === 'undefined' ? '' : getOrCreateGuestId()
   )
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_supabase] = useState(() => 
-    typeof window === 'undefined' ? null : createClient()
-  )
-  const previousPathnameRef = useRef(pathname)
-
-  const { data, isLoading, mutate } = useSWR<AuthState | null>('/api/me', fetcher, {
-    fallbackData: initialData,
-    revalidateOnFocus: false,
-    dedupingInterval: 0,
-  })
 
   useEffect(() => {
-    if (previousPathnameRef.current === pathname) {
-      return
-    }
+    const supabase = createClient()
 
-    previousPathnameRef.current = pathname
-    void mutate()
-  }, [pathname, mutate])
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'INITIAL_SESSION') {
+        if (!initialData) {
+          if (session?.user) {
+            const data = await fetch('/api/me').then(r => r.json())
+            setAuthState(data)
+          }
+          setLoading(false)
+        }
+        return
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setAuthState(GUEST_AUTH_STATE)
+        return
+      }
+
+      // SIGNED_IN | TOKEN_REFRESHED | USER_UPDATED
+      if (session?.user) {
+        const data = await fetch('/api/me').then(r => r.json())
+        setAuthState(data)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const refreshAuth = async () => {
-    await mutate()
+    const data = await fetch('/api/me').then(r => r.json())
+    setAuthState(data)
   }
 
   const syncAuth = (nextState: AuthState) => {
-    void mutate(nextState, { revalidate: false })
+    setAuthState(nextState)
   }
 
-  const role = (data?.role as UserRole) ?? 'guest'
-  const displayName = data?.display_name ?? null
-  const email = data?.email ?? null
+  const role = authState.role
+  const displayName = authState.display_name ?? null
+  const email = authState.email ?? null
   const guestDisplayName = guestId ? getGuestDisplayName(guestId) : ''
   const identityAliases = role === 'guest' ? getGuestIdentityAliases(guestId) : [displayName ?? email ?? ''].filter(Boolean)
   const user = role === 'guest' ? null : { email, displayName }
@@ -116,7 +125,7 @@ export default function AuthProvider({ children, initialData }: AuthProviderProp
     identityAliases,
     identity,
     publicIdentity,
-    loading: isLoading && !data,
+    loading,
     isAuthenticated: role !== 'guest',
     isAdmin: role === 'admin',
     refreshAuth,
