@@ -29,6 +29,7 @@ export interface NoteEditorProps {
   emojiTriggerVariant?: 'filled' | 'bare'
   showCancelButton?: boolean
   counterVariant?: 'full' | 'compact'
+  compactToolbar?: boolean
 }
 
 function ToolbarIconButton({
@@ -104,6 +105,7 @@ export function NoteEditor({
   emojiTriggerVariant = 'filled',
   showCancelButton = true,
   counterVariant = 'full',
+  compactToolbar = false,
 }: NoteEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pendingSelectionRef = useRef<TextSelectionRange | null>(null)
@@ -294,21 +296,25 @@ export function NoteEditor({
               })} label="插入代码">
                 <Code size={iconSize} strokeWidth={1.8} />
               </ToolbarIconButton>
-              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '~~'))} label="删除线">
-                <Strikethrough size={iconSize} strokeWidth={1.8} />
-              </ToolbarIconButton>
-              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => insertLinePrefixSyntax(text, start, end, '## '))} label="标题 H2">
-                <Heading2 size={iconSize} strokeWidth={1.8} />
-              </ToolbarIconButton>
-              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => insertLinePrefixSyntax(text, start, end, '> '))} label="引用块">
-                <Quote size={iconSize} strokeWidth={1.8} />
-              </ToolbarIconButton>
-              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={insertLinkTemplate} label="插入链接">
-                <Link2 size={iconSize} strokeWidth={1.8} />
-              </ToolbarIconButton>
-              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={handleImageButtonClick} disabled={isUploading} label="上传图片">
-                <Image size={iconSize} strokeWidth={1.8} />
-              </ToolbarIconButton>
+              {!compactToolbar ? (
+                <>
+                  <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '~~'))} label="删除线">
+                    <Strikethrough size={iconSize} strokeWidth={1.8} />
+                  </ToolbarIconButton>
+                  <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => insertLinePrefixSyntax(text, start, end, '## '))} label="标题 H2">
+                    <Heading2 size={iconSize} strokeWidth={1.8} />
+                  </ToolbarIconButton>
+                  <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => insertLinePrefixSyntax(text, start, end, '> '))} label="引用块">
+                    <Quote size={iconSize} strokeWidth={1.8} />
+                  </ToolbarIconButton>
+                  <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={insertLinkTemplate} label="插入链接">
+                    <Link2 size={iconSize} strokeWidth={1.8} />
+                  </ToolbarIconButton>
+                  <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={handleImageButtonClick} disabled={isUploading} label="上传图片">
+                    <Image size={iconSize} strokeWidth={1.8} />
+                  </ToolbarIconButton>
+                </>
+              ) : null}
             </>
           )}
           trailing={(
