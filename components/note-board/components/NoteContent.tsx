@@ -111,7 +111,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
         </div>
       ) : null}
       {parsed.checklistItems.length > 0 ? (
-        <ul className="space-y-1.5 text-sm leading-relaxed text-slate-800/90">
+        <ul className="space-y-1.5 text-[1.05rem] leading-relaxed text-slate-800/90">
           {parsed.checklistItems.map((item) => {
             const lineIndex = typeof item.lineIndex === 'number' ? item.lineIndex : null
 
@@ -132,7 +132,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
                   <span className={[
                     'mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] transition-colors',
                     item.checked
-                      ? 'border-slate-800 bg-slate-900 text-white'
+                      ? 'border-slate-400/60 bg-slate-400/30 text-slate-500'
                       : 'border-slate-700/35 text-transparent',
                   ].join(' ')}>
                     <Check size={10} strokeWidth={2.4} />
