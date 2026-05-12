@@ -23,6 +23,7 @@ import type { NotePriority, NoteSortMode } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
 
+import { parseHashtags } from './utils/editor'
 import { useNotifications } from './hooks/useNotifications'
 import { useViewportDetection } from './hooks/useViewportDetection'
 import { useBoardSurface } from './hooks/useBoardSurface'
@@ -35,6 +36,7 @@ import type { BoardSurfaceRefs } from './hooks/useBoardData'
 interface NoteBoardProviderProps {
   board: NoteBoardViewConfig
   initialMessages: NoteMessage[]
+  initialQuery?: string
   children: ReactNode
 }
 
@@ -104,6 +106,8 @@ interface NoteBoardActions {
   handleSubmit: (event: React.FormEvent<HTMLFormElement>) => void
   handleSwitchArchiveView: (archived: boolean) => void
   handleSortModeChange: (nextSortMode: NoteSortMode) => void
+  handleSearch: (q: string) => void
+  handleTagFilter: (tag: string) => void
   updateEditorValue: (value: string) => void
   updateEditorPriority: (value: NotePriority) => void
   submitEditor: () => Promise<void>
@@ -128,6 +132,9 @@ interface NoteBoardBoardState {
   isRefreshingBoard: boolean
   showArchived: boolean
   sortMode: NoteSortMode
+  searchQuery: string
+  activeTag: string
+  allTags: { name: string; count: number }[]
   currentPage: number
   pageSize: number
   visibleCount: number
@@ -186,7 +193,7 @@ function useRequiredContext<T>(context: React.Context<T | null>, name: string) {
   return value
 }
 
-export function NoteBoardProvider({ board, initialMessages, children }: NoteBoardProviderProps) {
+export function NoteBoardProvider({ board, initialMessages, initialQuery = '', children }: NoteBoardProviderProps) {
   const { identity, identityAliases, isAdmin, loading, publicIdentity } = useAuth()
   
   const [error, setError] = useState<string | null>(null)
@@ -214,6 +221,8 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     currentPageIndex,
     showArchived,
     sortMode,
+    searchQuery,
+    activeTag,
     isPending,
     isRefreshingBoard,
     messagesRef,
@@ -223,12 +232,15 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     restoreMessageSnapshot,
     handleSwitchArchiveView,
     handleSortModeChange,
+    handleSearch,
+    handleTagFilter,
     handleLoadMore,
     handlePreviousPage,
     handleNextPage,
   } = useBoardData({
     board,
     initialMessages,
+    initialQuery,
     reactionIdentity,
     isDesktopViewport,
     cancelEditingNoteRef,
@@ -347,6 +359,18 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     setEditPriority,
   })
 
+  const allTags = useMemo<{ name: string; count: number }[]>(() => {
+    const counts = new Map<string, number>()
+    for (const message of messages) {
+      for (const tag of parseHashtags(message.content)) {
+        counts.set(tag, (counts.get(tag) ?? 0) + 1)
+      }
+    }
+    return [...counts.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+  }, [messages])
+
   const { noteItems } = useBoardNoteItems({
     visibleMessages,
     boardSlug: board.slug,
@@ -395,6 +419,9 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     isRefreshingBoard,
     showArchived,
     sortMode,
+    searchQuery,
+    activeTag,
+    allTags,
     currentPage: isDesktopViewport ? currentPageIndex + 1 : 1,
     pageSize: DESKTOP_NOTES_PER_PAGE,
     visibleCount: visibleMessages.length,
@@ -404,6 +431,8 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     isMobileViewport: Boolean(isMobileViewport),
     viewportReady,
   }), [
+    allTags,
+    activeTag,
     cardZIndices,
     currentPageIndex,
     customPositions,
@@ -416,6 +445,7 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     messages,
     mobileView,
     noteItems,
+    searchQuery,
     showArchived,
     sortMode,
     visibleMessages,
@@ -467,6 +497,8 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     handleSubmit,
     handleSwitchArchiveView,
     handleSortModeChange,
+    handleSearch,
+    handleTagFilter,
     updateEditorValue: editingMessage ? setEditContent : setDraft,
     updateEditorPriority: editingMessage ? setEditPriority : setDraftPriority,
     submitEditor: editingMessage ? saveEditingNote : submitDraft,
@@ -479,9 +511,11 @@ export function NoteBoardProvider({ board, initialMessages, children }: NoteBoar
     handleLoadMore,
     handleNextPage,
     handlePreviousPage,
+    handleSearch,
     handleSortModeChange,
     handleSubmit,
     handleSwitchArchiveView,
+    handleTagFilter,
     saveEditingNote,
     setCardPosition,
     setDraft,

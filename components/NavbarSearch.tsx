@@ -20,6 +20,12 @@ interface SearchResponse {
   limit: number
 }
 
+interface MemoSearchResult {
+  id: string
+  content: string
+  created_at: string
+}
+
 // Separate component for Quick Link items to avoid re-rendering all of them
 const QuickLinkItem = memo(({ 
   item, 
@@ -60,6 +66,7 @@ const SearchSuggestionsList = memo(({
   total,
   loading,
   error,
+  memoResults,
   history,
   onSelectHistory,
   onNavigate,
@@ -70,6 +77,7 @@ const SearchSuggestionsList = memo(({
   total: number
   loading: boolean
   error: string | null
+  memoResults: MemoSearchResult[]
   history: string[]
   onSelectHistory: (value: string) => void
   onNavigate: () => void
@@ -149,11 +157,11 @@ const SearchSuggestionsList = memo(({
     )
   }
 
-  if (results.length === 0 && !loading) {
+  if (results.length === 0 && memoResults.length === 0 && !loading) {
     return (
       <div className="px-8 py-12 text-center animate-apple-fade-in" style={{ animationDelay: `${baseDelay}ms`, animationFillMode: 'both' }}>
         <p className="text-lg text-muted-foreground font-medium">
-          没有找到与 “{normalizedQuery}” 相关的结果。
+          没有找到与 "{normalizedQuery}" 相关的结果。
         </p>
       </div>
     )
@@ -161,35 +169,68 @@ const SearchSuggestionsList = memo(({
 
   return (
     <div className="py-6 px-4 sm:px-8 space-y-6 animate-apple-fade-in" style={{ animationDelay: `${baseDelay}ms`, animationFillMode: 'both' }}>
-      <div className="flex items-center justify-between gap-3 px-4">
-        <h3 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-[0.2em]">建议结果</h3>
-        <Link
-          href={`/search?q=${encodeURIComponent(normalizedQuery)}`}
-          onClick={onNavigate}
-          className="text-[13px] font-semibold text-primary hover:underline underline-offset-4 decoration-2 transition-colors duration-200"
-        >
-          查看全部 {total} 条
-        </Link>
-      </div>
-      <div className="grid grid-cols-1 gap-3 px-1">
-        {results.map((result, index) => (
-          <div 
-            key={result.id} 
-            className="animate-apple-fade-in-right" 
-            style={{ 
-              animationDelay: `${baseDelay + index * staggerDelay * 1.5}ms`, 
-              animationFillMode: 'both' 
-            }}
-          >
-            <SearchResultCard
-              result={result}
-              query={normalizedQuery}
-              compact={true}
-              onNavigate={onNavigate}
-            />
+      {results.length > 0 ? (
+        <>
+          <div className="flex items-center justify-between gap-3 px-4">
+            <h3 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-[0.2em]">建议结果</h3>
+            <Link
+              href={`/search?q=${encodeURIComponent(normalizedQuery)}`}
+              onClick={onNavigate}
+              className="text-[13px] font-semibold text-primary hover:underline underline-offset-4 decoration-2 transition-colors duration-200"
+            >
+              查看全部 {total} 条
+            </Link>
           </div>
-        ))}
-      </div>
+          <div className="grid grid-cols-1 gap-3 px-1">
+            {results.map((result, index) => (
+              <div
+                key={result.id}
+                className="animate-apple-fade-in-right"
+                style={{
+                  animationDelay: `${baseDelay + index * staggerDelay * 1.5}ms`,
+                  animationFillMode: 'both'
+                }}
+              >
+                <SearchResultCard
+                  result={result}
+                  query={normalizedQuery}
+                  compact={true}
+                  onNavigate={onNavigate}
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      ) : null}
+
+      {memoResults.length > 0 ? (
+        <div className="space-y-2 px-1">
+          <div className="flex items-center justify-between px-3">
+            <h3 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-[0.2em]">Memo</h3>
+            <Link
+              href={`/memo?q=${encodeURIComponent(normalizedQuery)}`}
+              onClick={onNavigate}
+              className="text-[13px] font-semibold text-primary hover:underline underline-offset-4 decoration-2 transition-colors duration-200"
+            >
+              在 Memo 中搜索
+            </Link>
+          </div>
+          {memoResults.map((item) => {
+            const snippet = item.content.slice(0, 120)
+            return (
+              <Link
+                key={item.id}
+                href={`/memo?q=${encodeURIComponent(normalizedQuery)}`}
+                onClick={onNavigate}
+                className="block rounded-xl border border-border/60 bg-card/60 px-4 py-2.5 text-sm transition hover:bg-accent"
+              >
+                <p className="line-clamp-2 text-[13px] text-foreground/80">{snippet}{item.content.length > 120 ? '…' : ''}</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">{new Date(item.created_at).toLocaleDateString('zh-CN')}</p>
+              </Link>
+            )
+          })}
+        </div>
+      ) : null}
     </div>
   )
 })
@@ -208,6 +249,7 @@ export default function NavbarSearch() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [memoResults, setMemoResults] = useState<MemoSearchResult[]>([])
   const [history, setHistory] = useState<string[]>([])
   const [mounted, setMounted] = useState(false)
   const [portalOpen, setPortalOpen] = useState(false)
@@ -310,6 +352,7 @@ export default function NavbarSearch() {
     if (normalizedDeferredQuery.length < SEARCH_MIN_QUERY_LENGTH) {
       setResults([])
       setTotal(0)
+      setMemoResults([])
       setLoading(false)
       setError(null)
       return
@@ -321,21 +364,30 @@ export default function NavbarSearch() {
         setLoading(true)
         setError(null)
 
-        const response = await fetch(`/api/blog/search?q=${encodeURIComponent(normalizedDeferredQuery)}&limit=${SUGGESTION_LIMIT}`, {
-          signal: controller.signal,
-        })
+        const [blogResponse, memoResponse] = await Promise.allSettled([
+          fetch(`/api/blog/search?q=${encodeURIComponent(normalizedDeferredQuery)}&limit=${SUGGESTION_LIMIT}`, { signal: controller.signal }),
+          fetch(`/api/note-boards/memo/search?q=${encodeURIComponent(normalizedDeferredQuery)}&limit=3`, { signal: controller.signal }),
+        ])
 
-        if (!response.ok) {
+        if (blogResponse.status === 'rejected') {
           throw new Error('搜索服务暂时不可用')
         }
 
-        const data = await response.json() as SearchResponse
-        
+        if (!blogResponse.value.ok) {
+          throw new Error('搜索服务暂时不可用')
+        }
+
+        const data = await blogResponse.value.json() as SearchResponse
+
+        const memoData = memoResponse.status === 'fulfilled' && memoResponse.value.ok
+          ? await memoResponse.value.json().catch(() => ({ results: [] })) as { results: MemoSearchResult[] }
+          : { results: [] }
+
         // Local search for internal links
         const internalResults = searchInternalLinks(normalizedDeferredQuery)
         const mappedInternalResults: SearchPostResult[] = internalResults.map((item) => ({
           id: item.id,
-          slug: item.href, // Reuse slug field for internal href
+          slug: item.href,
           title: item.title,
           summary: item.summary,
           tags: item.tags,
@@ -353,10 +405,10 @@ export default function NavbarSearch() {
           reading_minutes: 0,
         }))
 
-        // Use transition to update results without blocking the UI
         startTransition(() => {
           setResults([...mappedInternalResults, ...(data.results ?? [])])
           setTotal((data.total ?? 0) + internalResults.length)
+          setMemoResults(memoData.results ?? [])
           setLoading(false)
         })
       } catch (fetchError) {
@@ -366,6 +418,7 @@ export default function NavbarSearch() {
         setError(fetchError instanceof Error ? fetchError.message : '搜索失败')
         setResults([])
         setTotal(0)
+        setMemoResults([])
         setLoading(false)
       }
     }, 200)
@@ -469,6 +522,7 @@ export default function NavbarSearch() {
                     total={total}
                     loading={loading}
                     error={error}
+                    memoResults={memoResults}
                     history={history}
                     onSelectHistory={handleHistorySelect}
                     onNavigate={() => setIsSearching(false)}
