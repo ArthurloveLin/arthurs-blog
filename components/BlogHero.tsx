@@ -21,7 +21,9 @@ const WelcomeAnimation = dynamic(() => import('@/components/WelcomeAnimation'), 
   ssr: false,
 })
 
-import HandwrittenSloganClient from '@/components/HandwrittenSloganClient'
+const HandwrittenSloganClient = dynamic(() => import('@/components/HandwrittenSloganClient'), {
+  ssr: false,
+})
 
 
 

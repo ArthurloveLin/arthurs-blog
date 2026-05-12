@@ -27,12 +27,28 @@ export function preloadMobileDrawerModules() {
   })
 }
 
-const AuthorProfileCard = dynamic(drawerModuleLoaders.author, { ssr: false })
-const CategoriesCard = dynamic(drawerModuleLoaders.categories, { ssr: false })
-const TagsCloudCard = dynamic(drawerModuleLoaders.tags, { ssr: false })
-const RecentPostsCard = dynamic(drawerModuleLoaders.recent, { ssr: false })
-const ArchiveCard = dynamic(drawerModuleLoaders.archive, { ssr: false })
-const ToolsCard = dynamic(drawerModuleLoaders.tools, { ssr: false })
+function DrawerSkeleton() {
+  return (
+    <div className="space-y-1 animate-pulse">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 py-2 px-1">
+          <div className="w-8 h-8 rounded-lg bg-muted shrink-0" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-2.5 bg-muted rounded w-3/4" />
+            <div className="h-2 bg-muted rounded w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const AuthorProfileCard = dynamic(drawerModuleLoaders.author, { ssr: false, loading: DrawerSkeleton })
+const CategoriesCard = dynamic(drawerModuleLoaders.categories, { ssr: false, loading: DrawerSkeleton })
+const TagsCloudCard = dynamic(drawerModuleLoaders.tags, { ssr: false, loading: DrawerSkeleton })
+const RecentPostsCard = dynamic(drawerModuleLoaders.recent, { ssr: false, loading: DrawerSkeleton })
+const ArchiveCard = dynamic(drawerModuleLoaders.archive, { ssr: false, loading: DrawerSkeleton })
+const ToolsCard = dynamic(drawerModuleLoaders.tools, { ssr: false, loading: DrawerSkeleton })
 
 type DrawerKey = Exclude<DrawerType, null>
 

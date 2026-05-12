@@ -10,11 +10,11 @@ export const getCurrentUser = cache(async () => {
 })
 
 export const getUserRole = cache(async (): Promise<UserRole> => {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) return 'guest'
 
+  const supabase = await createClient()
   const { data } = await supabase
     .from('user_roles')
     .select('role')
