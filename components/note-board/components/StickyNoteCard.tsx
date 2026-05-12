@@ -1,7 +1,7 @@
 'use client'
 
 import gsap from 'gsap'
-import { Archive, ArchiveRestore, ArrowRight, Check, Copy, PencilLine, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowRight, Check, Copy, PencilLine, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
@@ -527,6 +527,11 @@ function StickyNoteCardFrame({
                   <PencilLine size={16} strokeWidth={1.9} />
                 </NoteActionButton>
               ) : null}
+              {isInlineEditing && inlineEditor?.onCancel ? (
+                <NoteActionButton label="取消编辑" onClick={inlineEditor.onCancel}>
+                  <X size={16} strokeWidth={1.9} />
+                </NoteActionButton>
+              ) : null}
               {!isInlineEditing ? (
                 <NoteActionButton
                   label={copied ? '已复制' : '复制内容'}
@@ -596,7 +601,7 @@ function StickyNoteCardFrame({
                 buttonSize="sm"
                 toolbarButtonVariant="bare"
                 emojiTriggerVariant="bare"
-                showCancelButton={true}
+                showCancelButton={false}
                 counterVariant="compact"
                 autoFocus
               />
