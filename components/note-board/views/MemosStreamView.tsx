@@ -30,6 +30,8 @@ type FeedGroup = {
   items: NoteCardViewModel[]
 }
 
+const DATE_META_BLOCK_HEIGHT_CLASS = 'h-[2.15rem] sm:h-[2.6rem]'
+
 export function MemosStreamView({ onToggleViewMode, filters }: MemosStreamViewProps) {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
@@ -149,7 +151,7 @@ export function MemosStreamView({ onToggleViewMode, filters }: MemosStreamViewPr
                     <span className="flex items-end text-[38px] font-semibold leading-[0.82] tracking-[-0.06em] text-foreground/95 sm:text-[46px]">
                       {group.dateHeader.dayLabel}
                     </span>
-                    <div className="flex h-[2.15rem] flex-col justify-between py-[1px] sm:h-[2.6rem]">
+                    <div className={`flex ${DATE_META_BLOCK_HEIGHT_CLASS} flex-col justify-between py-[1px]`}>
                       <p className="text-[15px] font-medium leading-none text-foreground/80 sm:text-[17px]">
                         {group.dateHeader.weekdayLabel}
                       </p>

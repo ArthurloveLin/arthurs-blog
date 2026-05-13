@@ -16,6 +16,8 @@ interface MemoStreamCardProps {
   item: NoteCardViewModel
 }
 
+const STREAM_CARD_LIFTED_SHADOW_CLASS = 'shadow-[0_18px_44px_rgba(15,23,42,0.12)]'
+
 export function MemoStreamCard({ item }: MemoStreamCardProps) {
   const {
     message,
@@ -64,9 +66,9 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
     <div
       ref={cardRef}
       className={[
-        'relative overflow-hidden rounded-[22px] border bg-card/85 p-5 pl-9 shadow-[0_10px_28px_rgba(15,23,42,0.06)] transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 hover:shadow-[0_18px_44px_rgba(15,23,42,0.12)]',
+        `relative overflow-hidden rounded-[22px] border bg-card/85 p-5 pl-9 shadow-[0_10px_28px_rgba(15,23,42,0.06)] transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 hover:${STREAM_CARD_LIFTED_SHADOW_CLASS}`,
         isEditing
-          ? '-translate-y-1 border-border bg-accent/35 shadow-[0_18px_44px_rgba(15,23,42,0.12)]'
+          ? `-translate-y-1 border-border bg-accent/35 ${STREAM_CARD_LIFTED_SHADOW_CLASS}`
           : 'border-border/60 hover:border-border/80',
         isOptimistic || isOptimisticEditing || isFresh
           ? 'animate-in fade-in slide-in-from-bottom-3 duration-300'
