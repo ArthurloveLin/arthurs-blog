@@ -15,9 +15,8 @@ import {
   useNoteBoardMeta,
   useNoteBoardToast,
 } from '@/components/note-board/NoteBoardProvider'
-import { getStickyColorIndex, getStickyColorSeed, STICKY_COLORS } from '@/components/note-board/utils/board'
+import { getStickyColorIndex, getStickyColorSeed } from '@/components/note-board/utils/board'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
-import { splitHighlightedText } from '@/lib/blog-search'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
 export { StickyStackPreview } from '@/components/note-board/views/StickyStackPreview'
@@ -126,66 +125,6 @@ function SearchBar() {
   )
 }
 
-function SearchResultsList() {
-  const state = useNoteBoardBoardState()
-
-  if (!state.searchQuery && !state.activeTag) return null
-  if (state.isRefreshingBoard) {
-    return (
-      <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-        <span className="inline-block h-4 w-4 animate-spin rounded-full border border-muted-foreground border-t-transparent" />
-        搜索中…
-      </div>
-    )
-  }
-
-  const label = state.searchQuery
-    ? `"${state.searchQuery}" 的搜索结果`
-    : `#${state.activeTag} 的便签`
-
-  return (
-    <div className="space-y-2">
-      <p className="text-[11px] text-muted-foreground">
-        {label}，共 {state.totalLoaded} 条
-      </p>
-      <div className="flex flex-wrap gap-3">
-        {state.messages.map((msg) => {
-          const snippetParts = state.searchQuery
-            ? splitHighlightedText(msg.content.slice(0, 300), state.searchQuery)
-            : [{ text: msg.content.slice(0, 200), match: false }]
-          const colorIndex = getStickyColorIndex(getStickyColorSeed(msg))
-          const rotation = ((colorIndex % 5) - 2) * 0.6
-
-          return (
-            <div
-              key={msg.id}
-              className="w-[calc(50%-6px)] min-w-[160px] flex-1 rounded-[16px] px-4 py-3 text-sm shadow-sm"
-              style={{
-                backgroundColor: STICKY_COLORS[colorIndex % STICKY_COLORS.length],
-                transform: `rotate(${rotation}deg)`,
-              }}
-            >
-              <p className="whitespace-pre-wrap break-words text-[0.82rem] leading-relaxed text-slate-700">
-                {snippetParts.map((part, i) =>
-                  part.match
-                    ? <mark key={i} className="rounded bg-amber-200/80 px-0.5">{part.text}</mark>
-                    : <span key={i}>{part.text}</span>
-                )}
-                {msg.content.length > 200 ? '…' : ''}
-              </p>
-              <p className="mt-1.5 text-[10px] text-slate-600/60">
-                {new Date(msg.updated_at ?? msg.created_at).toLocaleDateString('zh-CN')}
-              </p>
-            </div>
-          )
-        })}
-        {state.messages.length === 0 && !state.isRefreshingBoard ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">没有找到相关便签。</p>
-        ) : null}
-      </div>
-    </div>
-  )
-}
 
 interface NoteBoardControlsProps {
   viewMode?: 'sticky' | 'stream'
@@ -289,12 +228,8 @@ function NoteBoardControls({ viewMode, onToggleViewMode }: NoteBoardControlsProp
       {/* Tag Cloud */}
       {meta.board.slug === 'memo' && !isSearchMode ? <TagCloudPanel /> : null}
 
-      {/* Search results or sticky board */}
-      {isSearchMode ? (
-        <div className="mt-5">
-          <SearchResultsList />
-        </div>
-      ) : !state.viewportReady ? (
+      {/* Sticky board — renders search results as sticky notes when isSearchMode */}
+      {!state.viewportReady ? (
         <div
           className="mt-5 rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-6"
           style={{ minHeight: 380 }}
@@ -314,7 +249,7 @@ function NoteBoardControls({ viewMode, onToggleViewMode }: NoteBoardControlsProp
           >
             {state.messages.length === 0 ? (
               <div className="flex min-h-[280px] items-center justify-center rounded-[24px] border border-dashed border-border/70 bg-white/55 text-center text-sm text-muted-foreground">
-                {state.showArchived ? '还没有已归档便签。' : meta.board.emptyLabel}
+                {state.showArchived ? '还没有已归档便签。' : isSearchMode ? '没有找到相关便签。' : meta.board.emptyLabel}
               </div>
             ) : !meta.surface.hasMeasured ? null : (
               <div className="relative" style={{ minHeight: Math.max(meta.surface.height, 320) }}>
