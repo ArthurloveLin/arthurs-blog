@@ -10,11 +10,13 @@ import { PriorityPicker } from '@/components/note-board/components/PriorityPicke
 import { useNoteBoardActions } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
 import { getStickyColorIndex, getStickyColorSeed, STICKY_COLORS } from '@/components/note-board/utils/board'
-import { formatCommentTimeLabel, formatStableDate } from '@/lib/date-format'
+import { formatCommentTimeLabel } from '@/lib/date-format'
 
 interface MemoStreamCardProps {
   item: NoteCardViewModel
 }
+
+const STREAM_CARD_LIFTED_SHADOW_CLASS = 'shadow-[0_18px_44px_rgba(15,23,42,0.12)]'
 
 export function MemoStreamCard({ item }: MemoStreamCardProps) {
   const {
@@ -60,19 +62,14 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
     getStickyColorIndex(getStickyColorSeed(message))
   ] ?? STICKY_COLORS[0]
 
-  const absoluteDate = formatStableDate(message.updated_at ?? message.created_at, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-
   return (
     <div
       ref={cardRef}
       className={[
-        'relative overflow-hidden rounded-[22px] border bg-card/85 p-5 pl-9 shadow-[0_10px_28px_rgba(15,23,42,0.06)] transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 hover:shadow-[0_18px_44px_rgba(15,23,42,0.12)]',
-        isEditing ? 'border-border bg-accent/35' : 'border-border/60 hover:border-border/80',
+        `relative overflow-hidden rounded-[22px] border bg-card/85 p-5 pl-9 shadow-[0_10px_28px_rgba(15,23,42,0.06)] transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 hover:${STREAM_CARD_LIFTED_SHADOW_CLASS}`,
+        isEditing
+          ? `-translate-y-1 border-border bg-accent/35 ${STREAM_CARD_LIFTED_SHADOW_CLASS}`
+          : 'border-border/60 hover:border-border/80',
         isOptimistic || isOptimisticEditing || isFresh
           ? 'animate-in fade-in slide-in-from-bottom-3 duration-300'
           : '',
@@ -91,13 +88,10 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
 
       {/* Header: 时间 + 操作按钮 */}
       <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-[3px]">
-          {/* 主时间：相对时间，作为首要标识 */}
+        <div className="min-w-0">
           <span className="text-[12px] font-medium leading-none text-foreground/70">
             {formatCommentTimeLabel(message.created_at, message.updated_at)}
           </span>
-          {/* 次时间：绝对时间，辅助信息 */}
-          <span className="text-[11px] leading-none text-muted-foreground/50">{absoluteDate}</span>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {priorityControl ? (

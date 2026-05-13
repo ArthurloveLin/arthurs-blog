@@ -50,7 +50,7 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
           : 'border-border/70 bg-background/70 hover:bg-accent/35 hover:ring-2 hover:ring-primary/20',
       ].join(' ')}
       style={{
-        width: isExpanded ? '210px' : '34px',
+        width: isExpanded ? 'clamp(0px, 100%, 210px)' : '34px',
         transitionTimingFunction: isExpanded ? 'cubic-bezier(0,1.22,.66,1.39)' : 'cubic-bezier(0.4,0,0.2,1)',
       }}
     >
@@ -344,32 +344,40 @@ export function MemoBoardShell({
   return (
     <section className="rounded-[32px] border border-border/60 bg-card/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-6">
       {/* 顶栏 */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <p className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
           <p className="mt-0.5 text-[12px] text-muted-foreground/60">{summary}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <MemoSearchField placeholder={searchPlaceholder} />
-          <MemoSortDropdown allowPrioritySort={allowPrioritySort} />
-          {extraControls}
-          <button
-            type="button"
-            onClick={onToggleViewMode}
-            className="flex h-[34px] shrink-0 items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 text-[13px] text-muted-foreground transition hover:bg-accent hover:text-foreground"
-          >
-            <ToggleIcon size={14} />
-            <span className="hidden sm:inline">{toggleLabel}</span>
-            <span className="sm:hidden">切换视图</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => actions.scrollToEditor()}
-            className="flex h-[34px] shrink-0 items-center gap-1.5 rounded-full bg-foreground px-3 text-[13px] font-medium text-background transition hover:opacity-85"
-          >
-            <Plus size={14} />
-            <span className="hidden sm:inline">新便签</span>
-          </button>
+        <div className="flex w-full flex-col gap-2 sm:w-auto">
+          <div className="flex min-w-0 items-center gap-2 sm:justify-end">
+            <div className="min-w-0 flex-1 sm:flex-none">
+              <MemoSearchField placeholder={searchPlaceholder} />
+            </div>
+            <MemoSortDropdown allowPrioritySort={allowPrioritySort} />
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            {extraControls}
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
+              <button
+                type="button"
+                onClick={onToggleViewMode}
+                className="flex h-[34px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 text-[13px] text-muted-foreground transition hover:bg-accent hover:text-foreground sm:flex-none"
+              >
+                <ToggleIcon size={14} className="shrink-0" />
+                <span className="hidden truncate sm:inline">{toggleLabel}</span>
+                <span className="truncate sm:hidden">切换视图</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => actions.scrollToEditor()}
+                className="flex h-[34px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full bg-foreground px-3 text-[13px] font-medium text-background transition hover:opacity-85 sm:flex-none"
+              >
+                <Plus size={14} className="shrink-0" />
+                <span className="truncate">新便签</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
