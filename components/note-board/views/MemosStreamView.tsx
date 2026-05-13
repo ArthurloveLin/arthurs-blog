@@ -128,7 +128,7 @@ export function MemosStreamView({ onToggleViewMode, filters }: MemosStreamViewPr
             <div key={group.id}>
               <div className="relative my-5 flex items-center gap-3">
                 <div className="h-px flex-1 bg-border/40" />
-                <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
+                <span className="shrink-0 text-[12px] font-medium tracking-wide text-muted-foreground">
                   {group.label}
                 </span>
                 <div className="h-px flex-1 bg-border/40" />

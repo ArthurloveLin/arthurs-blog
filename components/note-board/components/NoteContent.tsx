@@ -12,7 +12,7 @@ interface NoteContentProps {
   checklistPending?: boolean
 }
 
-const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==|`[^`\n]+`|~~[^~\n]+~~|\[[^\]]+\]\([^)]+\))/g
+const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==|`[^`\n]+`|~~[^~\n]+~~|\[[^\]]+\]\([^)]+\)|#[\w一-龥]+)/g
 
 function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = []
@@ -39,13 +39,23 @@ function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[]
       nodes.push(<code key={`${keyPrefix}-c-${index}`} className={styles.inlineCode}>{token.slice(1, -1)}</code>)
     } else if (token.startsWith('~~') && token.endsWith('~~')) {
       nodes.push(<del key={`${keyPrefix}-s-${index}`} className="opacity-60">{token.slice(2, -2)}</del>)
+    } else if (token.startsWith('#')) {
+      nodes.push(
+        <span key={`${keyPrefix}-tag-${index}`} className="inline-flex items-center rounded-full border border-border/70 px-2 py-0.5 text-[0.8em] text-muted-foreground">
+          {token}
+        </span>
+      )
     } else if (token.startsWith('[')) {
       const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
       if (linkMatch) {
+        const rawHref = linkMatch[2]
+        const href = /^(https?:\/\/|mailto:|tel:|#|\/)/.test(rawHref)
+          ? rawHref
+          : `https://${rawHref}`
         nodes.push(
           <a
             key={`${keyPrefix}-a-${index}`}
-            href={linkMatch[2]}
+            href={href}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 underline underline-offset-2 hover:text-blue-800"

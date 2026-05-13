@@ -1,0 +1,27 @@
+/* FlowView.module.css */
+
+.grid {
+  padding: 8px 28px 60px;
+  column-count: var(--cols, 4);
+  column-gap: 22px;
+}
+
+/* Each card must not break across columns */
+.grid > * {
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  margin-bottom: 24px;
+}
+
+.empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--ink-mute);
+  font-size: 13px;
+}
+
+/* Responsive column collapse */
+@media (max-width: 1400px) { .grid { column-count: 4; } }
+@media (max-width: 1180px) { .grid { column-count: 3; } }
+@media (max-width:  880px) { .grid { column-count: 2; } }
+@media (max-width:  560px) { .grid { column-count: 1; } }

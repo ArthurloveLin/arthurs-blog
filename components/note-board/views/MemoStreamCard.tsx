@@ -9,7 +9,6 @@ import { NoteContent } from '@/components/note-board/components/NoteContent'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import { useNoteBoardActions } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
-import { parseHashtags } from '@/components/note-board/utils/editor'
 import { formatCommentTimeLabel, formatStableDate } from '@/lib/date-format'
 
 interface MemoStreamCardProps {
@@ -56,7 +55,6 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
     boardActions.scrollToEditor()
   }, [actions.edit, boardActions])
 
-  const hashtags = parseHashtags(message.content)
   const absoluteDate = formatStableDate(message.updated_at ?? message.created_at, {
     month: 'short',
     day: 'numeric',
@@ -77,15 +75,17 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
         .filter(Boolean)
         .join(' ')}
     >
-      {/* Header */}
+      {/* Header: 时间 + 操作按钮 */}
       <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[11px] text-muted-foreground">
+        <div className="flex flex-col gap-[3px]">
+          {/* 主时间：相对时间，作为首要标识 */}
+          <span className="text-[12px] font-medium leading-none text-foreground/70">
             {formatCommentTimeLabel(message.created_at, message.updated_at)}
           </span>
-          <span className="text-[10px] text-muted-foreground/50">{absoluteDate}</span>
+          {/* 次时间：绝对时间，辅助信息 */}
+          <span className="text-[11px] leading-none text-muted-foreground/50">{absoluteDate}</span>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5">
           {priorityControl ? (
             <PriorityPicker.Dot
               value={priorityControl.value}
@@ -97,20 +97,18 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
             <>
               {actions.edit ? (
                 <NoteActionButton label="编辑便签" onClick={handleEditClick}>
-                  <PencilLine size={15} strokeWidth={1.9} />
+                  <PencilLine size={14} strokeWidth={1.8} />
                 </NoteActionButton>
               ) : null}
               {actions.archive ? (
                 <NoteActionButton
                   label={actions.archive.archived ? '取消归档' : '归档便签'}
-                  onClick={() =>
-                    setConfirmingAction((c) => (c === 'archive' ? null : 'archive'))
-                  }
+                  onClick={() => setConfirmingAction((c) => (c === 'archive' ? null : 'archive'))}
                 >
                   {actions.archive.archived ? (
-                    <ArchiveRestore size={15} strokeWidth={1.9} />
+                    <ArchiveRestore size={14} strokeWidth={1.8} />
                   ) : (
-                    <Archive size={15} strokeWidth={1.9} />
+                    <Archive size={14} strokeWidth={1.8} />
                   )}
                 </NoteActionButton>
               ) : null}
@@ -119,7 +117,7 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
           {canDelete && actions.delete ? (
             <button
               type="button"
-              className="rounded-full px-2 py-1 text-xs text-rose-600/70 transition hover:bg-rose-50 hover:text-rose-600"
+              className="rounded-full px-2 py-0.5 text-[11px] text-rose-500/60 transition hover:bg-rose-50 hover:text-rose-600"
               onClick={() => setConfirmingAction((c) => (c === 'delete' ? null : 'delete'))}
             >
               {confirmingAction === 'delete' ? '确认删除？' : '删除'}
@@ -128,19 +126,19 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
         </div>
       </div>
 
-      {/* Confirm row */}
+      {/* 确认操作行 */}
       {confirmingAction ? (
         <div className="mb-3 flex items-center justify-end gap-2">
           <button
             type="button"
-            className="rounded-full border border-border/70 bg-background/70 px-3 py-1 text-[11px] text-muted-foreground transition hover:text-foreground"
+            className="rounded-full border border-border/60 bg-background/60 px-3 py-1 text-[11.5px] text-muted-foreground transition hover:text-foreground"
             onClick={() => setConfirmingAction(null)}
           >
             取消
           </button>
           <button
             type="button"
-            className="rounded-full bg-foreground px-3 py-1 text-[11px] text-background transition hover:opacity-90"
+            className="rounded-full bg-foreground px-3 py-1 text-[11.5px] font-medium text-background transition hover:opacity-90"
             onClick={() => {
               if (confirmingAction === 'archive') actions.archive?.onToggle()
               if (confirmingAction === 'delete') actions.delete?.onClick()
@@ -152,8 +150,8 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
         </div>
       ) : null}
 
-      {/* Content */}
-      <div className="text-sm leading-relaxed text-foreground/90">
+      {/* 正文内容 */}
+      <div className="text-[13.5px] leading-[1.7] text-foreground/85">
         <NoteContent
           content={message.content}
           variant="stream"
@@ -162,29 +160,15 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
         />
       </div>
 
-      {/* Hashtag chips */}
-      {hashtags.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {hashtags.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => boardActions.handleTagFilter(tag)}
-              className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] text-muted-foreground transition hover:border-border hover:text-foreground"
-            >
-              #{tag}
-            </button>
-          ))}
-        </div>
-      ) : null}
 
-      {/* Reactions */}
+      {/* 表情反应 */}
       <EmojiReactionSummary
         entries={reactionControl.emojiReactions}
         onSelect={reactionControl.onEmojiReact}
         variant="bare"
         className="mt-4 gap-x-2 gap-y-1"
       />
+      {/* 点赞/踩 */}
       <ReactionToggleBar
         className="mt-3"
         compact

@@ -1,0 +1,93 @@
+/* Calendar.module.css */
+
+.cal    { font-size: 12px; }
+
+/* ── Header ── */
+.head   { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; margin-bottom: 8px; }
+.title  { font-size: 13px; font-weight: 500; color: var(--ink); }
+.nav    { display: flex; gap: 2px; }
+.nav button {
+  width: 24px; height: 24px; border-radius: 6px;
+  color: var(--ink-mute); font-size: 16px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .14s, color .14s;
+}
+.nav button:hover { background: rgba(0,0,0,.05); color: var(--ink); }
+
+/* ── Grid ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+
+.dow {
+  color: var(--ink-mute);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-align: center;
+  padding: 4px 0 6px;
+  letter-spacing: .04em;
+}
+
+/* ── Cells ── */
+.cell {
+  position: relative;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  font-weight: 500;
+  transition: background .14s, color .14s;
+  cursor: default;
+}
+
+.out    { color: var(--ink-mute); opacity: .4; pointer-events: none; }
+
+.hasMemos { color: var(--ink); cursor: pointer; }
+.hasMemos:hover { background: rgba(0,0,0,.04); }
+
+/* Today ring */
+.today::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 6px;
+  background: rgba(192,100,74,.08);
+  border: 1px solid rgba(192,100,74,.35);
+}
+.today .num { position: relative; z-index: 1; }
+
+/* Selected — filled pill */
+.selected::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 7px;
+  background: var(--ink);
+}
+.selected .num  { position: relative; z-index: 1; color: var(--paper); }
+.selected .dots { display: none; }
+
+/* ── Density dots ── */
+.dots {
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1.5px;
+  pointer-events: none;
+}
+.dot {
+  display: inline-block;
+  width: 2.5px; height: 2.5px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: .8;
+}
+
+.num { position: relative; z-index: 1; line-height: 1; }
