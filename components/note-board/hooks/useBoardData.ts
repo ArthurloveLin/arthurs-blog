@@ -8,6 +8,7 @@ import { createGuestbookMessagesFromComments } from '@/lib/guestbook-comments'
 import type { NoteSortMode } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
+import { parseHashtags } from '@/components/note-board/utils/editor'
 
 const DESKTOP_NOTES_PER_PAGE = 10
 
@@ -89,6 +90,8 @@ export function useBoardData({
     tag = activeTag,
   ) => {
     if (board.slug === 'guestbook') {
+      const normalizedQuery = q.trim().toLocaleLowerCase()
+      const normalizedTag = tag.trim().toLocaleLowerCase()
       const threadSearchParams = new URLSearchParams({
         target_type: board.targetType,
         target_id: board.targetId,
@@ -124,7 +127,19 @@ export function useBoardData({
         }
       }
 
-      const allMessages = sortBoardMessages(createGuestbookMessagesFromComments(comments, archived), sort)
+      const filteredMessages = createGuestbookMessagesFromComments(comments, archived).filter((message) => {
+        if (normalizedQuery) {
+          return message.content.toLocaleLowerCase().includes(normalizedQuery)
+        }
+
+        if (normalizedTag) {
+          return parseHashtags(message.content).includes(normalizedTag)
+        }
+
+        return true
+      })
+
+      const allMessages = sortBoardMessages(filteredMessages, sort)
       const nextMessages = allMessages.slice(offset, offset + limit)
 
       return createBoardPayload(

@@ -9,10 +9,16 @@ import PageHero from '@/components/PageHero'
 export const metadata = { title: 'Message' }
 export const revalidate = 900
 
-export default async function GuestbookPage() {
+export default async function GuestbookPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>
+}) {
   const config = getNoteBoardConfig('guestbook')
+  const { q } = await searchParams
+  const initialQuery = typeof q === 'string' ? q.trim() : ''
   const [messages, siteConfig] = await Promise.all([
-    getBoardMessages('guestbook', config.initialPageLimit),
+    getBoardMessages('guestbook', config.initialPageLimit, 0, false, 'time', null, initialQuery || null),
     getSiteConfig()
   ])
 
@@ -41,7 +47,7 @@ export default async function GuestbookPage() {
 
         {/* ── Body ── */}
         <div className="site-shell py-12 pb-24">
-          <NoteBoardPage board={config} initialMessages={messages} />
+          <NoteBoardPage board={config} initialMessages={messages} initialQuery={initialQuery} />
         </div>
       </main>
 
