@@ -9,6 +9,7 @@ import { NoteContent } from '@/components/note-board/components/NoteContent'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import { useNoteBoardActions } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
+import { getStickyColorIndex, getStickyColorSeed, STICKY_COLORS } from '@/components/note-board/utils/board'
 import { formatCommentTimeLabel, formatStableDate } from '@/lib/date-format'
 
 interface MemoStreamCardProps {
@@ -55,6 +56,10 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
     boardActions.scrollToEditor()
   }, [actions.edit, boardActions])
 
+  const accentColor = STICKY_COLORS[
+    getStickyColorIndex(getStickyColorSeed(message))
+  ] ?? STICKY_COLORS[0]
+
   const absoluteDate = formatStableDate(message.updated_at ?? message.created_at, {
     month: 'short',
     day: 'numeric',
@@ -66,8 +71,8 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
     <div
       ref={cardRef}
       className={[
-        'rounded-[20px] border bg-card/80 p-5 shadow-sm transition-all',
-        isEditing ? 'border-border bg-accent/30' : 'border-border/60',
+        'relative overflow-hidden rounded-[22px] border bg-card/85 p-5 pl-9 shadow-[0_10px_28px_rgba(15,23,42,0.06)] transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 hover:shadow-[0_18px_44px_rgba(15,23,42,0.12)]',
+        isEditing ? 'border-border bg-accent/35' : 'border-border/60 hover:border-border/80',
         isOptimistic || isOptimisticEditing || isFresh
           ? 'animate-in fade-in slide-in-from-bottom-3 duration-300'
           : '',
@@ -75,6 +80,15 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
         .filter(Boolean)
         .join(' ')}
     >
+      <span
+        aria-hidden
+        className="absolute bottom-5 left-4 top-5 w-1.5 rounded-full"
+        style={{
+          backgroundColor: accentColor,
+          boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.72)',
+        }}
+      />
+
       {/* Header: 时间 + 操作按钮 */}
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="flex flex-col gap-[3px]">
