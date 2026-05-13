@@ -243,7 +243,9 @@ function StreamSearchBar() {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
   const [localQuery, setLocalQuery] = useState(() => state.searchQuery)
+  const [isFocused, setIsFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const isExpanded = isFocused || !!localQuery
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -259,23 +261,37 @@ function StreamSearchBar() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-center gap-1 rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-xs shadow-sm"
+      className="relative flex h-8 items-center overflow-hidden rounded-full border border-border/70 bg-background/70 shadow-sm"
+      style={{
+        width: isExpanded ? '200px' : '32px',
+        transition: 'width 600ms cubic-bezier(0,1.22,0.66,1.39)',
+      }}
     >
-      <Search size={13} className="shrink-0 text-muted-foreground" />
       <input
         ref={inputRef}
         type="search"
         value={localQuery}
         onChange={(e) => setLocalQuery(e.target.value)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         placeholder="搜索 Memo…"
-        className="min-w-0 w-32 bg-transparent py-0.5 text-[12px] text-foreground outline-none placeholder:text-muted-foreground/60"
+        className="absolute left-0 h-full w-full bg-transparent pl-3 pr-8 text-[12px] text-foreground outline-none placeholder:text-muted-foreground/60"
+        style={{
+          opacity: isExpanded ? 1 : 0,
+          transition: 'opacity 150ms ease',
+          pointerEvents: isExpanded ? 'auto' : 'none',
+        }}
         autoComplete="off"
+        tabIndex={isExpanded ? 0 : -1}
       />
-      {localQuery ? (
-        <button type="button" onClick={handleClear} aria-label="清除搜索">
-          <X size={12} className="text-muted-foreground hover:text-foreground" />
-        </button>
-      ) : null}
+      <button
+        type="button"
+        onClick={localQuery ? handleClear : () => inputRef.current?.focus()}
+        className="absolute right-0 flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground transition hover:text-foreground"
+        aria-label={localQuery ? '清除搜索' : '搜索'}
+      >
+        {localQuery ? <X size={12} /> : <Search size={13} />}
+      </button>
     </form>
   )
 }
@@ -388,7 +404,6 @@ export function MemosStreamView({ onToggleViewMode }: MemosStreamViewProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <StreamSearchBar />
           <button
             type="button"
             onClick={onToggleViewMode}
@@ -397,6 +412,7 @@ export function MemosStreamView({ onToggleViewMode }: MemosStreamViewProps) {
             <Layers size={13} />
             <span className="hidden sm:inline">便签视图</span>
           </button>
+          <StreamSearchBar />
         </div>
       </div>
 
