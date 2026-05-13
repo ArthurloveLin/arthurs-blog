@@ -51,8 +51,12 @@ async function getGuestbookMessages(
   offset: number,
   archived: boolean,
   viewerIdentity?: string | null,
+  searchQuery?: string | null,
+  tagFilter?: string | null,
 ) {
   const config = getNoteBoardConfig('guestbook')
+  const normalizedQuery = searchQuery?.trim().toLocaleLowerCase() ?? ''
+  const normalizedTag = tagFilter?.trim().toLocaleLowerCase() ?? ''
   const [thread, viewerState] = await Promise.all([
     getCommentThread(config.targetType, config.targetId, { archived }),
     viewerIdentity ? getCommentViewerState(config.targetType, config.targetId, viewerIdentity) : Promise.resolve([]),
@@ -61,6 +65,17 @@ async function getGuestbookMessages(
   const mergedThread = viewerState.length > 0 ? applyViewerStateToComments(thread, viewerState) : thread
 
   return createGuestbookMessagesFromComments(mergedThread, archived)
+    .filter((message) => {
+      if (normalizedQuery) {
+        return message.content.toLocaleLowerCase().includes(normalizedQuery)
+      }
+
+      if (normalizedTag) {
+        return message.content.toLocaleLowerCase().includes(`#${normalizedTag}`)
+      }
+
+      return true
+    })
     .sort(compareBoardMessageTime)
     .slice(offset, offset + limit)
 }
@@ -110,7 +125,7 @@ export const getBoardMessages = cache(async (
   const config = getNoteBoardConfig(board)
 
   if (board === 'guestbook') {
-    return getGuestbookMessages(limit, offset, archived, viewerIdentity)
+    return getGuestbookMessages(limit, offset, archived, viewerIdentity, searchQuery, tagFilter)
   }
 
   let query = supabaseAdmin

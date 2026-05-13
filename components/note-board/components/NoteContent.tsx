@@ -313,29 +313,34 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
             return (
               <li key={item.id} className="flex items-start gap-2">
                 {onToggleChecklistItem && lineIndex !== null ? (
-                  <button
-                    type="button"
-                    aria-label={item.checked ? `取消勾选：${item.text}` : `勾选清单项：${item.text}`}
-                    className="flex w-full items-start gap-2 text-left disabled:cursor-not-allowed disabled:opacity-60"
-                    disabled={checklistPending}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      onToggleChecklistItem(lineIndex)
-                    }}
-                  >
-                    <span className={[
-                      'mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] transition-colors',
-                      item.checked
-                        ? 'border-slate-400/60 bg-slate-400/30 text-slate-500'
-                        : 'border-slate-700/35 text-transparent',
-                    ].join(' ')}>
-                      <Check size={10} strokeWidth={2.4} />
-                    </span>
-                    <span className={item.checked ? 'line-through text-slate-700/65' : ''}>
+                  <>
+                    <button
+                      type="button"
+                      aria-label={item.checked ? `取消勾选：${item.text}` : `勾选清单项：${item.text}`}
+                      className="mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={checklistPending}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onToggleChecklistItem(lineIndex)
+                      }}
+                    >
+                      <span className={[
+                        'inline-flex h-full w-full items-center justify-center rounded-full',
+                        item.checked
+                          ? 'border-slate-400/60 bg-slate-400/30 text-slate-500'
+                          : 'border-slate-700/35 text-transparent',
+                      ].join(' ')}>
+                        <Check size={10} strokeWidth={2.4} />
+                      </span>
+                    </button>
+                    <span
+                      className={item.checked ? 'line-through text-slate-700/65' : ''}
+                      onPointerDown={(event) => event.stopPropagation()}
+                    >
                       {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`)}
                     </span>
-                  </button>
+                  </>
                 ) : (
                   <>
                     <span className="mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-slate-700/35 text-[10px]">
