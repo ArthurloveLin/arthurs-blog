@@ -8,7 +8,6 @@ import { createGuestbookMessagesFromComments } from '@/lib/guestbook-comments'
 import type { NoteSortDirection, NoteSortMode } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
-import { parseHashtags } from '@/components/note-board/utils/editor'
 
 const DESKTOP_NOTES_PER_PAGE = 10
 
@@ -72,6 +71,10 @@ export function useBoardData({
     () => getBoardQueryKey(board.slug, showArchived, sortMode, sortDirection, searchQuery, activeTag) + `:${reactionIdentity || 'anon'}`,
     [activeTag, board.slug, reactionIdentity, searchQuery, showArchived, sortDirection, sortMode],
   )
+  const initialBoardQueryKeyRef = useRef<string | null>(null)
+  if (initialBoardQueryKeyRef.current === null) {
+    initialBoardQueryKeyRef.current = activeBoardQueryKey
+  }
   const activeBoardQueryKeyRef = useRef(activeBoardQueryKey)
 
   const loadedDesktopPageCount = Math.max(1, Math.ceil(messages.length / DESKTOP_NOTES_PER_PAGE))
@@ -99,15 +102,44 @@ export function useBoardData({
     tag = activeTag,
   ) => {
     if (board.slug === 'guestbook') {
-      const normalizedQuery = q.trim().toLocaleLowerCase()
-      const normalizedTag = tag.trim().toLocaleLowerCase()
       const threadSearchParams = new URLSearchParams({
         target_type: board.targetType,
         target_id: board.targetId,
         archived: archived ? '1' : '0',
+        offset: String(offset),
+        limit: String(limit),
+        sort,
+        direction,
       })
 
-      const threadResponse = await fetchEngagementPublicApi(`/api/comments?${threadSearchParams.toString()}`)
+      if (q.trim()) {
+        threadSearchParams.set('q', q.trim())
+      } else if (tag.trim()) {
+        threadSearchParams.set('tag', tag.trim())
+      }
+
+      const viewerStatePromise = reactionIdentity
+        ? (async () => {
+            const viewerStateSearchParams = new URLSearchParams({
+              target_type: board.targetType,
+              target_id: board.targetId,
+              identity: reactionIdentity,
+            })
+
+            const viewerStateResponse = await fetch(`/api/comments/viewer-state?${viewerStateSearchParams.toString()}`)
+            if (!viewerStateResponse.ok) {
+              return null
+            }
+
+            return viewerStateResponse.json().catch(() => null)
+          })()
+        : Promise.resolve(null)
+
+      const [threadResponse, viewerStatePayload] = await Promise.all([
+        fetchEngagementPublicApi(`/api/comments?${threadSearchParams.toString()}`),
+        viewerStatePromise,
+      ])
+
       if (!threadResponse.ok) {
         throw new Error('便签加载失败，请稍后重试。')
       }
@@ -119,45 +151,23 @@ export function useBoardData({
 
       let comments = threadPayload.map((entry) => createCommentRecord(entry as Comment))
 
-      if (reactionIdentity) {
-        const viewerStateSearchParams = new URLSearchParams({
-          target_type: board.targetType,
-          target_id: board.targetId,
-          identity: reactionIdentity,
-        })
-
-        const viewerStateResponse = await fetch(`/api/comments/viewer-state?${viewerStateSearchParams.toString()}`)
-        const viewerStatePayload = viewerStateResponse.ok
-          ? await viewerStateResponse.json().catch(() => null)
-          : null
-
-        if (Array.isArray(viewerStatePayload)) {
-          comments = applyViewerStateToComments(comments, viewerStatePayload as CommentViewerState[])
-        }
+      if (Array.isArray(viewerStatePayload)) {
+        comments = applyViewerStateToComments(comments, viewerStatePayload as CommentViewerState[])
       }
 
-      const filteredMessages = createGuestbookMessagesFromComments(comments, archived).filter((message) => {
-        if (normalizedQuery) {
-          return message.content.toLocaleLowerCase().includes(normalizedQuery)
-        }
-
-        if (normalizedTag) {
-          return parseHashtags(message.content).includes(normalizedTag)
-        }
-
-        return true
-      })
-
-      const allMessages = sortBoardMessages(filteredMessages, sort, direction)
-      const nextMessages = allMessages.slice(offset, offset + limit)
+      const nextMessages = createGuestbookMessagesFromComments(comments, archived)
+      const nextOffsetHeader = Number.parseInt(threadResponse.headers.get('X-Comment-Thread-Next-Offset') ?? '', 10)
+      const hasMoreHeader = threadResponse.headers.get('X-Comment-Thread-Has-More')
+      const nextOffsetValue = Number.isFinite(nextOffsetHeader) ? nextOffsetHeader : offset + nextMessages.length
+      const hasMoreValue = hasMoreHeader === '1'
 
       return createBoardPayload(
         nextMessages,
         archived,
         sort,
         direction,
-        offset + nextMessages.length,
-        offset + nextMessages.length < allMessages.length,
+        nextOffsetValue,
+        hasMoreValue,
       )
     }
 
@@ -198,6 +208,7 @@ export function useBoardData({
     () => fetchBoardMessages(showArchived, sortMode, sortDirection),
     {
       fallbackData: initialBoardPayload,
+      revalidateOnMount: activeBoardQueryKey !== initialBoardQueryKeyRef.current,
       revalidateOnFocus: false,
     },
   )

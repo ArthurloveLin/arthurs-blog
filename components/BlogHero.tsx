@@ -3,14 +3,12 @@
 import dynamic from 'next/dynamic'
 import React, { useMemo, useState } from 'react'
 import useSWR from 'swr'
-import { StickyStackPreview } from '@/components/note-board/NoteBoardExperience'
+import { StickyStackPreview, type StickyStackPreviewMessage } from '@/components/note-board/views/StickyStackPreview'
 import { useSiteConfig } from '@/components/SiteDataProvider'
 import { createCommentRecord, type Comment } from '@/lib/comments'
 import { fetchEngagementPublicApi } from '@/lib/engagement-public-api'
 import { createGuestbookMessagesFromComments } from '@/lib/guestbook-comments'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
-import type { NoteMessage } from '@/lib/note-boards'
-import { sortBoardMessages } from '@/components/note-board/utils/board'
 
 const Live2D = dynamic(() => import('@/components/Live2D'), {
   ssr: false,
@@ -29,7 +27,7 @@ const HandwrittenSloganClient = dynamic(() => import('@/components/HandwrittenSl
 
 interface BlogHeroProps {
   guestbookBoard: NoteBoardViewConfig
-  initialGuestbookMessages: NoteMessage[]
+  initialGuestbookMessages: StickyStackPreviewMessage[]
   slogan?: { text1: string; text2?: string }
 }
 
@@ -41,21 +39,34 @@ function getGuestbookPreviewKey(board: NoteBoardViewConfig) {
   return `guestbook-preview:${board.targetType}:${board.targetId}:${board.previewLimit}`
 }
 
+function trimPreviewMessage(message: StickyStackPreviewMessage): StickyStackPreviewMessage {
+  return {
+    id: message.id,
+    visual_seed: message.visual_seed,
+    author: message.author,
+    content: message.content,
+    created_at: message.created_at,
+    updated_at: message.updated_at,
+  }
+}
 
 export default function BlogHero({ guestbookBoard, initialGuestbookMessages, slogan }: BlogHeroProps) {
   const siteConfig = useSiteConfig()
   const [isWelcomeActive, setIsWelcomeActive] = useState(true)
   const guestbookPreviewFallback = useMemo(
-    () => initialGuestbookMessages.slice(0, guestbookBoard.previewLimit),
+    () => initialGuestbookMessages.slice(0, guestbookBoard.previewLimit).map(trimPreviewMessage),
     [guestbookBoard.previewLimit, initialGuestbookMessages],
   )
-  const { data: guestbookPreviewMessages = guestbookPreviewFallback } = useSWR<NoteMessage[]>(
+  const { data: guestbookPreviewMessages = guestbookPreviewFallback } = useSWR<StickyStackPreviewMessage[]>(
     getGuestbookPreviewKey(guestbookBoard),
     async () => {
       const searchParams = new URLSearchParams({
         target_type: guestbookBoard.targetType,
         target_id: guestbookBoard.targetId,
         archived: '0',
+        limit: String(guestbookBoard.previewLimit),
+        sort: 'time',
+        direction: 'desc',
       })
 
       const response = await fetchEngagementPublicApi(`/api/comments?${searchParams.toString()}`)
@@ -68,15 +79,20 @@ export default function BlogHero({ guestbookBoard, initialGuestbookMessages, slo
         throw new Error('Invalid guestbook preview payload')
       }
 
-      return sortBoardMessages(
-        createGuestbookMessagesFromComments(
-          payload.map((entry) => createCommentRecord(entry as Comment)),
-        ),
-        'time',
-      ).slice(0, guestbookBoard.previewLimit)
+      return createGuestbookMessagesFromComments(
+        payload.map((entry) => createCommentRecord(entry as Comment)),
+      ).map((message) => ({
+        id: message.id,
+        visual_seed: message.visual_seed,
+        author: message.author,
+        content: message.content,
+        created_at: message.created_at,
+        updated_at: message.updated_at,
+      }))
     },
     {
       fallbackData: guestbookPreviewFallback,
+      revalidateOnMount: false,
       revalidateOnFocus: false,
       dedupingInterval: 60_000,
       focusThrottleInterval: 60_000,

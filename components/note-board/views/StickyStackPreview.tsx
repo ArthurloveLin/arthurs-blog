@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { StickyNoteCard } from '@/components/note-board/components/StickyNoteCard'
+import { StickyNotePreviewCard } from '@/components/note-board/components/StickyNotePreviewCard'
 import { useElementSize } from '@/components/note-board/hooks/useElementSize'
 import previewStyles from '@/components/note-board/styles/NoteBoardPreview.module.css'
 import type { NotePosition } from '@/components/note-board/types'
@@ -18,11 +18,15 @@ import {
   seededUnit,
 } from '@/components/note-board/utils/board'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
-import type { NoteMessage } from '@/lib/note-boards'
+
+export type StickyStackPreviewMessage = Pick<
+  import('@/lib/note-boards').NoteMessage,
+  'id' | 'visual_seed' | 'author' | 'content' | 'created_at' | 'updated_at'
+>
 
 interface StickyStackPreviewProps {
   board: NoteBoardViewConfig
-  messages: NoteMessage[]
+  messages: StickyStackPreviewMessage[]
 }
 
 export function StickyStackPreview({ board, messages }: StickyStackPreviewProps) {
@@ -61,7 +65,7 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
     }
   }, [hasMeasured, hasSettledLayout])
 
-  function handleCommit(index: number, message: NoteMessage, nextPosition: NotePosition, distance: number) {
+  function handleCommit(index: number, message: StickyStackPreviewMessage, nextPosition: NotePosition, distance: number) {
     if (index === actualRevealedCount) {
       if (distance >= PREVIEW_REVEAL_THRESHOLD) {
         setPlacedNotes((current) => ({ ...current, [message.id]: nextPosition }))
@@ -114,7 +118,7 @@ export function StickyStackPreview({ board, messages }: StickyStackPreviewProps)
             const isDraggable = index <= actualRevealedCount
 
             return (
-              <StickyNoteCard.Preview
+              <StickyNotePreviewCard
                 key={message.id}
                 message={message}
                 x={position.x}
