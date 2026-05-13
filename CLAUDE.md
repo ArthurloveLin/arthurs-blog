@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git Policy
+
+**Never `git push` unless the user explicitly says to push.** Commit freely after passing `npm run check`, but hold the push until instructed.
+
 ## Commands
 
 ```bash
