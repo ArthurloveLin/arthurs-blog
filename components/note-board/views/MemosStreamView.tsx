@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Layers, Search, Tag, X } from 'lucide-react'
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Layers, Search, Tag, X } from 'lucide-react'
 import {
   useNoteBoardActions,
   useNoteBoardBoardState,
@@ -297,6 +297,7 @@ export function MemosStreamView({ onToggleViewMode }: MemosStreamViewProps) {
   const actions = useNoteBoardActions()
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false)
 
   // When a search/tag filter is active, the date selection is suspended
   const effectiveSelectedDate = (state.searchQuery || state.activeTag) ? null : selectedDate
@@ -441,6 +442,37 @@ export function MemosStreamView({ onToggleViewMode }: MemosStreamViewProps) {
 
         {/* ── Main feed ── */}
         <div className="min-w-0 flex-1">
+          {/* Mobile calendar toggle */}
+          <div className="mb-3 sm:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileCalendarOpen((v) => !v)}
+              className="flex w-full items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent"
+            >
+              <CalendarDays size={13} className="shrink-0" />
+              <span className="flex-1 text-left">
+                {effectiveSelectedDate ?? '按日期筛选'}
+              </span>
+              {effectiveSelectedDate ? (
+                <X
+                  size={12}
+                  onClick={(e) => { e.stopPropagation(); setSelectedDate(null) }}
+                />
+              ) : (
+                <ChevronDown size={12} className={mobileCalendarOpen ? 'rotate-180 transition' : 'transition'} />
+              )}
+            </button>
+            {mobileCalendarOpen ? (
+              <div className="mt-2 rounded-2xl border border-border/60 bg-background/80 p-3">
+                <SidebarCalendar
+                  memoDateCounts={memoDateCounts}
+                  selectedDate={selectedDate}
+                  onSelectDate={(key) => { setSelectedDate(key); if (key) setMobileCalendarOpen(false) }}
+                />
+              </div>
+            ) : null}
+          </div>
+
           {/* Mobile tag strip */}
           {state.allTags.length > 0 ? (
             <div className="mb-4 flex flex-wrap gap-1.5 sm:hidden">

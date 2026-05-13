@@ -130,9 +130,10 @@ export function useBoardSurface({
   }, [containerElement])
 
   useEffect(() => {
+    const messageIdSet = new Set(messages.map((m) => m.id))
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMeasuredHeights((current) => {
-      const nextEntries = Object.entries(current).filter(([id]) => messages.some((message) => message.id === id))
+      const nextEntries = Object.entries(current).filter(([id]) => messageIdSet.has(id))
 
       if (nextEntries.length === Object.keys(current).length) {
         return current

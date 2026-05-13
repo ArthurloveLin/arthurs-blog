@@ -15,7 +15,7 @@ import {
   useNoteBoardMeta,
   useNoteBoardToast,
 } from '@/components/note-board/NoteBoardProvider'
-import { getStickyColorIndex, getStickyColorSeed } from '@/components/note-board/utils/board'
+import { getStickyColorIndex, getStickyColorSeed, STICKY_COLORS } from '@/components/note-board/utils/board'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { splitHighlightedText } from '@/lib/blog-search'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
@@ -148,16 +148,22 @@ function SearchResultsList() {
       <p className="text-[11px] text-muted-foreground">
         {label}，共 {state.totalLoaded} 条
       </p>
-      <div className="space-y-2">
+      <div className="flex flex-wrap gap-3">
         {state.messages.map((msg) => {
           const snippetParts = state.searchQuery
             ? splitHighlightedText(msg.content.slice(0, 300), state.searchQuery)
             : [{ text: msg.content.slice(0, 200), match: false }]
+          const colorIndex = getStickyColorIndex(getStickyColorSeed(msg))
+          const rotation = ((colorIndex % 5) - 2) * 0.6
 
           return (
             <div
               key={msg.id}
-              className="rounded-[16px] border border-border/60 bg-card/80 px-4 py-3 text-sm"
+              className="w-[calc(50%-6px)] min-w-[160px] flex-1 rounded-[16px] px-4 py-3 text-sm shadow-sm"
+              style={{
+                backgroundColor: STICKY_COLORS[colorIndex % STICKY_COLORS.length],
+                transform: `rotate(${rotation}deg)`,
+              }}
             >
               <p className="whitespace-pre-wrap break-words text-[0.82rem] leading-relaxed text-slate-700">
                 {snippetParts.map((part, i) =>
@@ -167,7 +173,7 @@ function SearchResultsList() {
                 )}
                 {msg.content.length > 200 ? '…' : ''}
               </p>
-              <p className="mt-1.5 text-[10px] text-muted-foreground/60">
+              <p className="mt-1.5 text-[10px] text-slate-600/60">
                 {new Date(msg.updated_at ?? msg.created_at).toLocaleDateString('zh-CN')}
               </p>
             </div>
@@ -487,6 +493,7 @@ function NoteBoardExperience() {
   // initializing from it in useState causes a hydration mismatch)
   useEffect(() => {
     if (!isMemoBoard) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (window.localStorage.getItem('memo-view-mode') === 'stream') setViewMode('stream')
   }, [isMemoBoard])
 
