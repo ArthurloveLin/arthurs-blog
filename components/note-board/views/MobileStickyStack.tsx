@@ -28,11 +28,11 @@ export function MobileStickyStack({ items }: MobileStickyStackProps) {
 
   const cardWidth = Math.min(NOTE_CARD_WIDTH, Math.max(0, size.width - 32))
   const hasMeasured = size.width > 0 && size.height > 0
-  const visibleItems = useMemo(() => items.map((item) => item), [items])
+  const visibleItems = items
   const validParkedIds = useMemo(() => {
-    const allowed = new Set(visibleItems.map((item) => item.message.id))
+    const allowed = new Set(items.map((item) => item.message.id))
     return parkedIds.filter((id) => allowed.has(id))
-  }, [parkedIds, visibleItems])
+  }, [parkedIds, items])
 
   const placedNotes = useMemo(() => {
     return Object.fromEntries(
@@ -40,7 +40,7 @@ export function MobileStickyStack({ items }: MobileStickyStackProps) {
     )
   }, [validParkedIds, placedPositions])
 
-  const parkedSet = new Set(validParkedIds)
+  const parkedSet = useMemo(() => new Set(validParkedIds), [validParkedIds])
   const parkedCount = validParkedIds.length
 
   useEffect(() => {
