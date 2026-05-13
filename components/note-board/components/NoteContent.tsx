@@ -90,13 +90,24 @@ const INLINE_IMAGE_PATTERN = /^!\[([^\]]*)\]\(([^)]+)\)$/
 const UL_PATTERN = /^[-*+]\s+(.+)$/
 const OL_PATTERN = /^\d+\.\s+(.+)$/
 
-const HEADING_CLASS: Record<number, string> = {
-  1: 'text-[1.1em] font-bold leading-snug text-slate-900',
-  2: 'text-[1.05em] font-bold leading-snug text-slate-900',
+// Board / preview variant: em-relative so they scale with the sticky note font
+const HEADING_CLASS_NOTE: Record<number, string> = {
+  1: 'text-[1.15em] font-bold leading-snug text-slate-900',
+  2: 'text-[1.08em] font-bold leading-snug text-slate-900',
   3: 'text-[1em] font-semibold leading-snug text-slate-800',
   4: 'text-[0.95em] font-semibold text-slate-800',
   5: 'text-[0.9em] font-medium text-slate-700',
   6: 'text-[0.85em] font-medium text-slate-600',
+}
+
+// Stream variant: absolute px so the hierarchy is clear against the 13.5 px body
+const HEADING_CLASS_STREAM: Record<number, string> = {
+  1: 'text-[22px] font-bold leading-tight tracking-tight text-slate-900 border-b border-slate-200 pb-1.5 mt-6 mb-3',
+  2: 'text-[18px] font-bold leading-tight text-slate-800 border-b border-slate-200/60 pb-1 mt-5 mb-2',
+  3: 'text-[16px] font-semibold leading-snug text-slate-800 mt-4 mb-1',
+  4: 'text-[14px] font-semibold text-slate-800 mt-3 mb-0.5',
+  5: 'text-[12.5px] font-semibold text-slate-700 mt-2',
+  6: 'text-[12px] font-medium text-slate-500 mt-2',
 }
 
 function renderTableRows(rows: string[], keyPrefix: string): ReactNode {
@@ -161,11 +172,15 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       tableBuffer = []
     }
 
+    const isStream = variant === 'stream'
+
     function flushList() {
       if (listBuffer.length === 0 || !listType) return
       const Tag = listType
+      const ulCls = isStream ? 'my-2 ml-5 list-disc space-y-1' : 'my-1 ml-4 list-disc space-y-0.5'
+      const olCls = isStream ? 'my-2 ml-5 list-decimal space-y-1' : 'my-1 ml-4 list-decimal space-y-0.5'
       result.push(
-        <Tag key={`${variant}-${listType}-${listStart}`} className={listType === 'ul' ? 'my-1 ml-4 list-disc space-y-0.5' : 'my-1 ml-4 list-decimal space-y-0.5'}>
+        <Tag key={`${variant}-${listType}-${listStart}`} className={listType === 'ul' ? ulCls : olCls}>
           {listBuffer.map((text, idx) => (
             <li key={idx} className="pl-0.5">
               {renderInlineFormattedText(text, `${variant}-li-${listStart}-${idx}`)}
@@ -238,8 +253,9 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       const headingMatch = line.match(HEADING_PATTERN)
       if (headingMatch) {
         const level = Math.min(headingMatch[1].length, 6) as 1 | 2 | 3 | 4 | 5 | 6
+        const headingClass = isStream ? HEADING_CLASS_STREAM[level] : HEADING_CLASS_NOTE[level]
         result.push(
-          <p key={`h-${i}`} className={`w-full ${HEADING_CLASS[level]}`}>
+          <p key={`h-${i}`} className={`w-full ${headingClass}`}>
             {renderInlineFormattedText(headingMatch[2], `${variant}-h-${i}`)}
           </p>
         )
@@ -249,8 +265,11 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       // Blockquote
       const bqMatch = line.match(BLOCKQUOTE_PATTERN)
       if (bqMatch) {
+        const bqCls = isStream
+          ? 'border-l-4 border-slate-300 pl-4 my-1.5 text-slate-500'
+          : 'border-l-2 border-slate-400/60 pl-2 italic text-slate-600/90'
         result.push(
-          <blockquote key={`bq-${i}`} className="border-l-2 border-slate-400/60 pl-2 italic text-slate-600/90">
+          <blockquote key={`bq-${i}`} className={bqCls}>
             {bqMatch[1].length > 0
               ? renderInlineFormattedText(bqMatch[1], `${variant}-bq-${i}`)
               : <span>&nbsp;</span>}
@@ -261,7 +280,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
 
       // HR
       if (HR_PATTERN.test(line)) {
-        result.push(<hr key={`hr-${i}`} className="my-1 border-slate-300/60" />)
+        result.push(<hr key={`hr-${i}`} className={isStream ? 'my-4 border-slate-200' : 'my-1 border-slate-300/60'} />)
         continue
       }
 
@@ -316,7 +335,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
         </div>
       ) : null}
       {parsed.checklistItems.length > 0 ? (
-        <ul className="space-y-1.5 text-[1.05rem] leading-relaxed text-slate-800/90">
+        <ul className={`space-y-1.5 leading-relaxed text-slate-800/90 ${variant === 'stream' ? 'text-[13.5px]' : 'text-[1.05rem]'}`}>
           {parsed.checklistItems.map((item) => {
             const lineIndex = typeof item.lineIndex === 'number' ? item.lineIndex : null
 

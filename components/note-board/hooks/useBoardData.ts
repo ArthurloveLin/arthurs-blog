@@ -481,7 +481,13 @@ export function useBoardData({
       return
     }
 
-    if (isSameBoardSurfacePayload(boardPayload, messages, nextOffset, hasMore)) {
+    // Compare against messagesRef.current (synchronously updated in replaceMessages)
+    // rather than the messages state. This avoids a race condition where setMessages
+    // and mutateBoardPayload run in different batches: the effect would fire with a
+    // stale boardPayload before mutateBoardPayload resolves, triggering a spurious
+    // resetBoardSurface that reverts the optimistic update. In production (no strict
+    // mode) this causes the checklist toggle to appear to do nothing.
+    if (isSameBoardSurfacePayload(boardPayload, messagesRef.current, nextOffset, hasMore)) {
       return
     }
 
@@ -491,7 +497,8 @@ export function useBoardData({
         hasMore: boardPayload.hasMore,
       })
     })
-  }, [boardPayload, hasMore, messages, nextOffset, resetBoardSurface, showArchived, sortDirection, sortMode])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardPayload, hasMore, nextOffset, resetBoardSurface, showArchived, sortDirection, sortMode])
 
   return {
     messages,

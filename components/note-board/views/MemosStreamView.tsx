@@ -20,7 +20,13 @@ interface MemosStreamViewProps {
 
 type FeedGroup = {
   id: string
+  kind: 'priority' | 'date'
   label: string
+  dateHeader?: {
+    dayLabel: string
+    weekdayLabel: string
+    monthYearLabel: string
+  }
   items: NoteCardViewModel[]
 }
 
@@ -45,6 +51,7 @@ export function MemosStreamView({ onToggleViewMode, filters }: MemosStreamViewPr
         .filter((group) => group.items.length > 0)
         .map((group) => ({
           id: `priority:${group.priority}`,
+          kind: 'priority' as const,
           label: NOTE_PRIORITY_META[group.priority].label,
           items: group.items,
         }))
@@ -65,7 +72,17 @@ export function MemosStreamView({ onToggleViewMode, filters }: MemosStreamViewPr
           day: 'numeric',
           weekday: 'short',
         })
-        groups.push({ id: `date:${dateKey}:${item.message.id}`, label, items: [] })
+        groups.push({
+          id: `date:${dateKey}:${item.message.id}`,
+          kind: 'date',
+          label,
+          dateHeader: {
+            dayLabel: String(day),
+            weekdayLabel: formatStableDate(ts, { weekday: 'short' }),
+            monthYearLabel: `${year} · ${String(month).padStart(2, '0')}月`,
+          },
+          items: [],
+        })
       }
       groups[groups.length - 1]?.items.push(item)
     }
@@ -123,22 +140,40 @@ export function MemosStreamView({ onToggleViewMode, filters }: MemosStreamViewPr
           {state.showArchived ? '还没有已归档便签。' : filters.isFilterMode ? '没有匹配的内容。' : meta.board.emptyLabel}
         </div>
       ) : (
-        <div>
+        <div className="space-y-7">
           {feedGroups.map((group) => (
-            <div key={group.id}>
-              <div className="relative my-5 flex items-center gap-3">
-                <div className="h-px flex-1 bg-border/40" />
-                <span className="shrink-0 text-[12px] font-medium tracking-wide text-muted-foreground">
-                  {group.label}
+            <section key={group.id} className="space-y-4">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                {group.kind === 'date' && group.dateHeader ? (
+                  <div className="flex shrink-0 items-start gap-3">
+                    <span className="text-[38px] font-semibold leading-none tracking-[-0.06em] text-foreground/95 sm:text-[46px]">
+                      {group.dateHeader.dayLabel}
+                    </span>
+                    <div className="pt-0.5">
+                      <p className="text-[15px] font-medium leading-none text-foreground/80 sm:text-[17px]">
+                        {group.dateHeader.weekdayLabel}
+                      </p>
+                      <p className="mt-2 text-[11px] tracking-[0.16em] text-muted-foreground/70 sm:text-[12px]">
+                        {group.dateHeader.monthYearLabel}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <span className="shrink-0 text-[12px] font-medium tracking-[0.18em] text-muted-foreground">
+                    {group.label}
+                  </span>
+                )}
+                <div className="h-px min-w-[96px] flex-1 bg-border/40" />
+                <span className="inline-flex h-8 items-center rounded-full border border-border/50 bg-background/80 px-3 text-[12px] font-medium text-muted-foreground shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+                  {group.items.length}条
                 </span>
-                <div className="h-px flex-1 bg-border/40" />
               </div>
               <div className="space-y-3">
                 {group.items.map((item) => (
                   <MemoStreamCard key={item.message.id} item={item} />
                 ))}
               </div>
-            </div>
+            </section>
           ))}
 
           {state.hasMore && !filters.effectiveSelectedDate ? (
