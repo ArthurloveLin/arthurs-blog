@@ -10,8 +10,8 @@ import BlogFeedLoader from '@/components/BlogFeedLoader'
 import BlogFeedSkeleton from '@/components/BlogFeedSkeleton'
 import BlogSidebarLeft from '@/components/BlogSidebarLeft'
 import BlogSidebarRight from '@/components/BlogSidebarRight'
+import type { StickyStackPreviewMessage } from '@/components/note-board/views/StickyStackPreview'
 import { getNoteBoardConfig, type NoteBoardViewConfig } from '@/lib/note-board-config'
-import type { NoteMessage } from '@/lib/note-boards'
 
 interface BlogPageProps {
   posts?: Post[]
@@ -20,7 +20,7 @@ interface BlogPageProps {
   activeCategory?: string | null
   activeTags?: string[]
   activeYear?: number | null
-  initialGuestbookMessages?: NoteMessage[]
+  initialGuestbookMessages?: StickyStackPreviewMessage[]
   guestbookBoard?: NoteBoardViewConfig
   slogan?: { text1: string; text2?: string }
 }

@@ -379,33 +379,6 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
   }, [messages])
 
-  const { noteItems } = useBoardNoteItems({
-    visibleMessages,
-    boardSlug: board.slug,
-    isAdmin,
-    viewerIdentityAliases,
-    editingNoteId,
-    editContent,
-    isUpdatingNote,
-    priorityUpdatingIds,
-    reactionUpdatingIds,
-    emojiUpdatingIds,
-    freshMessageIds,
-    measuredHeights,
-    priorityEnabled,
-    updatingNoteIds,
-    handleDelete,
-    startEditingNote,
-    handleToggleArchive,
-    handlePriorityChange,
-    handleReaction,
-    handleEmojiReaction,
-    saveEditingNote,
-    toggleChecklistItem,
-    cancelEditingNote,
-    setEditContent,
-  })
-
   const { noteItems: allNoteItems } = useBoardNoteItems({
     visibleMessages: messages,
     boardSlug: board.slug,
@@ -432,6 +405,18 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     cancelEditingNote,
     setEditContent,
   })
+
+  const noteItems = useMemo(() => {
+    if (visibleMessages === messages) {
+      return allNoteItems
+    }
+
+    const itemsById = new Map(allNoteItems.map((item) => [item.message.id, item]))
+    return visibleMessages.flatMap((message) => {
+      const item = itemsById.get(message.id)
+      return item ? [item] : []
+    })
+  }, [allNoteItems, messages, visibleMessages])
 
   const handleSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()

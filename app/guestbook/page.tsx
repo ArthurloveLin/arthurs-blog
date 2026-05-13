@@ -1,8 +1,13 @@
+import { cookies } from 'next/headers'
 import DirectionalTransition from '@/components/DirectionalTransition'
 import { NoteBoardPage } from '@/components/note-board/NoteBoardExperience'
 import { getNoteBoardConfig } from '@/lib/note-board-config'
 import { getBoardMessages } from '@/lib/note-boards'
 import { getSiteConfig } from '@/lib/blog'
+import {
+  getNoteBoardViewModeCookieName,
+  normalizeNoteBoardViewMode,
+} from '@/lib/note-board-view-mode'
 import PageHero from '@/components/PageHero'
 
 
@@ -15,8 +20,12 @@ export default async function GuestbookPage({
   searchParams: Promise<{ q?: string }>
 }) {
   const config = getNoteBoardConfig('guestbook')
-  const { q } = await searchParams
+  const [params, cookieStore] = await Promise.all([searchParams, cookies()])
+  const { q } = params
   const initialQuery = typeof q === 'string' ? q.trim() : ''
+  const initialViewMode = normalizeNoteBoardViewMode(
+    cookieStore.get(getNoteBoardViewModeCookieName(config.slug))?.value,
+  )
   const [messages, siteConfig] = await Promise.all([
     getBoardMessages('guestbook', config.initialPageLimit, 0, false, 'time', 'desc', null, initialQuery || null),
     getSiteConfig()
@@ -47,7 +56,7 @@ export default async function GuestbookPage({
 
         {/* ── Body ── */}
         <div className="site-shell py-12 pb-24">
-          <NoteBoardPage board={config} initialMessages={messages} initialQuery={initialQuery} />
+          <NoteBoardPage board={config} initialMessages={messages} initialQuery={initialQuery} initialViewMode={initialViewMode} />
         </div>
       </main>
 

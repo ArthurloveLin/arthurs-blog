@@ -19,12 +19,16 @@ import { MemoBoardShell, useMemoBoardFilters, type MemoBoardFilters } from '@/co
 import { getStickyColorIndex, getStickyColorSeed } from '@/components/note-board/utils/board'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
+import {
+  getNoteBoardViewModeCookieName,
+  getNoteBoardViewModeStorageKey,
+  type NoteBoardViewMode,
+} from '@/lib/note-board-view-mode'
 import type { NoteMessage } from '@/lib/note-boards'
 export { StickyStackPreview } from '@/components/note-board/views/StickyStackPreview'
 
 const MemosStreamView = dynamic(
   () => import('@/components/note-board/views/MemosStreamView').then((m) => m.MemosStreamView),
-  { ssr: false },
 )
 
 const MobileNoteList = dynamic(
@@ -41,6 +45,7 @@ interface NoteBoardPageProps {
   board: NoteBoardViewConfig
   initialMessages: NoteMessage[]
   initialQuery?: string
+  initialViewMode?: NoteBoardViewMode
 }
 
 function BoardStickyView({ onToggleViewMode, filters }: { onToggleViewMode: () => void; filters: MemoBoardFilters }) {
@@ -285,23 +290,20 @@ function NoteBoardToast() {
   )
 }
 
-function NoteBoardExperience() {
+function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?: NoteBoardViewMode }) {
   const meta = useNoteBoardMeta()
   const state = useNoteBoardBoardState()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const viewModeStorageKey = `${meta.board.slug}-view-mode`
+  const viewModeStorageKey = getNoteBoardViewModeStorageKey(meta.board.slug)
+  const viewModeCookieName = getNoteBoardViewModeCookieName(meta.board.slug)
   const filters = useMemoBoardFilters(state.allNoteItems, selectedDate, setSelectedDate)
 
-  const [viewMode, setViewMode] = useState<'sticky' | 'stream'>('sticky')
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setViewMode(window.localStorage.getItem(viewModeStorageKey) === 'stream' ? 'stream' : 'sticky')
-  }, [viewModeStorageKey])
+  const [viewMode, setViewMode] = useState<NoteBoardViewMode>(initialViewMode)
 
   useEffect(() => {
     window.localStorage.setItem(viewModeStorageKey, viewMode)
-  }, [viewMode, viewModeStorageKey])
+    document.cookie = `${viewModeCookieName}=${viewMode}; path=/; max-age=31536000; SameSite=Lax`
+  }, [viewMode, viewModeCookieName, viewModeStorageKey])
 
   const toggleViewMode = useCallback(
     () => setViewMode((v) => (v === 'sticky' ? 'stream' : 'sticky')),
@@ -319,10 +321,10 @@ function NoteBoardExperience() {
   )
 }
 
-export function NoteBoardPage({ board, initialMessages, initialQuery = '' }: NoteBoardPageProps) {
+export function NoteBoardPage({ board, initialMessages, initialQuery = '', initialViewMode = 'sticky' }: NoteBoardPageProps) {
   return (
     <NoteBoardProvider board={board} initialMessages={initialMessages} initialQuery={initialQuery}>
-      <NoteBoardExperience />
+      <NoteBoardExperience initialViewMode={initialViewMode} />
     </NoteBoardProvider>
   )
 }

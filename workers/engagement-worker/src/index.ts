@@ -8,12 +8,21 @@ const DEFAULT_COMMENT_RATE_LIMIT_WINDOW_SECONDS = 60
 const DEFAULT_REACTION_FLUSH_INTERVAL_SECONDS = 300
 const DEFAULT_REACTION_FLUSH_RETRY_SECONDS = 60
 const COMMENT_THREAD_CACHE_TTL_SECONDS = 60
+const COMMENT_THREAD_LIMIT_MAX = 100
 const DEFAULT_BLOCKED_TERMS = ['博彩', '裸聊', '刷单', '代刷', '纸飞机', 'telegram', '免费兼职', '加v', '加微']
 const COMMENT_QUEUE_DO_NAME = 'global'
 const COMMENT_QUEUE_RECORD_PREFIX = 'comment-queue:record:'
 const COMMENT_QUEUE_THREAD_PREFIX = 'comment-queue:thread:'
 const COMMENT_QUEUE_THREAD_LOOKUP_PREFIX = 'comment-queue:lookup:'
 const SUPABASE_COMMENT_SELECT = 'id,target_type,target_id,author,content,parent_id,created_at,updated_at,upvotes,downvotes'
+const COMMENT_THREAD_HEADER_HAS_MORE = 'X-Comment-Thread-Has-More'
+const COMMENT_THREAD_HEADER_NEXT_OFFSET = 'X-Comment-Thread-Next-Offset'
+const COMMENT_THREAD_HEADER_TOTAL = 'X-Comment-Thread-Total'
+const COMMENT_THREAD_EXPOSED_HEADERS = [
+  COMMENT_THREAD_HEADER_HAS_MORE,
+  COMMENT_THREAD_HEADER_NEXT_OFFSET,
+  COMMENT_THREAD_HEADER_TOTAL,
+].join(', ')
 const POST_REACTION_POST_ID_KEY = 'post-reaction:post-id'
 const POST_REACTION_META_KEY = 'post-reaction:meta'
 const POST_REACTION_VALUE_PREFIX = 'post-reaction:value:'
@@ -75,6 +84,26 @@ type CommentQueuedRecord = {
 type CommentThreadTarget = {
   targetType: string
   targetId: string
+}
+
+type CommentThreadSortMode = 'time'
+
+type CommentThreadSortDirection = 'asc' | 'desc'
+
+type CommentThreadQuery = {
+  offset: number
+  limit: number | null
+  searchQuery: string
+  tag: string
+  sort: CommentThreadSortMode
+  direction: CommentThreadSortDirection
+}
+
+type AppliedCommentThreadQuery = {
+  comments: CommentPublicRecord[]
+  hasMore: boolean
+  nextOffset: number
+  total: number
 }
 
 type CommentPublicRecord = {
@@ -214,6 +243,9 @@ function corsHeaders(headers?: HeadersInit) {
   if (!nextHeaders.has('Access-Control-Allow-Headers')) {
     nextHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   }
+  if (!nextHeaders.has('Access-Control-Expose-Headers')) {
+    nextHeaders.set('Access-Control-Expose-Headers', COMMENT_THREAD_EXPOSED_HEADERS)
+  }
   return nextHeaders
 }
 
@@ -285,6 +317,140 @@ function compareComments(left: Pick<CommentPublicRecord, 'created_at' | 'id'>, r
   }
 
   return left.id.localeCompare(right.id)
+}
+
+function compareCommentsByDirection(
+  left: Pick<CommentPublicRecord, 'created_at' | 'id'>,
+  right: Pick<CommentPublicRecord, 'created_at' | 'id'>,
+  direction: CommentThreadSortDirection,
+) {
+  const difference = compareComments(left, right)
+  return direction === 'desc' ? difference * -1 : difference
+}
+
+const COMMENT_THREAD_HASHTAG_PATTERN = /#([\p{L}\p{N}_-]+)/gu
+
+function parseCommentHashtags(content: string) {
+  const seen = new Set<string>()
+  let match: RegExpExecArray | null
+  COMMENT_THREAD_HASHTAG_PATTERN.lastIndex = 0
+
+  while ((match = COMMENT_THREAD_HASHTAG_PATTERN.exec(content)) !== null) {
+    const tag = match[1]?.toLocaleLowerCase() ?? ''
+    if (tag && tag.length <= 32) {
+      seen.add(tag)
+    }
+
+    COMMENT_THREAD_HASHTAG_PATTERN.lastIndex = match.index + 1
+  }
+
+  return seen
+}
+
+function normalizeCommentThreadOffsetQuery(value: string | null) {
+  const parsed = Number.parseInt(value ?? '', 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 0
+  }
+
+  return parsed
+}
+
+function normalizeCommentThreadLimitQuery(value: string | null) {
+  const parsed = Number.parseInt(value ?? '', 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null
+  }
+
+  return Math.min(parsed, COMMENT_THREAD_LIMIT_MAX)
+}
+
+function normalizeCommentThreadSearchQuery(value: string | null) {
+  return value?.trim().toLocaleLowerCase() ?? ''
+}
+
+function normalizeCommentThreadTagQuery(value: string | null) {
+  return value?.trim().replace(/^#+/, '').toLocaleLowerCase() ?? ''
+}
+
+function normalizeCommentThreadSortModeQuery(value: string | null): CommentThreadSortMode {
+  return value === 'time' ? 'time' : 'time'
+}
+
+function normalizeCommentThreadSortDirectionQuery(value: string | null): CommentThreadSortDirection {
+  return value === 'desc' ? 'desc' : 'asc'
+}
+
+function getCommentThreadQuery(url: URL): CommentThreadQuery {
+  return {
+    offset: normalizeCommentThreadOffsetQuery(url.searchParams.get('offset')),
+    limit: normalizeCommentThreadLimitQuery(url.searchParams.get('limit')),
+    searchQuery: normalizeCommentThreadSearchQuery(url.searchParams.get('q')),
+    tag: normalizeCommentThreadTagQuery(url.searchParams.get('tag')),
+    sort: normalizeCommentThreadSortModeQuery(url.searchParams.get('sort')),
+    direction: normalizeCommentThreadSortDirectionQuery(url.searchParams.get('direction')),
+  }
+}
+
+function isDefaultCommentThreadQuery(query: CommentThreadQuery) {
+  return (
+    query.offset === 0
+    && query.limit === null
+    && query.searchQuery.length === 0
+    && query.tag.length === 0
+    && query.sort === 'time'
+    && query.direction === 'asc'
+  )
+}
+
+function applyCommentThreadQuery(comments: CommentPublicRecord[], query: CommentThreadQuery): AppliedCommentThreadQuery {
+  let filtered = comments
+
+  if (query.searchQuery) {
+    filtered = filtered.filter((comment) => comment.content.toLocaleLowerCase().includes(query.searchQuery))
+  }
+
+  if (query.tag) {
+    filtered = filtered.filter((comment) => parseCommentHashtags(comment.content).has(query.tag))
+  }
+
+  const ordered = query.direction === 'asc' && query.sort === 'time'
+    ? filtered
+    : [...filtered].sort((left, right) => compareCommentsByDirection(left, right, query.direction))
+
+  const total = ordered.length
+
+  if (query.limit === null) {
+    const commentsWindow = query.offset > 0 ? ordered.slice(query.offset) : ordered
+    return {
+      comments: commentsWindow,
+      hasMore: false,
+      nextOffset: query.offset + commentsWindow.length,
+      total,
+    }
+  }
+
+  const pagedWindow = ordered.slice(query.offset, query.offset + query.limit + 1)
+  const hasMore = pagedWindow.length > query.limit
+  const commentsWindow = hasMore ? pagedWindow.slice(0, query.limit) : pagedWindow
+
+  return {
+    comments: commentsWindow,
+    hasMore,
+    nextOffset: query.offset + commentsWindow.length,
+    total,
+  }
+}
+
+function createCommentThreadQueryResponse(result: AppliedCommentThreadQuery) {
+  return jsonResponse(result.comments, {
+    headers: {
+      'Cache-Control': 'no-store',
+      [COMMENT_THREAD_HEADER_HAS_MORE]: result.hasMore ? '1' : '0',
+      [COMMENT_THREAD_HEADER_NEXT_OFFSET]: String(result.nextOffset),
+      [COMMENT_THREAD_HEADER_TOTAL]: String(result.total),
+    },
+  })
 }
 
 function createPublicCommentRecord(comment: CommentQueuedRecord, syncState: 'pending' | 'persisted' = 'pending'): CommentPublicRecord {
@@ -1364,6 +1530,8 @@ async function requestCommentQueueDurableObject<T>(
 
 async function handleCommentThreadGet(request: Request, env: EngagementEnv, ctx: ExecutionContext) {
   const url = new URL(request.url)
+  const query = getCommentThreadQuery(url)
+  const isDefaultQuery = isDefaultCommentThreadQuery(query)
 
   const cacheEntry = getCommentThreadCacheKeyFromUrl(url)
   if (!cacheEntry) {
@@ -1378,6 +1546,15 @@ async function handleCommentThreadGet(request: Request, env: EngagementEnv, ctx:
       targetId: cacheEntry.targetId,
       archived: cacheEntry.archived,
     })
+
+    if (!isDefaultQuery) {
+      const cachedPayload = await cachedResponse.clone().json().catch(() => null)
+      const cachedComments = normalizeCommentThreadPayload(cachedPayload)
+
+      if (cachedComments) {
+        return createCommentThreadQueryResponse(applyCommentThreadQuery(cachedComments, query))
+      }
+    }
 
     return new Response(cachedResponse.body, {
       status: cachedResponse.status,
@@ -1426,8 +1603,9 @@ async function handleCommentThreadGet(request: Request, env: EngagementEnv, ctx:
     return jsonResponse({ error: '评论加载失败。' }, { status: 503 })
   }
 
-  const response = withCommentThreadCacheHeaders(jsonResponse(mergeCommentThreads(persistedComments, pendingComments)))
-  ctx.waitUntil(caches.default.put(cacheEntry.cacheKey, response.clone()))
+  const mergedComments = mergeCommentThreads(persistedComments, pendingComments)
+  const canonicalResponse = withCommentThreadCacheHeaders(jsonResponse(mergedComments))
+  ctx.waitUntil(caches.default.put(cacheEntry.cacheKey, canonicalResponse.clone()))
 
   log('log', 'comment thread cache miss', {
     path: url.pathname,
@@ -1436,7 +1614,11 @@ async function handleCommentThreadGet(request: Request, env: EngagementEnv, ctx:
     archived: cacheEntry.archived,
   })
 
-  return response
+  if (!isDefaultQuery) {
+    return createCommentThreadQueryResponse(applyCommentThreadQuery(mergedComments, query))
+  }
+
+  return canonicalResponse
 }
 
 async function handleCommentCreate(request: Request, env: EngagementEnv, ctx: ExecutionContext) {
