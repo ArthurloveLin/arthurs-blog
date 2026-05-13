@@ -1,0 +1,83 @@
+// app/globals.css
+// ─────────────────────────────────────────────────────────────────────────────
+// Design tokens only — no component styles here.
+// Individual components use CSS Modules for their own styles.
+
+:root {
+  /* ── Surface ── */
+  --paper:      #f7f4ee;
+  --paper-2:    #efeae0;
+
+  /* ── Ink ── */
+  --ink:        #2a2722;
+  --ink-soft:   #5b574e;
+  --ink-mute:   #8f8a7e;
+
+  /* ── Lines / Borders ── */
+  --line:       #e7e1d4;
+  --line-soft:  #efe9da;
+
+  /* ── Accent ── */
+  --accent:     #c0644a;
+  --accent-soft:#e69076;
+
+  /* ── Elevation ── */
+  --shadow-sm:  0 1px 2px rgba(60,40,20,.04), 0 2px 6px rgba(60,40,20,.05);
+  --shadow-md:  0 2px 4px rgba(60,40,20,.04), 0 8px 24px rgba(60,40,20,.08);
+  --shadow-lg:  0 4px 12px rgba(60,40,20,.06), 0 16px 40px rgba(60,40,20,.12);
+
+  /* ── Radius ── */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+
+  /* ── Layout ── */
+  --sidebar-w:  248px;
+
+  /* ── Typography ── */
+  --font-sans:  "Geist", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:  "Geist Mono", ui-monospace, monospace;
+}
+
+/* Dark mode — flip surfaces and ink */
+[data-theme="dark"] {
+  --paper:      #1a1815;
+  --paper-2:    #221f1a;
+  --ink:        #f1ece1;
+  --ink-soft:   #bbb3a3;
+  --ink-mute:   #807a6c;
+  --line:       #2f2b24;
+  --line-soft:  #26221c;
+  --accent:     #e69076;
+  --accent-soft:#c0644a;
+  --shadow-sm:  0 1px 2px rgba(0,0,0,.3),  0 2px 6px rgba(0,0,0,.3);
+  --shadow-md:  0 2px 4px rgba(0,0,0,.3),  0 8px 24px rgba(0,0,0,.4);
+  --shadow-lg:  0 4px 12px rgba(0,0,0,.4), 0 16px 40px rgba(0,0,0,.5);
+}
+
+/* Reset */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+::selection { background: rgba(192, 100, 74, .22); }

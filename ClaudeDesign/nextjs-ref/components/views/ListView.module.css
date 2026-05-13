@@ -1,0 +1,194 @@
+/* ListView.module.css */
+
+.list {
+  padding: 4px 32px 60px;
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--ink-mute);
+  font-size: 13px;
+}
+
+/* ── Group ── */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.group + .group { margin-top: 28px; }
+
+/* ── Day header ── */
+.dayHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 16px 0 8px;
+  position: sticky;
+  top: 62px;                    /* below TopBar */
+  background: var(--paper);
+  z-index: 5;
+  white-space: nowrap;
+}
+
+.dayNum {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.dayNum small {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ink-mute);
+  margin-left: 4px;
+}
+
+.dayMonth {
+  font-size: 11.5px;
+  color: var(--ink-mute);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.rule {
+  flex: 1;
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 0;
+  min-width: 20px;
+}
+
+.count {
+  font-size: 11.5px;
+  color: var(--ink-mute);
+  background: rgba(0,0,0,.04);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* ── Cards ── */
+.cards { display: flex; flex-direction: column; gap: 12px; }
+
+.card {
+  display: flex;
+  gap: 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  background: var(--paper);
+}
+.card:hover {
+  border-color: var(--line);
+  box-shadow: var(--shadow-md);
+}
+.card.pinned {
+  border-color: rgba(192, 100, 74, .28);
+}
+
+/* Left colour rail — style per data-color in your implementation */
+.rail {
+  flex: 0 0 5px;
+  border-radius: 3px;
+  background: var(--line); /* override with memo colour */
+}
+
+.cardInner  { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+
+/* ── Card header ── */
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.author {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.meta    { font-size: 11.5px; color: var(--ink-mute); }
+.pinLabel {
+  font-size: 10.5px; padding: 1px 6px;
+  border-radius: 999px; font-weight: 600;
+  background: rgba(192,100,74,.10); color: var(--accent);
+}
+
+.actions {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.card:hover .actions { opacity: 1; }
+.actions button {
+  width: 24px; height: 24px;
+  border-radius: 6px; font-size: 13px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* ── Body ── */
+.body {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bh  { font-size: 15px; font-weight: 600; color: var(--ink); margin: 0 0 4px; }
+.bp  { margin: 0; }
+.bq  { margin: 0; padding-left: 10px; border-left: 2px solid var(--line); font-style: italic; }
+.bc  { margin: 0; padding: 8px 10px; border-radius: 6px; font-size: 12px;
+        background: rgba(0,0,0,.04); white-space: pre-wrap; word-break: break-all; }
+.bb  { display: flex; gap: 6px; }
+.bt  { display: flex; gap: 8px; align-items: flex-start; }
+.checkbox {
+  flex: 0 0 14px; width: 14px; height: 14px; border-radius: 50%;
+  border: 1.3px solid var(--line); margin-top: 4px; display: inline-block;
+}
+.done { opacity: 0.5; text-decoration: line-through; }
+.done .checkbox { background: var(--ink-mute); }
+
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tagChip {
+  font-size: 11.5px; padding: 2px 9px;
+  border-radius: 999px; background: rgba(0,0,0,.04); color: var(--ink-soft);
+}
+
+/* ── Footer ── */
+.footer {
+  display: flex;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--ink-mute);
+}
+.react { display: inline-flex; align-items: center; gap: 3px; }
+.liked { color: #c94e4e; }

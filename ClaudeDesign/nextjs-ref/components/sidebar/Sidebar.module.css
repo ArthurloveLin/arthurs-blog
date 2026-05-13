@@ -1,0 +1,70 @@
+/* Sidebar.module.css */
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex: 0 0 var(--sidebar-w);
+  padding: 22px 18px 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  border-right: 1px solid var(--line-soft);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,.12) transparent;
+}
+
+/* ── Brand ── */
+.brand     { display: flex; flex-direction: column; gap: 4px; }
+.logo      { font-weight: 600; letter-spacing: .42em; font-size: 11.5px;
+             text-transform: uppercase; }
+.meta      { font-size: 11.5px; color: var(--ink-mute); }
+.meta strong { color: var(--ink-soft); font-weight: 500; }
+
+/* ── Section ── */
+.section   { display: flex; flex-direction: column; gap: 10px; }
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+}
+.tagTotal { color: var(--ink-mute); font-size: 10px; font-weight: 500; }
+
+/* ── Quick filters ── */
+.filterList  { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.filterBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  transition: background .14s, color .14s;
+  text-align: left;
+}
+.filterBtn:hover        { background: rgba(0,0,0,.04); color: var(--ink); }
+.filterBtnActive        { background: rgba(192,100,74,.10); color: var(--ink); }
+
+.filterCount {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ink-mute);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Footer ── */
+.spacer  { flex: 1; }
+.footer  { font-size: 10.5px; color: var(--ink-mute); line-height: 1.4; }

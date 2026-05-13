@@ -1,0 +1,43 @@
+/* TagCloud.module.css */
+
+.cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.empty { font-size: 12px; color: var(--ink-mute); margin: 0; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.chip:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+
+.active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.active .chipCount { color: rgba(247,244,238,.55); }
+
+/* Colour dot — reads --chip-color from inline style */
+.chipDot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--chip-color, var(--accent));
+  opacity: .85;
+  flex-shrink: 0;
+}
+
+.chipLabel { line-height: 1; }
+.chipCount { font-size: 10.5px; color: var(--ink-mute); font-variant-numeric: tabular-nums; }

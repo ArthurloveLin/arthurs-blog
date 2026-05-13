@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, Layers, LayoutList, Search, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, Layers, LayoutList, Plus, Search, X } from 'lucide-react'
 import {
   useNoteBoardActions,
   useNoteBoardBoardState,
@@ -16,6 +16,7 @@ function getItemDateKey(item: NoteCardViewModel) {
   return toDateKey(year, month, day)
 }
 
+// ── 搜索框 ──────────────────────────────────────────────────────────────────
 function MemoSearchField({ placeholder }: { placeholder: string }) {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
@@ -43,13 +44,13 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
     <form
       onSubmit={handleSubmit}
       className={[
-        'group relative shrink-0 overflow-hidden border h-[30px] rounded-full transition-[width,background,box-shadow,border-color] duration-[600ms]',
+        'group relative shrink-0 overflow-hidden border h-[34px] rounded-full transition-[width,background,box-shadow,border-color] duration-[600ms]',
         isExpanded
           ? 'border-primary/25 bg-background/95 ring-2 ring-primary/20'
           : 'border-border/70 bg-background/70 hover:bg-accent/35 hover:ring-2 hover:ring-primary/20',
       ].join(' ')}
       style={{
-        width: isExpanded ? '198px' : '30px',
+        width: isExpanded ? '210px' : '34px',
         transitionTimingFunction: isExpanded ? 'cubic-bezier(0,1.22,.66,1.39)' : 'cubic-bezier(0.4,0,0.2,1)',
       }}
     >
@@ -68,14 +69,12 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
         }}
         placeholder={placeholder}
         className={[
-          'h-full w-full border-0 bg-transparent pr-[34px] text-[12px] outline-none transition-[padding,color,text-indent] duration-[600ms]',
+          'h-full w-full border-0 bg-transparent pr-[36px] text-[13px] outline-none transition-[padding,color,text-indent] duration-[600ms]',
           isExpanded
-            ? 'cursor-text pl-3 text-foreground placeholder:text-muted-foreground/60'
+            ? 'cursor-text pl-3.5 text-foreground placeholder:text-muted-foreground/60'
             : 'cursor-pointer pl-0 text-transparent placeholder:text-transparent [text-indent:-9999px]',
         ].join(' ')}
-        style={{
-          transitionTimingFunction: 'cubic-bezier(0,1.22,.66,1.39)',
-        }}
+        style={{ transitionTimingFunction: 'cubic-bezier(0,1.22,.66,1.39)' }}
         autoComplete="off"
         spellCheck={false}
       />
@@ -83,16 +82,17 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
         type="button"
         onMouseDown={(event) => event.preventDefault()}
         onClick={hasQuery ? handleClear : () => inputRef.current?.focus()}
-        className="absolute inset-y-0 right-0 flex h-[30px] w-[30px] items-center justify-center text-muted-foreground transition hover:text-foreground"
+        className="absolute inset-y-0 right-0 flex h-[34px] w-[34px] items-center justify-center text-muted-foreground transition hover:text-foreground"
         aria-label={hasQuery ? '清除搜索' : '搜索'}
       >
-        <Search size={13} className={`absolute transition-all duration-200 ${hasQuery ? 'scale-75 opacity-0' : 'scale-100 opacity-100'}`} />
-        <X size={12} className={`absolute transition-all duration-200 ${hasQuery ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`} />
+        <Search size={14} className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-200 ${hasQuery ? 'scale-75 opacity-0' : 'scale-100 opacity-100'}`} />
+        <X size={13} className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-200 ${hasQuery ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`} />
       </button>
     </form>
   )
 }
 
+// ── 排序下拉 ────────────────────────────────────────────────────────────────
 function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean }) {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
@@ -103,13 +103,9 @@ function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean })
 
   useEffect(() => {
     if (!open) return
-
     function handleClick(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false)
-      }
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false)
     }
-
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
@@ -126,11 +122,7 @@ function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean })
       setOpen(false)
       return
     }
-
-    if (state.showArchived) {
-      actions.handleSwitchArchiveView(false)
-    }
-
+    if (state.showArchived) actions.handleSwitchArchiveView(false)
     actions.handleSortModeChange(nextSortMode)
     setOpen(false)
   }
@@ -139,31 +131,31 @@ function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean })
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="flex items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent hover:text-foreground"
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-[34px] items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 text-[13px] text-muted-foreground transition hover:bg-accent hover:text-foreground"
       >
-        <ArrowUpDown size={12} />
+        <ArrowUpDown size={14} />
         {currentLabel}
         {!state.showArchived ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-foreground/5 px-1.5 py-0.5 text-[10px] text-foreground/65">
-            <SortDirectionIcon size={10} />
+          <span className="inline-flex items-center gap-1 rounded-full bg-foreground/5 px-1.5 py-0.5 text-[11px] text-foreground/65">
+            <SortDirectionIcon size={11} />
             {directionLabel}
           </span>
         ) : null}
-        <ChevronDown size={11} className={`transition-transform${open ? ' rotate-180' : ''}`} />
+        <ChevronDown size={13} className={`transition-transform${open ? ' rotate-180' : ''}`} />
       </button>
       {open ? (
-        <div className="absolute right-0 top-full z-20 mt-1.5 min-w-[156px] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-lg">
+        <div className="absolute right-0 top-full z-20 mt-1.5 min-w-[164px] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-lg">
           <button
             type="button"
             onClick={() => handleSelectSort('time')}
-            className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition ${!state.showArchived && state.sortMode === 'time' ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
+            className={`flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] transition ${!state.showArchived && state.sortMode === 'time' ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
           >
-            {!state.showArchived && state.sortMode === 'time' ? <Check size={11} className="shrink-0" /> : <span className="w-[11px] shrink-0" />}
+            {!state.showArchived && state.sortMode === 'time' ? <Check size={13} className="shrink-0" /> : <span className="w-[13px] shrink-0" />}
             <span className="flex-1 text-left">按日期</span>
             {!state.showArchived && state.sortMode === 'time' ? (
-              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                <SortDirectionIcon size={10} />
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                <SortDirectionIcon size={11} />
                 {directionLabel}
               </span>
             ) : null}
@@ -172,13 +164,13 @@ function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean })
             <button
               type="button"
               onClick={() => handleSelectSort('priority')}
-              className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition ${!state.showArchived && state.sortMode === 'priority' ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
+              className={`flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] transition ${!state.showArchived && state.sortMode === 'priority' ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
             >
-              {!state.showArchived && state.sortMode === 'priority' ? <Check size={11} className="shrink-0" /> : <span className="w-[11px] shrink-0" />}
+              {!state.showArchived && state.sortMode === 'priority' ? <Check size={13} className="shrink-0" /> : <span className="w-[13px] shrink-0" />}
               <span className="flex-1 text-left">按优先级</span>
               {!state.showArchived && state.sortMode === 'priority' ? (
-                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <SortDirectionIcon size={10} />
+                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <SortDirectionIcon size={11} />
                   {directionLabel}
                 </span>
               ) : null}
@@ -187,13 +179,10 @@ function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean })
           <div className="mx-3 border-t border-border/40" />
           <button
             type="button"
-            onClick={() => {
-              actions.handleSwitchArchiveView(!state.showArchived)
-              setOpen(false)
-            }}
-            className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition ${state.showArchived ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
+            onClick={() => { actions.handleSwitchArchiveView(!state.showArchived); setOpen(false) }}
+            className={`flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] transition ${state.showArchived ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
           >
-            {state.showArchived ? <Check size={11} className="shrink-0" /> : <span className="w-[11px] shrink-0" />}
+            {state.showArchived ? <Check size={13} className="shrink-0" /> : <span className="w-[13px] shrink-0" />}
             已归档
           </button>
         </div>
@@ -202,6 +191,63 @@ function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean })
   )
 }
 
+// ── 快速筛选 ────────────────────────────────────────────────────────────────
+function SidebarQuickFilters({ filters }: { filters: MemoBoardFilters }) {
+  const state = useNoteBoardBoardState()
+  const actions = useNoteBoardActions()
+  const today = useMemo(() => {
+    const { year, month, day } = getShanghaDateParts(new Date())
+    return toDateKey(year, month, day)
+  }, [])
+
+  const isAll = !state.searchQuery && !state.activeTag && !filters.effectiveSelectedDate && !state.showArchived
+  const isToday = filters.effectiveSelectedDate === today && !state.searchQuery && !state.activeTag
+
+  function handleAll() {
+    if (state.searchQuery) actions.handleSearch('')
+    if (state.activeTag) actions.handleTagFilter(state.activeTag)
+    if (state.showArchived) actions.handleSwitchArchiveView(false)
+    filters.clearDateFilter()
+  }
+
+  function handleToday() {
+    if (state.searchQuery) actions.handleSearch('')
+    if (state.activeTag) actions.handleTagFilter(state.activeTag)
+    if (state.showArchived) actions.handleSwitchArchiveView(false)
+    filters.setSelectedDate(isToday ? null : today)
+  }
+
+  const quickFilters = [
+    { key: 'all', label: '全部便签', active: isAll, onClick: handleAll },
+    { key: 'today', label: '今日', active: isToday, onClick: handleToday },
+    { key: 'archive', label: '已归档', active: state.showArchived, onClick: () => actions.handleSwitchArchiveView(!state.showArchived) },
+  ] as const
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[11.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">快速筛选</p>
+      <div className="flex flex-col gap-0.5">
+        {quickFilters.map(({ key, label, active, onClick }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={onClick}
+            className={[
+              'flex w-full items-center rounded-lg px-2.5 py-2 text-[13px] transition',
+              active
+                ? 'bg-[#c0644a]/10 font-medium text-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            ].join(' ')}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Filters hook ─────────────────────────────────────────────────────────────
 export interface MemoBoardFilters {
   memoDateCounts: Map<string, number>
   selectedDate: string | null
@@ -230,10 +276,7 @@ export function useMemoBoardFilters(
   }, [allItems])
 
   const filterItemsByDate = useCallback((items: NoteCardViewModel[]) => {
-    if (!effectiveSelectedDate) {
-      return items
-    }
-
+    if (!effectiveSelectedDate) return items
     return items.filter((item) => getItemDateKey(item) === effectiveSelectedDate)
   }, [effectiveSelectedDate])
 
@@ -248,6 +291,7 @@ export function useMemoBoardFilters(
   }
 }
 
+// ── Shell ────────────────────────────────────────────────────────────────────
 interface MemoBoardShellProps {
   title: string
   summary: string
@@ -281,7 +325,7 @@ export function MemoBoardShell({
   const isMobileCalendarOpen = state.isMobileViewport && mobileCalendarOpen
 
   const filterLabel = state.searchQuery
-    ? `搜索：“${state.searchQuery}”，共 ${filteredCount} ${itemUnit}`
+    ? `搜索："${state.searchQuery}"，共 ${filteredCount} ${itemUnit}`
     : state.activeTag
       ? `标签：#${state.activeTag}，共 ${filteredCount} ${itemUnit}`
       : filters.effectiveSelectedDate
@@ -289,16 +333,8 @@ export function MemoBoardShell({
         : null
 
   const handleClearFilter = useCallback(() => {
-    if (state.searchQuery) {
-      actions.handleSearch('')
-      return
-    }
-
-    if (state.activeTag) {
-      actions.handleTagFilter(state.activeTag)
-      return
-    }
-
+    if (state.searchQuery) { actions.handleSearch(''); return }
+    if (state.activeTag) { actions.handleTagFilter(state.activeTag); return }
     filters.clearDateFilter()
   }, [actions, filters, state.activeTag, state.searchQuery])
 
@@ -307,10 +343,11 @@ export function MemoBoardShell({
 
   return (
     <section className="rounded-[32px] border border-border/60 bg-card/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-6">
+      {/* 顶栏 */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground/60">{summary}</p>
+          <p className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
+          <p className="mt-0.5 text-[12px] text-muted-foreground/60">{summary}</p>
         </div>
         <div className="flex items-center gap-2">
           <MemoSearchField placeholder={searchPlaceholder} />
@@ -319,57 +356,66 @@ export function MemoBoardShell({
           <button
             type="button"
             onClick={onToggleViewMode}
-            className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent hover:text-foreground"
+            className="flex h-[34px] shrink-0 items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 text-[13px] text-muted-foreground transition hover:bg-accent hover:text-foreground"
           >
-            <ToggleIcon size={13} />
+            <ToggleIcon size={14} />
             <span className="hidden sm:inline">{toggleLabel}</span>
             <span className="sm:hidden">切换视图</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => actions.scrollToEditor()}
+            className="flex h-[34px] shrink-0 items-center gap-1.5 rounded-full bg-foreground px-3 text-[13px] font-medium text-background transition hover:opacity-85"
+          >
+            <Plus size={14} />
+            <span className="hidden sm:inline">新便签</span>
           </button>
         </div>
       </div>
 
+      {/* 筛选状态条 */}
       {filters.isFilterMode && filterLabel ? (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[16px] border border-border/60 bg-background/60 px-4 py-2 text-xs text-muted-foreground">
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[16px] border border-[#c0644a]/25 bg-[#c0644a]/5 px-4 py-2.5 text-[13px] text-[#c0644a]/80">
           <span className="flex-1">{filterLabel}</span>
           <button
             type="button"
             onClick={handleClearFilter}
-            className="flex items-center gap-0.5 hover:text-foreground"
+            className="flex items-center gap-1 hover:text-[#c0644a]"
           >
-            <X size={12} />
+            <X size={13} />
             清除筛选
           </button>
         </div>
       ) : null}
 
       <div className="flex gap-6">
-        <aside className="hidden shrink-0 sm:block sm:w-[180px] lg:w-[200px]">
+        {/* 桌面侧边栏 */}
+        <aside className="hidden shrink-0 sm:block sm:w-[220px] lg:w-[260px]">
           <div className="sticky top-6 space-y-6">
             <SidebarCalendar
               memoDateCounts={filters.memoDateCounts}
               selectedDate={filters.selectedDate}
               onSelectDate={filters.setSelectedDate}
             />
+            <SidebarQuickFilters filters={filters} />
             <SidebarTagCloud />
           </div>
         </aside>
 
         <div className="min-w-0 flex-1">
+          {/* 移动端日历展开 */}
           <div className="mb-3 sm:hidden">
             <button
               type="button"
-              onClick={() => setMobileCalendarOpen((value) => !value)}
-              className="flex w-full items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent"
+              onClick={() => setMobileCalendarOpen((v) => !v)}
+              className="flex h-[36px] w-full items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 text-[13px] text-muted-foreground transition hover:bg-accent"
             >
-              <CalendarDays size={13} className="shrink-0" />
+              <CalendarDays size={14} className="shrink-0" />
               <span className="flex-1 text-left">{filters.effectiveSelectedDate ?? '按日期筛选'}</span>
               {filters.effectiveSelectedDate ? (
-                <X size={12} onClick={(event) => {
-                  event.stopPropagation()
-                  filters.clearDateFilter()
-                }} />
+                <X size={13} onClick={(e) => { e.stopPropagation(); filters.clearDateFilter() }} />
               ) : (
-                <ChevronDown size={12} className={`transition-transform${isMobileCalendarOpen ? ' rotate-180' : ''}`} />
+                <ChevronDown size={13} className={`transition-transform${isMobileCalendarOpen ? ' rotate-180' : ''}`} />
               )}
             </button>
             {isMobileCalendarOpen ? (
@@ -379,15 +425,14 @@ export function MemoBoardShell({
                   selectedDate={filters.selectedDate}
                   onSelectDate={(key) => {
                     filters.setSelectedDate(key)
-                    if (key) {
-                      setMobileCalendarOpen(false)
-                    }
+                    if (key) setMobileCalendarOpen(false)
                   }}
                 />
               </div>
             ) : null}
           </div>
 
+          {/* 移动端标签 */}
           {state.allTags.length > 0 ? (
             <div className="mb-4 flex flex-wrap gap-1.5 sm:hidden">
               {state.allTags.slice(0, 12).map(({ name }) => (
@@ -396,7 +441,7 @@ export function MemoBoardShell({
                   type="button"
                   onClick={() => actions.handleTagFilter(name)}
                   className={[
-                    'rounded-full px-2 py-0.5 text-[11px] transition',
+                    'rounded-full px-2.5 py-1 text-[12px] transition',
                     state.activeTag === name
                       ? 'bg-foreground text-background'
                       : 'border border-border/70 text-muted-foreground hover:bg-accent',
@@ -409,9 +454,9 @@ export function MemoBoardShell({
                 <button
                   type="button"
                   onClick={() => actions.handleTagFilter(state.activeTag)}
-                  className="flex items-center gap-0.5 rounded-full border border-border/70 px-2 py-0.5 text-[11px] text-muted-foreground"
+                  className="flex items-center gap-1 rounded-full border border-border/70 px-2.5 py-1 text-[12px] text-muted-foreground"
                 >
-                  <X size={10} />
+                  <X size={12} />
                   清除
                 </button>
               ) : null}
