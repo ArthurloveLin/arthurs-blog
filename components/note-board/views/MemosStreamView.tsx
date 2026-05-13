@@ -269,7 +269,7 @@ function StreamSearchBar() {
     >
       <input
         ref={inputRef}
-        type="search"
+        type="text"
         value={localQuery}
         onChange={(e) => setLocalQuery(e.target.value)}
         onFocus={() => setIsFocused(true)}
@@ -404,6 +404,7 @@ export function MemosStreamView({ onToggleViewMode }: MemosStreamViewProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <StreamSearchBar />
           <button
             type="button"
             onClick={onToggleViewMode}
@@ -412,7 +413,6 @@ export function MemosStreamView({ onToggleViewMode }: MemosStreamViewProps) {
             <Layers size={13} />
             <span className="hidden sm:inline">便签视图</span>
           </button>
-          <StreamSearchBar />
         </div>
       </div>
 

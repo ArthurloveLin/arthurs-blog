@@ -117,7 +117,7 @@ function SearchBar() {
     >
       <input
         ref={inputRef}
-        type="search"
+        type="text"
         value={localQuery}
         onChange={(e) => setLocalQuery(e.target.value)}
         onFocus={() => setIsFocused(true)}
@@ -217,6 +217,7 @@ function NoteBoardControls({ viewMode, onToggleViewMode }: NoteBoardControlsProp
         </div>
 
         <div className="flex items-center gap-2">
+          {meta.board.slug === 'memo' ? <SearchBar /> : null}
           {viewMode !== undefined && onToggleViewMode ? (
             <button
               type="button"
@@ -227,7 +228,6 @@ function NoteBoardControls({ viewMode, onToggleViewMode }: NoteBoardControlsProp
               流式视图
             </button>
           ) : null}
-          {meta.board.slug === 'memo' ? <SearchBar /> : null}
           {state.viewportReady && state.isMobileViewport && !isSearchMode && meta.board.slug !== 'memo' ? (
             <button
               type="button"
@@ -246,6 +246,28 @@ function NoteBoardControls({ viewMode, onToggleViewMode }: NoteBoardControlsProp
 
       {/* Tag Cloud */}
       {meta.board.slug === 'memo' && !isSearchMode ? <TagCloudPanel /> : null}
+
+      {/* Active filter banner */}
+      {meta.board.slug === 'memo' && isSearchMode ? (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[16px] border border-border/60 bg-background/60 px-4 py-2 text-xs text-muted-foreground">
+          <span className="flex-1">
+            {state.searchQuery
+              ? `搜索："${state.searchQuery}"，共 ${state.visibleCount} 张`
+              : `标签：#${state.activeTag}，共 ${state.visibleCount} 张`}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              if (state.searchQuery) actions.handleSearch('')
+              else actions.handleTagFilter(state.activeTag)
+            }}
+            className="flex items-center gap-0.5 hover:text-foreground"
+          >
+            <X size={12} />
+            清除筛选
+          </button>
+        </div>
+      ) : null}
 
       {/* Sticky board — renders search results as sticky notes when isSearchMode */}
       {!state.viewportReady ? (
