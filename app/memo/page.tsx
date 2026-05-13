@@ -18,7 +18,7 @@ export default async function MemoPage({
   const initialQuery = typeof q === 'string' ? q.trim() : ''
 
   const [messages, siteConfig] = await Promise.all([
-    getBoardMessages('memo', config.initialPageLimit, 0, false, 'time', null, initialQuery || null),
+    getBoardMessages('memo', config.initialPageLimit, 0, false, 'time', 'desc', null, initialQuery || null),
     getSiteConfig(),
   ])
 

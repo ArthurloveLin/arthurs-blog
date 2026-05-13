@@ -336,7 +336,6 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
                     </button>
                     <span
                       className={item.checked ? 'line-through text-slate-700/65' : ''}
-                      onPointerDown={(event) => event.stopPropagation()}
                     >
                       {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`)}
                     </span>

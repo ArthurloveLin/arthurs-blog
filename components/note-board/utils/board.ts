@@ -1,7 +1,7 @@
 import type { NoteBoardSlug } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
 import type { NotePosition, Size, OptimisticMessageSnapshot, NoteBoardListPayload } from '@/components/note-board/types'
-import { type NoteSortMode } from '@/lib/note-priority'
+import { type NoteSortDirection, type NoteSortMode } from '@/lib/note-priority'
 
 export const STICKY_COLORS = ['#f8ef9f', '#ffd0a8', '#f8bfd3', '#c9eff3', '#d9ccff']
 export const NOTE_CARD_WIDTH = 200
@@ -169,22 +169,29 @@ function getMessageSortTimestamp(message: NoteMessage) {
   return Number.isFinite(fallback) ? fallback : 0
 }
 
-export function sortBoardMessages(messages: NoteMessage[], sortMode: NoteSortMode) {
+export function sortBoardMessages(
+  messages: NoteMessage[],
+  sortMode: NoteSortMode,
+  sortDirection: NoteSortDirection = 'desc',
+) {
+  const directionFactor = sortDirection === 'asc' ? -1 : 1
+
   return [...messages].sort((left, right) => {
-    if (sortMode === 'priority' && right.priority !== left.priority) {
-      return right.priority - left.priority
+    const priorityDifference = (right.priority ?? 1) - (left.priority ?? 1)
+    if (sortMode === 'priority' && priorityDifference !== 0) {
+      return priorityDifference * directionFactor
     }
 
     const timeDifference = getMessageSortTimestamp(right) - getMessageSortTimestamp(left)
     if (timeDifference !== 0) {
-      return timeDifference
+      return timeDifference * directionFactor
     }
 
     if (right.created_at !== left.created_at) {
-      return right.created_at.localeCompare(left.created_at)
+      return right.created_at.localeCompare(left.created_at) * directionFactor
     }
 
-    return right.id.localeCompare(left.id)
+    return right.id.localeCompare(left.id) * directionFactor
   })
 }
 
@@ -275,6 +282,7 @@ export function createBoardPayload(
   messages: NoteMessage[],
   archived: boolean,
   sort: NoteSortMode,
+  sortDirection: NoteSortDirection,
   nextOffset: number,
   hasMore: boolean,
 ): NoteBoardListPayload {
@@ -284,6 +292,7 @@ export function createBoardPayload(
     hasMore,
     archived,
     sort,
+    sortDirection,
   }
 }
 

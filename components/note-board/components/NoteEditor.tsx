@@ -211,8 +211,8 @@ export function NoteEditor({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="grid">
+    <div className="w-full min-w-0 max-w-full space-y-3">
+      <div className="grid w-full min-w-0 max-w-full">
         <textarea
           ref={textareaRef}
           value={value}
@@ -224,10 +224,10 @@ export function NoteEditor({
           onPaste={handlePaste}
           onDrop={handleDrop}
           onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault() }}
-          className={`${minHeightClassName} col-start-1 row-start-1 w-full resize-none overflow-hidden rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-primary/30 focus:ring-2 focus:ring-primary/20 disabled:opacity-60 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
+          className={`${minHeightClassName} col-start-1 row-start-1 w-full min-w-0 max-w-full resize-none overflow-hidden rounded-[18px] border border-black/10 bg-white/55 px-3 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-500/70 focus:border-primary/30 focus:ring-2 focus:ring-primary/20 disabled:opacity-60 [overflow-wrap:anywhere] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
         />
         <div
-          className={`${minHeightClassName} col-start-1 row-start-1 invisible pointer-events-none whitespace-pre-wrap break-words px-3 py-3 text-sm leading-6`}
+          className={`${minHeightClassName} col-start-1 row-start-1 invisible pointer-events-none w-full min-w-0 max-w-full whitespace-pre-wrap break-words px-3 py-3 text-sm leading-6 [overflow-wrap:anywhere]`}
           aria-hidden="true"
         >
           {value + (value.endsWith('\n') ? ' ' : '')}
@@ -261,7 +261,7 @@ export function NoteEditor({
         )
       ) : null}
 
-      <div className={shellClassName}>
+      <div className={["w-full min-w-0 max-w-full", shellClassName].join(' ')}>
         <EditorActionBar
           noWrap
           className={['border-t-0', toolbarClassName].join(' ')}

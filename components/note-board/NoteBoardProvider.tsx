@@ -19,7 +19,7 @@ import type {
   ToastNotice,
 } from '@/components/note-board/types'
 import { computeBoardLayout } from '@/components/note-board/utils/board'
-import type { NotePriority, NoteSortMode } from '@/lib/note-priority'
+import type { NotePriority, NoteSortDirection, NoteSortMode } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
 
@@ -51,6 +51,7 @@ interface NoteBoardState {
   isRefreshingBoard: boolean
   showArchived: boolean
   sortMode: NoteSortMode
+  sortDirection: NoteSortDirection
   currentPage: number
   pageSize: number
   visibleCount: number
@@ -106,6 +107,7 @@ interface NoteBoardActions {
   handleSubmit: (event: React.FormEvent<HTMLFormElement>) => void
   handleSwitchArchiveView: (archived: boolean) => void
   handleSortModeChange: (nextSortMode: NoteSortMode) => void
+  handleToggleSortDirection: () => void
   handleSearch: (q: string) => void
   handleTagFilter: (tag: string) => void
   updateEditorValue: (value: string) => void
@@ -134,6 +136,7 @@ interface NoteBoardBoardState {
   isRefreshingBoard: boolean
   showArchived: boolean
   sortMode: NoteSortMode
+  sortDirection: NoteSortDirection
   searchQuery: string
   activeTag: string
   allTags: { name: string; count: number }[]
@@ -223,6 +226,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     currentPageIndex,
     showArchived,
     sortMode,
+    sortDirection,
     searchQuery,
     activeTag,
     isPending,
@@ -234,6 +238,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     restoreMessageSnapshot,
     handleSwitchArchiveView,
     handleSortModeChange,
+    handleToggleSortDirection,
     handleSearch,
     handleTagFilter,
     handleLoadMore,
@@ -450,6 +455,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     isRefreshingBoard,
     showArchived,
     sortMode,
+    sortDirection,
     searchQuery,
     activeTag,
     allTags,
@@ -479,6 +485,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     noteItems,
     searchQuery,
     showArchived,
+    sortDirection,
     sortMode,
     visibleMessages,
     viewportReady,
@@ -529,6 +536,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     handleSubmit,
     handleSwitchArchiveView,
     handleSortModeChange,
+    handleToggleSortDirection,
     handleSearch,
     handleTagFilter,
     updateEditorValue: editingMessage ? setEditContent : setDraft,
@@ -546,6 +554,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     handlePreviousPage,
     handleSearch,
     handleSortModeChange,
+    handleToggleSortDirection,
     handleSubmit,
     handleSwitchArchiveView,
     handleTagFilter,

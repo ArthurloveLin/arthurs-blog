@@ -18,7 +18,7 @@ export default async function GuestbookPage({
   const { q } = await searchParams
   const initialQuery = typeof q === 'string' ? q.trim() : ''
   const [messages, siteConfig] = await Promise.all([
-    getBoardMessages('guestbook', config.initialPageLimit, 0, false, 'time', null, initialQuery || null),
+    getBoardMessages('guestbook', config.initialPageLimit, 0, false, 'time', 'desc', null, initialQuery || null),
     getSiteConfig()
   ])
 

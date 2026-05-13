@@ -1,13 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ArrowUpDown, CalendarDays, Check, ChevronDown, Layers, LayoutList, Search, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, Layers, LayoutList, Search, X } from 'lucide-react'
 import {
   useNoteBoardActions,
   useNoteBoardBoardState,
 } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
 import { SidebarCalendar, SidebarTagCloud, getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
+import type { NoteSortMode } from '@/lib/note-priority'
 
 function getItemDateKey(item: NoteCardViewModel) {
   const ts = item.message.updated_at ?? item.message.created_at
@@ -21,12 +22,15 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
   const [localQuery, setLocalQuery] = useState(state.searchQuery)
   const [isFocused, setIsFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const isExpanded = isFocused || localQuery.length > 0
-  const inputValue = isFocused ? localQuery : state.searchQuery
+  const displayedQuery = isFocused ? localQuery : state.searchQuery
+  const hasQuery = displayedQuery.length > 0
+  const isExpanded = isFocused || state.searchQuery.length > 0
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-    actions.handleSearch(localQuery.trim())
+    const nextQuery = localQuery.trim()
+    setLocalQuery(nextQuery)
+    actions.handleSearch(nextQuery)
   }
 
   function handleClear() {
@@ -38,39 +42,52 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex h-8 items-center overflow-hidden rounded-full border border-border/70 bg-background/70 shadow-sm"
+      className={[
+        'group relative shrink-0 overflow-hidden border h-[30px] rounded-full transition-[width,background,box-shadow,border-color] duration-[600ms]',
+        isExpanded
+          ? 'border-primary/25 bg-background/95 ring-2 ring-primary/20'
+          : 'border-border/70 bg-background/70 hover:bg-accent/35 hover:ring-2 hover:ring-primary/20',
+      ].join(' ')}
+      style={{
+        width: isExpanded ? '198px' : '30px',
+        transitionTimingFunction: isExpanded ? 'cubic-bezier(0,1.22,.66,1.39)' : 'cubic-bezier(0.4,0,0.2,1)',
+      }}
     >
-      <div
-        className="overflow-hidden"
-        style={{
-          width: isExpanded ? '168px' : '0px',
-          opacity: isExpanded ? 1 : 0,
-          transition: 'width 220ms cubic-bezier(0.4,0,0.2,1), opacity 90ms ease-out',
+      <input
+        ref={inputRef}
+        type="text"
+        value={displayedQuery}
+        onChange={(event) => setLocalQuery(event.target.value)}
+        onFocus={() => {
+          setLocalQuery(state.searchQuery)
+          setIsFocused(true)
         }}
-      >
-        <input
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={(event) => setLocalQuery(event.target.value)}
-          onFocus={() => {
-            setLocalQuery(state.searchQuery)
-            setIsFocused(true)
-          }}
-          onBlur={() => setIsFocused(false)}
-          placeholder={placeholder}
-          className="h-full w-[168px] bg-transparent pl-3 pr-2 text-[12px] text-foreground outline-none placeholder:text-muted-foreground/60"
-          autoComplete="off"
-          tabIndex={isExpanded ? 0 : -1}
-        />
-      </div>
+        onBlur={() => {
+          setIsFocused(false)
+          setLocalQuery(state.searchQuery)
+        }}
+        placeholder={placeholder}
+        className={[
+          'h-full w-full border-0 bg-transparent pr-[34px] text-[12px] outline-none transition-[padding,color,text-indent] duration-[600ms]',
+          isExpanded
+            ? 'cursor-text pl-3 text-foreground placeholder:text-muted-foreground/60'
+            : 'cursor-pointer pl-0 text-transparent placeholder:text-transparent [text-indent:-9999px]',
+        ].join(' ')}
+        style={{
+          transitionTimingFunction: 'cubic-bezier(0,1.22,.66,1.39)',
+        }}
+        autoComplete="off"
+        spellCheck={false}
+      />
       <button
         type="button"
-        onClick={localQuery ? handleClear : () => inputRef.current?.focus()}
-        className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground transition hover:text-foreground"
-        aria-label={localQuery ? '清除搜索' : '搜索'}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={hasQuery ? handleClear : () => inputRef.current?.focus()}
+        className="absolute inset-y-0 right-0 flex h-[30px] w-[30px] items-center justify-center text-muted-foreground transition hover:text-foreground"
+        aria-label={hasQuery ? '清除搜索' : '搜索'}
       >
-        {localQuery ? <X size={12} /> : <Search size={13} />}
+        <Search size={13} className={`absolute transition-all duration-200 ${hasQuery ? 'scale-75 opacity-0' : 'scale-100 opacity-100'}`} />
+        <X size={12} className={`absolute transition-all duration-200 ${hasQuery ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`} />
       </button>
     </form>
   )
@@ -81,6 +98,8 @@ function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean })
   const actions = useNoteBoardActions()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const SortDirectionIcon = state.sortDirection === 'asc' ? ArrowUp : ArrowDown
+  const directionLabel = state.sortDirection === 'asc' ? '正序' : '倒序'
 
   useEffect(() => {
     if (!open) return
@@ -101,6 +120,21 @@ function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean })
       ? '优先级'
       : '日期'
 
+  function handleSelectSort(nextSortMode: NoteSortMode) {
+    if (!state.showArchived && state.sortMode === nextSortMode) {
+      actions.handleToggleSortDirection()
+      setOpen(false)
+      return
+    }
+
+    if (state.showArchived) {
+      actions.handleSwitchArchiveView(false)
+    }
+
+    actions.handleSortModeChange(nextSortMode)
+    setOpen(false)
+  }
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -110,34 +144,44 @@ function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean })
       >
         <ArrowUpDown size={12} />
         {currentLabel}
+        {!state.showArchived ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-foreground/5 px-1.5 py-0.5 text-[10px] text-foreground/65">
+            <SortDirectionIcon size={10} />
+            {directionLabel}
+          </span>
+        ) : null}
         <ChevronDown size={11} className={`transition-transform${open ? ' rotate-180' : ''}`} />
       </button>
       {open ? (
-        <div className="absolute right-0 top-full z-20 mt-1.5 min-w-[108px] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-lg">
+        <div className="absolute right-0 top-full z-20 mt-1.5 min-w-[156px] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-lg">
           <button
             type="button"
-            onClick={() => {
-              actions.handleSortModeChange('time')
-              actions.handleSwitchArchiveView(false)
-              setOpen(false)
-            }}
+            onClick={() => handleSelectSort('time')}
             className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition ${!state.showArchived && state.sortMode === 'time' ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
           >
             {!state.showArchived && state.sortMode === 'time' ? <Check size={11} className="shrink-0" /> : <span className="w-[11px] shrink-0" />}
-            按日期
+            <span className="flex-1 text-left">按日期</span>
+            {!state.showArchived && state.sortMode === 'time' ? (
+              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                <SortDirectionIcon size={10} />
+                {directionLabel}
+              </span>
+            ) : null}
           </button>
           {allowPrioritySort ? (
             <button
               type="button"
-              onClick={() => {
-                actions.handleSortModeChange('priority')
-                actions.handleSwitchArchiveView(false)
-                setOpen(false)
-              }}
+              onClick={() => handleSelectSort('priority')}
               className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition ${!state.showArchived && state.sortMode === 'priority' ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
             >
               {!state.showArchived && state.sortMode === 'priority' ? <Check size={11} className="shrink-0" /> : <span className="w-[11px] shrink-0" />}
-              按优先级
+              <span className="flex-1 text-left">按优先级</span>
+              {!state.showArchived && state.sortMode === 'priority' ? (
+                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <SortDirectionIcon size={10} />
+                  {directionLabel}
+                </span>
+              ) : null}
             </button>
           ) : null}
           <div className="mx-3 border-t border-border/40" />

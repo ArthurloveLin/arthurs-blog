@@ -584,7 +584,7 @@ function StickyNoteCardFrame({
             </div>
           ) : null}
           {inlineEditor ? (
-            <div onPointerDown={(event) => event.stopPropagation()}>
+            <div className="w-full min-w-0 max-w-full" onPointerDown={(event) => event.stopPropagation()}>
               <NoteEditor
                 value={inlineEditor.value}
                 onChange={inlineEditor.onChange}
@@ -596,7 +596,7 @@ function StickyNoteCardFrame({
                 saveDisabled={!inlineEditor.value.trim()}
                 maxLength={NOTE_MAX_LENGTH}
                 minHeightClassName="min-h-0"
-                shellClassName="overflow-hidden rounded-[14px] border border-black/10 bg-white/30"
+                shellClassName="w-full max-w-full overflow-hidden rounded-[14px] border border-black/10 bg-white/30"
                 toolbarClassName="px-2 py-1.5 text-[10px] text-slate-700"
                 buttonSize="sm"
                 toolbarButtonVariant="bare"
