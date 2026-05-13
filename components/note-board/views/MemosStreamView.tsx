@@ -33,7 +33,11 @@ export function MemosStreamView({ onToggleViewMode, filters }: MemosStreamViewPr
 
   const feedGroups = useMemo<FeedGroup[]>(() => {
     if (meta.board.slug === 'memo' && state.sortMode === 'priority') {
-      return ([2, 1, 0] as const)
+      const priorityOrder = state.sortDirection === 'asc'
+        ? ([0, 1, 2] as const)
+        : ([2, 1, 0] as const)
+
+      return priorityOrder
         .map((priority) => ({
           priority,
           items: filteredItems.filter((item) => (item.message.priority ?? 1) === priority),
@@ -67,7 +71,7 @@ export function MemosStreamView({ onToggleViewMode, filters }: MemosStreamViewPr
     }
 
     return groups
-  }, [filteredItems, meta.board.slug, state.sortMode])
+  }, [filteredItems, meta.board.slug, state.sortDirection, state.sortMode])
 
   useEffect(() => {
     const sentinel = sentinelRef.current

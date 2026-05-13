@@ -4,7 +4,13 @@ import { attachViewerReactions, type ReactionValue } from '@/lib/comment-reactio
 import { applyViewerStateToComments, type CommentSyncState } from '@/lib/comments'
 import { getCommentThread, getCommentViewerState } from '@/lib/comments-server'
 import { createGuestbookMessagesFromComments } from '@/lib/guestbook-comments'
-import { DEFAULT_NOTE_PRIORITY, isNotePriority, type NotePriority, type NoteSortMode } from '@/lib/note-priority'
+import {
+  DEFAULT_NOTE_PRIORITY,
+  isNotePriority,
+  type NotePriority,
+  type NoteSortDirection,
+  type NoteSortMode,
+} from '@/lib/note-priority'
 import { getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
@@ -31,25 +37,28 @@ export interface NoteMessage {
 function compareBoardMessageTime(
   left: Pick<NoteMessage, 'created_at' | 'updated_at' | 'id'>,
   right: Pick<NoteMessage, 'created_at' | 'updated_at' | 'id'>,
+  sortDirection: NoteSortDirection = 'desc',
 ) {
+  const directionFactor = sortDirection === 'asc' ? -1 : 1
   const leftTime = Date.parse(left.updated_at ?? left.created_at)
   const rightTime = Date.parse(right.updated_at ?? right.created_at)
 
   if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && rightTime !== leftTime) {
-    return rightTime - leftTime
+    return (rightTime - leftTime) * directionFactor
   }
 
   if (right.created_at !== left.created_at) {
-    return right.created_at.localeCompare(left.created_at)
+    return right.created_at.localeCompare(left.created_at) * directionFactor
   }
 
-  return right.id.localeCompare(left.id)
+  return right.id.localeCompare(left.id) * directionFactor
 }
 
 async function getGuestbookMessages(
   limit: number,
   offset: number,
   archived: boolean,
+  sortDirection: NoteSortDirection = 'desc',
   viewerIdentity?: string | null,
   searchQuery?: string | null,
   tagFilter?: string | null,
@@ -76,7 +85,7 @@ async function getGuestbookMessages(
 
       return true
     })
-    .sort(compareBoardMessageTime)
+    .sort((left, right) => compareBoardMessageTime(left, right, sortDirection))
     .slice(offset, offset + limit)
 }
 
@@ -118,6 +127,7 @@ export const getBoardMessages = cache(async (
   offset = 0,
   archived = false,
   sort: NoteSortMode = 'time',
+  sortDirection: NoteSortDirection = 'desc',
   viewerIdentity?: string | null,
   searchQuery?: string | null,
   tagFilter?: string | null,
@@ -125,7 +135,7 @@ export const getBoardMessages = cache(async (
   const config = getNoteBoardConfig(board)
 
   if (board === 'guestbook') {
-    return getGuestbookMessages(limit, offset, archived, viewerIdentity, searchQuery, tagFilter)
+    return getGuestbookMessages(limit, offset, archived, sortDirection, viewerIdentity, searchQuery, tagFilter)
   }
 
   let query = supabaseAdmin
@@ -144,12 +154,13 @@ export const getBoardMessages = cache(async (
   }
 
   if (sort === 'priority') {
-    query = query.order('priority', { ascending: false })
+    query = query.order('priority', { ascending: sortDirection === 'asc' })
   }
 
   const { data, error } = await query
-    .order('updated_at', { ascending: false })
-    .order('created_at', { ascending: false })
+    .order('updated_at', { ascending: sortDirection === 'asc' })
+    .order('created_at', { ascending: sortDirection === 'asc' })
+    .order('id', { ascending: sortDirection === 'asc' })
 
   if (error) {
     throw new Error(error.message)

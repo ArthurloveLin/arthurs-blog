@@ -8,6 +8,10 @@ export const NOTE_SORT_MODES = ['time', 'priority'] as const
 
 export type NoteSortMode = (typeof NOTE_SORT_MODES)[number]
 
+export const NOTE_SORT_DIRECTIONS = ['desc', 'asc'] as const
+
+export type NoteSortDirection = (typeof NOTE_SORT_DIRECTIONS)[number]
+
 export interface NotePriorityMeta {
   label: string
   shortLabel: string
@@ -61,4 +65,8 @@ export function normalizeNotePriority(value: unknown): NotePriority {
 
 export function isNoteSortMode(value: unknown): value is NoteSortMode {
   return typeof value === 'string' && NOTE_SORT_MODES.includes(value as NoteSortMode)
+}
+
+export function isNoteSortDirection(value: unknown): value is NoteSortDirection {
+  return typeof value === 'string' && NOTE_SORT_DIRECTIONS.includes(value as NoteSortDirection)
 }

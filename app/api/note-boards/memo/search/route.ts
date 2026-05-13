@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const messages = await getBoardMessages('memo', limit, 0, false, 'time', null, q)
+    const messages = await getBoardMessages('memo', limit, 0, false, 'time', 'desc', null, q)
     return NextResponse.json({
       results: messages.map((m) => ({
         id: m.id,

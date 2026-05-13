@@ -1,7 +1,7 @@
 import type { EmojiReactionEntry } from '@/lib/comment-emojis'
 import type { NoteMessage } from '@/lib/note-boards'
 import type { ReactionValue } from '@/lib/comment-reactions'
-import type { NotePriority, NoteSortMode } from '@/lib/note-priority'
+import type { NotePriority, NoteSortDirection, NoteSortMode } from '@/lib/note-priority'
 
 export interface Size {
   width: number
@@ -20,6 +20,7 @@ export interface NoteBoardListPayload {
   hasMore: boolean
   archived: boolean
   sort: NoteSortMode
+  sortDirection: NoteSortDirection
 }
 
 export interface ChecklistItemDraft {

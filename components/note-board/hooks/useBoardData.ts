@@ -5,15 +5,22 @@ import { createBoardPayload, isSameBoardSurfacePayload, sortBoardMessages } from
 import { applyViewerStateToComments, createCommentRecord, type Comment, type CommentViewerState } from '@/lib/comments'
 import { fetchEngagementPublicApi } from '@/lib/engagement-public-api'
 import { createGuestbookMessagesFromComments } from '@/lib/guestbook-comments'
-import type { NoteSortMode } from '@/lib/note-priority'
+import type { NoteSortDirection, NoteSortMode } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import type { NoteMessage } from '@/lib/note-boards'
 import { parseHashtags } from '@/components/note-board/utils/editor'
 
 const DESKTOP_NOTES_PER_PAGE = 10
 
-function getBoardQueryKey(boardSlug: string, archived: boolean, sort: NoteSortMode, searchQuery: string, activeTag: string) {
-  return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:q=${searchQuery}:tag=${activeTag}`
+function getBoardQueryKey(
+  boardSlug: string,
+  archived: boolean,
+  sort: NoteSortMode,
+  direction: NoteSortDirection,
+  searchQuery: string,
+  activeTag: string,
+) {
+  return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:${direction}:q=${searchQuery}:tag=${activeTag}`
 }
 
 export interface UseBoardDataProps {
@@ -46,7 +53,7 @@ export function useBoardData({
   surfaceRefs,
   setError,
 }: UseBoardDataProps) {
-  const initialSortedMessages = useMemo(() => sortBoardMessages(initialMessages, 'time'), [initialMessages])
+  const initialSortedMessages = useMemo(() => sortBoardMessages(initialMessages, 'time', 'desc'), [initialMessages])
   const initialHasMore = initialMessages.length >= board.initialPageLimit
 
   const [messages, setMessages] = useState(initialSortedMessages)
@@ -55,14 +62,15 @@ export function useBoardData({
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
   const [showArchived, setShowArchived] = useState(false)
   const [sortMode, setSortMode] = useState<NoteSortMode>('time')
+  const [sortDirection, setSortDirection] = useState<NoteSortDirection>('desc')
   const [searchQuery, setSearchQuery] = useState(initialQuery)
   const [activeTag, setActiveTag] = useState('')
   const [isPending, startTransition] = useTransition()
 
   const messagesRef = useRef(initialSortedMessages)
   const activeBoardQueryKey = useMemo(
-    () => getBoardQueryKey(board.slug, showArchived, sortMode, searchQuery, activeTag) + `:${reactionIdentity || 'anon'}`,
-    [board.slug, reactionIdentity, showArchived, sortMode, searchQuery, activeTag],
+    () => getBoardQueryKey(board.slug, showArchived, sortMode, sortDirection, searchQuery, activeTag) + `:${reactionIdentity || 'anon'}`,
+    [activeTag, board.slug, reactionIdentity, searchQuery, showArchived, sortDirection, sortMode],
   )
   const activeBoardQueryKeyRef = useRef(activeBoardQueryKey)
 
@@ -77,13 +85,14 @@ export function useBoardData({
   }, [currentPageIndex, isDesktopViewport, messages])
 
   const initialBoardPayload = useMemo(
-    () => createBoardPayload(initialSortedMessages, false, 'time', initialSortedMessages.length, initialHasMore),
+    () => createBoardPayload(initialSortedMessages, false, 'time', 'desc', initialSortedMessages.length, initialHasMore),
     [initialHasMore, initialSortedMessages],
   )
 
   const fetchBoardMessages = useCallback(async (
     archived: boolean,
     sort = sortMode,
+    direction = sortDirection,
     offset = 0,
     limit = board.initialPageLimit,
     q = searchQuery,
@@ -139,13 +148,14 @@ export function useBoardData({
         return true
       })
 
-      const allMessages = sortBoardMessages(filteredMessages, sort)
+      const allMessages = sortBoardMessages(filteredMessages, sort, direction)
       const nextMessages = allMessages.slice(offset, offset + limit)
 
       return createBoardPayload(
         nextMessages,
         archived,
         sort,
+        direction,
         offset + nextMessages.length,
         offset + nextMessages.length < allMessages.length,
       )
@@ -156,6 +166,7 @@ export function useBoardData({
       limit: String(limit),
       archived: archived ? '1' : '0',
       sort,
+      direction,
     })
 
     if (reactionIdentity) {
@@ -174,8 +185,8 @@ export function useBoardData({
     }
 
     const payload = await response.json() as { messages: NoteMessage[]; nextOffset: number; hasMore: boolean }
-    return createBoardPayload(payload.messages, archived, sort, payload.nextOffset, payload.hasMore)
-  }, [activeTag, board.initialPageLimit, board.slug, board.targetId, board.targetType, reactionIdentity, searchQuery, sortMode])
+    return createBoardPayload(payload.messages, archived, sort, direction, payload.nextOffset, payload.hasMore)
+  }, [activeTag, board.initialPageLimit, board.slug, board.targetId, board.targetType, reactionIdentity, searchQuery, sortDirection, sortMode])
 
   const {
     data: boardPayload,
@@ -184,7 +195,7 @@ export function useBoardData({
     mutate: mutateBoardPayload,
   } = useSWR<NoteBoardListPayload>(
     activeBoardQueryKey,
-    () => fetchBoardMessages(showArchived, sortMode),
+    () => fetchBoardMessages(showArchived, sortMode, sortDirection),
     {
       fallbackData: initialBoardPayload,
       revalidateOnFocus: false,
@@ -199,7 +210,7 @@ export function useBoardData({
     const nextMessages = typeof nextMessagesOrUpdater === 'function'
       ? nextMessagesOrUpdater(messagesRef.current)
       : nextMessagesOrUpdater
-    const orderedMessages = options.sort === false ? nextMessages : sortBoardMessages(nextMessages, sortMode)
+    const orderedMessages = options.sort === false ? nextMessages : sortBoardMessages(nextMessages, sortMode, sortDirection)
 
     messagesRef.current = orderedMessages
     setMessages(orderedMessages)
@@ -225,11 +236,13 @@ export function useBoardData({
       messages: orderedMessages,
       nextOffset: typeof options.nextOffset === 'number' ? options.nextOffset : current.nextOffset,
       hasMore: typeof options.hasMore === 'boolean' ? options.hasMore : current.hasMore,
+      sort: sortMode,
+      sortDirection,
     } : current, { revalidate: false })
-  }, [mutateBoardPayload, sortMode, surfaceRefs])
+  }, [mutateBoardPayload, sortDirection, sortMode, surfaceRefs])
 
   const resetBoardSurface = useCallback((nextMessages: NoteMessage[], payload?: Pick<NoteBoardListPayload, 'nextOffset' | 'hasMore'>) => {
-    const sortedMessages = sortBoardMessages(nextMessages, sortMode)
+    const sortedMessages = sortBoardMessages(nextMessages, sortMode, sortDirection)
 
     messagesRef.current = sortedMessages
     setMessages(sortedMessages)
@@ -249,7 +262,7 @@ export function useBoardData({
     if (cancelEditingNoteRef.current) {
       cancelEditingNoteRef.current()
     }
-  }, [board.initialPageLimit, sortMode, surfaceRefs, cancelEditingNoteRef])
+  }, [board.initialPageLimit, cancelEditingNoteRef, sortDirection, sortMode, surfaceRefs])
 
   const removeMessageFromSurface = useCallback((id: string, editingNoteId?: string | null) => {
     replaceMessages((current) => current.filter((message) => message.id !== id), {
@@ -338,6 +351,19 @@ export function useBoardData({
     setSortMode(nextSortMode)
   }, [isRefreshingBoard, sortMode, setError, cancelEditingNoteRef])
 
+  const handleToggleSortDirection = useCallback(() => {
+    if (isRefreshingBoard) return
+
+    setError(null)
+    if (cancelEditingNoteRef.current) {
+      cancelEditingNoteRef.current()
+    }
+    setCurrentPageIndex(0)
+    setSearchQuery('')
+    setActiveTag('')
+    setSortDirection((current) => current === 'desc' ? 'asc' : 'desc')
+  }, [isRefreshingBoard, setError, cancelEditingNoteRef])
+
   const handleLoadMore = useCallback(async () => {
     if (isPending || isRefreshingBoard || !hasMore) {
       return
@@ -346,7 +372,7 @@ export function useBoardData({
     const requestKey = activeBoardQueryKeyRef.current
 
     try {
-      const payload = await fetchBoardMessages(showArchived, sortMode, nextOffset, board.pageSize)
+      const payload = await fetchBoardMessages(showArchived, sortMode, sortDirection, nextOffset, board.pageSize)
       if (requestKey !== activeBoardQueryKeyRef.current) {
         return
       }
@@ -361,7 +387,7 @@ export function useBoardData({
         setError('更多便签加载失败，请稍后重试。')
       }
     }
-  }, [board.pageSize, fetchBoardMessages, hasMore, isPending, isRefreshingBoard, nextOffset, replaceMessages, showArchived, sortMode, setError])
+  }, [board.pageSize, fetchBoardMessages, hasMore, isPending, isRefreshingBoard, nextOffset, replaceMessages, setError, showArchived, sortDirection, sortMode])
 
   const handlePreviousPage = useCallback(() => {
     if (!isDesktopViewport || currentPageIndex === 0 || isPending || isRefreshingBoard) {
@@ -390,7 +416,7 @@ export function useBoardData({
     const requestKey = activeBoardQueryKeyRef.current
 
     try {
-      const payload = await fetchBoardMessages(showArchived, sortMode, nextOffset, board.pageSize)
+      const payload = await fetchBoardMessages(showArchived, sortMode, sortDirection, nextOffset, board.pageSize)
       if (requestKey !== activeBoardQueryKeyRef.current) {
         return
       }
@@ -410,7 +436,7 @@ export function useBoardData({
         setError('下一页便签加载失败，请稍后重试。')
       }
     }
-  }, [board.pageSize, currentPageIndex, fetchBoardMessages, hasMore, isDesktopViewport, isPending, isRefreshingBoard, loadedDesktopPageCount, nextOffset, replaceMessages, showArchived, sortMode, setError])
+  }, [board.pageSize, currentPageIndex, fetchBoardMessages, hasMore, isDesktopViewport, isPending, isRefreshingBoard, loadedDesktopPageCount, nextOffset, replaceMessages, setError, showArchived, sortDirection, sortMode])
 
   useEffect(() => {
     messagesRef.current = messages
@@ -436,7 +462,11 @@ export function useBoardData({
       return
     }
 
-    if (boardPayload.archived !== showArchived || boardPayload.sort !== sortMode) {
+    if (
+      boardPayload.archived !== showArchived ||
+      boardPayload.sort !== sortMode ||
+      boardPayload.sortDirection !== sortDirection
+    ) {
       return
     }
 
@@ -450,7 +480,7 @@ export function useBoardData({
         hasMore: boardPayload.hasMore,
       })
     })
-  }, [boardPayload, hasMore, messages, nextOffset, resetBoardSurface, showArchived, sortMode])
+  }, [boardPayload, hasMore, messages, nextOffset, resetBoardSurface, showArchived, sortDirection, sortMode])
 
   return {
     messages,
@@ -460,6 +490,7 @@ export function useBoardData({
     currentPageIndex,
     showArchived,
     sortMode,
+    sortDirection,
     searchQuery,
     activeTag,
     isPending,
@@ -472,6 +503,7 @@ export function useBoardData({
     restoreMessageSnapshot,
     handleSwitchArchiveView,
     handleSortModeChange,
+    handleToggleSortDirection,
     handleSearch,
     handleTagFilter,
     handleLoadMore,
