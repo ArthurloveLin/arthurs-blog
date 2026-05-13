@@ -1,8 +1,8 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Layers, LayoutList, Search, Tag, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowUpDown, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Layers, LayoutList, Search, X } from 'lucide-react'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import { StickyNoteCard } from '@/components/note-board/components/StickyNoteCard'
@@ -15,6 +15,7 @@ import {
   useNoteBoardMeta,
   useNoteBoardToast,
 } from '@/components/note-board/NoteBoardProvider'
+import { SidebarCalendar, SidebarTagCloud, getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
 import { getStickyColorIndex, getStickyColorSeed } from '@/components/note-board/utils/board'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
@@ -40,51 +41,6 @@ interface NoteBoardPageProps {
   board: NoteBoardViewConfig
   initialMessages: NoteMessage[]
   initialQuery?: string
-}
-
-function TagCloudPanel() {
-  const state = useNoteBoardBoardState()
-  const actions = useNoteBoardActions()
-
-  if (state.allTags.length === 0) return null
-
-  return (
-    <div className="flex flex-wrap items-center gap-1.5 border-t border-border/40 pt-4">
-      <span className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
-        <Tag size={10} />
-        标签
-      </span>
-      {state.allTags.slice(0, 20).map(({ name, count }) => (
-        <button
-          key={name}
-          type="button"
-          onClick={() => actions.handleTagFilter(name)}
-          className={[
-            'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] transition',
-            state.activeTag === name
-              ? 'bg-foreground text-background'
-              : 'border border-border/70 bg-background/70 text-muted-foreground hover:bg-accent hover:text-foreground',
-          ].join(' ')}
-        >
-          <span>#{name}</span>
-          <span className="opacity-60">{count}</span>
-        </button>
-      ))}
-      {state.allTags.length > 20 && (
-        <span className="text-[11px] text-muted-foreground">+{state.allTags.length - 20}</span>
-      )}
-      {state.activeTag ? (
-        <button
-          type="button"
-          onClick={() => actions.handleTagFilter(state.activeTag)}
-          className="ml-1 inline-flex items-center gap-0.5 rounded-full px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
-        >
-          <X size={10} />
-          清除
-        </button>
-      ) : null}
-    </div>
-  )
 }
 
 function SearchBar() {
@@ -144,6 +100,66 @@ function SearchBar() {
   )
 }
 
+function SortDropdown() {
+  const state = useNoteBoardBoardState()
+  const actions = useNoteBoardActions()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handle(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [open])
+
+  const currentLabel = state.showArchived ? '归档' : state.sortMode === 'priority' ? '优先级' : '日期'
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent hover:text-foreground"
+      >
+        <ArrowUpDown size={12} />
+        {currentLabel}
+        <ChevronDown size={11} className={`transition-transform${open ? ' rotate-180' : ''}`} />
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-full z-20 mt-1.5 min-w-[108px] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-lg">
+          <button
+            type="button"
+            onClick={() => { void actions.handleSortModeChange('time'); void actions.handleSwitchArchiveView(false); setOpen(false) }}
+            className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition ${!state.showArchived && state.sortMode === 'time' ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
+          >
+            {!state.showArchived && state.sortMode === 'time' ? <Check size={11} className="shrink-0" /> : <span className="w-[11px] shrink-0" />}
+            按日期
+          </button>
+          <button
+            type="button"
+            onClick={() => { void actions.handleSortModeChange('priority'); void actions.handleSwitchArchiveView(false); setOpen(false) }}
+            className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition ${!state.showArchived && state.sortMode === 'priority' ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
+          >
+            {!state.showArchived && state.sortMode === 'priority' ? <Check size={11} className="shrink-0" /> : <span className="w-[11px] shrink-0" />}
+            按优先级
+          </button>
+          <div className="mx-3 border-t border-border/40" />
+          <button
+            type="button"
+            onClick={() => { void actions.handleSwitchArchiveView(!state.showArchived); setOpen(false) }}
+            className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition ${state.showArchived ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
+          >
+            {state.showArchived ? <Check size={11} className="shrink-0" /> : <span className="w-[11px] shrink-0" />}
+            已归档
+          </button>
+        </div>
+      ) : null}
+    </div>
+  )
+}
 
 interface NoteBoardControlsProps {
   viewMode?: 'sticky' | 'stream'
@@ -161,63 +177,47 @@ function NoteBoardControls({ viewMode, onToggleViewMode }: NoteBoardControlsProp
     bindings.bindContainer(node)
   }, [bindings])
 
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false)
+  const effectiveSelectedDate = isSearchMode ? null : selectedDate
+  const isFilterMode = isSearchMode || !!effectiveSelectedDate
+
+  const memoDateCounts = useMemo(() => {
+    if (!priorityEnabled) return new Map<string, number>()
+    const counts = new Map<string, number>()
+    for (const item of state.allNoteItems) {
+      const ts = item.message.updated_at ?? item.message.created_at
+      const { year, month, day } = getShanghaDateParts(ts)
+      const key = toDateKey(year, month, day)
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    return counts
+  }, [priorityEnabled, state.allNoteItems])
+
+  const dateFilteredCount = useMemo(() => {
+    if (!effectiveSelectedDate) return state.visibleCount
+    return state.noteItems.filter((item) => {
+      const ts = item.message.updated_at ?? item.message.created_at
+      const { year, month, day } = getShanghaDateParts(ts)
+      return toDateKey(year, month, day) === effectiveSelectedDate
+    }).length
+  }, [effectiveSelectedDate, state.noteItems, state.visibleCount])
+
   return (
     <section className="rounded-[32px] border border-border/60 bg-card/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-6">
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      {/* Header */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{meta.board.title}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground/60">
+            {state.viewportReady && !state.isMobileViewport && !isFilterMode
+              ? `第 ${state.currentPage} 页 · ${state.visibleCount} 张`
+              : `共 ${state.totalLoaded} 张`}
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground/80">
-          {state.viewportReady && !state.isMobileViewport && !isSearchMode
-            ? `第 ${state.currentPage} 页 · 单页 ${state.pageSize} 张 · 当前显示 ${state.visibleCount} 张`
-            : `当前已加载 ${state.totalLoaded} 张便签`}
-        </p>
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-full border border-border/70 bg-background/70 p-1 text-xs text-muted-foreground shadow-sm">
-            <button
-              type="button"
-              className={`rounded-full px-3 py-1.5 transition ${!state.showArchived ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
-              onClick={() => void actions.handleSwitchArchiveView(false)}
-              disabled={state.isRefreshingBoard}
-            >
-              当前便签
-            </button>
-            <button
-              type="button"
-              className={`rounded-full px-3 py-1.5 transition ${state.showArchived ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
-              onClick={() => void actions.handleSwitchArchiveView(true)}
-              disabled={state.isRefreshingBoard}
-            >
-              已归档
-            </button>
-          </div>
-          {priorityEnabled && !isSearchMode ? (
-            <div className="inline-flex rounded-full border border-border/70 bg-background/70 p-1 text-xs text-muted-foreground shadow-sm">
-              <button
-                type="button"
-                className={`rounded-full px-3 py-1.5 transition ${state.sortMode === 'time' ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
-                onClick={() => void actions.handleSortModeChange('time')}
-                disabled={state.isRefreshingBoard}
-              >
-                时间
-              </button>
-              <button
-                type="button"
-                className={`rounded-full px-3 py-1.5 transition ${state.sortMode === 'priority' ? 'bg-foreground text-background' : 'hover:bg-accent'}`}
-                onClick={() => void actions.handleSortModeChange('priority')}
-                disabled={state.isRefreshingBoard}
-              >
-                优先级
-              </button>
-            </div>
-          ) : null}
-        </div>
-
         <div className="flex items-center gap-2">
-          {meta.board.slug === 'memo' ? <SearchBar /> : null}
+          {priorityEnabled ? <SearchBar /> : null}
+          {priorityEnabled ? <SortDropdown /> : null}
           {viewMode !== undefined && onToggleViewMode ? (
             <button
               type="button"
@@ -228,7 +228,7 @@ function NoteBoardControls({ viewMode, onToggleViewMode }: NoteBoardControlsProp
               流式视图
             </button>
           ) : null}
-          {state.viewportReady && state.isMobileViewport && !isSearchMode && meta.board.slug !== 'memo' ? (
+          {state.viewportReady && state.isMobileViewport && !isSearchMode && !priorityEnabled ? (
             <button
               type="button"
               className="flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent"
@@ -244,140 +244,226 @@ function NoteBoardControls({ viewMode, onToggleViewMode }: NoteBoardControlsProp
         </div>
       </div>
 
-      {/* Tag Cloud */}
-      {meta.board.slug === 'memo' && !isSearchMode ? <TagCloudPanel /> : null}
+      {/* Two-column layout */}
+      <div className="flex gap-6">
+        {/* Sidebar (desktop only, memo board) */}
+        {priorityEnabled ? (
+          <aside className="hidden shrink-0 sm:block sm:w-[180px] lg:w-[200px]">
+            <div className="sticky top-6 space-y-6">
+              <SidebarCalendar
+                memoDateCounts={memoDateCounts}
+                selectedDate={selectedDate}
+                onSelectDate={setSelectedDate}
+              />
+              <SidebarTagCloud />
+            </div>
+          </aside>
+        ) : null}
 
-      {/* Active filter banner */}
-      {meta.board.slug === 'memo' && isSearchMode ? (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[16px] border border-border/60 bg-background/60 px-4 py-2 text-xs text-muted-foreground">
-          <span className="flex-1">
-            {state.searchQuery
-              ? `搜索："${state.searchQuery}"，共 ${state.visibleCount} 张`
-              : `标签：#${state.activeTag}，共 ${state.visibleCount} 张`}
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              if (state.searchQuery) actions.handleSearch('')
-              else actions.handleTagFilter(state.activeTag)
-            }}
-            className="flex items-center gap-0.5 hover:text-foreground"
-          >
-            <X size={12} />
-            清除筛选
-          </button>
-        </div>
-      ) : null}
+        {/* Main area */}
+        <div className="min-w-0 flex-1">
+          {/* Mobile calendar toggle */}
+          {priorityEnabled ? (
+            <div className="mb-3 sm:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileCalendarOpen((v) => !v)}
+                className="flex w-full items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent"
+              >
+                <CalendarDays size={13} className="shrink-0" />
+                <span className="flex-1 text-left">{effectiveSelectedDate ?? '按日期筛选'}</span>
+                {effectiveSelectedDate ? (
+                  <X size={12} onClick={(e) => { e.stopPropagation(); setSelectedDate(null) }} />
+                ) : (
+                  <ChevronDown size={12} className={`transition-transform${mobileCalendarOpen ? ' rotate-180' : ''}`} />
+                )}
+              </button>
+              {mobileCalendarOpen ? (
+                <div className="mt-2 rounded-2xl border border-border/60 bg-background/80 p-3">
+                  <SidebarCalendar
+                    memoDateCounts={memoDateCounts}
+                    selectedDate={selectedDate}
+                    onSelectDate={(key) => { setSelectedDate(key); if (key) setMobileCalendarOpen(false) }}
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
-      {/* Sticky board — renders search results as sticky notes when isSearchMode */}
-      {!state.viewportReady ? (
-        <div
-          className="mt-5 rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-6"
-          style={{ minHeight: 380 }}
-        >
-          <div className="h-full min-h-[280px] rounded-[24px] border border-dashed border-border/70 bg-white/55" />
-        </div>
-      ) : state.isMobileViewport ? (
-        <div className="mb-12 mt-5">
-          {state.mobileView === 'stack' ? <MobileStickyStack items={state.noteItems} /> : <MobileNoteList items={state.noteItems} />}
-        </div>
-      ) : (
-        <div className="mt-5">
-          <div
-            ref={bindContainer}
-            className="note-board-canvas relative overflow-hidden rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-6"
-            style={{ minHeight: Math.max(meta.surface.height, 420) }}
-          >
-            {state.messages.length === 0 ? (
-              <div className="flex min-h-[280px] items-center justify-center rounded-[24px] border border-dashed border-border/70 bg-white/55 text-center text-sm text-muted-foreground">
-                {state.showArchived ? '还没有已归档便签。' : isSearchMode ? '没有找到相关便签。' : meta.board.emptyLabel}
+          {/* Mobile tag strip */}
+          {priorityEnabled && state.allTags.length > 0 ? (
+            <div className="mb-4 flex flex-wrap gap-1.5 sm:hidden">
+              {state.allTags.slice(0, 12).map(({ name }) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => actions.handleTagFilter(name)}
+                  className={[
+                    'rounded-full px-2 py-0.5 text-[11px] transition',
+                    state.activeTag === name
+                      ? 'bg-foreground text-background'
+                      : 'border border-border/70 text-muted-foreground hover:bg-accent',
+                  ].join(' ')}
+                >
+                  #{name}
+                </button>
+              ))}
+              {state.activeTag ? (
+                <button
+                  type="button"
+                  onClick={() => actions.handleTagFilter(state.activeTag)}
+                  className="flex items-center gap-0.5 rounded-full border border-border/70 px-2 py-0.5 text-[11px] text-muted-foreground"
+                >
+                  <X size={10} />
+                  清除
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* Active filter banner */}
+          {isFilterMode ? (
+            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[16px] border border-border/60 bg-background/60 px-4 py-2 text-xs text-muted-foreground">
+              <span className="flex-1">
+                {state.searchQuery
+                  ? `搜索："${state.searchQuery}"，共 ${state.visibleCount} 张`
+                  : state.activeTag
+                    ? `标签：#${state.activeTag}，共 ${state.visibleCount} 张`
+                    : `日期：${effectiveSelectedDate}，共 ${dateFilteredCount} 张`}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (state.searchQuery) actions.handleSearch('')
+                  else if (state.activeTag) actions.handleTagFilter(state.activeTag)
+                  else setSelectedDate(null)
+                }}
+                className="flex items-center gap-0.5 hover:text-foreground"
+              >
+                <X size={12} />
+                清除筛选
+              </button>
+            </div>
+          ) : null}
+
+          {/* Board canvas */}
+          {!state.viewportReady ? (
+            <div
+              className="rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-6"
+              style={{ minHeight: 380 }}
+            >
+              <div className="h-full min-h-[280px] rounded-[24px] border border-dashed border-border/70 bg-white/55" />
+            </div>
+          ) : state.isMobileViewport ? (
+            <div className="mb-12">
+              {state.mobileView === 'stack' ? <MobileStickyStack items={state.noteItems} /> : <MobileNoteList items={state.noteItems} />}
+            </div>
+          ) : (
+            <div>
+              <div
+                ref={bindContainer}
+                className="note-board-canvas relative overflow-hidden rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-6"
+                style={{ minHeight: Math.max(meta.surface.height, 420) }}
+              >
+                {state.messages.length === 0 ? (
+                  <div className="flex min-h-[280px] items-center justify-center rounded-[24px] border border-dashed border-border/70 bg-white/55 text-center text-sm text-muted-foreground">
+                    {state.showArchived ? '还没有已归档便签。' : isSearchMode ? '没有找到相关便签。' : meta.board.emptyLabel}
+                  </div>
+                ) : !meta.surface.hasMeasured ? null : (
+                  <div className="relative" style={{ minHeight: Math.max(meta.surface.height, 320) }}>
+                    {state.noteItems.map((item, index) => {
+                      const { message, actions: cardActions, priorityControl, reactionControl, checklistControl, inlineEditor, isEditing, isOptimistic, isOptimisticEditing, isFresh } = item
+
+                      if (effectiveSelectedDate) {
+                        const ts = message.updated_at ?? message.created_at
+                        const { year, month, day } = getShanghaDateParts(ts)
+                        if (toDateKey(year, month, day) !== effectiveSelectedDate) return null
+                      }
+
+                      const layout = meta.surface.layouts[index]
+                      const targetPosition = meta.surface.getTargetPosition(index)
+                      const collapsedPosition = {
+                        x: Math.max((meta.surface.size.width - meta.surface.cardWidth) / 2, 0) + Math.min(index, 4) * 2,
+                        y: 22 + Math.min(index, 4) * 4,
+                        rotation: index % 2 === 0 ? -2 : 2,
+                      }
+                      const custom = state.customPositions[message.id]
+                      const position = custom ?? (meta.surface.isScattered ? targetPosition : collapsedPosition)
+
+                      return (
+                        <StickyNoteCard.Board
+                          key={message.id}
+                          message={message}
+                          x={position.x}
+                          y={position.y}
+                          rotation={position.rotation}
+                          zIndex={state.cardZIndices[message.id] ?? layout?.zIndex ?? state.messages.length - index}
+                          width={meta.surface.cardWidth}
+                          bounds={{ width: meta.surface.size.width, height: Math.max(meta.surface.height, 420) }}
+                          colorIndex={layout?.colorIndex ?? getStickyColorIndex(getStickyColorSeed(message))}
+                          draggable={meta.surface.isScattered && !isEditing}
+                          actions={cardActions}
+                          priorityControl={priorityControl}
+                          reactionControl={reactionControl}
+                          checklistControl={checklistControl}
+                          inlineEditor={inlineEditor}
+                          isOptimistic={isOptimistic}
+                          isOptimisticEditing={isOptimisticEditing}
+                          isFresh={isFresh}
+                          onLift={() => actions.bringCardToFront(message.id)}
+                          onCommit={(nextPosition) => actions.setCardPosition(message.id, nextPosition)}
+                          onHeightChange={(nextHeight) => actions.handleCardHeightChange(message.id, nextHeight)}
+                        />
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            ) : !meta.surface.hasMeasured ? null : (
-              <div className="relative" style={{ minHeight: Math.max(meta.surface.height, 320) }}>
-                {state.noteItems.map((item, index) => {
-                  const { message, actions: cardActions, priorityControl, reactionControl, checklistControl, inlineEditor, isEditing, isOptimistic, isOptimisticEditing, isFresh } = item
-                  const layout = meta.surface.layouts[index]
-                  const targetPosition = meta.surface.getTargetPosition(index)
-                  const collapsedPosition = {
-                    x: Math.max((meta.surface.size.width - meta.surface.cardWidth) / 2, 0) + Math.min(index, 4) * 2,
-                    y: 22 + Math.min(index, 4) * 4,
-                    rotation: index % 2 === 0 ? -2 : 2,
-                  }
-                  const custom = state.customPositions[message.id]
-                  const position = custom ?? (meta.surface.isScattered ? targetPosition : collapsedPosition)
 
-                  return (
-                    <StickyNoteCard.Board
-                      key={message.id}
-                      message={message}
-                      x={position.x}
-                      y={position.y}
-                      rotation={position.rotation}
-                      zIndex={state.cardZIndices[message.id] ?? layout?.zIndex ?? state.messages.length - index}
-                      width={meta.surface.cardWidth}
-                      bounds={{ width: meta.surface.size.width, height: Math.max(meta.surface.height, 420) }}
-                      colorIndex={layout?.colorIndex ?? getStickyColorIndex(getStickyColorSeed(message))}
-                      draggable={meta.surface.isScattered && !isEditing}
-                      actions={cardActions}
-                      priorityControl={priorityControl}
-                      reactionControl={reactionControl}
-                      checklistControl={checklistControl}
-                      inlineEditor={inlineEditor}
-                      isOptimistic={isOptimistic}
-                      isOptimisticEditing={isOptimisticEditing}
-                      isFresh={isFresh}
-                      onLift={() => actions.bringCardToFront(message.id)}
-                      onCommit={(nextPosition) => actions.setCardPosition(message.id, nextPosition)}
-                      onHeightChange={(nextHeight) => actions.handleCardHeightChange(message.id, nextHeight)}
-                    />
-                  )
-                })}
-              </div>
-            )}
-          </div>
+              {state.hasPreviousPage || state.hasNextPage ? (
+                <div className="mt-6 flex justify-center">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/95 px-2 py-2 text-sm shadow-sm">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={actions.handlePreviousPage}
+                      disabled={!state.hasPreviousPage || state.isPending || state.isRefreshingBoard}
+                    >
+                      <ChevronLeft size={16} />
+                      上一页
+                    </button>
+                    <span className="min-w-[92px] text-center text-xs text-muted-foreground">
+                      第 {state.currentPage} 页
+                    </span>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={() => void actions.handleNextPage()}
+                      disabled={!state.hasNextPage || state.isPending || state.isRefreshingBoard}
+                    >
+                      下一页
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
 
-          {state.hasPreviousPage || state.hasNextPage ? (
+          {state.viewportReady && state.isMobileViewport && state.hasMore && !isSearchMode ? (
             <div className="mt-6 flex justify-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/95 px-2 py-2 text-sm shadow-sm">
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
-                  onClick={actions.handlePreviousPage}
-                  disabled={!state.hasPreviousPage || state.isPending || state.isRefreshingBoard}
-                >
-                  <ChevronLeft size={16} />
-                  上一页
-                </button>
-                <span className="min-w-[92px] text-center text-xs text-muted-foreground">
-                  第 {state.currentPage} 页
-                </span>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
-                  onClick={() => void actions.handleNextPage()}
-                  disabled={!state.hasNextPage || state.isPending || state.isRefreshingBoard}
-                >
-                  下一页
-                  <ChevronRight size={16} />
-                </button>
-              </div>
+              <button
+                type="button"
+                className="rounded-full border border-border/70 bg-card px-5 py-2 text-sm text-foreground transition hover:border-foreground/20 hover:bg-accent"
+                onClick={() => void actions.handleLoadMore()}
+                disabled={state.isPending}
+              >
+                {state.isPending ? '正在展开更多便签…' : '加载更多便签'}
+              </button>
             </div>
           ) : null}
         </div>
-      )}
-
-      {state.viewportReady && state.isMobileViewport && state.hasMore && !isSearchMode ? (
-        <div className="mt-6 flex justify-center">
-          <button
-            type="button"
-            className="rounded-full border border-border/70 bg-card px-5 py-2 text-sm text-foreground transition hover:border-foreground/20 hover:bg-accent"
-            onClick={() => void actions.handleLoadMore()}
-            disabled={state.isPending}
-          >
-            {state.isPending ? '正在展开更多便签…' : '加载更多便签'}
-          </button>
-        </div>
-      ) : null}
+      </div>
     </section>
   )
 }

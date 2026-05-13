@@ -1,243 +1,17 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Layers, Search, Tag, X } from 'lucide-react'
+import { CalendarDays, ChevronDown, Layers, Search, X } from 'lucide-react'
 import {
   useNoteBoardActions,
   useNoteBoardBoardState,
 } from '@/components/note-board/NoteBoardProvider'
 import { MemoStreamCard } from '@/components/note-board/views/MemoStreamCard'
+import { SidebarCalendar, SidebarTagCloud, getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
 import type { NoteCardViewModel } from '@/components/note-board/types'
 import { formatStableDate } from '@/lib/date-format'
 
-// ─── Date utilities ────────────────────────────────────────────────────────────
-
-function getShanghaDateParts(ts: string | Date): { year: number; month: number; day: number } {
-  const date = typeof ts === 'string' ? new Date(ts) : ts
-  const parts = new Intl.DateTimeFormat('en', {
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-  }).formatToParts(date)
-  return {
-    year: Number(parts.find((p) => p.type === 'year')?.value ?? 0),
-    month: Number(parts.find((p) => p.type === 'month')?.value ?? 0),
-    day: Number(parts.find((p) => p.type === 'day')?.value ?? 0),
-  }
-}
-
-function toDateKey(year: number, month: number, day: number): string {
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
-function buildCalendarCells(year: number, month: number) {
-  // Monday-first grid
-  const firstDow = new Date(year, month - 1, 1).getDay() // 0=Sun
-  const daysInMonth = new Date(year, month, 0).getDate()
-  const daysInPrevMonth = new Date(year, month - 1, 0).getDate()
-  const startPad = (firstDow + 6) % 7
-
-  const cells: Array<{ day: number; kind: 'prev' | 'current' | 'next' }> = []
-
-  for (let i = startPad - 1; i >= 0; i--) {
-    cells.push({ day: daysInPrevMonth - i, kind: 'prev' })
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ day: d, kind: 'current' })
-  }
-  const remaining = (7 - (cells.length % 7)) % 7
-  for (let d = 1; d <= remaining; d++) {
-    cells.push({ day: d, kind: 'next' })
-  }
-
-  return cells
-}
-
-const WEEKDAY_LABELS = ['一', '二', '三', '四', '五', '六', '日']
-
 // ─── Sub-components ────────────────────────────────────────────────────────────
-
-interface SidebarCalendarProps {
-  memoDateCounts: Map<string, number>
-  selectedDate: string | null
-  onSelectDate: (key: string | null) => void
-}
-
-function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate }: SidebarCalendarProps) {
-  const today = useMemo(() => {
-    const { year, month, day } = getShanghaDateParts(new Date())
-    return { year, month, day, key: toDateKey(year, month, day) }
-  }, [])
-
-  const [displayMonth, setDisplayMonth] = useState(() => {
-    // Start on the month of the most recent memo, or today
-    const dates = [...memoDateCounts.keys()].sort().reverse()
-    if (dates.length > 0) {
-      const [y, m] = (dates[0] ?? '').split('-').map(Number)
-      if (y && m) return { year: y, month: m }
-    }
-    return { year: today.year, month: today.month }
-  })
-
-  const cells = useMemo(
-    () => buildCalendarCells(displayMonth.year, displayMonth.month),
-    [displayMonth],
-  )
-
-  const monthLabel = formatStableDate(
-    new Date(displayMonth.year, displayMonth.month - 1, 1),
-    { year: 'numeric', month: 'long' },
-  )
-
-  function prevMonth() {
-    setDisplayMonth(({ year, month }) => {
-      if (month === 1) return { year: year - 1, month: 12 }
-      return { year, month: month - 1 }
-    })
-  }
-
-  function nextMonth() {
-    setDisplayMonth(({ year, month }) => {
-      if (month === 12) return { year: year + 1, month: 1 }
-      return { year, month: month + 1 }
-    })
-  }
-
-  return (
-    <div className="space-y-2">
-      {/* Month navigation */}
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={prevMonth}
-          className="rounded-full p-1 text-muted-foreground transition hover:bg-accent hover:text-foreground"
-          aria-label="上个月"
-        >
-          <ChevronLeft size={14} />
-        </button>
-        <span className="text-[12px] font-medium text-foreground/80">{monthLabel}</span>
-        <button
-          type="button"
-          onClick={nextMonth}
-          className="rounded-full p-1 text-muted-foreground transition hover:bg-accent hover:text-foreground"
-          aria-label="下个月"
-        >
-          <ChevronRight size={14} />
-        </button>
-      </div>
-
-      {/* Weekday headers */}
-      <div className="grid grid-cols-7 text-center">
-        {WEEKDAY_LABELS.map((lbl) => (
-          <span key={lbl} className="text-[10px] text-muted-foreground/60">
-            {lbl}
-          </span>
-        ))}
-      </div>
-
-      {/* Day cells */}
-      <div className="grid grid-cols-7 gap-y-0.5 text-center">
-        {cells.map((cell, i) => {
-          if (cell.kind !== 'current') {
-            return <span key={i} className="py-1 text-[11px] text-muted-foreground/25">{cell.day}</span>
-          }
-
-          const key = toDateKey(displayMonth.year, displayMonth.month, cell.day)
-          const hasMemós = memoDateCounts.has(key)
-          const count = memoDateCounts.get(key) ?? 0
-          const isSelected = selectedDate === key
-          const isToday = key === today.key
-
-          return (
-            <button
-              key={i}
-              type="button"
-              disabled={!hasMemós && !isSelected}
-              onClick={() => onSelectDate(isSelected ? null : key)}
-              className={[
-                'relative mx-auto flex h-6 w-6 items-center justify-center rounded-full text-[11px] transition',
-                isSelected
-                  ? 'bg-foreground font-semibold text-background'
-                  : isToday
-                    ? 'font-semibold text-foreground ring-1 ring-border'
-                    : hasMemós
-                      ? 'text-foreground hover:bg-accent'
-                      : 'cursor-default text-muted-foreground/40',
-              ].join(' ')}
-              title={hasMemós ? `${count} 条 Memo` : undefined}
-            >
-              {cell.day}
-              {hasMemós && !isSelected ? (
-                <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-foreground/40" />
-              ) : null}
-            </button>
-          )
-        })}
-      </div>
-
-      {selectedDate ? (
-        <button
-          type="button"
-          onClick={() => onSelectDate(null)}
-          className="flex w-full items-center justify-center gap-1 rounded-full border border-border/60 py-1 text-[11px] text-muted-foreground transition hover:text-foreground"
-        >
-          <X size={10} />
-          清除日期筛选
-        </button>
-      ) : null}
-    </div>
-  )
-}
-
-function StreamSidebarTagCloud() {
-  const state = useNoteBoardBoardState()
-  const actions = useNoteBoardActions()
-
-  if (state.allTags.length === 0) return null
-
-  return (
-    <div className="space-y-2">
-      <p className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
-        <Tag size={9} />
-        标签
-      </p>
-      <div className="flex flex-wrap gap-1.5">
-        {state.allTags.slice(0, 30).map(({ name, count }) => (
-          <button
-            key={name}
-            type="button"
-            onClick={() => actions.handleTagFilter(name)}
-            className={[
-              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] transition',
-              state.activeTag === name
-                ? 'bg-foreground text-background'
-                : 'border border-border/70 text-muted-foreground hover:bg-accent hover:text-foreground',
-            ].join(' ')}
-          >
-            <span>#{name}</span>
-            <span className="opacity-60">{count}</span>
-          </button>
-        ))}
-        {state.allTags.length > 30 ? (
-          <span className="text-[11px] text-muted-foreground/60">
-            +{state.allTags.length - 30}
-          </span>
-        ) : null}
-      </div>
-      {state.activeTag ? (
-        <button
-          type="button"
-          onClick={() => actions.handleTagFilter(state.activeTag)}
-          className="flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground"
-        >
-          <X size={10} />
-          清除筛选
-        </button>
-      ) : null}
-    </div>
-  )
-}
 
 function StreamSearchBar() {
   const state = useNoteBoardBoardState()
@@ -452,7 +226,7 @@ export function MemosStreamView({ onToggleViewMode }: MemosStreamViewProps) {
               selectedDate={selectedDate}
               onSelectDate={setSelectedDate}
             />
-            <StreamSidebarTagCloud />
+            <SidebarTagCloud />
           </div>
         </aside>
 
