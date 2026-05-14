@@ -34,7 +34,7 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
     isEditing,
   } = item
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
-  const [showComments, setShowComments] = useState(() => (message.comment_count ?? 0) > 0)
+  const [showComments, setShowComments] = useState(true)
   const [commentCountDelta, setCommentCountDelta] = useState(0)
   const [liveCommentCount, setLiveCommentCount] = useState<number | null>(null)
   const boardActions = useNoteBoardActions()
@@ -204,7 +204,7 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
       <div className="mt-3 flex items-center border-t border-border/20 pt-3">
         <button
           type="button"
-          onClick={() => setShowComments((v) => !v)}
+          onClick={() => { setShowComments((v) => !v); setLiveCommentCount(null) }}
           className={[
             'flex items-center gap-1.5 text-[12px] font-medium transition',
             showComments ? 'text-foreground/70' : 'text-muted-foreground/55 hover:text-foreground/70',
