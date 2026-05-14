@@ -67,6 +67,12 @@ export function useBoardData({
   const [isPending, startTransition] = useTransition()
 
   const messagesRef = useRef(initialSortedMessages)
+  // Tracks the last boardPayload reference seen by the SWR-sync effect.
+  // When nextOffset/hasMore change from an optimistic removal, the effect
+  // fires before SWR's mutateBoardPayload resolves (boardPayload is stale).
+  // Comparing by reference lets us skip that window and prevent a spurious
+  // resetBoardSurface that would revert the optimistic update.
+  const lastBoardPayloadRef = useRef<typeof boardPayload | undefined>(undefined)
   const activeBoardQueryKey = useMemo(
     () => getBoardQueryKey(board.slug, showArchived, sortMode, sortDirection, searchQuery, activeTag) + `:${reactionIdentity || 'anon'}`,
     [activeTag, board.slug, reactionIdentity, searchQuery, showArchived, sortDirection, sortMode],
@@ -481,6 +487,15 @@ export function useBoardData({
       return
     }
 
+    // Guard: if boardPayload hasn't changed since the last time this effect ran,
+    // the trigger was a nextOffset/hasMore state change from removeMessageFromSurface,
+    // not a real SWR data arrival. Skip to avoid reverting the optimistic removal
+    // while we wait for mutateBoardPayload to catch up.
+    if (boardPayload === lastBoardPayloadRef.current) {
+      return
+    }
+    lastBoardPayloadRef.current = boardPayload
+
     // Compare against messagesRef.current (synchronously updated in replaceMessages)
     // rather than the messages state. This avoids a race condition where setMessages
     // and mutateBoardPayload run in different batches: the effect would fire with a
@@ -497,7 +512,6 @@ export function useBoardData({
         hasMore: boardPayload.hasMore,
       })
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardPayload, hasMore, nextOffset, resetBoardSurface, showArchived, sortDirection, sortMode])
 
   return {
