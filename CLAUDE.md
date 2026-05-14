@@ -77,6 +77,37 @@ When modifying a shared component, call it out explicitly. Don't silently refact
 
 > **HARD RULE — no exceptions:** Never run `git push` unless the user's message contains an explicit instruction to push (e.g., "推送", "push", "提交推送"). Finishing a task does NOT imply permission to push. Commit freely after `npm run check` passes, then stop — wait for the push command.
 
+## Supabase Migrations
+
+CLI is installed as a local npm package — always use `npx supabase`, never assume a global binary.
+
+Project is linked to ref `ymdwknyxmbhckgftfena` (wardrobe-picks, Mumbai). Link is stored in `supabase/.temp/` and persists across sessions as long as that directory is not deleted; re-run `npx supabase link --project-ref ymdwknyxmbhckgftfena` if it goes missing.
+
+### Migration workflow
+
+```bash
+npx supabase migration new <name>       # Creates supabase/migrations/<timestamp>_<name>.sql
+# Edit the file, then:
+npx supabase db push                    # Applies pending migrations to remote
+npx supabase db query --linked "<sql>"  # Run ad-hoc SQL against remote (no migration file)
+npx supabase db query --linked --file <path>  # Execute a SQL file against remote
+npx supabase migration list             # Check local ↔ remote sync status
+```
+
+### Hard constraints
+
+- **Filename format**: migrations must be `<YYYYMMDDHHmmss>_<name>.sql`. The CLI silently skips files that don't match (e.g. bare `019.sql`).
+- **No duplicate version prefixes**: two files sharing the same timestamp prefix break `db pull` and leave one permanently untracked. Always use `supabase migration new` — never hand-craft filenames.
+- **Baseline**: as of 2026-05-14, all prior migrations (002–034) were consolidated into `supabase/migrations/20260514000000_baseline.sql`. This is the only migration file; do not re-create the old files.
+
+### If remote history diverges from local
+
+`db push` / `db pull` will refuse with a "migration history does not match" error. Fix order:
+1. `npx supabase migration repair --status applied <version>` for each untracked remote entry
+2. Then re-run the original command
+
+---
+
 ## Commands
 
 ```bash
