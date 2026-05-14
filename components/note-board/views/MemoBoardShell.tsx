@@ -343,6 +343,11 @@ export function useMemoBoardFilters(
   }
 }
 
+// ── helpers ─────────────────────────────────────────────────────────────────
+function hexToRgb(hex: string): string {
+  return `${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)}`
+}
+
 // ── Shell ────────────────────────────────────────────────────────────────────
 interface MemoBoardShellProps {
   title: string
@@ -373,8 +378,11 @@ export function MemoBoardShell({
 }: MemoBoardShellProps) {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
+  const { theme } = useNoteColorTheme()
   const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false)
   const isMobileCalendarOpen = state.isMobileViewport && mobileCalendarOpen
+
+  const shellBg = `radial-gradient(ellipse at top left, rgba(${hexToRgb(theme.colors[0])},0.18) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(${hexToRgb(theme.colors[4])},0.14) 0%, transparent 50%)`
 
   const filterPillLabel = state.searchQuery
     ? `"${state.searchQuery}" · ${filteredCount}${itemUnit}`
@@ -394,7 +402,7 @@ export function MemoBoardShell({
   const toggleLabel = toggleTarget === 'stream' ? '流式视图' : '便签视图'
 
   return (
-    <section className="rounded-[32px] border border-border/60 bg-card/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-6">
+    <section className="rounded-[32px] border border-border/60 bg-card/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-6" style={{ backgroundImage: shellBg }}>
       {/* 顶部区域：标题、状态、筛选、操作 */}
       <div className="mb-5 flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <div className="min-w-0">
