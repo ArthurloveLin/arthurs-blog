@@ -409,8 +409,8 @@ export function MemoBoardShell({
           <h2 className="text-[28px] font-bold leading-[0.88] tracking-[-0.04em] text-foreground sm:text-[36px]">
             {title}
           </h2>
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground/40">{summary}</span>
+          <div className="mt-2 flex min-h-[24px] flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="font-mono text-[11px] uppercase leading-none tracking-[0.18em] text-muted-foreground/40">{summary}</span>
             {filters.isFilterMode && filterPillLabel ? (
               <>
                 <span aria-hidden className="text-[10px] text-muted-foreground/25">·</span>
