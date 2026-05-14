@@ -376,12 +376,12 @@ export function MemoBoardShell({
   const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false)
   const isMobileCalendarOpen = state.isMobileViewport && mobileCalendarOpen
 
-  const filterLabel = state.searchQuery
-    ? `搜索："${state.searchQuery}"，共 ${filteredCount} ${itemUnit}`
+  const filterPillLabel = state.searchQuery
+    ? `"${state.searchQuery}" · ${filteredCount}${itemUnit}`
     : state.activeTag
-      ? `标签：#${state.activeTag}，共 ${filteredCount} ${itemUnit}`
+      ? `#${state.activeTag} · ${filteredCount}${itemUnit}`
       : filters.effectiveSelectedDate
-        ? `日期：${filters.effectiveSelectedDate}，共 ${filteredCount} ${itemUnit}`
+        ? `${filters.effectiveSelectedDate} · ${filteredCount}${itemUnit}`
         : null
 
   const handleClearFilter = useCallback(() => {
@@ -395,59 +395,52 @@ export function MemoBoardShell({
 
   return (
     <section className="rounded-[32px] border border-border/60 bg-card/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-6">
-      {/* 顶栏 */}
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* 顶部区域：标题、状态、筛选、操作 */}
+      <div className="mb-5 flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <div className="min-w-0">
-          <p className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
-          <p className="mt-0.5 text-[12px] text-muted-foreground/60">{summary}</p>
-        </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2">
-            <div className="flex-1 sm:hidden" />
-            <MemoSearchField placeholder={searchPlaceholder} />
-            <MemoSortDropdown allowPrioritySort={allowPrioritySort} />
-            <NoteThemeButton />
-          </div>
-          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-            {extraControls}
-            <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
-              <button
-                type="button"
-                onClick={onToggleViewMode}
-                title={toggleLabel}
-                className="flex h-[34px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full border border-border/70 bg-background/70 text-muted-foreground transition hover:bg-accent hover:text-foreground sm:w-[34px] sm:flex-none"
-              >
-                <ToggleIcon size={14} className="shrink-0" />
-                <span className="truncate sm:hidden">切换视图</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => actions.scrollToEditor()}
-                title="新便签"
-                className="flex h-[34px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full bg-foreground font-medium text-background transition hover:opacity-85 sm:w-[34px] sm:flex-none"
-              >
-                <Plus size={14} className="shrink-0" />
-                <span className="truncate sm:hidden">新便签</span>
-              </button>
-            </div>
+          <p className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.24em] text-muted-foreground/50">
+            {title}
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-[12px] text-muted-foreground/45">{summary}</span>
+            {filters.isFilterMode && filterPillLabel ? (
+              <>
+                <span aria-hidden className="text-[10px] text-muted-foreground/25">·</span>
+                <button
+                  type="button"
+                  onClick={handleClearFilter}
+                  className="inline-flex items-center gap-1 rounded-full border border-[#c0644a]/20 bg-[#c0644a]/10 px-2.5 py-[3px] text-[11px] font-medium text-[#c0644a]/70 transition hover:bg-[#c0644a]/15 hover:text-[#c0644a]"
+                >
+                  <span className="max-w-[160px] truncate">{filterPillLabel}</span>
+                  <X size={9} className="shrink-0 opacity-75" />
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
-      </div>
-
-      {/* 筛选状态条 */}
-      {filters.isFilterMode && filterLabel ? (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[16px] border border-[#c0644a]/25 bg-[#c0644a]/5 px-4 py-2.5 text-[13px] text-[#c0644a]/80">
-          <span className="flex-1">{filterLabel}</span>
+        <div className="flex shrink-0 items-center justify-end gap-1.5">
+          <MemoSearchField placeholder={searchPlaceholder} />
+          <MemoSortDropdown allowPrioritySort={allowPrioritySort} />
+          <NoteThemeButton />
+          {extraControls}
           <button
             type="button"
-            onClick={handleClearFilter}
-            className="flex items-center gap-1 hover:text-[#c0644a]"
+            onClick={onToggleViewMode}
+            title={toggleLabel}
+            className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-border/70 bg-background/70 text-muted-foreground transition hover:bg-accent hover:text-foreground"
           >
-            <X size={13} />
-            清除筛选
+            <ToggleIcon size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => actions.scrollToEditor()}
+            title="新便签"
+            className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-foreground text-background transition hover:opacity-85"
+          >
+            <Plus size={14} />
           </button>
         </div>
-      ) : null}
+      </div>
 
       <div className="flex gap-6">
         {/* 桌面侧边栏 */}

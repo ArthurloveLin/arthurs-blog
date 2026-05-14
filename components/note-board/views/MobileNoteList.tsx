@@ -1,6 +1,6 @@
 'use client'
 
-import { Archive, ArchiveRestore, PencilLine } from 'lucide-react'
+import { Archive, ArchiveRestore, PencilLine, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
@@ -62,13 +62,12 @@ function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
             </div>
           ) : null}
           {canDelete && actions.delete ? (
-            <button
-              type="button"
-              className="rounded-full px-2 py-1 text-xs text-rose-600/70 transition hover:bg-rose-50 hover:text-rose-600"
+            <NoteActionButton
+              label={confirmingAction === 'delete' ? '确认删除便签' : '删除便签'}
               onClick={() => setConfirmingAction((current) => current === 'delete' ? null : 'delete')}
             >
-              {confirmingAction === 'delete' ? '确认删除？' : '删除'}
-            </button>
+              <Trash2 size={15} strokeWidth={1.9} />
+            </NoteActionButton>
           ) : null}
         </div>
       </div>
