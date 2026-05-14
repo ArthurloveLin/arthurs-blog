@@ -34,19 +34,12 @@ export default function HandwrittenSlogan({
   textAlign = 'center',
 }: HandwrittenSloganProps) {
   const [showSecondLine, setShowSecondLine] = React.useState(false)
-  const [mounted, setMounted] = React.useState(false)
-
-  React.useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const alignmentClass = {
     left: 'text-left',
     center: 'text-center',
     right: 'text-right'
   }[textAlign]
-
-  if (!mounted) return null
 
   return (
 

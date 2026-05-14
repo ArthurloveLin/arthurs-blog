@@ -857,6 +857,12 @@ html {
   animation: blob 7s infinite;
 }
 
+@media (max-width: 767px), (prefers-reduced-motion: reduce) {
+  .animate-blob {
+    animation: none;
+  }
+}
+
 .animation-delay-2000 {
   animation-delay: 2s;
 }

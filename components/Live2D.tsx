@@ -13,6 +13,7 @@ export default function Live2D() {
   const config = useSiteConfig()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [isDesktop] = useState(() => window.matchMedia('(min-width: 1024px)').matches)
 
   const canvasWidth = Number(config.live2d_canvas_width) || 280
   const canvasHeight = Number(config.live2d_canvas_height) || 240
@@ -145,6 +146,8 @@ export default function Live2D() {
     e.currentTarget.releasePointerCapture(e.pointerId)
     localStorage.setItem('tororo-pos', JSON.stringify(pos))
   }
+
+  if (!isDesktop) return null
 
   return (
     <div

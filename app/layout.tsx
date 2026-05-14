@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 const notoSansSC = Noto_Sans_SC({
   variable: "--font-noto-sc",
-  weight: ["300", "400", "600", "700"],
+  weight: ["400", "600", "700"],
   preload: false,
   display: "swap",
 });
@@ -74,7 +74,8 @@ export default async function RootLayout({
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           {/* LXGW WenKai Screen: 仅用于便签组件的手写风格（简体中文优化版），不纳入全局字体系统 */}
-          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.1.0/style.css" />
+          {/* precedence="optional" 使浏览器以非阻塞方式加载此字体 CSS，不阻断首屏渲染 */}
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.1.0/style.css" precedence="optional" />
 
         </head>
         <body className="bg-background antialiased pb-24 md:pb-0">

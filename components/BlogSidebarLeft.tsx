@@ -23,6 +23,7 @@ export default function BlogSidebarLeft({ activeCategory = null, activeTags = []
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (!window.matchMedia('(min-width: 768px)').matches) return
     const handleScroll = () => {
       if (window.scrollY === 0) {
         ref.current?.scrollTo({ top: 0, behavior: 'smooth' })

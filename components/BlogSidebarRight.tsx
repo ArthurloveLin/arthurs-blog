@@ -12,6 +12,7 @@ export default function BlogSidebarRight({ activeYear = null }: BlogSidebarRight
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (!window.matchMedia('(min-width: 1024px)').matches) return
     const handleScroll = () => {
       if (window.scrollY === 0) {
         ref.current?.scrollTo({ top: 0, behavior: 'smooth' })

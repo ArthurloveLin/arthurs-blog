@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef } from 'react'
 import gsap from 'gsap'
 import { useSiteConfig } from '@/components/SiteDataProvider'
 import HandwrittenSloganClient from '@/components/HandwrittenSloganClient'
@@ -11,13 +11,7 @@ interface WelcomeAnimationProps {
 
 export default function WelcomeAnimation({ onFinish }: WelcomeAnimationProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [mounted, setMounted] = useState(false)
   const siteConfig = useSiteConfig()
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true)
-  }, [])
 
   const startFadeOut = () => {
     if (!containerRef.current) return
@@ -36,8 +30,6 @@ export default function WelcomeAnimation({ onFinish }: WelcomeAnimationProps) {
       }
     })
   }
-
-  if (!mounted) return null
 
   return (
     <div 
