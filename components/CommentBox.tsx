@@ -638,7 +638,7 @@ const CommentThread = {
 }
 
 interface CommentBoxProps {
-  targetType: 'wardrobe_item' | 'blog_post'
+  targetType: 'wardrobe_item' | 'blog_post' | 'note'
   targetId: string
   initialComments: Comment[]
 }

@@ -21,7 +21,7 @@ import type {
 import { computeBoardLayout } from '@/components/note-board/utils/board'
 import type { NotePriority, NoteSortDirection, NoteSortMode } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
-import type { NoteMessage } from '@/lib/note-boards'
+import type { NoteMessage, NoteVisibility } from '@/lib/note-boards'
 
 import { parseHashtags } from './utils/editor'
 import { useNotifications } from './hooks/useNotifications'
@@ -112,6 +112,7 @@ interface NoteBoardActions {
   handleTagFilter: (tag: string) => void
   updateEditorValue: (value: string) => void
   updateEditorPriority: (value: NotePriority) => void
+  updateEditorVisibility: (value: NoteVisibility) => void
   submitEditor: () => Promise<void>
   cancelEditingNote: () => void
   scrollToEditor: () => void
@@ -154,6 +155,7 @@ interface NoteBoardEditorState {
   error: string | null
   canWrite: boolean
   priorityEnabled: boolean
+  isAdmin: boolean
   loadingIdentity: boolean
   viewerIdentity: string
   editingMessage: NoteMessage | null
@@ -161,6 +163,7 @@ interface NoteBoardEditorState {
   editorValue: string
   editorSaving: boolean
   editorPriority: NotePriority
+  editorVisibility: NoteVisibility
   editorSectionLabel: string
   editorPlaceholder: string
   editorSaveLabel: string
@@ -304,11 +307,15 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     setDraft,
     draftPriority,
     setDraftPriority,
+    draftVisibility,
+    setDraftVisibility,
     editingNoteId,
     editContent,
     setEditContent,
     editPriority,
     setEditPriority,
+    editVisibility,
+    setEditVisibility,
     isUpdatingNote,
     isSubmitting,
     updatingNoteIds,
@@ -480,6 +487,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     error,
     canWrite,
     priorityEnabled,
+    isAdmin,
     loadingIdentity: loading,
     viewerIdentity,
     editingMessage,
@@ -487,6 +495,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     editorValue: editingMessage ? editContent : draft,
     editorSaving: editingMessage ? isUpdatingNote : isSubmitting,
     editorPriority: editingMessage ? editPriority : draftPriority,
+    editorVisibility: editingMessage ? editVisibility : draftVisibility,
     editorSectionLabel: editingMessage ? '便签编辑区' : (board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'),
     editorPlaceholder: editingMessage
       ? '直接修改这张便签的原始文本，checklist 状态也在这里编辑。'
@@ -499,10 +508,13 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     canWrite,
     draft,
     draftPriority,
+    draftVisibility,
     editContent,
     editPriority,
+    editVisibility,
     editingMessage,
     error,
+    isAdmin,
     isSubmitting,
     isUpdatingNote,
     loading,
@@ -526,6 +538,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     handleTagFilter,
     updateEditorValue: editingMessage ? setEditContent : setDraft,
     updateEditorPriority: editingMessage ? setEditPriority : setDraftPriority,
+    updateEditorVisibility: editingMessage ? setEditVisibility : setDraftVisibility,
     submitEditor: editingMessage ? saveEditingNote : submitDraft,
     cancelEditingNote,
     scrollToEditor,
@@ -547,8 +560,10 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     setCardPosition,
     setDraft,
     setDraftPriority,
+    setDraftVisibility,
     setEditContent,
     setEditPriority,
+    setEditVisibility,
     scrollToEditor,
     submitDraft,
     toggleMobileView,

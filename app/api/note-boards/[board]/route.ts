@@ -62,6 +62,7 @@ export async function POST(
   const content = typeof body.content === 'string' ? body.content : ''
   const rawPriority = body.priority
   const priority = rawPriority === undefined ? undefined : Number(rawPriority)
+  const visibility = body.visibility === 'admin_only' ? 'admin_only' as const : 'public' as const
 
   if (!author.trim() || !content.trim()) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
@@ -72,7 +73,7 @@ export async function POST(
   }
 
   try {
-    const message = await createBoardMessage(board, author, content, priority)
+    const message = await createBoardMessage(board, author, content, priority, visibility)
     return NextResponse.json(message, { status: 201 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create note'

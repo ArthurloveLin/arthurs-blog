@@ -1,10 +1,11 @@
 'use client'
 
-import { Archive, ArchiveRestore, PencilLine, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Lock, MessageCircle, PencilLine, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
+import { NoteCommentPanel } from '@/components/note-board/components/NoteCommentPanel'
 import { NoteContent } from '@/components/note-board/components/NoteContent'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import type { NoteCardViewModel } from '@/components/note-board/types'
@@ -25,6 +26,7 @@ export function MobileNoteList({ items }: MobileNoteListProps) {
 function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
   const { message, actions, canDelete, canEdit, priorityControl, isPriorityUpdating, reactionControl, checklistControl, isOptimistic, isOptimisticEditing, isFresh } = item
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
+  const [showComments, setShowComments] = useState(false)
 
   return (
     <div className={[
@@ -32,7 +34,15 @@ function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
       (isOptimistic || isOptimisticEditing || isFresh) ? 'animate-in fade-in slide-in-from-bottom-3 duration-300' : '',
     ].filter(Boolean).join(' ')}>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="text-sm font-medium">{message.author}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">{message.author}</span>
+          {message.visibility === 'admin_only' ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+              <Lock size={9} strokeWidth={2.2} />
+              仅管理员
+            </span>
+          ) : null}
+        </div>
         <div className="flex items-center gap-3">
           <span className="whitespace-nowrap text-xs text-muted-foreground">
             {formatCommentTimeLabel(message.created_at, message.updated_at)}
@@ -125,6 +135,20 @@ function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
         onReact={reactionControl.onReact}
         onEmojiReact={reactionControl.onEmojiReact}
       />
+      <div className="mt-4 flex items-center border-t border-border/20 pt-3">
+        <button
+          type="button"
+          onClick={() => setShowComments((v) => !v)}
+          className={[
+            'flex items-center gap-1.5 text-[12px] font-medium transition',
+            showComments ? 'text-foreground/70' : 'text-muted-foreground/55 hover:text-foreground/70',
+          ].join(' ')}
+        >
+          <MessageCircle size={13} strokeWidth={1.8} />
+          评论
+        </button>
+      </div>
+      {showComments && <NoteCommentPanel noteId={message.id} />}
     </div>
   )
 }

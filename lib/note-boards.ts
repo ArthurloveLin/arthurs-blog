@@ -16,6 +16,8 @@ import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/n
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
+export type NoteVisibility = 'public' | 'admin_only'
+
 export interface NoteMessage {
   id: string
   visual_seed?: string
@@ -32,6 +34,7 @@ export interface NoteMessage {
   emoji_reactions: EmojiReactionEntry[]
   viewer_emojis: string[]
   sync_state?: CommentSyncState
+  visibility: NoteVisibility
 }
 
 function compareBoardMessageTime(
@@ -117,6 +120,7 @@ interface UpdateBoardMessageInput {
   content?: string
   archived?: boolean
   priority?: NotePriority
+  visibility?: NoteVisibility
 }
 
 export { getNoteBoardConfig, isNoteBoardSlug }
@@ -138,14 +142,21 @@ export const getBoardMessages = cache(async (
     return getGuestbookMessages(limit, offset, archived, sortDirection, viewerIdentity, searchQuery, tagFilter)
   }
 
+  const role = await getUserRole()
+  const isAdmin = role === 'admin'
+
   let query = supabaseAdmin
     .from('comments')
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility')
     .eq('target_type', config.targetType)
     .eq('target_id', config.targetId)
     .eq('archived', archived)
     .is('parent_id', null)
     .range(offset, offset + limit - 1)
+
+  if (!isAdmin) {
+    query = query.eq('visibility', 'public')
+  }
 
   if (searchQuery?.trim()) {
     query = query.ilike('content', `%${searchQuery.trim()}%`)
@@ -174,7 +185,7 @@ export const getBoardMessages = cache(async (
   return attachViewerEmojiReactions(withReactions, viewerIdentity) as Promise<NoteMessage[]>
 })
 
-export async function createBoardMessage(board: NoteBoardSlug, author: string, content: string, priority?: NotePriority) {
+export async function createBoardMessage(board: NoteBoardSlug, author: string, content: string, priority?: NotePriority, visibility: NoteVisibility = 'public') {
   const config = getNoteBoardConfig(board)
   const role = await getUserRole()
 
@@ -197,6 +208,9 @@ export async function createBoardMessage(board: NoteBoardSlug, author: string, c
     throw new Error('CONTENT_TOO_LONG')
   }
 
+  // Non-admins cannot set admin_only visibility.
+  const safeVisibility: NoteVisibility = visibility === 'admin_only' && role === 'admin' ? 'admin_only' : 'public'
+
   const { data, error } = await supabaseAdmin
     .from('comments')
     .insert({
@@ -206,8 +220,9 @@ export async function createBoardMessage(board: NoteBoardSlug, author: string, c
       content: nextContent,
       priority: nextPriority,
       parent_id: null,
+      visibility: safeVisibility,
     })
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility')
     .single()
 
   if (error) {
@@ -276,6 +291,11 @@ export async function updateBoardMessage(
     patch.priority = input.priority
   }
 
+  if (typeof input.visibility !== 'undefined') {
+    // Non-admins cannot escalate to admin_only.
+    patch.visibility = input.visibility === 'admin_only' && role === 'admin' ? 'admin_only' : 'public'
+  }
+
   if (Object.keys(patch).length === 0) {
     throw new Error('MISSING_PATCH')
   }
@@ -284,7 +304,7 @@ export async function updateBoardMessage(
     .from('comments')
     .update(patch)
     .eq('id', id)
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility')
     .single()
 
   if (error || !data) {

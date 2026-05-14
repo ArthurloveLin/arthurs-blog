@@ -19,6 +19,7 @@ export function createGuestbookNoteMessage(comment: Comment, archived = false): 
     emoji_reactions: comment.emoji_reactions,
     viewer_emojis: comment.viewer_emojis,
     sync_state: comment.sync_state,
+    visibility: 'public',
   }
 }
 

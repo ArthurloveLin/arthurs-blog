@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createCommentRecord, type Comment } from '@/lib/comments'
 import { createEngagementRequestHeaders, fetchEngagementPublicApi } from '@/lib/engagement-public-api'
 import { createGuestbookNoteMessage, humanizeGuestbookMutationError } from '@/lib/guestbook-comments'
-import type { NoteMessage } from '@/lib/note-boards'
+import type { NoteMessage, NoteVisibility } from '@/lib/note-boards'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { DEFAULT_NOTE_PRIORITY, type NotePriority } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
@@ -55,9 +55,11 @@ export function useNoteEditor({
 }: UseNoteEditorProps) {
   const [draft, setDraft] = useState('')
   const [draftPriority, setDraftPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
+  const [draftVisibility, setDraftVisibility] = useState<NoteVisibility>('public')
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [editPriority, setEditPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
+  const [editVisibility, setEditVisibility] = useState<NoteVisibility>('public')
   const [isUpdatingNote, setIsUpdatingNote] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [updatingNoteIds, setUpdatingNoteIds] = useState<Record<string, boolean>>({})
@@ -77,6 +79,7 @@ export function useNoteEditor({
     setEditingNoteId(null)
     setEditContent('')
     setEditPriority(DEFAULT_NOTE_PRIORITY)
+    setEditVisibility('public')
     setError(null)
   }, [setError])
 
@@ -84,6 +87,7 @@ export function useNoteEditor({
     setEditingNoteId(message.id)
     setEditContent(message.content)
     setEditPriority(message.priority)
+    setEditVisibility(message.visibility ?? 'public')
     setError(null)
 
     if (isMobileViewport) {
@@ -100,9 +104,10 @@ export function useNoteEditor({
       return
     }
 
-    async function commitNoteUpdate(message: NoteMessage, content: string, priority: NotePriority) {
+    async function commitNoteUpdate(message: NoteMessage, content: string, priority: NotePriority, visibility: NoteVisibility) {
       const originalContent = message.content
       const originalPriority = message.priority
+      const originalVisibility = message.visibility ?? 'public'
 
       setError(null)
       setUpdatingNoteIds((prev) => ({ ...prev, [message.id]: true }))
@@ -111,6 +116,7 @@ export function useNoteEditor({
           ...currentMessage,
           content,
           priority,
+          visibility,
         }
         : currentMessage), { resetPositions: false })
 
@@ -142,7 +148,7 @@ export function useNoteEditor({
           const response = await fetch(`/api/note-boards/${board.slug}/${message.id}`, {
             method: 'PATCH',
             headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({ identity, identities: viewerIdentityAliases, content, priority }),
+            body: JSON.stringify({ identity, identities: viewerIdentityAliases, content, priority, visibility }),
           })
 
           if (!response.ok) {
@@ -173,6 +179,7 @@ export function useNoteEditor({
             ...currentMessage,
             content: originalContent,
             priority: originalPriority,
+            visibility: originalVisibility,
           }
           : currentMessage), { resetPositions: false })
         setError(updateError instanceof Error ? updateError.message : '便签更新失败，请稍后再试。')
@@ -189,13 +196,14 @@ export function useNoteEditor({
     setEditingNoteId(null)
     setEditContent('')
     setEditPriority(DEFAULT_NOTE_PRIORITY)
+    setEditVisibility('public')
 
     try {
-      await commitNoteUpdate(editingMessage, nextContent, editPriority)
+      await commitNoteUpdate(editingMessage, nextContent, editPriority, editVisibility)
     } finally {
       setIsUpdatingNote(false)
     }
-  }, [board.slug, editContent, editPriority, editingMessage, identity, isUpdatingNote, replaceMessages, setError, viewerIdentityAliases])
+  }, [board.slug, editContent, editPriority, editVisibility, editingMessage, identity, isUpdatingNote, replaceMessages, setError, viewerIdentityAliases])
 
   const toggleChecklistItem = useCallback((message: NoteMessage, lineIndex: number) => {
     if (!identity || editingNoteId === message.id || updatingNoteIds[message.id]) {
@@ -297,6 +305,7 @@ export function useNoteEditor({
 
     const draftValue = draft.trim()
     const draftPriorityValue = draftPriority
+    const draftVisibilityValue = draftVisibility
     const optimisticId = `optimistic-${crypto.randomUUID()}`
     const optimisticMessage: NoteMessage = {
       id: optimisticId,
@@ -314,12 +323,14 @@ export function useNoteEditor({
       emoji_reactions: [],
       viewer_emojis: [],
       sync_state: 'pending',
+      visibility: draftVisibilityValue,
     }
 
     setIsSubmitting(true)
     setError(null)
     setDraft('')
     setDraftPriority(DEFAULT_NOTE_PRIORITY)
+    setDraftVisibility('public')
     if (onDraftSubmitted) {
       onDraftSubmitted()
     }
@@ -365,7 +376,7 @@ export function useNoteEditor({
         const response = await fetch(`/api/note-boards/${board.slug}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ author: publicIdentity, content: draftValue, priority: draftPriorityValue }),
+          body: JSON.stringify({ author: publicIdentity, content: draftValue, priority: draftPriorityValue, visibility: draftVisibilityValue }),
         })
 
         if (!response.ok) {
@@ -393,11 +404,12 @@ export function useNoteEditor({
       })
       setDraft(draftValue)
       setDraftPriority(draftPriorityValue)
+      setDraftVisibility(draftVisibilityValue)
       setError(submitError instanceof Error ? submitError.message : '便签保存失败，请稍后再试。')
     } finally {
       setIsSubmitting(false)
     }
-  }, [board.slug, board.targetId, board.targetType, canWrite, draft, draftPriority, hasMore, identity, isSubmitting, markMessageFresh, nextOffset, publicIdentity, replaceMessages, setError, onDraftSubmitted])
+  }, [board.slug, board.targetId, board.targetType, canWrite, draft, draftPriority, draftVisibility, hasMore, identity, isSubmitting, markMessageFresh, nextOffset, publicIdentity, replaceMessages, setError, onDraftSubmitted])
 
   useEffect(() => {
     if (!editingNoteId) return
@@ -418,11 +430,15 @@ export function useNoteEditor({
     setDraft,
     draftPriority,
     setDraftPriority,
+    draftVisibility,
+    setDraftVisibility,
     editingNoteId,
     editContent,
     setEditContent,
     editPriority,
     setEditPriority,
+    editVisibility,
+    setEditVisibility,
     isUpdatingNote,
     isSubmitting,
     updatingNoteIds,

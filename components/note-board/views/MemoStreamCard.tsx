@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Archive, ArchiveRestore, PencilLine, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Lock, MessageCircle, PencilLine, Trash2 } from 'lucide-react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
@@ -10,6 +10,7 @@ import { PriorityPicker } from '@/components/note-board/components/PriorityPicke
 import { useNoteBoardActions } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
 import { getStickyColorIndex, getStickyColorSeed, STICKY_COLORS } from '@/components/note-board/utils/board'
+import { NoteCommentPanel } from '@/components/note-board/components/NoteCommentPanel'
 import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { formatCommentTimeLabel } from '@/lib/date-format'
 
@@ -33,6 +34,7 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
     isEditing,
   } = item
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
+  const [showComments, setShowComments] = useState(false)
   const boardActions = useNoteBoardActions()
   const cardRef = useRef<HTMLDivElement>(null)
   const wasEditingRef = useRef(false)
@@ -87,8 +89,16 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
       {/* Header: 作者 + 时间 + 操作按钮 */}
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[13px] font-medium leading-none text-foreground/85">{message.author}</p>
-          <span className="mt-1.5 block text-[11.5px] leading-none text-foreground/50">
+          <div className="flex items-center gap-2">
+            <p className="text-[14px] font-medium leading-none text-foreground/85">{message.author}</p>
+            {message.visibility === 'admin_only' ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                <Lock size={9} strokeWidth={2.2} />
+                仅管理员
+              </span>
+            ) : null}
+          </div>
+          <span className="mt-1.5 block text-[12px] leading-none text-foreground/50">
             {formatCommentTimeLabel(message.created_at, message.updated_at)}
           </span>
         </div>
@@ -157,7 +167,7 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
       ) : null}
 
       {/* 正文内容 */}
-      <div className="text-[13.5px] leading-[1.7] text-foreground/85">
+      <div className="text-[15px] leading-[1.75] text-foreground/85">
         <NoteContent
           content={message.content}
           variant="stream"
@@ -187,6 +197,23 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
         onReact={reactionControl.onReact}
         onEmojiReact={reactionControl.onEmojiReact}
       />
+
+      {/* 评论入口 */}
+      <div className="mt-3 flex items-center border-t border-border/20 pt-3">
+        <button
+          type="button"
+          onClick={() => setShowComments((v) => !v)}
+          className={[
+            'flex items-center gap-1.5 text-[12px] font-medium transition',
+            showComments ? 'text-foreground/70' : 'text-muted-foreground/55 hover:text-foreground/70',
+          ].join(' ')}
+        >
+          <MessageCircle size={13} strokeWidth={1.8} />
+          评论
+        </button>
+      </div>
+
+      {showComments && <NoteCommentPanel noteId={message.id} />}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Layers, LayoutList } from 'lucide-react'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
+import { VisibilityPicker } from '@/components/note-board/components/VisibilityPicker'
 import { StickyNoteCard } from '@/components/note-board/components/StickyNoteCard'
 import {
   NoteBoardProvider,
@@ -253,15 +254,25 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
             minHeightClassName="min-h-[140px]"
             shellClassName="overflow-hidden rounded-[24px] border border-border/70 bg-background/55"
             toolbarClassName="px-4 py-3 text-xs text-muted-foreground"
-            toolbarLeadingAddon={state.priorityEnabled ? (
-              <PriorityPicker.Dot
-                value={state.editorPriority}
-                onChange={actions.updateEditorPriority}
-                buttonClassName="h-8 w-8"
-                dotClassName="h-2.5 w-2.5"
-                menuAlign="start"
-                menuDirection="up"
-              />
+            toolbarLeadingAddon={(state.priorityEnabled || state.isAdmin) ? (
+              <>
+                {state.priorityEnabled ? (
+                  <PriorityPicker.Dot
+                    value={state.editorPriority}
+                    onChange={actions.updateEditorPriority}
+                    buttonClassName="h-8 w-8"
+                    dotClassName="h-2.5 w-2.5"
+                    menuAlign="start"
+                    menuDirection="up"
+                  />
+                ) : null}
+                {state.isAdmin ? (
+                  <VisibilityPicker
+                    value={state.editorVisibility}
+                    onChange={actions.updateEditorVisibility}
+                  />
+                ) : null}
+              </>
             ) : undefined}
             autoFocus={state.editorMode === 'edit' && (boardState.isMobileViewport || autoFocusOnEdit)}
           />

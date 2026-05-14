@@ -52,6 +52,7 @@ export async function PATCH(
     ? (typeof body.priority === 'string' ? Number.parseInt(body.priority, 10) : body.priority)
     : undefined
   const priority = hasPriority && isNotePriority(rawPriority) ? normalizeNotePriority(rawPriority) : undefined
+  const visibility = body.visibility === 'admin_only' ? 'admin_only' as const : body.visibility === 'public' ? 'public' as const : undefined
   const identities = Array.isArray(body.identities)
     ? body.identities.filter((value: unknown): value is string => typeof value === 'string')
     : undefined
@@ -60,7 +61,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Guestbook content edits moved to /api/comments/:id' }, { status: 410 })
   }
 
-  if (content === '' || (content === undefined && archived === undefined && priority === undefined)) {
+  if (content === '' || (content === undefined && archived === undefined && priority === undefined && visibility === undefined)) {
     return NextResponse.json({ error: content === '' ? 'Missing content' : 'Missing patch' }, { status: 400 })
   }
 
@@ -72,7 +73,7 @@ export async function PATCH(
     const message = await updateBoardMessage(
       board,
       id,
-      { content, archived, priority },
+      { content, archived, priority, visibility },
       identities ?? (body.identity as string | undefined),
     )
     return NextResponse.json(message)
