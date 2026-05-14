@@ -27,6 +27,7 @@ function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
   const { message, actions, canDelete, canEdit, priorityControl, isPriorityUpdating, reactionControl, checklistControl, isOptimistic, isOptimisticEditing, isFresh } = item
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
   const [showComments, setShowComments] = useState(false)
+  const [commentCountDelta, setCommentCountDelta] = useState(0)
 
   return (
     <div className={[
@@ -145,10 +146,12 @@ function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
           ].join(' ')}
         >
           <MessageCircle size={13} strokeWidth={1.8} />
-          评论
+          {(message.comment_count ?? 0) + commentCountDelta > 0
+            ? `${(message.comment_count ?? 0) + commentCountDelta} 条评论`
+            : '评论'}
         </button>
       </div>
-      {showComments && <NoteCommentPanel noteId={message.id} />}
+      {showComments && <NoteCommentPanel noteId={message.id} onCommentAdded={() => setCommentCountDelta((d) => d + 1)} />}
     </div>
   )
 }

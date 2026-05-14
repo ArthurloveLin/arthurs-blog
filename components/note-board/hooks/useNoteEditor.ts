@@ -171,6 +171,7 @@ export function useNoteEditor({
             viewer_reaction: currentMessage.viewer_reaction,
             emoji_reactions: currentMessage.emoji_reactions,
             viewer_emojis: currentMessage.viewer_emojis,
+            comment_count: currentMessage.comment_count,
           }
           : currentMessage), { resetPositions: false })
       } catch (updateError) {
@@ -279,6 +280,7 @@ export function useNoteEditor({
             viewer_reaction: currentMessage.viewer_reaction,
             emoji_reactions: currentMessage.emoji_reactions,
             viewer_emojis: currentMessage.viewer_emojis,
+            comment_count: currentMessage.comment_count,
           }
           : currentMessage), { resetPositions: false })
       } catch (updateError) {

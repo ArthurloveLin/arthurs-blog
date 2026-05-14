@@ -8,6 +8,7 @@ import type { Comment } from '@/lib/comments'
 
 interface NoteCommentPanelProps {
   noteId: string
+  onCommentAdded?: () => void
 }
 
 function PreviewCommentCard({ comment }: { comment: Comment }) {
@@ -22,7 +23,7 @@ function PreviewCommentCard({ comment }: { comment: Comment }) {
   )
 }
 
-export function NoteCommentPanel({ noteId }: NoteCommentPanelProps) {
+export function NoteCommentPanel({ noteId, onCommentAdded }: NoteCommentPanelProps) {
   const [phase, setPhase] = useState<'preview' | 'full'>('preview')
   const [comments, setComments] = useState<Comment[]>([])
   const [total, setTotal] = useState(0)
@@ -53,7 +54,7 @@ export function NoteCommentPanel({ noteId }: NoteCommentPanelProps) {
   if (phase === 'full') {
     return (
       <div className="mt-4 border-t border-border/25 pt-4">
-        <CommentBox targetType="note" targetId={noteId} initialComments={comments} />
+        <CommentBox targetType="note" targetId={noteId} initialComments={comments} onCommentPosted={onCommentAdded} />
       </div>
     )
   }

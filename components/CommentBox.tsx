@@ -483,7 +483,7 @@ function CommentCard({ comment }: { comment: Comment }) {
   )
 }
 
-function CommentReplyList({ parentId }: { parentId: string }) {
+function CommentReplyList({ parentId, depth = 0 }: { parentId: string; depth?: number }) {
   const { repliesByParentId } = useCommentTree()
   const replies = repliesByParentId[parentId] ?? []
 
@@ -494,8 +494,9 @@ function CommentReplyList({ parentId }: { parentId: string }) {
   return (
     <div className="mt-2 space-y-2 border-l border-border/30 pl-1">
       {replies.map((reply) => (
-        <div key={reply.id} className="ml-6">
+        <div key={reply.id} className={depth < 2 ? 'ml-6' : 'ml-2'}>
           <CommentCard comment={reply} />
+          <CommentReplyList parentId={reply.id} depth={depth + 1} />
         </div>
       ))}
     </div>
@@ -511,18 +512,34 @@ function CommentThreadItem({ comment }: { comment: Comment }) {
   )
 }
 
+const INITIAL_VISIBLE_COUNT = 2
+
 function CommentThreadList() {
   const { topLevelComments } = useCommentTree()
+  const [expanded, setExpanded] = useState(false)
 
   if (topLevelComments.length === 0) {
     return null
   }
 
+  const showAll = expanded || topLevelComments.length <= INITIAL_VISIBLE_COUNT
+  const visibleComments = showAll ? topLevelComments : topLevelComments.slice(0, INITIAL_VISIBLE_COUNT)
+  const hiddenCount = topLevelComments.length - INITIAL_VISIBLE_COUNT
+
   return (
     <div className="mb-6 space-y-4">
-      {topLevelComments.map((comment) => (
+      {visibleComments.map((comment) => (
         <CommentThreadItem key={comment.id} comment={comment} />
       ))}
+      {!showAll && hiddenCount > 0 && (
+        <button
+          type="button"
+          className="px-1 text-[11px] font-medium text-muted-foreground/60 transition hover:text-foreground/80"
+          onClick={() => setExpanded(true)}
+        >
+          查看更多 {hiddenCount} 条评论
+        </button>
+      )}
     </div>
   )
 }
@@ -626,6 +643,21 @@ function CommentThreadComposer() {
   )
 }
 
+function collectSubtreeIds(comments: Comment[], rootId: string): Set<string> {
+  const result = new Set<string>([rootId])
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const c of comments) {
+      if (c.parent_id && result.has(c.parent_id) && !result.has(c.id)) {
+        result.add(c.id)
+        changed = true
+      }
+    }
+  }
+  return result
+}
+
 function CommentThreadRoot({ children, value }: { children: ReactNode; value: CommentTreeContextValue }) {
   return <CommentTreeContext value={value}>{children}</CommentTreeContext>
 }
@@ -641,9 +673,10 @@ interface CommentBoxProps {
   targetType: 'wardrobe_item' | 'blog_post' | 'note'
   targetId: string
   initialComments: Comment[]
+  onCommentPosted?: () => void
 }
 
-export default function CommentBox({ targetType, targetId, initialComments }: CommentBoxProps) {
+export default function CommentBox({ targetType, targetId, initialComments, onCommentPosted }: CommentBoxProps) {
   const { identity, identityAliases, isAdmin, publicIdentity } = useAuth()
 
   const [comments, setComments] = useState<Comment[]>(() => initialComments.map((comment) => createCommentRecord(comment)))
@@ -675,7 +708,14 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
     }
 
     setDraft((current) => current || savedComposerDraft.draft)
-    setReplyTo((current) => current ?? savedComposerDraft.replyTo)
+    if (savedComposerDraft.replyTo) {
+      const parentExists = commentsRef.current.some((c) => c.id === savedComposerDraft.replyTo!.id)
+      if (parentExists) {
+        setReplyTo((current) => current ?? savedComposerDraft.replyTo)
+      } else {
+        clearCommentComposerDraft(targetType, targetId)
+      }
+    }
   }, [mounted, targetId, targetType])
 
   useEffect(() => {
@@ -729,6 +769,39 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
 
     return () => controller.abort()
   }, [identity, mounted, targetId, targetType])
+
+  useEffect(() => {
+    if (!mounted) return
+
+    let hiddenAt = 0
+    let activeController: AbortController | null = null
+
+    function handleVisibilityChange() {
+      if (document.hidden) {
+        hiddenAt = Date.now()
+        return
+      }
+
+      if (Date.now() - hiddenAt < 5 * 60 * 1000) return
+
+      activeController?.abort()
+      activeController = new AbortController()
+      const searchParams = new URLSearchParams({ target_type: targetType, target_id: targetId })
+      void fetchEngagementPublicApi(`/api/comments?${searchParams.toString()}`, { signal: activeController.signal })
+        .then((r) => r.ok ? (r.json() as Promise<Comment[]>) : null)
+        .then((next) => {
+          if (!next) return
+          setComments((current) => mergeCommentThread(current, next.map((c) => createCommentRecord(c))))
+        })
+        .catch(() => { /* silent */ })
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      activeController?.abort()
+    }
+  }, [mounted, targetId, targetType])
 
   useEffect(() => () => {
     Object.values(freshTimerRefs.current).forEach((timer) => window.clearTimeout(timer))
@@ -807,6 +880,7 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
       const newComment = createCommentRecord(await res.json() as Comment)
       setComments((prev) => prev.map((comment) => comment.id === optimisticId ? newComment : comment))
       markCommentFresh(newComment.id)
+      onCommentPosted?.()
     } catch (submitError) {
       setComments((prev) => prev.filter((comment) => comment.id !== optimisticId))
       setDraft(draftValue)
@@ -819,7 +893,10 @@ export default function CommentBox({ targetType, targetId, initialComments }: Co
 
   async function handleDelete(id: string) {
     const snapshot = commentsRef.current
-    setComments((prev) => prev.filter((c) => c.id !== id && c.parent_id !== id))
+    setComments((prev) => {
+      const toRemove = collectSubtreeIds(prev, id)
+      return prev.filter((c) => !toRemove.has(c.id))
+    })
     try {
       const res = await fetchEngagementPublicApi(`/api/comments/${id}`, {
         method: 'DELETE',

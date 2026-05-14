@@ -35,6 +35,7 @@ export interface NoteMessage {
   viewer_emojis: string[]
   sync_state?: CommentSyncState
   visibility: NoteVisibility
+  comment_count?: number
 }
 
 function compareBoardMessageTime(
@@ -125,6 +126,22 @@ interface UpdateBoardMessageInput {
 
 export { getNoteBoardConfig, isNoteBoardSlug }
 
+async function batchFetchNoteCommentCounts(noteIds: string[]): Promise<Record<string, number>> {
+  if (noteIds.length === 0) return {}
+
+  const { data } = await supabaseAdmin
+    .from('comments')
+    .select('target_id')
+    .eq('target_type', 'note')
+    .in('target_id', noteIds)
+
+  return (data ?? []).reduce<Record<string, number>>((acc, row) => {
+    const key = row.target_id as string
+    acc[key] = (acc[key] ?? 0) + 1
+    return acc
+  }, {})
+}
+
 export const getBoardMessages = cache(async (
   board: NoteBoardSlug,
   limit = getNoteBoardConfig(board).initialPageLimit,
@@ -182,7 +199,11 @@ export const getBoardMessages = cache(async (
     viewerIdentity,
   )
 
-  return attachViewerEmojiReactions(withReactions, viewerIdentity) as Promise<NoteMessage[]>
+  const messages = await attachViewerEmojiReactions(withReactions, viewerIdentity) as NoteMessage[]
+  const noteIds = messages.map((m) => m.id)
+  const commentCounts = await batchFetchNoteCommentCounts(noteIds)
+
+  return messages.map((m) => ({ ...m, comment_count: commentCounts[m.id] ?? 0 }))
 })
 
 export async function createBoardMessage(board: NoteBoardSlug, author: string, content: string, priority?: NotePriority, visibility: NoteVisibility = 'public') {

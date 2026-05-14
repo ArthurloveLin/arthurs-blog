@@ -249,6 +249,7 @@ export function useBoardMutations({
           viewer_reaction: currentMessage.viewer_reaction,
           emoji_reactions: currentMessage.emoji_reactions,
           viewer_emojis: currentMessage.viewer_emojis,
+          comment_count: currentMessage.comment_count,
         }
         : currentMessage))
       if (editingMessage?.id === updatedMessage.id) {
