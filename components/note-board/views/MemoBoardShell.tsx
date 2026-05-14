@@ -1,13 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, Layers, LayoutList, Plus, Search, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, Layers, LayoutList, Palette, Plus, Search, X } from 'lucide-react'
 import {
   useNoteBoardActions,
   useNoteBoardBoardState,
 } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
 import { SidebarCalendar, SidebarTagCloud, getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
+import { NOTE_COLOR_THEMES, useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import type { NoteSortMode } from '@/lib/note-priority'
 
 function getItemDateKey(item: NoteCardViewModel) {
@@ -132,17 +133,10 @@ function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean })
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-[34px] items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 text-[13px] text-muted-foreground transition hover:bg-accent hover:text-foreground"
+        title={`排序：${currentLabel}${!state.showArchived ? ` · ${directionLabel}` : ''}`}
+        className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-border/70 bg-background/70 text-muted-foreground transition hover:bg-accent hover:text-foreground"
       >
         <ArrowUpDown size={14} />
-        {currentLabel}
-        {!state.showArchived ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-foreground/5 px-1.5 py-0.5 text-[11px] text-foreground/65">
-            <SortDirectionIcon size={11} />
-            {directionLabel}
-          </span>
-        ) : null}
-        <ChevronDown size={13} className={`transition-transform${open ? ' rotate-180' : ''}`} />
       </button>
       {open ? (
         <div className="absolute right-0 top-full z-20 mt-1.5 min-w-[164px] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-lg">
@@ -191,6 +185,64 @@ function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean })
   )
 }
 
+// ── 配色主题切换 ─────────────────────────────────────────────────────────────
+function NoteThemeButton() {
+  const { theme, setThemeId } = useNoteColorTheme()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handleClick(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        title={`便签配色：${theme.label} · ${theme.subtitle}`}
+        className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-border/70 bg-background/70 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+      >
+        <Palette size={14} />
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-full z-20 mt-1.5 min-w-[196px] overflow-hidden rounded-2xl border border-border/70 bg-card p-1.5 shadow-lg">
+          {NOTE_COLOR_THEMES.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => { setThemeId(t.id); setOpen(false) }}
+              className={[
+                'flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition',
+                t.id === theme.id
+                  ? 'bg-foreground/5 font-medium text-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              ].join(' ')}
+            >
+              <div className="flex gap-0.5 shrink-0">
+                {t.colors.slice(0, 5).map((c, i) => (
+                  <span
+                    key={i}
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: c, boxShadow: '0 0 0 1px rgba(0,0,0,0.08)' }}
+                  />
+                ))}
+              </div>
+              <span className="flex-1 text-[13px]">{t.label}</span>
+              <span className="text-[11px] opacity-55">{t.subtitle}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 // ── 快速筛选 ────────────────────────────────────────────────────────────────
 function SidebarQuickFilters({ filters }: { filters: MemoBoardFilters }) {
   const state = useNoteBoardBoardState()
@@ -225,7 +277,7 @@ function SidebarQuickFilters({ filters }: { filters: MemoBoardFilters }) {
 
   return (
     <div className="space-y-2">
-      <p className="text-[11.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">快速筛选</p>
+      <p className="text-[12.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">快速筛选</p>
       <div className="flex flex-col gap-0.5">
         {quickFilters.map(({ key, label, active, onClick }) => (
           <button
@@ -354,6 +406,7 @@ export function MemoBoardShell({
             <div className="flex-1 sm:hidden" />
             <MemoSearchField placeholder={searchPlaceholder} />
             <MemoSortDropdown allowPrioritySort={allowPrioritySort} />
+            <NoteThemeButton />
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
             {extraControls}
@@ -361,19 +414,20 @@ export function MemoBoardShell({
               <button
                 type="button"
                 onClick={onToggleViewMode}
-                className="flex h-[34px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 text-[13px] text-muted-foreground transition hover:bg-accent hover:text-foreground sm:flex-none"
+                title={toggleLabel}
+                className="flex h-[34px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full border border-border/70 bg-background/70 text-muted-foreground transition hover:bg-accent hover:text-foreground sm:w-[34px] sm:flex-none"
               >
                 <ToggleIcon size={14} className="shrink-0" />
-                <span className="hidden truncate sm:inline">{toggleLabel}</span>
                 <span className="truncate sm:hidden">切换视图</span>
               </button>
               <button
                 type="button"
                 onClick={() => actions.scrollToEditor()}
-                className="flex h-[34px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full bg-foreground px-3 text-[13px] font-medium text-background transition hover:opacity-85 sm:flex-none"
+                title="新便签"
+                className="flex h-[34px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full bg-foreground font-medium text-background transition hover:opacity-85 sm:w-[34px] sm:flex-none"
               >
                 <Plus size={14} className="shrink-0" />
-                <span className="truncate">新便签</span>
+                <span className="truncate sm:hidden">新便签</span>
               </button>
             </div>
           </div>
@@ -397,7 +451,7 @@ export function MemoBoardShell({
 
       <div className="flex gap-6">
         {/* 桌面侧边栏 */}
-        <aside className="hidden shrink-0 sm:block sm:w-[220px] lg:w-[260px]">
+        <aside className="hidden shrink-0 sm:block sm:w-[240px] lg:w-[280px]">
           <div className="sticky top-6 space-y-6">
             <SidebarCalendar
               memoDateCounts={filters.memoDateCounts}

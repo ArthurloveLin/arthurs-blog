@@ -10,6 +10,7 @@ import { PriorityPicker } from '@/components/note-board/components/PriorityPicke
 import { useNoteBoardActions } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
 import { getStickyColorIndex, getStickyColorSeed, STICKY_COLORS } from '@/components/note-board/utils/board'
+import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { formatCommentTimeLabel } from '@/lib/date-format'
 
 interface MemoStreamCardProps {
@@ -56,9 +57,8 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
     boardActions.scrollToEditor()
   }, [actions.edit, boardActions])
 
-  const accentColor = STICKY_COLORS[
-    getStickyColorIndex(getStickyColorSeed(message))
-  ] ?? STICKY_COLORS[0]
+  const { theme } = useNoteColorTheme()
+  const accentColor = theme.colors[getStickyColorIndex(getStickyColorSeed(message))] ?? STICKY_COLORS[0]
 
   return (
     <div

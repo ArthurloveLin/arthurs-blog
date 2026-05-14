@@ -29,6 +29,7 @@ import {
   sanitizeNotePosition,
   STICKY_COLORS,
 } from '@/components/note-board/utils/board'
+import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { formatCommentTimeLabel } from '@/lib/date-format'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { NOTE_PRIORITY_META } from '@/lib/note-priority'
@@ -128,6 +129,7 @@ function StickyNoteCardFrame({
   const [copied, setCopied] = useState(false)
   const isPreview = variant === 'preview'
   const isInlineEditing = Boolean(inlineEditor)
+  const { theme } = useNoteColorTheme()
 
   useEffect(() => {
     isInlineEditingRef.current = isInlineEditing
@@ -487,7 +489,7 @@ function StickyNoteCardFrame({
           ref={paperRef}
           className={[styles.paper, isPreview ? styles.previewPaper : styles.boardPaper].join(' ')}
           style={{
-            backgroundColor: STICKY_COLORS[colorIndex % STICKY_COLORS.length],
+            backgroundColor: theme.colors[colorIndex % theme.colors.length] ?? STICKY_COLORS[0],
             minHeight: isInlineEditing && inlineEditor?.surfaceMinHeight
               ? `${inlineEditor.surfaceMinHeight}px`
               : undefined,

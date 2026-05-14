@@ -122,7 +122,7 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate }: 
         >
           <ChevronLeft size={15} />
         </button>
-        <span className="text-[13px] font-semibold text-foreground/80">{monthLabel}</span>
+        <span className="text-[14px] font-semibold text-foreground/80">{monthLabel}</span>
         <button
           type="button"
           onClick={nextMonth}
@@ -136,7 +136,7 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate }: 
       {/* 星期标题 */}
       <div className="grid grid-cols-7 text-center">
         {WEEKDAY_LABELS.map((lbl) => (
-          <span key={lbl} className="text-[11px] text-muted-foreground/60">{lbl}</span>
+          <span key={lbl} className="text-[12px] text-muted-foreground/60">{lbl}</span>
         ))}
       </div>
 
@@ -144,7 +144,7 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate }: 
       <div className="grid grid-cols-7 gap-y-0.5 text-center">
         {cells.map((cell, i) => {
           if (cell.kind !== 'current') {
-            return <span key={i} className="py-1 text-[12px] text-muted-foreground/25">{cell.day}</span>
+            return <span key={i} className="py-1 text-[13px] text-muted-foreground/25">{cell.day}</span>
           }
           const key = toDateKey(displayMonth.year, displayMonth.month, cell.day)
           const hasMemos = memoDateCounts.has(key)
@@ -159,7 +159,7 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate }: 
               disabled={!hasMemos && !isSelected}
               onClick={() => onSelectDate(isSelected ? null : key)}
               className={[
-                'relative mx-auto flex h-7 w-7 items-center justify-center rounded-full text-[12px] transition',
+                'relative mx-auto flex h-7 w-7 items-center justify-center rounded-full text-[13px] transition',
                 isSelected
                   ? 'bg-foreground font-semibold text-background'
                   : isToday
@@ -184,7 +184,7 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate }: 
         <button
           type="button"
           onClick={() => onSelectDate(null)}
-          className="flex w-full items-center justify-center gap-1 rounded-full border border-border/60 py-1.5 text-[12px] text-muted-foreground transition hover:text-foreground"
+          className="flex w-full items-center justify-center gap-1 rounded-full border border-border/60 py-1.5 text-[13px] text-muted-foreground transition hover:text-foreground"
         >
           <X size={12} />
           清除日期筛选
@@ -202,7 +202,7 @@ export function SidebarTagCloud() {
 
   return (
     <div className="space-y-2.5">
-      <p className="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <p className="flex items-center gap-1.5 text-[12.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         <Tag size={11} />
         标签
       </p>
@@ -215,7 +215,7 @@ export function SidebarTagCloud() {
               type="button"
               onClick={() => actions.handleTagFilter(name)}
               className={[
-                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] transition',
+                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] transition',
                 isActive
                   ? 'bg-foreground text-background'
                   : 'border border-border/70 text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -227,14 +227,14 @@ export function SidebarTagCloud() {
           )
         })}
         {state.allTags.length > 30 ? (
-          <span className="text-[12px] text-muted-foreground/60">+{state.allTags.length - 30}</span>
+          <span className="text-[13px] text-muted-foreground/60">+{state.allTags.length - 30}</span>
         ) : null}
       </div>
       {state.activeTag ? (
         <button
           type="button"
           onClick={() => actions.handleTagFilter(state.activeTag)}
-          className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground"
+          className="flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground"
         >
           <X size={12} />
           清除筛选

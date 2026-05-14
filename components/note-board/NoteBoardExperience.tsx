@@ -17,6 +17,7 @@ import {
 } from '@/components/note-board/NoteBoardProvider'
 import { MemoBoardShell, useMemoBoardFilters, type MemoBoardFilters } from '@/components/note-board/views/MemoBoardShell'
 import { getStickyColorIndex, getStickyColorSeed } from '@/components/note-board/utils/board'
+import { NoteColorThemeProvider } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import {
@@ -323,8 +324,10 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
 
 export function NoteBoardPage({ board, initialMessages, initialQuery = '', initialViewMode = 'sticky' }: NoteBoardPageProps) {
   return (
-    <NoteBoardProvider board={board} initialMessages={initialMessages} initialQuery={initialQuery}>
-      <NoteBoardExperience initialViewMode={initialViewMode} />
-    </NoteBoardProvider>
+    <NoteColorThemeProvider>
+      <NoteBoardProvider board={board} initialMessages={initialMessages} initialQuery={initialQuery}>
+        <NoteBoardExperience initialViewMode={initialViewMode} />
+      </NoteBoardProvider>
+    </NoteColorThemeProvider>
   )
 }
