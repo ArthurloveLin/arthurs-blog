@@ -90,23 +90,27 @@ const INLINE_IMAGE_PATTERN = /^!\[([^\]]*)\]\(([^)]+)\)$/
 const UL_PATTERN = /^[-*+]\s+(.+)$/
 const OL_PATTERN = /^\d+\.\s+(.+)$/
 
-// Board / preview variant: em-relative so they scale with the sticky note font
+// Board / preview variant: em-relative so they scale with the sticky note font (1.05rem body).
+// Ratios mirror the stream px scheme: h4=1.0em (body-size, weight-only distinction),
+// h1/h2 clearly above, h5/h6 sub-body labels.
 const HEADING_CLASS_NOTE: Record<number, string> = {
-  1: 'text-[1.15em] font-bold leading-snug text-slate-900',
-  2: 'text-[1.08em] font-bold leading-snug text-slate-900',
-  3: 'text-[1em] font-semibold leading-snug text-slate-800',
-  4: 'text-[0.95em] font-semibold text-slate-800',
-  5: 'text-[0.9em] font-medium text-slate-700',
-  6: 'text-[0.85em] font-medium text-slate-600',
+  1: 'text-[1.22em] font-bold leading-snug text-slate-900',
+  2: 'text-[1.12em] font-bold leading-snug text-slate-900',
+  3: 'text-[1.06em] font-semibold leading-snug text-slate-800',
+  4: 'text-[1.0em] font-semibold text-slate-800',
+  5: 'text-[0.88em] font-semibold text-slate-700',
+  6: 'text-[0.82em] font-medium text-slate-600',
 }
 
-// Stream variant: absolute px so the hierarchy is clear against the 13.5 px body
+// Stream variant: absolute px anchored to 15 px body (set in MemoStreamCard wrapper).
+// Scale inspired by usememos/memos, compressed for card context.
+// h4 = same size as body, heavier weight; h5–h6 sub-body labels.
 const HEADING_CLASS_STREAM: Record<number, string> = {
-  1: 'text-[22px] font-bold leading-tight tracking-tight text-slate-900 border-b border-slate-200 pb-1.5 mt-6 mb-3',
-  2: 'text-[18px] font-bold leading-tight text-slate-800 border-b border-slate-200/60 pb-1 mt-5 mb-2',
+  1: 'text-[19px] font-bold leading-tight tracking-tight text-slate-900 border-b border-slate-200 pb-1.5 mt-6 mb-3',
+  2: 'text-[17px] font-bold leading-tight text-slate-800 mt-5 mb-2',
   3: 'text-[16px] font-semibold leading-snug text-slate-800 mt-4 mb-1',
-  4: 'text-[14px] font-semibold text-slate-800 mt-3 mb-0.5',
-  5: 'text-[12.5px] font-semibold text-slate-700 mt-2',
+  4: 'text-[15px] font-semibold text-slate-700 mt-3 mb-0.5',
+  5: 'text-[13px] font-semibold text-slate-700 mt-2',
   6: 'text-[12px] font-medium text-slate-500 mt-2',
 }
 
@@ -335,7 +339,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
         </div>
       ) : null}
       {parsed.checklistItems.length > 0 ? (
-        <ul className={`space-y-1.5 leading-relaxed text-slate-800/90 ${variant === 'stream' ? 'text-[13.5px]' : 'text-[1.05rem]'}`}>
+        <ul className={`space-y-1.5 leading-relaxed text-slate-800/90 ${variant === 'stream' ? 'text-[15px]' : 'text-[1.05rem]'}`}>
           {parsed.checklistItems.map((item) => {
             const lineIndex = typeof item.lineIndex === 'number' ? item.lineIndex : null
 
