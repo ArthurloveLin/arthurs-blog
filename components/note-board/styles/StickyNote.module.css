@@ -30,7 +30,7 @@
   min-height: 184px;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 12px;
+  gap: 8px;
   padding: 16px 15px;
   font-family: 'LXGW WenKai Screen', serif;
   transform-origin: center center;
@@ -130,6 +130,22 @@
   flex-shrink: 0;
   align-items: center;
   gap: 6px;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.actionsVisible {
+  opacity: 1;
+}
+
+.paper:hover .actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .paper .actions {
+    opacity: 1;
+  }
 }
 
 .author {
@@ -218,19 +234,21 @@
   align-items: center;
   justify-content: center;
   border: 0;
-  padding: 0;
+  padding: 4px;
+  border-radius: 999px;
   background: transparent;
   color: #0f172a;
   cursor: pointer;
   text-decoration: none;
-  transition: color 180ms ease, transform 180ms ease;
+  transition: color 180ms ease, transform 180ms ease, background 180ms ease;
 }
 
 .iconLink:hover,
 .iconLink:focus-visible,
 .iconButton:hover,
 .iconButton:focus-visible {
-  color: rgba(15, 23, 42, 0.72);
+  background: rgba(15, 23, 42, 0.07);
+  color: rgba(15, 23, 42, 0.85);
   transform: translateY(-1px);
 }
 

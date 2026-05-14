@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Archive, ArchiveRestore, PencilLine } from 'lucide-react'
+import { Archive, ArchiveRestore, PencilLine, Trash2 } from 'lucide-react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
@@ -15,8 +15,6 @@ import { formatCommentTimeLabel } from '@/lib/date-format'
 interface MemoStreamCardProps {
   item: NoteCardViewModel
 }
-
-const STREAM_CARD_LIFTED_SHADOW_CLASS = 'shadow-[0_18px_44px_rgba(15,23,42,0.12)]'
 
 export function MemoStreamCard({ item }: MemoStreamCardProps) {
   const {
@@ -66,9 +64,9 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
     <div
       ref={cardRef}
       className={[
-        `relative overflow-hidden rounded-[22px] border bg-card/85 p-5 pl-9 shadow-[0_10px_28px_rgba(15,23,42,0.06)] transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 hover:${STREAM_CARD_LIFTED_SHADOW_CLASS}`,
+        'relative overflow-hidden rounded-[22px] border bg-card/85 p-5 pl-9 shadow-[0_10px_28px_rgba(15,23,42,0.06)] transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 hover:shadow-[0_18px_44px_rgba(15,23,42,0.12)]',
         isEditing
-          ? `-translate-y-1 border-border bg-accent/35 ${STREAM_CARD_LIFTED_SHADOW_CLASS}`
+          ? '-translate-y-1 border-border bg-accent/35 shadow-[0_18px_44px_rgba(15,23,42,0.12)]'
           : 'border-border/60 hover:border-border/80',
         isOptimistic || isOptimisticEditing || isFresh
           ? 'animate-in fade-in slide-in-from-bottom-3 duration-300'
@@ -86,10 +84,11 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
         }}
       />
 
-      {/* Header: 时间 + 操作按钮 */}
+      {/* Header: 作者 + 时间 + 操作按钮 */}
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <span className="text-[12px] font-medium leading-none text-foreground/70">
+          <p className="text-[13px] font-medium leading-none text-foreground/85">{message.author}</p>
+          <span className="mt-1.5 block text-[11.5px] leading-none text-foreground/50">
             {formatCommentTimeLabel(message.created_at, message.updated_at)}
           </span>
         </div>
@@ -123,13 +122,12 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
             </>
           ) : null}
           {canDelete && actions.delete ? (
-            <button
-              type="button"
-              className="rounded-full px-2 py-0.5 text-[11px] text-rose-500/60 transition hover:bg-rose-50 hover:text-rose-600"
+            <NoteActionButton
+              label={confirmingAction === 'delete' ? '确认删除便签' : '删除便签'}
               onClick={() => setConfirmingAction((c) => (c === 'delete' ? null : 'delete'))}
             >
-              {confirmingAction === 'delete' ? '确认删除？' : '删除'}
-            </button>
+              <Trash2 size={14} strokeWidth={1.85} />
+            </NoteActionButton>
           ) : null}
         </div>
       </div>

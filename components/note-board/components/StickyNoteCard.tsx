@@ -500,7 +500,7 @@ function StickyNoteCardFrame({
                 {formatCommentTimeLabel(message.created_at, message.updated_at)}
               </p>
             </div>
-            <div className={styles.actions}>
+            <div className={[styles.actions, (confirmingAction !== null || isInlineEditing) ? styles.actionsVisible : ''].filter(Boolean).join(' ')}>
               {actions?.cta ? (
                 <Link
                   href={actions.cta.href}
@@ -636,9 +636,6 @@ function StickyNoteCardFrame({
               />
             </div>
           ) : null}
-          <p className="text-[10px] font-bold tracking-widest text-slate-500/70">
-            {formatCommentTimeLabel(message.created_at, message.updated_at)}
-          </p>
         </div>
       </div>
     </article>
