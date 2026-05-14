@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Layers, LayoutList } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import { VisibilityPicker } from '@/components/note-board/components/VisibilityPicker'
@@ -31,11 +31,6 @@ export { StickyStackPreview } from '@/components/note-board/views/StickyStackPre
 
 const MemosStreamView = dynamic(
   () => import('@/components/note-board/views/MemosStreamView').then((m) => m.MemosStreamView),
-)
-
-const MobileNoteList = dynamic(
-  () => import('@/components/note-board/views/MobileNoteList').then((module) => module.MobileNoteList),
-  { ssr: false },
 )
 
 const MobileStickyStack = dynamic(
@@ -71,19 +66,6 @@ function BoardStickyView({ onToggleViewMode, filters }: { onToggleViewMode: () =
     : filters.isFilterMode
       ? '没有匹配的内容。'
       : meta.board.emptyLabel
-  const mobileViewToggle = state.viewportReady && state.isMobileViewport ? (
-    <button
-      type="button"
-      className="flex items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent hover:text-foreground"
-      onClick={actions.toggleMobileView}
-    >
-      {state.mobileView === 'stack' ? (
-        <><LayoutList size={14} />列表视图</>
-      ) : (
-        <><Layers size={14} />卡片堆叠</>
-      )}
-    </button>
-  ) : null
 
   return (
     <MemoBoardShell
@@ -96,7 +78,6 @@ function BoardStickyView({ onToggleViewMode, filters }: { onToggleViewMode: () =
       filters={filters}
       searchPlaceholder={meta.board.slug === 'guestbook' ? '搜索留言内容…' : '搜索 Memo…'}
       allowPrioritySort={meta.board.slug === 'memo'}
-      extraControls={mobileViewToggle}
     >
       {!state.viewportReady ? (
         <div
@@ -111,7 +92,7 @@ function BoardStickyView({ onToggleViewMode, filters }: { onToggleViewMode: () =
         </div>
       ) : state.isMobileViewport ? (
         <div className="mb-12">
-          {state.mobileView === 'stack' ? <MobileStickyStack items={filteredNoteItems} /> : <MobileNoteList items={filteredNoteItems} />}
+          <MobileStickyStack items={filteredNoteItems} />
         </div>
       ) : (
         <div>

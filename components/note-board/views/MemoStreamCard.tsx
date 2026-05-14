@@ -62,7 +62,8 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
   }, [actions.edit, boardActions])
 
   const { theme } = useNoteColorTheme()
-  const accentColor = theme.colors[getStickyColorIndex(getStickyColorSeed(message))] ?? STICKY_COLORS[0]
+  const colorIdx = getStickyColorIndex(getStickyColorSeed(message))
+  const accentColor = theme.slots[colorIdx % theme.slots.length]?.tape ?? STICKY_COLORS[0]
 
   return (
     <div

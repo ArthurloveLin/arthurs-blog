@@ -3,7 +3,8 @@ import type { NoteMessage } from '@/lib/note-boards'
 import type { NotePosition, Size, OptimisticMessageSnapshot, NoteBoardListPayload } from '@/components/note-board/types'
 import { type NoteSortDirection, type NoteSortMode } from '@/lib/note-priority'
 
-export const STICKY_COLORS = ['#f8ef9f', '#ffd0a8', '#f8bfd3', '#c9eff3', '#d9ccff']
+// 7 entries matching the 7 color families (rose, butter, mint, sky, lilac, lavender, sage)
+export const STICKY_COLORS = ['#fbd9d3', '#fbe9a0', '#bfe4cf', '#c8def0', '#e5d0e8', '#d8caea', '#d6dbb8']
 export const NOTE_CARD_WIDTH = 200
 export const MOBILE_VIEWPORT_MAX_WIDTH = 767
 export const PREVIEW_CARD_SIZE = 200

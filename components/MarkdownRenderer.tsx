@@ -1,10 +1,13 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeSlug from 'rehype-slug'
+import rehypeKatex from 'rehype-katex'
 import Image from 'next/image'
 import CodeBlock from '@/components/CodeBlock'
 import 'highlight.js/styles/github-dark.css'
+import 'katex/dist/katex.min.css'
 
 export default function MarkdownRenderer({
   content,
@@ -19,8 +22,8 @@ export default function MarkdownRenderer({
   return (
     <div className="prose prose-gray max-w-none">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[[rehypeHighlight, { detect: true }], rehypeSlug]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[[rehypeHighlight, { detect: true }], rehypeSlug, rehypeKatex]}
         components={{
           p: ({ children }) => {
             paragraphCount++;

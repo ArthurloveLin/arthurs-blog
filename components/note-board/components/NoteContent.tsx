@@ -2,8 +2,10 @@
 
 import { Check } from 'lucide-react'
 import { memo, useMemo, type ReactNode } from 'react'
+import katex from 'katex'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
 import { parseNoteContent } from '@/components/note-board/utils/editor'
+import 'katex/dist/katex.min.css'
 
 interface NoteContentProps {
   content: string
@@ -12,7 +14,7 @@ interface NoteContentProps {
   checklistPending?: boolean
 }
 
-const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==|`[^`\n]+`|~~[^~\n]+~~|\[[^\]]+\]\([^)]+\)|#[\w一-龥]+)/g
+const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==|`[^`\n]+`|~~[^~\n]+~~|\[[^\]]+\]\([^)]+\)|#[\w一-龥]+|\$\$[^$\n]+\$\$|\$(?!\$)[^$\n]+\$)/g
 
 function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = []
@@ -68,6 +70,12 @@ function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[]
       } else {
         nodes.push(token)
       }
+    } else if (token.startsWith('$$') && token.endsWith('$$')) {
+      const html = katex.renderToString(token.slice(2, -2), { throwOnError: false, displayMode: true })
+      nodes.push(<span key={`${keyPrefix}-dm-${index}`} dangerouslySetInnerHTML={{ __html: html }} />)
+    } else if (token.startsWith('$') && token.endsWith('$')) {
+      const html = katex.renderToString(token.slice(1, -1), { throwOnError: false, displayMode: false })
+      nodes.push(<span key={`${keyPrefix}-im-${index}`} dangerouslySetInnerHTML={{ __html: html }} />)
     }
 
     cursor = tokenStart + token.length
@@ -163,6 +171,9 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
     const result: ReactNode[] = []
     let inCodeBlock = false
     let currentCode: string[] = []
+    let inMathBlock = false
+    let currentMath: string[] = []
+    let mathBlockStart = 0
     let tableBuffer: string[] = []
     let tableStart = 0
     let listBuffer: string[] = []
@@ -198,6 +209,37 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
+
+      // Display math fence ($$...$$)
+      if (line.startsWith('$$')) {
+        flushTable(i)
+        flushList()
+        const singleLine = line.match(/^\$\$(.+)\$\$$/)
+        if (singleLine) {
+          const html = katex.renderToString(singleLine[1], { throwOnError: false, displayMode: true })
+          result.push(
+            <div key={`math-${i}`} className={`my-2 overflow-x-auto text-center ${isStream ? 'py-1' : ''}`}
+              dangerouslySetInnerHTML={{ __html: html }} />
+          )
+        } else if (inMathBlock) {
+          const html = katex.renderToString(currentMath.join('\n'), { throwOnError: false, displayMode: true })
+          result.push(
+            <div key={`math-${mathBlockStart}`} className={`my-2 overflow-x-auto text-center ${isStream ? 'py-1' : ''}`}
+              dangerouslySetInnerHTML={{ __html: html }} />
+          )
+          currentMath = []
+          inMathBlock = false
+        } else {
+          inMathBlock = true
+          mathBlockStart = i
+        }
+        continue
+      }
+
+      if (inMathBlock) {
+        currentMath.push(line)
+        continue
+      }
 
       // Code block fence
       if (line.startsWith('```')) {
@@ -313,9 +355,16 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       )
     }
 
-    // Flush trailing table, list, or code block
+    // Flush trailing table, list, code block, or math block
     flushTable(lines.length)
     flushList()
+    if (inMathBlock && currentMath.length > 0) {
+      const html = katex.renderToString(currentMath.join('\n'), { throwOnError: false, displayMode: true })
+      result.push(
+        <div key={`math-${mathBlockStart}-final`} className="my-2 overflow-x-auto text-center"
+          dangerouslySetInnerHTML={{ __html: html }} />
+      )
+    }
     if (inCodeBlock && currentCode.length > 0) {
       result.push(
         <pre key="cb-final" className={styles.codeBlock}>
