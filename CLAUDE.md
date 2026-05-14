@@ -75,7 +75,7 @@ When modifying a shared component, call it out explicitly. Don't silently refact
 
 ## Git Policy
 
-**Never `git push` unless the user explicitly says to push.** Commit freely after passing `npm run check`, but hold the push until instructed.
+> **HARD RULE — no exceptions:** Never run `git push` unless the user's message contains an explicit instruction to push (e.g., "推送", "push", "提交推送"). Finishing a task does NOT imply permission to push. Commit freely after `npm run check` passes, then stop — wait for the push command.
 
 ## Commands
 
