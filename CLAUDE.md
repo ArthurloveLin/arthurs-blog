@@ -6,6 +6,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - [`components/note-board/CLAUDE.md`](components/note-board/CLAUDE.md) — Note Board / Guestbook module: shell architecture, filter state flow, card component split, NoteActionButton convention, color theming.
 
+## Coding Conventions
+
+### Think Before Coding
+
+Before implementing, **state your interpretation** if a request could be read multiple ways. Don't pick silently — present the options and confirm.
+
+Name any shared infrastructure your change will touch. This codebase has several high-blast-radius pieces:
+- `engagement-worker` — sole write path for all comments, reactions, emoji
+- `MemoBoardShell` — shared shell for both `/memo` and `/guestbook`
+- `SiteDataProvider` / root layout — feeds every page's sidebar data
+- `lib/cloudflare-cache.ts` — must be called after mutations that have CDN cache headers
+
+When scope is ambiguous (especially for data-layer or worker changes), ask rather than assume.
+
+### Multi-Step Tasks
+
+For non-trivial tasks, state a brief plan before starting:
+
+```
+1. [step] → verify: [check]
+2. [step] → verify: [check]
+```
+
+Run `npm run check` after each significant step. No test suite exists, so type-check + lint is the only automated safety net.
+
+### Shared Code
+
+When modifying a shared component, call it out explicitly. Don't silently refactor adjacent code — if you notice unrelated issues, mention them instead of fixing them in the same change.
+
+---
+
 ## Git Policy
 
 **Never `git push` unless the user explicitly says to push.** Commit freely after passing `npm run check`, but hold the push until instructed.
