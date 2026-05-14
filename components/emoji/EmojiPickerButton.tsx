@@ -130,7 +130,7 @@ export default function EmojiPickerButton({
   }, [open, panelAlign])
 
   return (
-    <div ref={containerRef} className="relative inline-flex">
+    <div ref={containerRef} className="relative inline-flex shrink-0">
       <button
         ref={triggerRef}
         type="button"

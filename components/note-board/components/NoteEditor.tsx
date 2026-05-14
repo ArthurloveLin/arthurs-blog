@@ -62,7 +62,7 @@ function ToolbarIconButton({
       aria-label={label}
       title={label}
       disabled={disabled}
-      className={`inline-flex ${sizeClass} items-center justify-center transition-all ${variant !== 'bare' ? 'rounded-full border' : ''} ${variantClassName}`}
+      className={`inline-flex shrink-0 ${sizeClass} items-center justify-center transition-all ${variant !== 'bare' ? 'rounded-full border' : ''} ${variantClassName}`}
       onClick={onClick}
     >
       {children}
