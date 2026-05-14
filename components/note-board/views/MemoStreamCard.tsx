@@ -34,8 +34,9 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
     isEditing,
   } = item
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
-  const [showComments, setShowComments] = useState(false)
+  const [showComments, setShowComments] = useState(() => (message.comment_count ?? 0) > 0)
   const [commentCountDelta, setCommentCountDelta] = useState(0)
+  const [liveCommentCount, setLiveCommentCount] = useState<number | null>(null)
   const boardActions = useNoteBoardActions()
   const cardRef = useRef<HTMLDivElement>(null)
   const wasEditingRef = useRef(false)
@@ -210,13 +211,21 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
           ].join(' ')}
         >
           <MessageCircle size={13} strokeWidth={1.8} />
-          {(message.comment_count ?? 0) + commentCountDelta > 0
-            ? `${(message.comment_count ?? 0) + commentCountDelta} 条评论`
-            : '评论'}
+          {(() => {
+            const base = liveCommentCount ?? (message.comment_count ?? 0)
+            const total = base + commentCountDelta
+            return total > 0 ? `${total} 条评论` : '评论'
+          })()}
         </button>
       </div>
 
-      {showComments && <NoteCommentPanel noteId={message.id} onCommentAdded={() => setCommentCountDelta((d) => d + 1)} />}
+      {showComments && (
+        <NoteCommentPanel
+          noteId={message.id}
+          onCommentAdded={() => setCommentCountDelta((d) => d + 1)}
+          onCountLoaded={(count) => setLiveCommentCount(count)}
+        />
+      )}
     </div>
   )
 }

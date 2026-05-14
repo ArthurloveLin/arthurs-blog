@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import CommentBox from '@/components/CommentBox'
 import { formatCommentTimeLabel } from '@/lib/date-format'
 import { fetchEngagementPublicApi } from '@/lib/engagement-public-api'
@@ -9,6 +9,7 @@ import type { Comment } from '@/lib/comments'
 interface NoteCommentPanelProps {
   noteId: string
   onCommentAdded?: () => void
+  onCountLoaded?: (count: number) => void
 }
 
 function PreviewCommentCard({ comment }: { comment: Comment }) {
@@ -23,31 +24,50 @@ function PreviewCommentCard({ comment }: { comment: Comment }) {
   )
 }
 
-export function NoteCommentPanel({ noteId, onCommentAdded }: NoteCommentPanelProps) {
+export function NoteCommentPanel({ noteId, onCommentAdded, onCountLoaded }: NoteCommentPanelProps) {
   const [phase, setPhase] = useState<'preview' | 'full'>('preview')
   const [comments, setComments] = useState<Comment[]>([])
   const [total, setTotal] = useState(0)
   // Start as loading=true; only flipped to false inside async callbacks.
   const [loading, setLoading] = useState(true)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let cancelled = false
 
-    const params = new URLSearchParams({ target_type: 'note', target_id: noteId })
-    void fetchEngagementPublicApi(`/api/comments?${params.toString()}`)
-      .then((res) => (res.ok ? (res.json() as Promise<Comment[]>) : []))
-      .then((data) => {
-        if (cancelled) return
-        setComments(data)
-        setTotal(data.length)
-        setLoading(false)
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false)
-      })
+    const doFetch = () => {
+      const params = new URLSearchParams({ target_type: 'note', target_id: noteId })
+      void fetchEngagementPublicApi(`/api/comments?${params.toString()}`)
+        .then((res) => (res.ok ? (res.json() as Promise<Comment[]>) : []))
+        .then((data) => {
+          if (cancelled) return
+          setComments(data)
+          setTotal(data.length)
+          setLoading(false)
+          onCountLoaded?.(data.length)
+        })
+        .catch(() => {
+          if (!cancelled) setLoading(false)
+        })
+    }
+
+    const el = containerRef.current
+    if (!el) { doFetch(); return () => { cancelled = true } }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          observer.disconnect()
+          doFetch()
+        }
+      },
+      { rootMargin: '120px' },
+    )
+    observer.observe(el)
 
     return () => {
       cancelled = true
+      observer.disconnect()
     }
   }, [noteId])
 
@@ -62,7 +82,7 @@ export function NoteCommentPanel({ noteId, onCommentAdded }: NoteCommentPanelPro
   const previewItems = comments.filter((c) => !c.parent_id).slice(0, 2)
 
   return (
-    <div className="mt-4 space-y-2 border-t border-border/25 pt-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
+    <div ref={containerRef} className="mt-4 space-y-2 border-t border-border/25 pt-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
       {loading ? (
         <div className="h-[52px] animate-pulse rounded-[14px] bg-muted/25" />
       ) : previewItems.length > 0 ? (
