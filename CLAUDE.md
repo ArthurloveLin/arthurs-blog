@@ -6,6 +6,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - [`components/note-board/CLAUDE.md`](components/note-board/CLAUDE.md) — Note Board / Guestbook module: shell architecture, filter state flow, card component split, NoteActionButton convention, color theming.
 
+## Living Documentation
+
+This project uses a three-layer system. Claude is expected to actively maintain all three.
+
+| Layer | Location | Purpose |
+|---|---|---|
+| Memory | `~/.claude/projects/.../memory/` | User preferences, session feedback, cross-session project state |
+| Root CLAUDE.md | This file | Project-wide conventions, architectural facts, high-blast-radius zones |
+| Sub-module CLAUDE.md | `<module>/CLAUDE.md` | Module-specific non-obvious patterns |
+
+### What is worth documenting
+
+Write when you discover or establish:
+- A pattern that cannot be derived by reading the code
+- A convention decided in this session (naming, structure, visual rules)
+- A hard constraint or banned alternative that would trip up a future Claude
+- A stale entry — update or remove it immediately, never leave contradictory entries side by side
+
+Do not document: things derivable from code reading, git history, ephemeral task state, or anything already captured elsewhere.
+
+### When to propose documentation
+
+- **Mid-task** — when a non-obvious pattern surfaces or a new convention is established, capture it then, not at the end.
+- **After exploring a module** — if no sub-module CLAUDE.md exists, ask whether one should be created.
+- **After completing a significant task** — close with: "Should I document any findings from this session?"
+
+### Sub-module CLAUDE.md checklist
+
+A good sub-module CLAUDE.md answers four questions:
+1. What does each file own? (brief file map)
+2. What are the non-obvious architectural decisions?
+3. What are the hard constraints? (must-use patterns, banned alternatives)
+4. What would a future Claude naturally get wrong here?
+
+---
+
 ## Coding Conventions
 
 ### Think Before Coding
