@@ -349,14 +349,14 @@ export function MemoBoardShell({
           <p className="font-mono text-[11.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
           <p className="mt-0.5 text-[12px] text-muted-foreground/60">{summary}</p>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto">
-          <div className="flex min-w-0 items-center gap-2 sm:justify-end">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <div className="flex min-w-0 items-center gap-2">
             <div className="min-w-0 flex-1 sm:flex-none">
               <MemoSearchField placeholder={searchPlaceholder} />
             </div>
             <MemoSortDropdown allowPrioritySort={allowPrioritySort} />
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
             {extraControls}
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
               <button

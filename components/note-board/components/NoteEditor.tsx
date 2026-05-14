@@ -210,6 +210,71 @@ export function NoteEditor({
     input.click()
   }
 
+  const formattingButtons = (
+    <>
+      <EmojiPickerButton
+        size={buttonSize}
+        panelAlign="start"
+        triggerVariant={emojiTriggerVariant}
+        onSelect={(emoji) => withSelection((text, start, end) => {
+          const result = insertTextAtSelection(text, emoji, start, end)
+          return { value: result.value, selection: { start: result.selectionStart, end: result.selectionEnd } }
+        })}
+      />
+      <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection(insertChecklistSyntax)} label="插入 checklist">
+        <ListTodo size={iconSize} strokeWidth={1.8} />
+      </ToolbarIconButton>
+      <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '**'))} label="加粗">
+        <Bold size={iconSize} strokeWidth={1.8} />
+      </ToolbarIconButton>
+      <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '*'))} label="斜体">
+        <Italic size={iconSize} strokeWidth={1.8} />
+      </ToolbarIconButton>
+      <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '=='))} label="高亮">
+        <Highlighter size={iconSize} strokeWidth={1.8} />
+      </ToolbarIconButton>
+      <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => {
+        const isMultiline = text.slice(start, end).includes('\n')
+        if (isMultiline) return wrapSelectionWithSyntax(text, start, end, '```\n', '\n```')
+        return wrapSelectionWithSyntax(text, start, end, '`')
+      })} label="插入代码">
+        <Code size={iconSize} strokeWidth={1.8} />
+      </ToolbarIconButton>
+      {!compactToolbar ? (
+        <>
+          <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '~~'))} label="删除线">
+            <Strikethrough size={iconSize} strokeWidth={1.8} />
+          </ToolbarIconButton>
+          <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => insertLinePrefixSyntax(text, start, end, '## '))} label="标题 H2">
+            <Heading2 size={iconSize} strokeWidth={1.8} />
+          </ToolbarIconButton>
+          <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => insertLinePrefixSyntax(text, start, end, '> '))} label="引用块">
+            <Quote size={iconSize} strokeWidth={1.8} />
+          </ToolbarIconButton>
+          <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={insertLinkTemplate} label="插入链接">
+            <Link2 size={iconSize} strokeWidth={1.8} />
+          </ToolbarIconButton>
+          <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={handleImageButtonClick} disabled={isUploading} label="上传图片">
+            <ImageIcon size={iconSize} strokeWidth={1.8} />
+          </ToolbarIconButton>
+        </>
+      ) : null}
+    </>
+  )
+
+  const actionButtons = (
+    <>
+      {onCancel && showCancelButton ? (
+        <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={onCancel} label="取消编辑">
+          <X size={iconSize} strokeWidth={1.8} />
+        </ToolbarIconButton>
+      ) : null}
+      <ToolbarIconButton size={buttonSize} onClick={onSave} label={isSaving ? '保存中' : saveLabel} disabled={isSaving || saveDisabled || isUploading} emphasize>
+        <Check size={iconSize} strokeWidth={2} />
+      </ToolbarIconButton>
+    </>
+  )
+
   return (
     <div className="w-full min-w-0 max-w-full space-y-3">
       <div className="grid w-full min-w-0 max-w-full">
@@ -262,74 +327,25 @@ export function NoteEditor({
       ) : null}
 
       <div className={["w-full min-w-0 max-w-full", shellClassName].join(' ')}>
-        <EditorActionBar
-          noWrap
-          className={['border-t-0', toolbarClassName].join(' ')}
-          leading={(
-            <>
-              {toolbarLeadingAddon}
-              <EmojiPickerButton
-                size={buttonSize}
-                panelAlign="start"
-                triggerVariant={emojiTriggerVariant}
-                onSelect={(emoji) => withSelection((text, start, end) => {
-                  const result = insertTextAtSelection(text, emoji, start, end)
-                  return { value: result.value, selection: { start: result.selectionStart, end: result.selectionEnd } }
-                })}
-              />
-              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection(insertChecklistSyntax)} label="插入 checklist">
-                <ListTodo size={iconSize} strokeWidth={1.8} />
-              </ToolbarIconButton>
-              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '**'))} label="加粗">
-                <Bold size={iconSize} strokeWidth={1.8} />
-              </ToolbarIconButton>
-              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '*'))} label="斜体">
-                <Italic size={iconSize} strokeWidth={1.8} />
-              </ToolbarIconButton>
-              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '=='))} label="高亮">
-                <Highlighter size={iconSize} strokeWidth={1.8} />
-              </ToolbarIconButton>
-              <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => {
-                const isMultiline = text.slice(start, end).includes('\n')
-                if (isMultiline) return wrapSelectionWithSyntax(text, start, end, '```\n', '\n```')
-                return wrapSelectionWithSyntax(text, start, end, '`')
-              })} label="插入代码">
-                <Code size={iconSize} strokeWidth={1.8} />
-              </ToolbarIconButton>
-              {!compactToolbar ? (
-                <>
-                  <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '~~'))} label="删除线">
-                    <Strikethrough size={iconSize} strokeWidth={1.8} />
-                  </ToolbarIconButton>
-                  <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => insertLinePrefixSyntax(text, start, end, '## '))} label="标题 H2">
-                    <Heading2 size={iconSize} strokeWidth={1.8} />
-                  </ToolbarIconButton>
-                  <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => insertLinePrefixSyntax(text, start, end, '> '))} label="引用块">
-                    <Quote size={iconSize} strokeWidth={1.8} />
-                  </ToolbarIconButton>
-                  <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={insertLinkTemplate} label="插入链接">
-                    <Link2 size={iconSize} strokeWidth={1.8} />
-                  </ToolbarIconButton>
-                  <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={handleImageButtonClick} disabled={isUploading} label="上传图片">
-                    <ImageIcon size={iconSize} strokeWidth={1.8} />
-                  </ToolbarIconButton>
-                </>
-              ) : null}
-            </>
-          )}
-          trailing={(
-            <>
-              {onCancel && showCancelButton ? (
-                <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={onCancel} label="取消编辑">
-                  <X size={iconSize} strokeWidth={1.8} />
-                </ToolbarIconButton>
-              ) : null}
-              <ToolbarIconButton size={buttonSize} onClick={onSave} label={isSaving ? '保存中' : saveLabel} disabled={isSaving || saveDisabled || isUploading} emphasize>
-                <Check size={iconSize} strokeWidth={2} />
-              </ToolbarIconButton>
-            </>
-          )}
-        />
+        {/* Mobile: formatting tools row + actions row stacked */}
+        <div className="sm:hidden">
+          <div className={`flex flex-nowrap items-center gap-1.5 overflow-x-auto ${toolbarClassName} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
+            {toolbarLeadingAddon}
+            {formattingButtons}
+          </div>
+          <div className="flex items-center justify-end gap-2 border-t border-border/60 px-3 py-2">
+            {actionButtons}
+          </div>
+        </div>
+        {/* Desktop: original single-row layout */}
+        <div className="hidden sm:block">
+          <EditorActionBar
+            noWrap
+            className={['border-t-0', toolbarClassName].join(' ')}
+            leading={<>{toolbarLeadingAddon}{formattingButtons}</>}
+            trailing={actionButtons}
+          />
+        </div>
       </div>
     </div>
   )
