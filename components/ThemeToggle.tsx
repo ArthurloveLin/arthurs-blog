@@ -3,7 +3,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { Sun, Moon, Check } from 'lucide-react'
-import MarkdownThemePicker from '@/components/MarkdownThemePicker'
+import dynamic from 'next/dynamic'
+
+const MarkdownThemePicker = dynamic(() => import('@/components/MarkdownThemePicker'), { ssr: false })
 
 const themes = [
   { id: 'light', name: '默认 (紫)', color: 'bg-violet-500' },

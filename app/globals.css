@@ -734,7 +734,7 @@ html {
 
 /* ═══ MD Render Theme System ═════════════════════════════════════════════════
    CSS variables drive all prose element colors. The data-md-theme attribute
-   on <html> (set by MarkdownThemeProvider) selects the active theme.
+   on <html> (set by inline script in layout.tsx) selects the active theme.
    Default (mono) values live in :root / .dark so prose renders correctly
    even before the client script fires.
    ══════════════════════════════════════════════════════════════════════════ */
