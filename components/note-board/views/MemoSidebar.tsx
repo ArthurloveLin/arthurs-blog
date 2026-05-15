@@ -6,7 +6,12 @@ import {
   useNoteBoardActions,
   useNoteBoardBoardState,
 } from '@/components/note-board/NoteBoardProvider'
+import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { formatStableDate } from '@/lib/date-format'
+
+function hexToRgb(hex: string): string {
+  return `${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)}`
+}
 
 export const CHIP_COLORS = [
   '#c0644a', '#7a5ae0', '#1f8a5b',
@@ -71,6 +76,8 @@ export interface SidebarCalendarProps {
 }
 
 export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate }: SidebarCalendarProps) {
+  const { theme } = useNoteColorTheme()
+  const heatColor = theme.shell[1]
   const today = useMemo(() => {
     const { year, month, day } = getShanghaDateParts(new Date())
     return { year, month, day, key: toDateKey(year, month, day) }
@@ -151,7 +158,7 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate }: 
           const count = memoDateCounts.get(key) ?? 0
           const isSelected = selectedDate === key
           const isToday = key === today.key
-          const heatOpacity = hasMemos && maxCount > 0 ? 0.08 + 0.22 * (count / maxCount) : 0
+          const heatOpacity = hasMemos && maxCount > 0 ? 0.15 + 0.45 * (count / maxCount) : 0
           return (
             <button
               key={i}
@@ -168,12 +175,12 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate }: 
                       ? 'text-foreground hover:bg-accent'
                       : 'cursor-default text-muted-foreground/40',
               ].join(' ')}
-              style={hasMemos && !isSelected ? { backgroundColor: `rgba(192,100,74,${heatOpacity})` } : undefined}
+              style={hasMemos && !isSelected ? { backgroundColor: `rgba(${hexToRgb(heatColor)},${heatOpacity})` } : undefined}
               title={hasMemos ? `${count} 条 Memo` : undefined}
             >
               {cell.day}
               {hasMemos && !isSelected ? (
-                <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#c0644a]/50" />
+                <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full" style={{ backgroundColor: heatColor, opacity: 0.65 }} />
               ) : null}
             </button>
           )

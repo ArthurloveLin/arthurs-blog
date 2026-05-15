@@ -81,13 +81,13 @@ function BoardStickyView({ onToggleViewMode, filters }: { onToggleViewMode: () =
     >
       {!state.viewportReady ? (
         <div
-          className="rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-6"
+          className="rounded-[28px] p-5 sm:p-6"
           style={{ minHeight: 380 }}
         >
-          <div className="h-full min-h-[280px] rounded-[24px] border border-dashed border-border/70 bg-white/55" />
+          <div className="h-full min-h-[280px] rounded-[24px] border border-dashed border-border/50 bg-background/15" />
         </div>
       ) : filteredNoteItems.length === 0 ? (
-        <div className="flex min-h-[280px] items-center justify-center rounded-[24px] border border-dashed border-border/70 bg-white/55 text-center text-sm text-muted-foreground">
+        <div className="flex min-h-[280px] items-center justify-center rounded-[24px] border border-dashed border-border/50 bg-background/15 text-center text-sm text-muted-foreground">
           {emptyLabel}
         </div>
       ) : state.isMobileViewport ? (
@@ -98,7 +98,7 @@ function BoardStickyView({ onToggleViewMode, filters }: { onToggleViewMode: () =
         <div>
           <div
             ref={bindContainer}
-            className="note-board-canvas relative overflow-hidden rounded-[28px] border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_45%,rgba(241,245,249,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-6"
+            className="note-board-canvas relative overflow-hidden rounded-[28px] p-5 sm:p-6"
             style={{ minHeight: Math.max(meta.surface.height, 420) }}
           >
             {!meta.surface.hasMeasured ? null : (

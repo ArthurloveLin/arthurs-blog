@@ -129,7 +129,7 @@ No test suite is configured.
 
 ## Architecture
 
-Personal blog + wardrobe management app. Next.js 15 (with `viewTransition` experimental enabled), React 19, TypeScript, Tailwind CSS 4, Supabase (PostgreSQL + Auth), Cloudflare R2 for file storage. Deployed as a standalone Docker image.
+Personal blog + wardrobe management app. Next.js 16 (with `viewTransition` experimental enabled), React 19, TypeScript, Tailwind CSS 4, Supabase (PostgreSQL + Auth), Cloudflare R2 for file storage. Deployed as a standalone Docker image.
 
 ### Application Routes
 
@@ -148,6 +148,9 @@ Personal blog + wardrobe management app. Next.js 15 (with `viewTransition` exper
 ### Data Layer
 
 - **Blog posts**: Markdown files in R2 with YAML frontmatter (parsed by `gray-matter`), metadata indexed into Supabase via `/api/blog/reindex`. `lib/blog.ts` handles all queries with `unstable_cache` tag-based caching (`posts`, `categories`, `tags`).
+  - **Cache TTL constraint**: never use `revalidate: false` for blog `unstable_cache` entries. `revalidateTag()` only clears the in-memory stale-tag set; the actual data lives in `.next/cache/fetch-cache/` on disk. After a process restart (Docker redeploy, `next dev` restart), the in-memory markers are gone and on-disk stale data is served as fresh indefinitely. All blog caches must carry a TTL (post content/meta: 86400s; aggregates: 3600s; sidebar: 1800s) — reindex's `revalidateTag()` handles immediate invalidation, the TTL is the restart-recovery fallback.
+  - Reindex delta detection uses `R2 lastModified > DB updated_at`; `updated_at` is set to `new Date().toISOString()` (Node.js clock) inside `upsertPost()`. Force a full reindex with `?force=1` if delta is suspected to be wrong.
+  - `purgeCloudflareFiles()` returns `{ success, purged, errors }` and the reindex response includes a `cloudflare` field — check it to confirm CF cache was actually cleared.
 - **Wardrobe/Sessions**: Fully in Supabase. Items belong to sessions, have categories, multi-dimension ratings, notes, price. Supabase Realtime used for live updates (`RealtimeSync.tsx`). Images uploaded as WebP to R2 under `{sessionToken}/{itemId}.webp`. Session-level templates defined in `lib/templates.ts` (wardrobe, games, etc.).
 - **Recipes**: Stored in Supabase with versioning/revision snapshots. `lib/recipes.ts` handles CRUD, revision history, and ingredient/step management.
 - **Comments & Reactions**: Routed through the `engagement-worker` (Cloudflare Durable Objects). The Next.js app never writes comments directly to Supabase — it proxies via `lib/engagement-public-api.ts` → worker. Post reactions (upvote/downvote) and emoji reactions are batched and flushed by the worker. `lib/comments-server.ts` reads comment threads server-side.
@@ -202,5 +205,5 @@ The Next.js app communicates with `engagement-worker` via `NEXT_PUBLIC_ENGAGEMEN
 | `/memo`, `/guestbook` | `s-maxage=120, stale-while-revalidate=3600` |
 | `/wardrobe` | `no-store` |
 | `/recipe/*` | `s-maxage=3600, stale-while-revalidate=86400` |
-| Blog posts | 24h (set in blog API routes) |
+| `/blog/:path*` | no explicit header — Next.js ISR default (`s-maxage=31536000`) |
 | Homepage | 1h |
