@@ -274,9 +274,10 @@ export async function POST(request: Request) {
     }
   }
 
-  if ((updatedResults.length > 0 || deleted > 0) && process.env.CF_ZONE_ID && process.env.CF_API_TOKEN) {
-    await purgeCloudflareFiles(new URL(request.url).origin, cloudflarePurgePaths)
+  let cloudflare: { success: boolean; purged: number; errors?: string[] } | null = null
+  if (updatedResults.length > 0 || deleted > 0) {
+    cloudflare = await purgeCloudflareFiles(new URL(request.url).origin, cloudflarePurgePaths)
   }
 
-  return NextResponse.json({ summary, details: results })
+  return NextResponse.json({ summary, cloudflare, details: results })
 }

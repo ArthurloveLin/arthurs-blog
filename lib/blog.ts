@@ -122,7 +122,7 @@ export const getRecentPostsMetadata = unstable_cache(
     return (data ?? []) as Post[]
   },
   ['recent-posts-metadata'],
-  { revalidate: false, tags: [BLOG_CACHE_TAGS.recentPosts] }
+  { revalidate: 1800, tags: [BLOG_CACHE_TAGS.recentPosts] }
 )
 
 export const getPostsCount = unstable_cache(
@@ -140,7 +140,7 @@ export const getPostsCount = unstable_cache(
     }
   },
   ['posts-count'],
-  { revalidate: false, tags: [BLOG_CACHE_TAGS.postsCount] }
+  { revalidate: 1800, tags: [BLOG_CACHE_TAGS.postsCount] }
 )
 
 export async function getPostsByTag(tag: string, limit = 20, offset = 0): Promise<Post[]> {
@@ -190,7 +190,7 @@ export const getPostsByTags = cache(async function getPostsByTags(
     },
     ['posts-by-tags', encodedTags.join(','), String(limit), String(offset)],
     {
-      revalidate: false,
+      revalidate: 3600,
       tags: normalizedTags.length > 0
         ? normalizedTags.map((tag) => getTagPostsTag(tag))
         : [BLOG_CACHE_TAGS.allTags],
@@ -217,7 +217,7 @@ export const getPostMeta = cache(async function getPostMeta(slug: string): Promi
       return post
     },
     ['post-meta', encodedSlug],
-    { revalidate: false, tags: [getPostMetaTag(normalizedSlug)] }
+    { revalidate: 86400, tags: [getPostMetaTag(normalizedSlug)] }
   )()
 })
 
@@ -244,7 +244,7 @@ export const getPostContent = cache(async function getPostContent(post: Post): P
         : processed
     },
     [`post-rendered-content-${encodedKey}`],
-    { revalidate: false, tags: [getPostContentTag(normalizedSlug), getPostRawTag(post.r2_key)] }
+    { revalidate: 86400, tags: [getPostContentTag(normalizedSlug), getPostRawTag(post.r2_key)] }
   )()
 })
 
@@ -335,7 +335,7 @@ export const getPostsByCategory = cache(async function getPostsByCategory(
       return data ?? []
     },
     ['posts-by-category', normalizeCacheTagSegment(normalizedCategory), String(limit), String(offset)],
-    { revalidate: false, tags: [getCategoryPostsTag(normalizedCategory)] }
+    { revalidate: 3600, tags: [getCategoryPostsTag(normalizedCategory)] }
   )()
 })
 
@@ -355,7 +355,7 @@ export const getCategories = unstable_cache(
     }
   },
   ['categories'],
-  { revalidate: false, tags: [BLOG_CACHE_TAGS.categories] }
+  { revalidate: 3600, tags: [BLOG_CACHE_TAGS.categories] }
 )
 
 export const getPostsByYear = cache(async function getPostsByYear(
@@ -384,7 +384,7 @@ export const getPostsByYear = cache(async function getPostsByYear(
       return data ?? []
     },
     ['posts-by-year', String(year), String(limit), String(offset)],
-    { revalidate: false, tags: [getArchivePostsTag(year)] }
+    { revalidate: 3600, tags: [getArchivePostsTag(year)] }
   )()
 })
 
@@ -403,7 +403,7 @@ export const getYearArchive = unstable_cache(
     }
   },
   ['year-archive'],
-  { revalidate: false, tags: [BLOG_CACHE_TAGS.yearArchive] }
+  { revalidate: 3600, tags: [BLOG_CACHE_TAGS.yearArchive] }
 )
 
 export const getAllTags = unstable_cache(
@@ -421,7 +421,7 @@ export const getAllTags = unstable_cache(
     }
   },
   ['all-tags'],
-  { revalidate: false, tags: [BLOG_CACHE_TAGS.allTags] }
+  { revalidate: 3600, tags: [BLOG_CACHE_TAGS.allTags] }
 )
 
 export const getSiteConfig = unstable_cache(
