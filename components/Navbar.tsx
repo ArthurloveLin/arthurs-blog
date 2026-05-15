@@ -12,6 +12,7 @@ import { useTheme } from 'next-themes'
 import { useSiteConfig } from './SiteDataProvider'
 import { Menu, X, Settings, User, LayoutList, Tag, Clock, Archive, Wrench } from 'lucide-react'
 import NavbarSearch from './NavbarSearch'
+import MarkdownThemePicker from './MarkdownThemePicker'
 import {
   BLOG_RETURN_CURRENT_POST_ID_KEY,
   BLOG_RETURN_CURRENT_POST_SLUG_KEY,
@@ -551,6 +552,8 @@ function NavbarContent() {
                     </button>
                   ))}
                 </div>
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">文字主题</div>
+                <MarkdownThemePicker />
               </div>
               <NavMobileAuthSection onClose={closeMobileNavigation} />
             </div>
