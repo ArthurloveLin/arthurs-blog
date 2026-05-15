@@ -69,7 +69,7 @@ export function NoteCommentPanel({ noteId, onCommentAdded, onCountLoaded }: Note
       cancelled = true
       observer.disconnect()
     }
-  }, [noteId])
+  }, [noteId, onCountLoaded])
 
   if (phase === 'full') {
     return (
