@@ -12,7 +12,6 @@ import { useTheme } from 'next-themes'
 import { useSiteConfig } from './SiteDataProvider'
 import { Menu, X, Settings, User, LayoutList, Tag, Clock, Archive, Wrench } from 'lucide-react'
 import NavbarSearch from './NavbarSearch'
-import MarkdownThemePicker from './MarkdownThemePicker'
 import {
   BLOG_RETURN_CURRENT_POST_ID_KEY,
   BLOG_RETURN_CURRENT_POST_SLUG_KEY,
@@ -23,6 +22,7 @@ import {
 } from '@/lib/blog-return'
 
 const ThemeToggle = dynamic(() => import('./ThemeToggle'), { ssr: false })
+const MarkdownThemePicker = dynamic(() => import('./MarkdownThemePicker'), { ssr: false })
 import MobileDrawers, { preloadMobileDrawerModules } from './MobileDrawers'
 import { NavbarUiStateProvider, useNavbarUiState, type DrawerType } from './NavbarUiState'
 
