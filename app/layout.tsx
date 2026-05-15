@@ -34,7 +34,6 @@ import { ThemeProvider } from "next-themes";
 import { getSiteConfig, getPostsCount, getCategories, getAllTags, getYearArchive, getRecentPostsMetadata } from "@/lib/blog";
 import { SiteDataProvider } from "@/components/SiteDataProvider"
 import { getCurrentUser, getUserRole } from "@/lib/auth";
-import MarkdownThemeProvider from "@/components/MarkdownThemeProvider";
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -85,7 +84,6 @@ export default async function RootLayout({
             themes={["light", "dark", "ocean", "sunset", "forest"]}
             disableTransitionOnChange
           >
-            <MarkdownThemeProvider />
             <AuthProvider initialData={initialAuth}>
               <SiteDataProvider
                 initialState={{
