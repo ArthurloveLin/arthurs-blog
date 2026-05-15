@@ -34,6 +34,7 @@ import { ThemeProvider } from "next-themes";
 import { getSiteConfig, getPostsCount, getCategories, getAllTags, getYearArchive, getRecentPostsMetadata } from "@/lib/blog";
 import { SiteDataProvider } from "@/components/SiteDataProvider"
 import { getCurrentUser, getUserRole } from "@/lib/auth";
+import MarkdownThemeProvider from "@/components/MarkdownThemeProvider";
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -74,7 +75,8 @@ export default async function RootLayout({
           {/* LXGW WenKai Screen: 仅用于便签组件的手写风格（简体中文优化版），不纳入全局字体系统 */}
           {/* precedence="optional" 使浏览器以非阻塞方式加载此字体 CSS，不阻断首屏渲染 */}
           <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.1.0/style.css" precedence="optional" />
-
+          {/* Inline script: set data-md-theme before first paint to prevent flash */}
+          <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('md-theme');document.documentElement.setAttribute('data-md-theme',t||'mono');}catch(e){}` }} />
         </head>
         <body className="bg-background antialiased pb-24 md:pb-0">
           <ThemeProvider
@@ -83,6 +85,7 @@ export default async function RootLayout({
             themes={["light", "dark", "ocean", "sunset", "forest"]}
             disableTransitionOnChange
           >
+            <MarkdownThemeProvider />
             <AuthProvider initialData={initialAuth}>
               <SiteDataProvider
                 initialState={{

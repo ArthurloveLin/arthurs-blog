@@ -32,7 +32,7 @@ function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[]
     }
 
     if (token.startsWith('**') && token.endsWith('**')) {
-      nodes.push(<strong key={`${keyPrefix}-b-${index}`} className="font-semibold text-slate-900">{token.slice(2, -2)}</strong>)
+      nodes.push(<strong key={`${keyPrefix}-b-${index}`} className="font-semibold" style={{ color: 'var(--md-strong)' }}>{token.slice(2, -2)}</strong>)
     } else if (token.startsWith('*') && token.endsWith('*')) {
       nodes.push(<em key={`${keyPrefix}-i-${index}`} className="italic">{token.slice(1, -1)}</em>)
     } else if (token.startsWith('==') && token.endsWith('==')) {
@@ -102,24 +102,24 @@ const OL_PATTERN = /^\d+\.\s+(.+)$/
 // Ratios mirror the stream px scheme: h4=1.0em (body-size, weight-only distinction),
 // h1/h2 clearly above, h5/h6 sub-body labels.
 const HEADING_CLASS_NOTE: Record<number, string> = {
-  1: 'text-[1.22em] font-bold leading-snug text-slate-900',
-  2: 'text-[1.12em] font-bold leading-snug text-slate-900',
-  3: 'text-[1.06em] font-semibold leading-snug text-slate-800',
-  4: 'text-[1.0em] font-semibold text-slate-800',
-  5: 'text-[0.88em] font-semibold text-slate-700',
-  6: 'text-[0.82em] font-medium text-slate-600',
+  1: 'text-[1.22em] font-bold leading-snug',
+  2: 'text-[1.12em] font-bold leading-snug',
+  3: 'text-[1.06em] font-semibold leading-snug',
+  4: 'text-[1.0em] font-semibold',
+  5: 'text-[0.88em] font-semibold',
+  6: 'text-[0.82em] font-medium',
 }
 
 // Stream variant: absolute px anchored to 15 px body (set in MemoStreamCard wrapper).
 // Scale inspired by usememos/memos, compressed for card context.
 // h4 = same size as body, heavier weight; h5–h6 sub-body labels.
 const HEADING_CLASS_STREAM: Record<number, string> = {
-  1: 'text-[19px] font-bold leading-tight tracking-tight text-slate-900 border-b border-slate-200 pb-1.5 mt-6 mb-3',
-  2: 'text-[17px] font-bold leading-tight text-slate-800 mt-5 mb-2',
-  3: 'text-[16px] font-semibold leading-snug text-slate-800 mt-4 mb-1',
-  4: 'text-[15px] font-semibold text-slate-700 mt-3 mb-0.5',
-  5: 'text-[13px] font-semibold text-slate-700 mt-2',
-  6: 'text-[12px] font-medium text-slate-500 mt-2',
+  1: 'text-[19px] font-bold leading-tight tracking-tight border-b border-border pb-1.5 mt-6 mb-3',
+  2: 'text-[17px] font-bold leading-tight mt-5 mb-2',
+  3: 'text-[16px] font-semibold leading-snug mt-4 mb-1',
+  4: 'text-[15px] font-semibold mt-3 mb-0.5',
+  5: 'text-[13px] font-semibold mt-2',
+  6: 'text-[12px] font-medium mt-2',
 }
 
 function renderTableRows(rows: string[], keyPrefix: string): ReactNode {
@@ -301,7 +301,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
         const level = Math.min(headingMatch[1].length, 6) as 1 | 2 | 3 | 4 | 5 | 6
         const headingClass = isStream ? HEADING_CLASS_STREAM[level] : HEADING_CLASS_NOTE[level]
         result.push(
-          <p key={`h-${i}`} className={`w-full ${headingClass}`}>
+          <p key={`h-${i}`} className={`w-full ${headingClass}`} style={{ color: `var(--md-h${level})` }}>
             {renderInlineFormattedText(headingMatch[2], `${variant}-h-${i}`)}
           </p>
         )
@@ -312,10 +312,14 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       const bqMatch = line.match(BLOCKQUOTE_PATTERN)
       if (bqMatch) {
         const bqCls = isStream
-          ? 'border-l-4 border-slate-300 pl-4 my-1.5 text-slate-500'
-          : 'border-l-2 border-slate-400/60 pl-2 italic text-slate-600/90'
+          ? 'border-l-4 pl-4 my-1.5'
+          : 'border-l-2 pl-2 italic'
         result.push(
-          <blockquote key={`bq-${i}`} className={bqCls}>
+          <blockquote
+            key={`bq-${i}`}
+            className={bqCls}
+            style={{ borderLeftColor: 'var(--md-bq-border)', color: 'var(--md-bq-text)' }}
+          >
             {bqMatch[1].length > 0
               ? renderInlineFormattedText(bqMatch[1], `${variant}-bq-${i}`)
               : <span>&nbsp;</span>}

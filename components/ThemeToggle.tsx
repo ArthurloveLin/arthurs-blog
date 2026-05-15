@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { Sun, Moon, Check } from 'lucide-react'
+import MarkdownThemePicker from '@/components/MarkdownThemePicker'
 
 const themes = [
   { id: 'light', name: '默认 (紫)', color: 'bg-violet-500' },
@@ -17,7 +18,6 @@ export default function ThemeToggle() {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -48,7 +48,7 @@ export default function ThemeToggle() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-40 origin-top-right rounded-xl bg-card shadow-lg ring-1 ring-border focus:outline-none z-50 overflow-hidden transform transition duration-200 p-1.5">
+        <div className="absolute right-0 mt-2 w-44 origin-top-right rounded-xl bg-card shadow-lg ring-1 ring-border focus:outline-none z-50 overflow-hidden p-1.5">
           {themes.map((t) => (
             <button
               key={t.id}
@@ -71,6 +71,13 @@ export default function ThemeToggle() {
               )}
             </button>
           ))}
+
+          <div className="mt-1 pt-1 border-t border-border/60">
+            <p className="px-3 pt-1 pb-0.5 text-[10px] font-medium text-muted-foreground/70 uppercase tracking-widest">
+              文字主题
+            </p>
+            <MarkdownThemePicker />
+          </div>
         </div>
       )}
     </div>

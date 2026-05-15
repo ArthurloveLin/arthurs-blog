@@ -732,53 +732,174 @@ html {
   box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
 }
 
-/* Prose customization for dark mode */
-:where([class~="dark"]) .prose {
-  color: var(--foreground);
+/* ═══ MD Render Theme System ═════════════════════════════════════════════════
+   CSS variables drive all prose element colors. The data-md-theme attribute
+   on <html> (set by MarkdownThemeProvider) selects the active theme.
+   Default (mono) values live in :root / .dark so prose renders correctly
+   even before the client script fires.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Mono defaults — light */
+:root {
+  --md-h1: #111111;
+  --md-h2: #1e1e1e;
+  --md-h3: #2d2d2d;
+  --md-h4: #404040;
+  --md-h5: #555555;
+  --md-h6: #6b6b6b;
+  --md-strong: #0a0a0a;
+  --md-bq-border: #9ca3af;
+  --md-bq-text: #6b7280;
+  --md-link: var(--primary);
+  --md-code-bg: #f3f4f6;
+  --md-code-text: #1f2937;
+  --md-mark-bg: rgba(254, 240, 138, 0.75);
 }
 
-:where([class~="dark"]) .prose h1,
-:where([class~="dark"]) .prose h2,
-:where([class~="dark"]) .prose h3,
-:where([class~="dark"]) .prose h4,
-:where([class~="dark"]) .prose h5,
-:where([class~="dark"]) .prose h6 {
-  color: var(--foreground);
+/* Mono defaults — dark */
+.dark {
+  --md-h1: #f5f5f5;
+  --md-h2: #e5e5e5;
+  --md-h3: #d4d4d4;
+  --md-h4: #a3a3a3;
+  --md-h5: #737373;
+  --md-h6: #525252;
+  --md-strong: #fafafa;
+  --md-bq-border: #404040;
+  --md-bq-text: #a1a1aa;
+  --md-code-bg: #1c1c1e;
+  --md-code-text: #e5e5e5;
+  --md-mark-bg: rgba(234, 179, 8, 0.22);
 }
 
-:where([class~="dark"]) .prose strong {
-  color: var(--foreground);
+/* Prose element bindings — :is() raises specificity above Tailwind Typography's :where() */
+.prose { color: var(--foreground); }
+.prose :is(h1) { color: var(--md-h1); }
+.prose :is(h2) { color: var(--md-h2); }
+.prose :is(h3) { color: var(--md-h3); }
+.prose :is(h4) { color: var(--md-h4); }
+.prose :is(h5) { color: var(--md-h5); }
+.prose :is(h6) { color: var(--md-h6); }
+.prose :is(strong) { color: var(--md-strong); }
+.prose :is(blockquote) {
+  border-left-color: var(--md-bq-border);
+  color: var(--md-bq-text);
+}
+.prose :is(a) { color: var(--md-link); }
+.prose :is(a):hover { opacity: 0.8; }
+.prose :is(code):not(pre :is(code)) {
+  background: var(--md-code-bg);
+  color: var(--md-code-text);
+  padding: 0.15em 0.4em;
+  border-radius: 0.25em;
+  font-size: 0.875em;
+}
+.prose :is(hr) { border-color: var(--border); }
+.prose :is(ul),
+.prose :is(ol) { color: var(--foreground); }
+
+/* ── Spectral (光谱) — rainbow by heading level ── */
+[data-md-theme="spectral"] {
+  --md-h1: #b91c1c;
+  --md-h2: #c2410c;
+  --md-h3: #15803d;
+  --md-h4: #1d4ed8;
+  --md-h5: #7c3aed;
+  --md-h6: #be185d;
+  --md-strong: #b91c1c;
+  --md-bq-border: #7c3aed;
+  --md-bq-text: #6d28d9;
+  --md-link: #1d4ed8;
+}
+.dark[data-md-theme="spectral"] {
+  --md-h1: #f87171;
+  --md-h2: #fb923c;
+  --md-h3: #4ade80;
+  --md-h4: #60a5fa;
+  --md-h5: #a78bfa;
+  --md-h6: #f472b6;
+  --md-strong: #f87171;
+  --md-bq-border: #a78bfa;
+  --md-bq-text: #c4b5fd;
+  --md-link: #60a5fa;
 }
 
-:where([class~="dark"]) .prose a {
-  color: var(--primary);
+/* ── Polar (极地) — Nord-inspired arctic blues ── */
+[data-md-theme="polar"] {
+  --md-h1: #1e3a5f;
+  --md-h2: #2e5987;
+  --md-h3: #1e7a8a;
+  --md-h4: #2a7a5b;
+  --md-h5: #5a4fa0;
+  --md-h6: #7b5e8a;
+  --md-strong: #1e3a5f;
+  --md-bq-border: #1e7a8a;
+  --md-bq-text: #2e5987;
+  --md-link: #2e5987;
+}
+.dark[data-md-theme="polar"] {
+  --md-h1: #88c0d0;
+  --md-h2: #81a1c1;
+  --md-h3: #8fbcbb;
+  --md-h4: #a3be8c;
+  --md-h5: #ebcb8b;
+  --md-h6: #b48ead;
+  --md-strong: #eceff4;
+  --md-bq-border: #4c6f8a;
+  --md-bq-text: #81a1c1;
+  --md-link: #88c0d0;
 }
 
-:where([class~="dark"]) .prose a:hover {
-  color: var(--primary-foreground);
+/* ── Sakura (樱花) — rose-pink to lavender ── */
+[data-md-theme="sakura"] {
+  --md-h1: #9f1239;
+  --md-h2: #c026d3;
+  --md-h3: #7c3aed;
+  --md-h4: #0f766e;
+  --md-h5: #0369a1;
+  --md-h6: #be185d;
+  --md-strong: #9f1239;
+  --md-bq-border: #c026d3;
+  --md-bq-text: #a21caf;
+  --md-link: #7c3aed;
+}
+.dark[data-md-theme="sakura"] {
+  --md-h1: #fb7185;
+  --md-h2: #e879f9;
+  --md-h3: #c084fc;
+  --md-h4: #2dd4bf;
+  --md-h5: #38bdf8;
+  --md-h6: #f472b6;
+  --md-strong: #fb7185;
+  --md-bq-border: #e879f9;
+  --md-bq-text: #c084fc;
+  --md-link: #c084fc;
 }
 
-:where([class~="dark"]) .prose code {
-  background-color: var(--secondary);
-  color: var(--foreground);
+/* ── Sage (苍翠) — forest greens ── */
+[data-md-theme="sage"] {
+  --md-h1: #14532d;
+  --md-h2: #166534;
+  --md-h3: #4d7c0f;
+  --md-h4: #0f766e;
+  --md-h5: #065f46;
+  --md-h6: #6b7280;
+  --md-strong: #14532d;
+  --md-bq-border: #4d7c0f;
+  --md-bq-text: #3f6212;
+  --md-link: #15803d;
 }
-
-:where([class~="dark"]) .prose pre {
-  background-color: #161b22;
-}
-
-:where([class~="dark"]) .prose blockquote {
-  border-color: var(--primary);
-  color: var(--muted-foreground);
-}
-
-:where([class~="dark"]) .prose hr {
-  border-color: var(--border);
-}
-
-:where([class~="dark"]) .prose ul,
-:where([class~="dark"]) .prose ol {
-  color: var(--foreground);
+.dark[data-md-theme="sage"] {
+  --md-h1: #4ade80;
+  --md-h2: #86efac;
+  --md-h3: #bef264;
+  --md-h4: #2dd4bf;
+  --md-h5: #6ee7b7;
+  --md-h6: #a3e635;
+  --md-strong: #4ade80;
+  --md-bq-border: #4d7c0f;
+  --md-bq-text: #86efac;
+  --md-link: #4ade80;
 }
 
 /* Always-dark code blocks — single visual layer */
