@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 export type NoteColorThemeId = 'vivid' | 'cream' | 'mono' | 'dusk' | 'linen'
 
@@ -126,13 +126,14 @@ const NoteColorThemeContext = createContext<NoteColorThemeContextValue>({
 })
 
 export function NoteColorThemeProvider({ children }: { children: ReactNode }) {
-  const [themeId, setThemeId] = useState<NoteColorThemeId>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = window.localStorage.getItem(STORAGE_KEY)
-      if (stored && VALID_IDS.has(stored as NoteColorThemeId)) return stored as NoteColorThemeId
+  const [themeId, setThemeId] = useState<NoteColorThemeId>('vivid')
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(STORAGE_KEY)
+    if (stored && VALID_IDS.has(stored as NoteColorThemeId)) {
+      setThemeId(stored as NoteColorThemeId)
     }
-    return 'vivid'
-  })
+  }, [])
 
   const handleSetThemeId = (id: NoteColorThemeId) => {
     setThemeId(id)
