@@ -2,7 +2,11 @@ export function buildCloudflarePurgeUrls(origin: string, paths: Iterable<string>
   const urls = new Set<string>()
 
   for (const path of paths) {
-    urls.add(new URL(path, origin).toString())
+    // Cloudflare always caches the HTTPS version (end-user URL). Force https:
+    // even if Next.js received an http:// request from CF's flexible-SSL proxy.
+    const url = new URL(path, origin)
+    url.protocol = 'https:'
+    urls.add(url.toString())
   }
 
   return [...urls]
