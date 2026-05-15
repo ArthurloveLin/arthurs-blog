@@ -382,7 +382,7 @@ export function MemoBoardShell({
   const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false)
   const isMobileCalendarOpen = state.isMobileViewport && mobileCalendarOpen
 
-  const shellBg = `radial-gradient(ellipse at top left, rgba(${hexToRgb(theme.colors[0])},0.18) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(${hexToRgb(theme.colors[4])},0.14) 0%, transparent 50%)`
+  const shellBg = `radial-gradient(ellipse at top left, rgba(${hexToRgb(theme.shell[0])},0.32) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(${hexToRgb(theme.shell[1])},0.26) 0%, transparent 50%)`
 
   const filterPillLabel = state.searchQuery
     ? `"${state.searchQuery}" · ${filteredCount}${itemUnit}`

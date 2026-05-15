@@ -15,10 +15,12 @@ export interface NoteColorThemeConfig {
   id: NoteColorThemeId
   label: string
   subtitle: string
-  /** bg values only — used for preview dots and shell gradient */
+  /** bg values only — used for preview dots */
   colors: readonly string[]
   /** full 7-slot palette (rose · butter · mint · sky · lilac · lavender · sage) */
   slots: readonly NoteColorSlot[]
+  /** two saturated stop colors for the shell radial gradient (top-left, bottom-right) */
+  shell: readonly [string, string]
 }
 
 const VALID_IDS = new Set<NoteColorThemeId>(['vivid', 'cream', 'mono', 'dusk', 'linen'])
@@ -82,13 +84,22 @@ const THEME_SLOTS: Record<NoteColorThemeId, readonly NoteColorSlot[]> = {
   ],
 }
 
+// Shell gradient stop colors — more saturated than sticky bg values for visible shell tint
+const THEME_SHELL: Record<NoteColorThemeId, readonly [string, string]> = {
+  vivid:  ['#f8d878', '#c8b0f8'], // butter gold top-left · lavender bottom-right
+  cream:  ['#f0d098', '#e8b8c8'], // honey top-left · dusty rose bottom-right
+  mono:   ['#d8d0c4', '#c4ccd0'], // warm taupe top-left · cool grey bottom-right
+  dusk:   ['#e8a858', '#a888c8'], // amber top-left · dusk purple bottom-right
+  linen:  ['#e8c888', '#a8b8d0'], // parchment gold top-left · slate blue bottom-right
+}
+
 function buildTheme(
   id: NoteColorThemeId,
   label: string,
   subtitle: string,
 ): NoteColorThemeConfig {
   const slots = THEME_SLOTS[id]
-  return { id, label, subtitle, slots, colors: slots.map((s) => s.bg) }
+  return { id, label, subtitle, slots, colors: slots.map((s) => s.bg), shell: THEME_SHELL[id] }
 }
 
 export const NOTE_COLOR_THEMES: readonly NoteColorThemeConfig[] = [
