@@ -75,6 +75,7 @@ export default function TableOfContents({ content }: { content: string }) {
                 href={`#${item.id}`}
                 onClick={(e) => {
                   e.preventDefault()
+                  window.dispatchEvent(new CustomEvent('expand-heading', { detail: { id: item.id } }))
                   document.getElementById(item.id)?.scrollIntoView({
                     behavior: 'smooth',
                     block: 'start'

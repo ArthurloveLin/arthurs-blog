@@ -6,6 +6,7 @@ import { getPosts, getPostMeta, getPostContent, getAdjacentPosts, type Post } fr
 import { type Comment } from '@/lib/comments'
 import { getCommentThread } from '@/lib/comments-server'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
+import CollapsibleMarkdownContainer from '@/components/CollapsibleMarkdownContainer'
 import CommentBox from '@/components/CommentBox'
 import ArticleBackButton from '@/components/ArticleBackButton'
 import CurrentArticleReturnTarget from '@/components/CurrentArticleReturnTarget'
@@ -69,7 +70,9 @@ async function ArticleBody({
     <>
       {/* Content Body - Expanded padding for premium feel */}
       <div className="mt-10 px-6 md:px-10">
-        <MarkdownRenderer content={content} postId={postId} skipFirstParagraph={skipFirstParagraph} />
+        <CollapsibleMarkdownContainer>
+          <MarkdownRenderer content={content} postId={postId} skipFirstParagraph={skipFirstParagraph} />
+        </CollapsibleMarkdownContainer>
       </div>
 
       <div className="mt-16 px-6 md:px-10">

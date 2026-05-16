@@ -1414,3 +1414,37 @@ html:active-view-transition-type(nav-back) {
 .delay-in-7 { animation-delay: 280ms; }
 .delay-in-8 { animation-delay: 310ms; }
 .delay-in-9 { animation-delay: 340ms; }
+
+/* ── Collapsible markdown headings ── */
+.md-heading-collapsible {
+  cursor: pointer;
+  user-select: none;
+}
+.md-heading-collapsible::after {
+  content: '▾';
+  display: inline-block;
+  font-size: 0.65em;
+  opacity: 0.35;
+  margin-left: 6px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  vertical-align: middle;
+}
+.md-heading-collapsible:hover::after {
+  opacity: 0.6;
+}
+.md-heading-collapsible.collapsed::after {
+  transform: rotate(-90deg);
+}
+
+/* grid trick: animates to/from any height without JS measurement */
+.md-section-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.25s ease;
+}
+.md-section-body.collapsed {
+  grid-template-rows: 0fr;
+}
+.md-section-body-inner {
+  overflow: hidden;
+}
