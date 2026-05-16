@@ -16,7 +16,7 @@ import {
   getTagPostsTag,
   upsertPost,
 } from '@/lib/blog'
-import { purgeCloudflareFiles } from '@/lib/cloudflare-cache'
+import { purgeCloudflareFiles, purgeCloudflareZone } from '@/lib/cloudflare-cache'
 
 const BLOG_BUCKET = process.env.R2_BLOG_BUCKET!
 const CONCURRENCY = 10
@@ -136,7 +136,9 @@ function addAggregationInvalidations(paths: {
 
 export async function POST(request: Request) {
   const domain = process.env.R2_BLOG_PUBLIC_DOMAIN
-  const force = new URL(request.url).searchParams.get('force') === '1'
+  const params = new URL(request.url).searchParams
+  const force = params.get('force') === '1'
+  const purgeEverything = params.get('purge') === 'everything'
 
   const [allObjects, existingPosts] = await Promise.all([
     listR2ObjectsWithMeta(BLOG_BUCKET),
@@ -274,9 +276,19 @@ export async function POST(request: Request) {
     }
   }
 
-  let cloudflare: { success: boolean; purged: number; errors?: string[] } | null = null
-  if (updatedResults.length > 0 || deleted > 0) {
-    cloudflare = await purgeCloudflareFiles(new URL(request.url).origin, cloudflarePurgePaths)
+  type CloudflareResult =
+    | { mode: 'everything'; success: boolean; errors?: string[] }
+    | { mode: 'files'; success: boolean; purged: number; urls?: string[]; errors?: string[] }
+    | null
+
+  let cloudflare: CloudflareResult = null
+  if (purgeEverything) {
+    // 全量清除：不依赖是否有文章变更，手动兜底触发时也可独立运行
+    const result = await purgeCloudflareZone()
+    cloudflare = { mode: 'everything', ...result }
+  } else if (updatedResults.length > 0 || deleted > 0) {
+    const result = await purgeCloudflareFiles(new URL(request.url).origin, cloudflarePurgePaths)
+    cloudflare = { mode: 'files', ...result }
   }
 
   return NextResponse.json({ summary, cloudflare, details: results })
