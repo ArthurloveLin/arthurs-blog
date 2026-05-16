@@ -1420,20 +1420,27 @@ html:active-view-transition-type(nav-back) {
   cursor: pointer;
   user-select: none;
 }
-.md-heading-collapsible::after {
+.md-heading-collapsible::before {
   content: '▾';
   display: inline-block;
-  font-size: 0.65em;
+  font-size: 0.75em;
   opacity: 0.35;
-  margin-left: 6px;
+  margin-right: 6px;
   transition: transform 0.2s ease, opacity 0.2s ease;
   vertical-align: middle;
 }
-.md-heading-collapsible:hover::after {
+.md-heading-collapsible:hover::before {
   opacity: 0.6;
 }
-.md-heading-collapsible.collapsed::after {
+.md-heading-collapsible.collapsed::before {
   transform: rotate(-90deg);
+}
+.md-heading-collapsible.collapsed::after {
+  content: ' …';
+  opacity: 0.4;
+  font-size: 0.8em;
+  font-weight: normal;
+  font-style: normal;
 }
 
 /* grid trick: animates to/from any height without JS measurement */
