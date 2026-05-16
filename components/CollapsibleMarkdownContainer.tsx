@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useCallback } from 'react'
 
-const COLLAPSIBLE_TAGS = new Set(['H2', 'H3'])
+const COLLAPSIBLE_TAGS = new Set(['H2', 'H3', 'H4'])
 
 function getLevel(el: Element): number {
   return parseInt(el.tagName[1])
@@ -42,7 +42,7 @@ export default function CollapsibleMarkdownContainer({ children }: { children: R
   const expandSection = useCallback((headingId: string) => {
     const container = containerRef.current
     if (!container) return
-    const heading = container.querySelector<Element>(`h2[id="${headingId}"], h3[id="${headingId}"]`)
+    const heading = container.querySelector<Element>(`h2[id="${headingId}"], h3[id="${headingId}"], h4[id="${headingId}"]`)
     if (!heading) return
 
     // Expand this heading's section body
@@ -61,7 +61,7 @@ export default function CollapsibleMarkdownContainer({ children }: { children: R
     if (!container) return
 
     // Snapshot the heading list before any DOM manipulation
-    const headings = Array.from(container.querySelectorAll<Element>('h2[id], h3[id]'))
+    const headings = Array.from(container.querySelectorAll<Element>('h2[id], h3[id], h4[id]'))
 
     headings.forEach((heading) => {
       const siblings = getSectionSiblings(heading)
