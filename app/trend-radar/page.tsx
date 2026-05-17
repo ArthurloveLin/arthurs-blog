@@ -3,17 +3,11 @@ import { formatStableDate } from "@/lib/date-format";
 import { Suspense } from "react";
 import DirectionalTransition from "@/components/DirectionalTransition";
 import ScrollRestorer from "@/components/ScrollRestorer";
-import ToolsCard from "@/components/ToolsCard";
-import RecentPostsCard from "@/components/RecentPostsCard";
-import ArchiveCard from "@/components/ArchiveCard";
-import { AuthorProfileCompactCard } from "@/components/AuthorProfileCard";
 import TrendRadarDisplay from "@/components/TrendRadarDisplay";
 import PageHero from "@/components/PageHero";
 import { getSiteConfig } from "@/lib/blog";
 
-
-
-export const revalidate = 3600; // 1 hour cache, reasonable for 3-times-daily crawls
+export const revalidate = 3600;
 
 async function TrendRadarContent({
   searchParams,
@@ -48,24 +42,21 @@ async function TrendRadarContent({
     : "未知";
 
   return (
-    <div className="space-y-8">
+    <>
       <TrendRadarDisplay
         data={data}
         formattedTime={formattedGenerateTime}
         history={history}
         currentReportKey={reportKey}
       />
-
-      {/* ── Error Debug ── */}
       {failed_ids && failed_ids.length > 0 && (
         <div className="text-[10px] text-muted-foreground/40 font-mono pt-8">
           Failed probes: {failed_ids.join(", ")}
         </div>
       )}
-    </div>
+    </>
   );
 }
-
 
 export default async function TrendRadarPage({
   searchParams,
@@ -74,72 +65,60 @@ export default async function TrendRadarPage({
 }) {
   const siteConfig = await getSiteConfig();
 
-  const titleNode = siteConfig.news_hero_title_highlight || siteConfig.news_hero_title_rest ? (
-    <>
-      {siteConfig.news_hero_title_highlight && <span className="block text-gradient-primary">{siteConfig.news_hero_title_highlight}</span>}
-      {siteConfig.news_hero_title_highlight_2 && <span className="block text-gradient-primary">{siteConfig.news_hero_title_highlight_2}</span>}
-      {siteConfig.news_hero_title_rest}
-    </>
-  ) : (
-    <>
-      <span className="block text-gradient-primary">趋势雷达</span>
-      全网热点实时追踪
-    </>
-  );
+  const titleNode =
+    siteConfig.news_hero_title_highlight || siteConfig.news_hero_title_rest ? (
+      <>
+        {siteConfig.news_hero_title_highlight && (
+          <span className="block text-gradient-primary">
+            {siteConfig.news_hero_title_highlight}
+          </span>
+        )}
+        {siteConfig.news_hero_title_highlight_2 && (
+          <span className="block text-gradient-primary">
+            {siteConfig.news_hero_title_highlight_2}
+          </span>
+        )}
+        {siteConfig.news_hero_title_rest}
+      </>
+    ) : (
+      <>
+        <span className="block text-gradient-primary">趋势雷达</span>
+        全网热点实时追踪
+      </>
+    );
 
   return (
     <DirectionalTransition>
       <ScrollRestorer />
       <main className="min-h-screen bg-background">
-        {/* ── Hero ── */}
-        <PageHero 
+        <PageHero
           title={titleNode}
           subtitle={siteConfig.news_hero_subtitle || "News / Trend Radar"}
-          description={siteConfig.news_hero_description || "多平台热榜聚合分析，挖掘隐藏在信息流中的焦点与变化。"}
-          slogan={{ 
-             text1: siteConfig.news_slogan_1 || "Caught in the wake", 
-             text2: siteConfig.news_slogan_2 || "Freshly delivered" 
+          description={
+            siteConfig.news_hero_description ||
+            "多平台热榜聚合分析，挖掘隐藏在信息流中的焦点与变化。"
+          }
+          slogan={{
+            text1: siteConfig.news_slogan_1 || "Caught in the wake",
+            text2: siteConfig.news_slogan_2 || "Freshly delivered",
           }}
-          blobColors={['bg-red-400/10', 'bg-blue-400/10']}
+          blobColors={["bg-red-400/10", "bg-blue-400/10"]}
           containerClass="site-shell-triad"
         />
 
-        {/* ── Body ── */}
         <div className="site-shell-triad py-8">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,48rem)_minmax(15rem,16rem)] lg:justify-center">
-            {/* Left */}
-            <aside className="hidden md:block md:col-span-4 lg:col-span-1">
-              <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none space-y-4 pb-12">
-                <AuthorProfileCompactCard id="trend-radar-author" />
-                <ToolsCard />
+          <Suspense
+            fallback={
+              <div className="py-24 flex flex-col items-center gap-4">
+                <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+                <span className="text-xs text-muted-foreground font-mono">加载中...</span>
               </div>
-            </aside>
-
-            {/* Main */}
-            <section className="min-w-0 md:col-span-8 lg:col-span-1 min-h-[500px]">
-              <Suspense
-                fallback={
-                  <div className="py-24 flex flex-col items-center gap-4">
-                    <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-                    <span className="text-xs text-muted-foreground font-mono">加载中...</span>
-                  </div>
-                }
-              >
-                <TrendRadarContent searchParams={searchParams} />
-              </Suspense>
-            </section>
-
-            {/* Right */}
-            <aside className="hidden lg:block lg:col-span-1">
-              <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-none space-y-4 pb-12">
-                <RecentPostsCard />
-                <ArchiveCard />
-              </div>
-            </aside>
-          </div>
+            }
+          >
+            <TrendRadarContent searchParams={searchParams} />
+          </Suspense>
         </div>
 
-        {/* Footer */}
         <footer className="border-t border-border mt-6">
           <div className="site-shell-triad py-7">
             <p className="font-mono text-[11px] text-muted-foreground text-center sm:text-left">
