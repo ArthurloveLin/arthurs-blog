@@ -1,4 +1,4 @@
-# wardrobe-picks
+# arthurs-blog
 
 Personal blog + wardrobe management app built with Next.js 16 App Router, React 19, TypeScript, Tailwind CSS 4, Supabase, Cloudflare R2, and Cloudflare Workers.
 
@@ -61,18 +61,18 @@ docker compose logs -f --tail 100
 #### 4. 常用维护指令
 ```bash
 # 进入容器 Shell
-docker exec -it wardrobe-picks sh
+docker exec -it arthurs-blog sh
 # 重启容器
 docker compose restart
 # 查看容器占用资源
-docker stats wardrobe-picks
+docker stats arthurs-blog
 ```
 
 #### 5. 缓存管理
 Next.js 的 ISR 缓存持久化在命名卷 `nextjs_cache` 中。如需手动清空缓存，可以删除该卷并重建：
 ```bash
 docker compose down
-docker volume rm wardrobe-picks_nextjs_cache
+docker volume rm arthurs-blog_nextjs_cache
 docker compose up -d
 ```
 

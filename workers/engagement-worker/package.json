@@ -1,5 +1,5 @@
 {
-  "name": "wardrobe-picks-blog-engagement-worker",
+  "name": "arthurs-blog-engagement-worker",
   "version": "1.0.0",
   "description": "Dedicated Cloudflare Worker for engagement and comment edge processing",
   "main": "src/index.ts",

@@ -81,7 +81,7 @@ When modifying a shared component, call it out explicitly. Don't silently refact
 
 CLI is installed as a local npm package — always use `npx supabase`, never assume a global binary.
 
-Project is linked to ref `ymdwknyxmbhckgftfena` (wardrobe-picks, Mumbai). Link is stored in `supabase/.temp/` and persists across sessions as long as that directory is not deleted; re-run `npx supabase link --project-ref ymdwknyxmbhckgftfena` if it goes missing.
+Project is linked to ref `ymdwknyxmbhckgftfena` (arthurs-blog, Mumbai). Link is stored in `supabase/.temp/` and persists across sessions as long as that directory is not deleted; re-run `npx supabase link --project-ref ymdwknyxmbhckgftfena` if it goes missing.
 
 ### Migration workflow
 

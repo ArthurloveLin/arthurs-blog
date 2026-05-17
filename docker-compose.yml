@@ -1,7 +1,7 @@
 services:
   app:
-    image: ghcr.io/arthurlovelin/wardrobe-picks:latest
-    container_name: wardrobe-picks
+    image: ghcr.io/arthurlovelin/arthurs-blog:latest
+    container_name: arthurs-blog
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"

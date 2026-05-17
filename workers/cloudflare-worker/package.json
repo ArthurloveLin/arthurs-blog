@@ -1,5 +1,5 @@
 {
-  "name": "wardrobe-picks-spotify-sync",
+  "name": "arthurs-blog-spotify-sync",
   "version": "1.0.0",
   "description": "Cloudflare Worker for Spotify Sync",
   "main": "src/index.ts",

@@ -1,5 +1,5 @@
 {
-  "name": "wardrobe-picks-spotify-now-playing",
+  "name": "arthurs-blog-spotify-now-playing",
   "version": "1.0.0",
   "description": "Dedicated Cloudflare Worker for Spotify now-playing",
   "main": "src/index.ts",
