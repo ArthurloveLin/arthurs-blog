@@ -6,7 +6,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     env_file:
-      - /home/app.local
+      - /home/arthur/arthurs-blog/.env.local
     logging:
       driver: "json-file"
       options:
@@ -14,8 +14,15 @@ services:
         max-file: "3"
     volumes:
       - nextjs_cache:/app/.next/cache
+    networks:
+      - default
+      - 1panel-network
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
 
 volumes:
   nextjs_cache:
+
+networks:
+  1panel-network:
+    external: true
