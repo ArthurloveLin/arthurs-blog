@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useId, useMemo, useRef } from 'react'
 import type { SkillGraphData } from '@/lib/recipes'
 
 interface Props {
@@ -370,37 +370,41 @@ export default function SkillTreeGraph({
     return s
   }, [links, currentRecipeId])
 
-  const [pz, setPz] = useState({ x: 0, y: 0, scale: 1 })
+  // Modal pan/zoom: update DOM directly, zero React re-renders during drag
+  const modalSvgRef = useRef<SVGSVGElement>(null)
+  const pzRef = useRef({ x: 0, y: 0, scale: 1 })
   const drag = useRef({ on: false, sx: 0, sy: 0, tx: 0, ty: 0 })
+
+  const applyTransform = useCallback(() => {
+    if (!modalSvgRef.current) return
+    const { x, y, scale } = pzRef.current
+    modalSvgRef.current.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(${scale})`
+  }, [])
 
   const onWheel = useCallback(
     (e: React.WheelEvent) => {
       if (variant !== 'modal') return
       e.preventDefault()
-      setPz((p) => ({
-        ...p,
-        scale: Math.min(2.5, Math.max(0.3, p.scale * (e.deltaY > 0 ? 0.9 : 1.11))),
-      }))
+      pzRef.current.scale = Math.min(2.5, Math.max(0.3, pzRef.current.scale * (e.deltaY > 0 ? 0.9 : 1.11)))
+      applyTransform()
     },
-    [variant],
+    [variant, applyTransform],
   )
 
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (variant !== 'modal') return
-      drag.current = { on: true, sx: e.clientX, sy: e.clientY, tx: pz.x, ty: pz.y }
+      drag.current = { on: true, sx: e.clientX, sy: e.clientY, tx: pzRef.current.x, ty: pzRef.current.y }
     },
-    [variant, pz.x, pz.y],
+    [variant],
   )
 
   const onMouseMove = useCallback((e: React.MouseEvent) => {
     if (!drag.current.on) return
-    setPz((p) => ({
-      ...p,
-      x: drag.current.tx + e.clientX - drag.current.sx,
-      y: drag.current.ty + e.clientY - drag.current.sy,
-    }))
-  }, [])
+    pzRef.current.x = drag.current.tx + e.clientX - drag.current.sx
+    pzRef.current.y = drag.current.ty + e.clientY - drag.current.sy
+    applyTransform()
+  }, [applyTransform])
 
   const onMouseUp = useCallback(() => {
     drag.current.on = false
@@ -465,13 +469,14 @@ export default function SkillTreeGraph({
       onMouseLeave={onMouseUp}
     >
       <svg
+        ref={modalSvgRef}
         width={W}
         height={H}
         style={{
           position: 'absolute',
           top: '50%',
           left: '50%',
-          transform: `translate(calc(-50% + ${pz.x}px), calc(-50% + ${pz.y}px)) scale(${pz.scale})`,
+          transform: 'translate(-50%, -50%)',
           transformOrigin: '50% 50%',
         }}
         aria-label="烹饪技能全局图谱"
