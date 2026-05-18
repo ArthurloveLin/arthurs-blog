@@ -222,6 +222,18 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
   const [hour, setHour] = useState(9)
   const [minute, setMinute] = useState(0)
 
+  // 可编辑的年月头部
+  const [editingHeader, setEditingHeader] = useState(false)
+  const [editYear, setEditYear] = useState('')
+  const [editMonth, setEditMonth] = useState('')
+  const editYearRef = useRef<HTMLInputElement>(null)
+
+  // 可编辑的时间
+  const [editingHour, setEditingHour] = useState(false)
+  const [editingMinute, setEditingMinute] = useState(false)
+  const [hourInput, setHourInput] = useState('')
+  const [minuteInput, setMinuteInput] = useState('')
+
   const wrapperRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const labelInputRef = useRef<HTMLInputElement>(null)
@@ -271,6 +283,33 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
     else setViewMonth((m) => m + 1)
   }
 
+  function startEditHeader() {
+    setEditYear(String(viewYear))
+    setEditMonth(String(viewMonth))
+    setEditingHeader(true)
+    setTimeout(() => editYearRef.current?.select(), 20)
+  }
+
+  function commitHeader() {
+    const y = parseInt(editYear)
+    const m = parseInt(editMonth)
+    if (y >= 2000 && y <= 2099) setViewYear(y)
+    if (m >= 1 && m <= 12) setViewMonth(m)
+    setEditingHeader(false)
+  }
+
+  function commitHour() {
+    const v = parseInt(hourInput)
+    if (!isNaN(v)) setHour(Math.max(0, Math.min(23, v)))
+    setEditingHour(false)
+  }
+
+  function commitMinute() {
+    const v = parseInt(minuteInput)
+    if (!isNaN(v)) setMinute(Math.max(0, Math.min(59, v)))
+    setEditingMinute(false)
+  }
+
   function handleInsert() {
     if (!selectedDay) return
     const pad = (n: number) => String(n).padStart(2, '0')
@@ -284,6 +323,7 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
   }
 
   const spinBtn = 'inline-flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted/50 hover:text-foreground'
+  const timeInput = 'w-9 border-b border-border/60 bg-transparent text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground outline-none focus:border-primary/50'
 
   return (
     <div ref={wrapperRef}>
@@ -313,13 +353,51 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
             className="mb-3 w-full rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/50 focus:ring-1 focus:ring-primary/30"
           />
 
-          {/* 月份导航 */}
+          {/* 月份导航 — 标题可点击直接编辑年月 */}
           <div className="mb-3 flex items-center justify-between px-0.5">
             <button type="button" onClick={prevMonth} aria-label="上个月"
               className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/40 bg-muted/30 text-muted-foreground transition-all hover:bg-muted/60 hover:text-foreground">
               <ChevronLeft size={14} />
             </button>
-            <span className="text-[0.88rem] font-bold text-foreground">{viewYear}年 {viewMonth}月</span>
+
+            {editingHeader ? (
+              <div
+                className="flex items-center gap-1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commitHeader()
+                  if (e.key === 'Escape') setEditingHeader(false)
+                }}
+              >
+                <input
+                  ref={editYearRef}
+                  type="number"
+                  value={editYear}
+                  onChange={(e) => setEditYear(e.target.value)}
+                  onBlur={commitHeader}
+                  className="w-[3.4rem] rounded-lg border border-border/60 bg-background px-1.5 py-0.5 text-center text-[0.82rem] font-bold text-foreground outline-none focus:ring-1 focus:ring-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                />
+                <span className="text-[0.82rem] font-bold text-foreground">年</span>
+                <input
+                  type="number"
+                  min="1" max="12"
+                  value={editMonth}
+                  onChange={(e) => setEditMonth(e.target.value)}
+                  onBlur={commitHeader}
+                  className="w-[2.2rem] rounded-lg border border-border/60 bg-background px-1.5 py-0.5 text-center text-[0.82rem] font-bold text-foreground outline-none focus:ring-1 focus:ring-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                />
+                <span className="text-[0.82rem] font-bold text-foreground">月</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={startEditHeader}
+                title="点击编辑年月"
+                className="text-[0.88rem] font-bold text-foreground transition-colors hover:text-primary"
+              >
+                {viewYear}年 {viewMonth}月
+              </button>
+            )}
+
             <button type="button" onClick={nextMonth} aria-label="下个月"
               className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/40 bg-muted/30 text-muted-foreground transition-all hover:bg-muted/60 hover:text-foreground">
               <ChevronRight size={14} />
@@ -365,18 +443,58 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
             })}
           </div>
 
-          {/* 时间拨轮 */}
+          {/* 时间拨轮 — 数字可点击直接输入 */}
           <div className="mt-3 border-t border-border/40 pt-3">
             <div className="flex items-center justify-center gap-3">
+              {/* 小时 */}
               <div className="flex flex-col items-center gap-0.5">
                 <button type="button" onClick={() => setHour((h) => (h + 1) % 24)} className={spinBtn}><ChevronUp size={14} /></button>
-                <span className="w-9 select-none text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground">{String(hour).padStart(2, '0')}</span>
+                {editingHour ? (
+                  <input
+                    autoFocus
+                    type="number"
+                    min="0" max="23"
+                    value={hourInput}
+                    onChange={(e) => setHourInput(e.target.value)}
+                    onBlur={commitHour}
+                    onKeyDown={(e) => { if (e.key === 'Enter') commitHour(); if (e.key === 'Escape') setEditingHour(false) }}
+                    onFocus={(e) => e.target.select()}
+                    className={timeInput}
+                  />
+                ) : (
+                  <button type="button" title="点击直接输入小时"
+                    onClick={() => { setHourInput(String(hour).padStart(2, '0')); setEditingHour(true) }}
+                    className="w-9 text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground transition-colors hover:text-primary">
+                    {String(hour).padStart(2, '0')}
+                  </button>
+                )}
                 <button type="button" onClick={() => setHour((h) => (h - 1 + 24) % 24)} className={spinBtn}><ChevronDown size={14} /></button>
               </div>
+
               <span className="pb-px text-[1.1rem] font-semibold text-muted-foreground">:</span>
+
+              {/* 分钟 */}
               <div className="flex flex-col items-center gap-0.5">
                 <button type="button" onClick={() => setMinute((m) => (m + 5) % 60)} className={spinBtn}><ChevronUp size={14} /></button>
-                <span className="w-9 select-none text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground">{String(minute).padStart(2, '0')}</span>
+                {editingMinute ? (
+                  <input
+                    autoFocus
+                    type="number"
+                    min="0" max="59"
+                    value={minuteInput}
+                    onChange={(e) => setMinuteInput(e.target.value)}
+                    onBlur={commitMinute}
+                    onKeyDown={(e) => { if (e.key === 'Enter') commitMinute(); if (e.key === 'Escape') setEditingMinute(false) }}
+                    onFocus={(e) => e.target.select()}
+                    className={timeInput}
+                  />
+                ) : (
+                  <button type="button" title="点击直接输入分钟"
+                    onClick={() => { setMinuteInput(String(minute).padStart(2, '0')); setEditingMinute(true) }}
+                    className="w-9 text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground transition-colors hover:text-primary">
+                    {String(minute).padStart(2, '0')}
+                  </button>
+                )}
                 <button type="button" onClick={() => setMinute((m) => (m - 5 + 60) % 60)} className={spinBtn}><ChevronDown size={14} /></button>
               </div>
             </div>

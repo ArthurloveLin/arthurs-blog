@@ -693,11 +693,11 @@ function StickyNoteCardFrame({
                   <button
                     type="button"
                     aria-label="展开查看全部"
-                    className="pointer-events-auto inline-flex h-7 w-7 items-center justify-center rounded-full border border-black/10 bg-white/75 text-slate-600 shadow-sm backdrop-blur-sm transition-all hover:bg-white/95 active:scale-95"
+                    className="pointer-events-auto inline-flex h-7 w-7 items-center justify-center text-slate-400 transition-all hover:text-slate-700 active:scale-95"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); setIsExpanded(true) }}
                   >
-                    <ChevronsDown size={13} strokeWidth={1.8} />
+                    <ChevronsDown size={15} strokeWidth={1.6} />
                   </button>
                 </div>
               ) : null}
