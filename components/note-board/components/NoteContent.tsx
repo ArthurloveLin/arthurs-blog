@@ -75,7 +75,7 @@ function renderInlineFormattedText(text: string, keyPrefix: string, notifiedDues
     } else if (token.startsWith('`') && token.endsWith('`')) {
       nodes.push(<code key={`${keyPrefix}-c-${index}`} className={styles.inlineCode}>{token.slice(1, -1)}</code>)
     } else if (token.startsWith('~~') && token.endsWith('~~')) {
-      nodes.push(<del key={`${keyPrefix}-s-${index}`} className="opacity-60">{token.slice(2, -2)}</del>)
+      nodes.push(<del key={`${keyPrefix}-s-${index}`} className="line-through opacity-60">{token.slice(2, -2)}</del>)
     } else if (token.startsWith('#')) {
       nodes.push(
         <span key={`${keyPrefix}-tag-${index}`} className="inline-flex items-center rounded-full border border-border/70 px-2 py-0.5 text-[0.8em] text-muted-foreground">
