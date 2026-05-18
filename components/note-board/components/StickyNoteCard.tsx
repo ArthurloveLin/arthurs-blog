@@ -83,7 +83,8 @@ interface StickyNoteCardFrameProps extends StickyNoteCardSharedProps {
 }
 
 function StickyDueBadge({ dueAt }: { dueAt: string }) {
-  const diff = Date.parse(dueAt) - Date.now()
+  const [now] = useState(Date.now)
+  const diff = Date.parse(dueAt) - now
   const abs = Math.abs(diff)
   const days = Math.floor(abs / 86400000)
   const hours = Math.floor(abs / 3600000)

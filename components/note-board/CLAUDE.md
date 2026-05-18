@@ -139,7 +139,9 @@ The blog container is on `1panel-network` so it can reach ntfy by container name
 
 **Hard constraints**:
 - `due_at` is only settable/visible for memo, not guestbook (admin-only in practice).
-- Do not call `Date.now()` inline in JSX — React's purity lint will reject it. Extract
-  into a child component (see `StickyDueBadge`) or a `useMemo`.
+- Do not call `Date.now()` inline in JSX — React's `react-hooks/purity` lint will reject
+  it. Even `useMemo(() => Date.now(), [])` is flagged. The correct pattern is
+  `const [now] = useState(Date.now)` — pass the function reference, not the call result,
+  so React invokes it as a lazy initializer internally (see `StickyDueBadge`).
 - `notified_at` must always be reset to NULL when `due_at` changes; the API layer
   (`updateBoardMessage`) handles this via `'due_at' in input` check.
