@@ -205,7 +205,6 @@ function renderTableRows(rows: string[], keyPrefix: string, notifiedDues?: strin
 }
 
 function NoteContentComponent({ content, variant, onToggleChecklistItem, checklistPending = false, notifiedDues }: NoteContentProps) {
-  const renderInline = (text: string, keyPrefix: string) => renderInlineFormattedText(text, keyPrefix, notifiedDues)
   const parsed = useMemo(() => parseNoteContent(content), [content])
 
   const bodyElements = useMemo(() => {
@@ -243,7 +242,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
         <Tag key={`${variant}-${listType}-${listStart}`} className={listType === 'ul' ? ulCls : olCls}>
           {listBuffer.map((text, idx) => (
             <li key={idx} className="pl-0.5">
-              {renderInline(text, `${variant}-li-${listStart}-${idx}`)}
+              {renderInlineFormattedText(text, `${variant}-li-${listStart}-${idx}`, notifiedDues)}
             </li>
           ))}
         </Tag>
@@ -347,7 +346,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
         const headingClass = isStream ? HEADING_CLASS_STREAM[level] : HEADING_CLASS_NOTE[level]
         result.push(
           <p key={`h-${i}`} className={`w-full ${headingClass}`} style={{ color: `var(--md-h${level})` }}>
-            {renderInline(headingMatch[2], `${variant}-h-${i}`)}
+            {renderInlineFormattedText(headingMatch[2], `${variant}-h-${i}`, notifiedDues)}
           </p>
         )
         continue
@@ -366,7 +365,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
             style={{ borderLeftColor: 'var(--md-bq-border)', color: 'var(--md-bq-text)' }}
           >
             {bqMatch[1].length > 0
-              ? renderInline(bqMatch[1], `${variant}-bq-${i}`)
+              ? renderInlineFormattedText(bqMatch[1], `${variant}-bq-${i}`, notifiedDues)
               : <span>&nbsp;</span>}
           </blockquote>
         )
@@ -399,7 +398,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       // Regular paragraph
       result.push(
         <p key={`p-${i}`} className="w-full whitespace-pre-wrap break-words">
-          {line.length > 0 ? renderInline(line, `${variant}-${i}`) : <span>&nbsp;</span>}
+          {line.length > 0 ? renderInlineFormattedText(line, `${variant}-${i}`, notifiedDues) : <span>&nbsp;</span>}
         </p>
       )
     }
@@ -421,7 +420,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
     }
 
     return result
-  }, [parsed.body, variant])
+  }, [parsed.body, variant, notifiedDues])
 
   const textClassName = variant === 'stream'
     ? styles.streamText
@@ -466,7 +465,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
                     <span
                       className={item.checked ? 'line-through text-slate-700/65' : ''}
                     >
-                      {renderInline(item.text, `${variant}-check-${item.id}`)}
+                      {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`, notifiedDues)}
                     </span>
                   </>
                 ) : (
