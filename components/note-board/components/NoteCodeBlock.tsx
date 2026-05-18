@@ -92,7 +92,7 @@ export function NoteCodeBlock({ code, lang }: NoteCodeBlockProps) {
   }
 
   return (
-    <div className="group relative my-2.5 overflow-hidden rounded-[10px]">
+    <div className="group relative my-2.5 w-full overflow-hidden rounded-[10px]">
       {labelText ? (
         <span className="pointer-events-none absolute right-9 top-[9px] select-none font-mono text-[10px] text-white/30">
           {labelText}
