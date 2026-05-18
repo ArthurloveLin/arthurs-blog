@@ -105,3 +105,41 @@ Do not remove this animation class — it is the primary feedback for submission
 Priority sort is only available when `meta.board.slug === 'memo'`. Pass
 `allowPrioritySort={meta.board.slug === 'memo'}` to `MemoBoardShell`. The
 guestbook config sets `allowPrioritySort={false}`.
+
+### DDL reminder (due_at) — memo only
+
+Each memo note can carry an optional `due_at` ISO timestamp. The full data flow:
+
+**Storage**: `comments.due_at TIMESTAMPTZ NULL` + `comments.notified_at TIMESTAMPTZ NULL`
+(migration `20260518075249_memo_due_at.sql`). When `due_at` is updated, `notified_at`
+is reset to NULL so a fresh notification fires at the new time.
+
+**Editor UI**: `DueDatePicker` (inline component in `NoteBoardExperience.tsx`) renders
+as an `AlarmClock` icon in the editor toolbar. Admin-only — guarded by `state.isAdmin`.
+State lives in `useNoteEditor` as `draftDueAt` / `editDueAt`, exposed through
+`NoteBoardProvider` as `editorDueAt` / `updateEditorDueAt`.
+
+**Card display**: `due_at` is shown as a small badge on both `MemoStreamCard` and
+`StickyNoteCard` (via `StickyDueBadge` component). Three color states:
+- slate — more than 24h away
+- amber — within 24h
+- red — overdue
+
+**Notification pipeline**:
+```
+VPS crontab (every minute)
+  → POST localhost:3000/api/memo/check-reminders  (Bearer token auth)
+    → query Supabase: due_at ≤ now AND notified_at IS NULL AND archived = false
+    → POST http://1Panel-ntfy-5k3U/memo-reminder  (via lib/ntfy.ts)
+    → UPDATE comments SET notified_at = now()
+```
+
+The blog container is on `1panel-network` so it can reach ntfy by container name.
+`NTFY_INTERNAL_URL`, `NTFY_TOPIC`, `REMINDER_CHECK_TOKEN` are set in `.env.local`.
+
+**Hard constraints**:
+- `due_at` is only settable/visible for memo, not guestbook (admin-only in practice).
+- Do not call `Date.now()` inline in JSX — React's purity lint will reject it. Extract
+  into a child component (see `StickyDueBadge`) or a `useMemo`.
+- `notified_at` must always be reset to NULL when `due_at` changes; the API layer
+  (`updateBoardMessage`) handles this via `'due_at' in input` check.
