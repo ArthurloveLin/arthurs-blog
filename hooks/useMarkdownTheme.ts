@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type { MarkdownThemeId } from '@/lib/markdown-themes'
 import { DEFAULT_MARKDOWN_THEME } from '@/lib/markdown-themes'
 
@@ -17,6 +17,11 @@ function readStoredTheme(): MarkdownThemeId {
 
 export function useMarkdownTheme() {
   const [theme, setThemeState] = useState<MarkdownThemeId>(readStoredTheme)
+
+  // Re-apply after hydration in case React cleared the attribute set by the inline script
+  useEffect(() => {
+    document.documentElement.setAttribute('data-md-theme', theme)
+  }, [theme])
 
   const setTheme = useCallback((id: MarkdownThemeId) => {
     setThemeState(id)

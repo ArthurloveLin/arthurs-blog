@@ -35,6 +35,7 @@ import { getSiteConfig, getPostsCount, getCategories, getAllTags, getYearArchive
 import { SiteDataProvider } from "@/components/SiteDataProvider"
 import { getCurrentUser, getUserRole } from "@/lib/auth";
 import Script from 'next/script';
+import { MarkdownThemeInitializer } from '@/components/MarkdownThemeInitializer';
 
 export const metadata: Metadata = {
   title: "Arthur & Grace",
@@ -78,6 +79,7 @@ export default async function RootLayout({
           <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('md-theme');document.documentElement.setAttribute('data-md-theme',t||'mono');}catch(e){}` }} />
         </head>
         <body className="bg-background antialiased pb-24 md:pb-0">
+          <MarkdownThemeInitializer />
           <ThemeProvider
             attribute="class"
             defaultTheme="light"
