@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlarmClock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { AlarmClock, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import { VisibilityPicker } from '@/components/note-board/components/VisibilityPicker'
@@ -196,21 +196,45 @@ function BoardStickyView({ onToggleViewMode, filters }: { onToggleViewMode: () =
   )
 }
 
+const DUE_WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
+
+function buildDueDateCells(year: number, month: number) {
+  const firstDow = new Date(year, month - 1, 1).getDay()
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const cells: Array<{ kind: 'empty' } | { kind: 'day'; day: number }> = []
+  for (let i = 0; i < firstDow; i++) cells.push({ kind: 'empty' })
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ kind: 'day', day: d })
+  return cells
+}
+
 function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) => void }) {
+  const [nowTs] = useState(Date.now)
+  const today = useMemo(() => {
+    const d = new Date(nowTs)
+    return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() }
+  }, [nowTs])
+
   const [open, setOpen] = useState(false)
   const [label, setLabel] = useState('')
-  const [date, setDate] = useState('')
-  const [time, setTime] = useState('')
+  const [viewYear, setViewYear] = useState(today.year)
+  const [viewMonth, setViewMonth] = useState(today.month)
+  const [selectedDay, setSelectedDay] = useState<{ year: number; month: number; day: number } | null>(null)
+  const [hour, setHour] = useState(9)
+  const [minute, setMinute] = useState(0)
+
   const wrapperRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const labelInputRef = useRef<HTMLInputElement>(null)
   const [panelPos, setPanelPos] = useState<{ bottom: number; left: number }>({ bottom: 0, left: 0 })
+
+  const cells = useMemo(() => buildDueDateCells(viewYear, viewMonth), [viewYear, viewMonth])
 
   function handleToggle() {
     if (!open && wrapperRef.current) {
       const rect = wrapperRef.current.getBoundingClientRect()
       setPanelPos({
         bottom: window.innerHeight - rect.top + 8,
-        left: Math.min(rect.left, window.innerWidth - 232 - 8),
+        left: Math.min(rect.left, window.innerWidth - 296 - 8),
       })
     }
     setOpen((v) => !v)
@@ -218,6 +242,7 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
 
   useEffect(() => {
     if (!open) return
+    setTimeout(() => labelInputRef.current?.focus(), 30)
     function onPointerDown(e: PointerEvent) {
       if (
         panelRef.current?.contains(e.target as Node) ||
@@ -225,20 +250,40 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
       ) return
       setOpen(false)
     }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
     document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
   }, [open])
 
+  function prevMonth() {
+    if (viewMonth === 1) { setViewYear((y) => y - 1); setViewMonth(12) }
+    else setViewMonth((m) => m - 1)
+  }
+
+  function nextMonth() {
+    if (viewMonth === 12) { setViewYear((y) => y + 1); setViewMonth(1) }
+    else setViewMonth((m) => m + 1)
+  }
+
   function handleInsert() {
-    if (!date) return
-    const iso = new Date(`${date}T${time || '00:00'}`).toISOString()
+    if (!selectedDay) return
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const dateStr = `${selectedDay.year}-${pad(selectedDay.month)}-${pad(selectedDay.day)}`
+    const iso = new Date(`${dateStr}T${pad(hour)}:${pad(minute)}`).toISOString()
     const tag = `@due[${label.trim() || '截止'}](${iso})`
     insertAtCursor(tag)
     setOpen(false)
     setLabel('')
-    setDate('')
-    setTime('')
+    setSelectedDay(null)
   }
+
+  const spinBtn = 'inline-flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted/50 hover:text-foreground'
 
   return (
     <div ref={wrapperRef}>
@@ -255,50 +300,98 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
         <div
           ref={panelRef}
           style={{ position: 'fixed', bottom: panelPos.bottom, left: panelPos.left, zIndex: 200 }}
-          className="w-[14.5rem] rounded-xl border border-border/60 bg-card p-3 shadow-xl"
+          className="w-[18.5rem] rounded-[1.25rem] border border-border/70 bg-card/95 p-4 shadow-[0_22px_56px_rgba(15,23,42,0.18)] backdrop-blur-xl"
         >
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">插入截止时间</p>
-          <div className="space-y-2">
-            <input
-              autoFocus
-              type="text"
-              placeholder="标签（如 checklist1）"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleInsert() }}
-              className="w-full rounded-lg border border-border/60 bg-background px-2 py-1.5 text-[12px] text-foreground outline-none focus:ring-1 focus:ring-primary/30"
-            />
-            <div className="flex gap-1.5">
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="min-w-0 flex-1 rounded-lg border border-border/60 bg-background px-2 py-1.5 text-[12px] text-foreground outline-none focus:ring-1 focus:ring-primary/30"
-              />
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="w-[4.5rem] rounded-lg border border-border/60 bg-background px-2 py-1.5 text-[12px] text-foreground outline-none focus:ring-1 focus:ring-primary/30"
-              />
+          {/* 标签输入 */}
+          <input
+            ref={labelInputRef}
+            type="text"
+            placeholder="标签名称（如 checklist1）"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && selectedDay) handleInsert() }}
+            className="mb-3 w-full rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/50 focus:ring-1 focus:ring-primary/30"
+          />
+
+          {/* 月份导航 */}
+          <div className="mb-3 flex items-center justify-between px-0.5">
+            <button type="button" onClick={prevMonth} aria-label="上个月"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/40 bg-muted/30 text-muted-foreground transition-all hover:bg-muted/60 hover:text-foreground">
+              <ChevronLeft size={14} />
+            </button>
+            <span className="text-[0.88rem] font-bold text-foreground">{viewYear}年 {viewMonth}月</span>
+            <button type="button" onClick={nextMonth} aria-label="下个月"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/40 bg-muted/30 text-muted-foreground transition-all hover:bg-muted/60 hover:text-foreground">
+              <ChevronRight size={14} />
+            </button>
+          </div>
+
+          {/* 星期标题 */}
+          <div className="mb-1 grid grid-cols-7 text-center">
+            {DUE_WEEKDAY_LABELS.map((lbl) => (
+              <span key={lbl} className="pb-1 text-[0.62rem] font-bold uppercase tracking-[0.05em] text-muted-foreground/60">{lbl}</span>
+            ))}
+          </div>
+
+          {/* 日期格子 */}
+          <div className="grid grid-cols-7 gap-0.5">
+            {cells.map((cell, i) => {
+              if (cell.kind === 'empty') return <span key={i} />
+              const isToday = cell.day === today.day && viewMonth === today.month && viewYear === today.year
+              const isSelected = selectedDay?.day === cell.day && selectedDay.month === viewMonth && selectedDay.year === viewYear
+              const isPast = new Date(viewYear, viewMonth - 1, cell.day) < new Date(today.year, today.month - 1, today.day)
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setSelectedDay({ year: viewYear, month: viewMonth, day: cell.day })}
+                  className={[
+                    'relative flex aspect-square w-full items-center justify-center rounded-[0.55rem] text-[0.78rem] font-medium transition-all',
+                    isSelected
+                      ? 'bg-slate-900 font-bold text-white shadow-[0_4px_10px_rgba(15,23,42,0.22)]'
+                      : isToday
+                        ? 'font-bold text-foreground ring-1 ring-border hover:bg-accent'
+                        : isPast
+                          ? 'text-muted-foreground/45 hover:bg-muted/30'
+                          : 'text-foreground hover:bg-accent',
+                  ].join(' ')}
+                >
+                  {cell.day}
+                  {isToday && !isSelected ? (
+                    <span className="absolute bottom-[3px] left-1/2 h-[3px] w-[3px] -translate-x-1/2 rounded-full bg-current" />
+                  ) : null}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* 时间拨轮 */}
+          <div className="mt-3 border-t border-border/40 pt-3">
+            <div className="flex items-center justify-center gap-3">
+              <div className="flex flex-col items-center gap-0.5">
+                <button type="button" onClick={() => setHour((h) => (h + 1) % 24)} className={spinBtn}><ChevronUp size={14} /></button>
+                <span className="w-9 select-none text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground">{String(hour).padStart(2, '0')}</span>
+                <button type="button" onClick={() => setHour((h) => (h - 1 + 24) % 24)} className={spinBtn}><ChevronDown size={14} /></button>
+              </div>
+              <span className="pb-px text-[1.1rem] font-semibold text-muted-foreground">:</span>
+              <div className="flex flex-col items-center gap-0.5">
+                <button type="button" onClick={() => setMinute((m) => (m + 5) % 60)} className={spinBtn}><ChevronUp size={14} /></button>
+                <span className="w-9 select-none text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground">{String(minute).padStart(2, '0')}</span>
+                <button type="button" onClick={() => setMinute((m) => (m - 5 + 60) % 60)} className={spinBtn}><ChevronDown size={14} /></button>
+              </div>
             </div>
-            <div className="flex justify-end gap-2 pt-0.5">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="rounded-full border border-border/60 px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/40"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                disabled={!date}
-                onClick={handleInsert}
-                className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-[11px] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-              >
-                插入
-              </button>
-            </div>
+          </div>
+
+          {/* 操作按钮 */}
+          <div className="mt-3 flex justify-end gap-2 border-t border-border/40 pt-3">
+            <button type="button" onClick={() => setOpen(false)}
+              className="rounded-full border border-border/60 px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/40">
+              取消
+            </button>
+            <button type="button" disabled={!selectedDay} onClick={handleInsert}
+              className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-[11px] text-white transition-opacity hover:opacity-90 disabled:opacity-40">
+              插入
+            </button>
           </div>
         </div>
       ) : null}
