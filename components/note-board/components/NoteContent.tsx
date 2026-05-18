@@ -5,6 +5,7 @@ import { memo, useMemo, type ReactNode } from 'react'
 import katex from 'katex'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
 import { parseNoteContent } from '@/components/note-board/utils/editor'
+import { NoteCodeBlock } from '@/components/note-board/components/NoteCodeBlock'
 import 'katex/dist/katex.min.css'
 
 interface NoteContentProps {
@@ -171,6 +172,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
     const result: ReactNode[] = []
     let inCodeBlock = false
     let currentCode: string[] = []
+    let currentLang = ''
     let inMathBlock = false
     let currentMath: string[] = []
     let mathBlockStart = 0
@@ -247,13 +249,13 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
         flushList()
         if (inCodeBlock) {
           result.push(
-            <pre key={`cb-${i}`} className={styles.codeBlock}>
-              <code>{currentCode.join('\n')}</code>
-            </pre>
+            <NoteCodeBlock key={`cb-${i}`} code={currentCode.join('\n')} lang={currentLang} />
           )
           currentCode = []
+          currentLang = ''
           inCodeBlock = false
         } else {
+          currentLang = line.slice(3).trim()
           inCodeBlock = true
         }
         continue
@@ -371,9 +373,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
     }
     if (inCodeBlock && currentCode.length > 0) {
       result.push(
-        <pre key="cb-final" className={styles.codeBlock}>
-          <code>{currentCode.join('\n')}</code>
-        </pre>
+        <NoteCodeBlock key="cb-final" code={currentCode.join('\n')} lang={currentLang} />
       )
     }
 

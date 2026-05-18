@@ -127,13 +127,40 @@ function StickyNoteCardFrame({
   const [isDragging, setIsDragging] = useState(false)
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
   const [copied, setCopied] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [isOverflowing, setIsOverflowing] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
   const isPreview = variant === 'preview'
   const isInlineEditing = Boolean(inlineEditor)
   const { theme } = useNoteColorTheme()
+  const noteColor = theme.colors[colorIndex % theme.colors.length] ?? STICKY_COLORS[0]
+  // Collapses automatically while inline-editing (derived — no separate reset effect needed)
+  const showExpanded = isExpanded && !isInlineEditing
 
   useEffect(() => {
     isInlineEditingRef.current = isInlineEditing
   }, [isInlineEditing])
+
+  // Detect content overflow — setState is in the ResizeObserver callback, not the effect body
+  useEffect(() => {
+    if (showExpanded || isInlineEditing || isPreview) return
+    const el = contentRef.current
+    if (!el) return
+    const check = () => setIsOverflowing(el.scrollHeight > el.clientHeight)
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [showExpanded, isInlineEditing, isPreview])
+
+  // Collapse on pointer-down outside the card — setState is in the event handler, not the effect body
+  useEffect(() => {
+    if (!showExpanded) return
+    const handler = (e: PointerEvent) => {
+      if (!articleRef.current?.contains(e.target as Node)) setIsExpanded(false)
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [showExpanded])
 
   useEffect(() => {
     const visual = visualRef.current
@@ -489,7 +516,7 @@ function StickyNoteCardFrame({
           ref={paperRef}
           className={[styles.paper, isPreview ? styles.previewPaper : styles.boardPaper].join(' ')}
           style={{
-            backgroundColor: theme.colors[colorIndex % theme.colors.length] ?? STICKY_COLORS[0],
+            backgroundColor: noteColor,
             minHeight: isInlineEditing && inlineEditor?.surfaceMinHeight
               ? `${inlineEditor.surfaceMinHeight}px`
               : undefined,
@@ -609,13 +636,41 @@ function StickyNoteCardFrame({
                 autoFocus
               />
             </div>
-          ) : (
+          ) : isPreview ? (
             <NoteContent
               content={message.content}
               variant={variant}
               onToggleChecklistItem={checklistControl?.onToggle}
               checklistPending={checklistControl?.pending}
             />
+          ) : (
+            <div
+              ref={contentRef}
+              className="relative"
+              style={!showExpanded ? { maxHeight: 260, overflow: 'hidden' } : undefined}
+            >
+              <NoteContent
+                content={message.content}
+                variant={variant}
+                onToggleChecklistItem={checklistControl?.onToggle}
+                checklistPending={checklistControl?.pending}
+              />
+              {isOverflowing && !showExpanded ? (
+                <div
+                  className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center justify-end pb-2.5 pt-12"
+                  style={{ background: `linear-gradient(to top, ${noteColor} 35%, transparent)` }}
+                >
+                  <button
+                    type="button"
+                    className="pointer-events-auto rounded-full border border-black/10 bg-white/60 px-3 py-1 text-[11px] font-medium text-slate-700 shadow-sm backdrop-blur-sm transition-all hover:bg-white/80 active:scale-95"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); setIsExpanded(true) }}
+                  >
+                    展开查看全部
+                  </button>
+                </div>
+              ) : null}
+            </div>
           )}
           {!isPreview && reactionControl ? (
             <div className="mt-auto pt-1" onPointerDown={(event) => event.stopPropagation()}>

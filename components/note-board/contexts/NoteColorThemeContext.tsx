@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useSyncExternalStore, type ReactNode } from 'react'
 
 export type NoteColorThemeId = 'vivid' | 'cream' | 'mono' | 'dusk' | 'linen'
 
@@ -125,8 +125,7 @@ const NoteColorThemeContext = createContext<NoteColorThemeContextValue>({
   setThemeId: () => {},
 })
 
-function readStoredNoteTheme(): NoteColorThemeId {
-  if (typeof window === 'undefined') return 'vivid'
+function getStoredThemeId(): NoteColorThemeId {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored && VALID_IDS.has(stored as NoteColorThemeId)) return stored as NoteColorThemeId
@@ -134,12 +133,25 @@ function readStoredNoteTheme(): NoteColorThemeId {
   return 'vivid'
 }
 
+function subscribeStorage(callback: () => void): () => void {
+  window.addEventListener('storage', callback)
+  return () => window.removeEventListener('storage', callback)
+}
+
 export function NoteColorThemeProvider({ children }: { children: ReactNode }) {
-  const [themeId, setThemeId] = useState<NoteColorThemeId>(readStoredNoteTheme)
+  // useSyncExternalStore handles SSR/hydration correctly:
+  // server snapshot = 'vivid', client snapshot = actual localStorage value.
+  // No useEffect needed — React reconciles the two automatically.
+  const themeId = useSyncExternalStore(
+    subscribeStorage,
+    getStoredThemeId,
+    () => 'vivid' as NoteColorThemeId,
+  )
 
   const handleSetThemeId = (id: NoteColorThemeId) => {
-    setThemeId(id)
     localStorage.setItem(STORAGE_KEY, id)
+    // Dispatch a synthetic storage event so the same-tab subscriber re-reads immediately
+    window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY, newValue: id }))
   }
 
   const theme = NOTE_COLOR_THEMES.find((t) => t.id === themeId) ?? DEFAULT_THEME

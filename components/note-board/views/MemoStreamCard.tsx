@@ -205,7 +205,7 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
       <div className="mt-3 flex items-center border-t border-border/20 pt-3">
         <button
           type="button"
-          onClick={() => { setShowComments((v) => !v); setLiveCommentCount(null) }}
+          onClick={() => setShowComments((v) => !v)}
           className={[
             'flex items-center gap-1.5 text-[12px] font-medium transition',
             showComments ? 'text-foreground/70' : 'text-muted-foreground/55 hover:text-foreground/70',
@@ -224,7 +224,7 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
         <NoteCommentPanel
           noteId={message.id}
           onCommentAdded={() => setCommentCountDelta((d) => d + 1)}
-          onCountLoaded={(count) => setLiveCommentCount(count)}
+          onCountLoaded={(count) => { setLiveCommentCount(count); setCommentCountDelta(0) }}
         />
       )}
     </div>
