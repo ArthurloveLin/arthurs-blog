@@ -174,9 +174,6 @@ function GraphDefs({ uid, variant }: { uid: string; variant: 'inline' | 'modal' 
 
   return (
     <defs>
-      {/* Flowing dash animation — direction conveys top-to-bottom skill unlock */}
-      <style>{`@keyframes sf-${uid}{to{stroke-dashoffset:-20}}`}</style>
-
       {/* Vertical gradient for active edges */}
       <linearGradient id={`eg-${uid}`} x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor={c1} stopOpacity="0.85" />
@@ -237,7 +234,7 @@ function Edge({
         strokeWidth={variant === 'modal' ? 5 : 3.5}
         strokeLinecap="round"
       />
-      {/* Flowing animated dash */}
+      {/* Flowing animated dash — SVG native <animate> avoids CSS keyframes in SVG */}
       <path
         d={pathD}
         fill="none"
@@ -245,8 +242,10 @@ function Edge({
         strokeWidth={variant === 'modal' ? 1.8 : 1.3}
         strokeLinecap="round"
         strokeDasharray="7 5"
-        style={{ animation: `sf-${uid} 1.1s linear infinite` }}
-      />
+        strokeDashoffset="0"
+      >
+        <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1.1s" repeatCount="indefinite" />
+      </path>
       {/* Skill label badge at midpoint */}
       {label && (
         <g transform={`translate(${mx - badgeW / 2 + 8},${my - badgeH / 2})`}>
