@@ -2,7 +2,7 @@
 
 import type { useRecipeEditor } from '@/hooks/useRecipeEditor'
 import { EditableField, EditableTags } from './InlineEditor'
-import { pageStyle, inputStyle, SectionLabel } from './recipe-edit-shared'
+import { pageStyle, SectionLabel, StarRating, DotRating } from './recipe-edit-shared'
 import RecipePrerequisiteEditor from './RecipePrerequisiteEditor'
 
 type EditorReturn = ReturnType<typeof useRecipeEditor>
@@ -38,31 +38,24 @@ export default function RecipeEditRightPage({ editor }: Props) {
 
       {/* Proficiency */}
       <div>
-        <SectionLabel>熟练度 (1-5)</SectionLabel>
-        <input
-          type="number"
-          min={1} max={5}
-          value={draft.proficiency ?? ''}
-          onChange={(e) => setField('proficiency', e.target.value ? parseInt(e.target.value) : null)}
-          style={{ width: 60, ...inputStyle }}
+        <SectionLabel>熟练度</SectionLabel>
+        <StarRating
+          value={draft.proficiency}
+          onChange={(v) => setField('proficiency', v)}
         />
       </div>
 
       {/* Flavor radar */}
       <div>
-        <SectionLabel>风味雷达 (0-5，空=未设置)</SectionLabel>
-        <div className="recipe-edit-flavor-grid grid grid-cols-3 gap-1.5">
+        <SectionLabel>风味雷达</SectionLabel>
+        <div className="recipe-edit-flavor-grid grid grid-cols-2 gap-x-4 gap-y-3 mt-1">
           {flavorKeys.map(({ key, label }) => (
-            <div key={key} className="flex items-center gap-1.5">
-              <span style={{ color: 'oklch(0.55 0.03 50)', width: 16, fontSize: 12 }}>{label}</span>
-              <input
-                type="number"
-                min={0} max={5}
-                value={draft[key] ?? ''}
-                onChange={(e) => setField(key, e.target.value ? parseInt(e.target.value) : null)}
-                style={{ width: 40, ...inputStyle }}
-              />
-            </div>
+            <DotRating
+              key={key}
+              label={label}
+              value={draft[key]}
+              onChange={(v) => setField(key, v)}
+            />
           ))}
         </div>
       </div>
