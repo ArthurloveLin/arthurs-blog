@@ -37,6 +37,7 @@ export interface NoteMessage {
   visibility: NoteVisibility
   comment_count?: number
   due_at?: string | null
+  notified_dues?: string[] | null
 }
 
 function compareBoardMessageTime(
@@ -166,7 +167,7 @@ export const getBoardMessages = cache(async (
 
   let query = supabaseAdmin
     .from('comments')
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues')
     .eq('target_type', config.targetType)
     .eq('target_id', config.targetId)
     .eq('archived', archived)
@@ -246,7 +247,7 @@ export async function createBoardMessage(board: NoteBoardSlug, author: string, c
       visibility: safeVisibility,
       ...(dueAt ? { due_at: dueAt } : {}),
     })
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues')
     .single()
 
   if (error) {
@@ -333,7 +334,7 @@ export async function updateBoardMessage(
     .from('comments')
     .update(patch)
     .eq('id', id)
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues')
     .single()
 
   if (error || !data) {

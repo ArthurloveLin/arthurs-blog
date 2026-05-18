@@ -196,6 +196,7 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
           variant="stream"
           onToggleChecklistItem={checklistControl?.onToggle}
           checklistPending={checklistControl?.pending}
+          notifiedDues={message.notified_dues}
         />
       </div>
 

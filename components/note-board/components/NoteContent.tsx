@@ -13,16 +13,28 @@ interface NoteContentProps {
   variant: 'preview' | 'board' | 'stream'
   onToggleChecklistItem?: (lineIndex: number) => void
   checklistPending?: boolean
+  notifiedDues?: string[] | null
 }
 
 const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==|`[^`\n]+`|~~[^~\n]+~~|@due\[[^\]]*\]\([^)]*\)|\[[^\]]+\]\([^)]+\)|#[\w一-龥]+|\$\$[^$\n]+\$\$|\$(?!\$)[^$\n]+\$)/g
 
-function InlineDueChip({ label, iso }: { label: string; iso: string }) {
+function InlineDueChip({ label, iso, notified }: { label: string; iso: string; notified?: boolean }) {
   const [now] = useState(Date.now)
   const diff = Date.parse(iso) - now
   const isOverdue = diff < 0
   const isSoon = !isOverdue && diff < 86400000
   const formatted = new Date(iso).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  if (notified) {
+    return (
+      <span
+        title={`已完成：${label || '截止'} ${formatted}`}
+        className="inline-flex items-center gap-0.5 rounded-full border border-green-300/50 bg-green-50/60 px-1.5 py-0 text-[0.78em] font-medium align-baseline cursor-default select-none text-green-600/60"
+      >
+        <Check size={9} strokeWidth={2.5} className="shrink-0" />
+        <span className="line-through">{label || '截止'}</span>
+      </span>
+    )
+  }
   return (
     <span
       title={`${label || '截止'}：${formatted}`}
@@ -39,7 +51,7 @@ function InlineDueChip({ label, iso }: { label: string; iso: string }) {
   )
 }
 
-function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[] {
+function renderInlineFormattedText(text: string, keyPrefix: string, notifiedDues?: string[] | null): ReactNode[] {
   const nodes: ReactNode[] = []
   let cursor = 0
   let index = 0
@@ -73,7 +85,8 @@ function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[]
     } else if (token.startsWith('@due[')) {
       const dueMatch = token.match(/^@due\[([^\]]*)\]\(([^)]*)\)$/)
       if (dueMatch) {
-        nodes.push(<InlineDueChip key={`${keyPrefix}-due-${index}`} label={dueMatch[1]} iso={dueMatch[2]} />)
+        const notified = notifiedDues?.includes(dueMatch[2]) ?? false
+        nodes.push(<InlineDueChip key={`${keyPrefix}-due-${index}`} label={dueMatch[1]} iso={dueMatch[2]} notified={notified} />)
       } else {
         nodes.push(token)
       }
@@ -152,7 +165,7 @@ const HEADING_CLASS_STREAM: Record<number, string> = {
   6: 'text-[12px] font-medium mt-2',
 }
 
-function renderTableRows(rows: string[], keyPrefix: string): ReactNode {
+function renderTableRows(rows: string[], keyPrefix: string, notifiedDues?: string[] | null): ReactNode {
   const parsed = rows.map((row) =>
     row.replace(/^\||\|$/g, '').split('|').map((cell) => cell.trim())
   )
@@ -169,7 +182,7 @@ function renderTableRows(rows: string[], keyPrefix: string): ReactNode {
             <tr>
               {headerRow.map((cell, ci) => (
                 <th key={ci} className="border border-slate-300/60 bg-slate-100/60 px-1.5 py-0.5 text-left font-semibold text-slate-800">
-                  {renderInlineFormattedText(cell, `${keyPrefix}-th-${ci}`)}
+                  {renderInlineFormattedText(cell, `${keyPrefix}-th-${ci}`, notifiedDues)}
                 </th>
               ))}
             </tr>
@@ -180,7 +193,7 @@ function renderTableRows(rows: string[], keyPrefix: string): ReactNode {
             <tr key={ri}>
               {cells.map((cell, ci) => (
                 <td key={ci} className="border border-slate-300/60 px-1.5 py-0.5 text-slate-700">
-                  {renderInlineFormattedText(cell, `${keyPrefix}-td-${ri}-${ci}`)}
+                  {renderInlineFormattedText(cell, `${keyPrefix}-td-${ri}-${ci}`, notifiedDues)}
                 </td>
               ))}
             </tr>
@@ -191,7 +204,8 @@ function renderTableRows(rows: string[], keyPrefix: string): ReactNode {
   )
 }
 
-function NoteContentComponent({ content, variant, onToggleChecklistItem, checklistPending = false }: NoteContentProps) {
+function NoteContentComponent({ content, variant, onToggleChecklistItem, checklistPending = false, notifiedDues }: NoteContentProps) {
+  const renderInline = (text: string, keyPrefix: string) => renderInlineFormattedText(text, keyPrefix, notifiedDues)
   const parsed = useMemo(() => parseNoteContent(content), [content])
 
   const bodyElements = useMemo(() => {
@@ -214,7 +228,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     function flushTable(_untilIndex: number) {
       if (tableBuffer.length === 0) return
-      result.push(renderTableRows(tableBuffer, `${variant}-tbl-${tableStart}`))
+      result.push(renderTableRows(tableBuffer, `${variant}-tbl-${tableStart}`, notifiedDues))
       tableBuffer = []
     }
 
@@ -229,7 +243,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
         <Tag key={`${variant}-${listType}-${listStart}`} className={listType === 'ul' ? ulCls : olCls}>
           {listBuffer.map((text, idx) => (
             <li key={idx} className="pl-0.5">
-              {renderInlineFormattedText(text, `${variant}-li-${listStart}-${idx}`)}
+              {renderInline(text, `${variant}-li-${listStart}-${idx}`)}
             </li>
           ))}
         </Tag>
@@ -333,7 +347,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
         const headingClass = isStream ? HEADING_CLASS_STREAM[level] : HEADING_CLASS_NOTE[level]
         result.push(
           <p key={`h-${i}`} className={`w-full ${headingClass}`} style={{ color: `var(--md-h${level})` }}>
-            {renderInlineFormattedText(headingMatch[2], `${variant}-h-${i}`)}
+            {renderInline(headingMatch[2], `${variant}-h-${i}`)}
           </p>
         )
         continue
@@ -352,7 +366,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
             style={{ borderLeftColor: 'var(--md-bq-border)', color: 'var(--md-bq-text)' }}
           >
             {bqMatch[1].length > 0
-              ? renderInlineFormattedText(bqMatch[1], `${variant}-bq-${i}`)
+              ? renderInline(bqMatch[1], `${variant}-bq-${i}`)
               : <span>&nbsp;</span>}
           </blockquote>
         )
@@ -385,7 +399,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       // Regular paragraph
       result.push(
         <p key={`p-${i}`} className="w-full whitespace-pre-wrap break-words">
-          {line.length > 0 ? renderInlineFormattedText(line, `${variant}-${i}`) : <span>&nbsp;</span>}
+          {line.length > 0 ? renderInline(line, `${variant}-${i}`) : <span>&nbsp;</span>}
         </p>
       )
     }
@@ -452,7 +466,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
                     <span
                       className={item.checked ? 'line-through text-slate-700/65' : ''}
                     >
-                      {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`)}
+                      {renderInline(item.text, `${variant}-check-${item.id}`)}
                     </span>
                   </>
                 ) : (
