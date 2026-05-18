@@ -24,7 +24,7 @@ export default function RecipeEditRightPage({ editor }: Props) {
   const { draft, setField } = editor
 
   return (
-    <div className="bs-page-scroll-content recipe-edit-page recipe-edit-right-content flex flex-col gap-4 pr-16" style={pageStyle}>
+    <div className="bs-page-scroll-content recipe-edit-page recipe-edit-right-content flex flex-col gap-4" style={{ ...pageStyle, padding: '20px 28px' }}>
 
       {/* Tags */}
       <div>

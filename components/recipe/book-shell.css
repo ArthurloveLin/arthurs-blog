@@ -470,13 +470,14 @@
 
     position: relative;
     width: 100%;
-    overflow: visible;
+    height: clamp(480px, 75svh, 800px);
+    overflow: hidden;
   }
 
   .bs-root[data-mobile="true"] .bs-book {
     width: 100%;
     max-width: none;
-    height: auto;
+    height: 100%;
   }
 
   .bs-root[data-mobile="true"] .bs-sprite,
@@ -488,10 +489,11 @@
 
   .bs-root[data-mobile="true"] .bs-carousel {
     width: 100%;
-    height: auto;
-    overflow: visible;
+    height: 100%;
+    overflow: hidden;
     margin: 0;
     padding-top: var(--bs-mobile-toolbar-space);
+    box-sizing: border-box;
   }
 
   .bs-root[data-mobile="true"] .bs-slide-wrapper,
@@ -506,6 +508,7 @@
 
   .bs-root[data-mobile="true"] .bs-slide-wrapper[data-active] {
     display: block;
+    height: 100%;
     pointer-events: auto;
   }
 
@@ -513,14 +516,15 @@
   .bs-root[data-mobile="true"] .bs-left-page,
   .bs-root[data-mobile="true"] .bs-right-page,
   .bs-root[data-mobile="true"] .bs-right-page-scroll {
-    overflow: visible;
+    height: 100%;
+    overflow: hidden;
   }
 
   .bs-root[data-mobile="true"] .bs-page-container {
     display: block;
     width: 100%;
     gap: 0;
-    height: auto;
+    height: 100%;
     transform: none;
     transition: none;
   }
@@ -530,7 +534,7 @@
     display: none;
     flex: none;
     min-width: 100%;
-    height: auto;
+    height: 100%;
     padding: 0;
     color: oklch(0.3 0.02 50);
   }
@@ -538,6 +542,7 @@
   .bs-root[data-mobile="true"] .bs-slide-wrapper[data-page-side="left"] .bs-left-page,
   .bs-root[data-mobile="true"] .bs-slide-wrapper[data-page-side="right"] .bs-right-page {
     display: flex;
+    height: 100%;
   }
 
   .bs-root[data-mobile="true"] .bs-right-page {
@@ -567,13 +572,13 @@
   }
 
   .bs-root[data-mobile="true"] .bs-page-scroll-content {
-    height: auto !important;
-    min-height: auto;
-    overflow: visible;
+    height: 100% !important;
+    min-height: 0;
+    overflow-y: auto;
     overflow-x: hidden;
-    overscroll-behavior-y: auto;
-    -webkit-overflow-scrolling: auto;
-    scrollbar-width: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
     padding-bottom: calc(var(--bs-mobile-safe-bottom) + 1rem);
   }
 

@@ -26,7 +26,7 @@ export default function RecipeEditLeftPage({ editor }: Props) {
   const { addStep, removeStep, updateStep } = stepActions
 
   return (
-    <div className="bs-page-scroll-content recipe-edit-page recipe-edit-left-content flex flex-col gap-4" style={pageStyle}>
+    <div className="bs-page-scroll-content recipe-edit-page recipe-edit-left-content flex flex-col gap-4" style={{ ...pageStyle, padding: '20px 28px' }}>
       {/* Title + Rating */}
       <div className="pb-1.5 border-b border-amber-800/20">
         <div className="flex items-center justify-between">
