@@ -75,7 +75,15 @@ function renderInlineFormattedText(text: string, keyPrefix: string, notifiedDues
     } else if (token.startsWith('`') && token.endsWith('`')) {
       nodes.push(<code key={`${keyPrefix}-c-${index}`} className={styles.inlineCode}>{token.slice(1, -1)}</code>)
     } else if (token.startsWith('~~') && token.endsWith('~~')) {
-      nodes.push(<del key={`${keyPrefix}-s-${index}`} className="line-through opacity-60">{token.slice(2, -2)}</del>)
+      const delInner = token.slice(2, -2)
+      const delDueMatch = delInner.match(/^@due\[([^\]]*)\]\(([^)]*)\)$/)
+      nodes.push(
+        <del key={`${keyPrefix}-s-${index}`} className="line-through opacity-60">
+          {delDueMatch
+            ? <InlineDueChip label={delDueMatch[1]} iso={delDueMatch[2]} notified={notifiedDues?.includes(delDueMatch[2]) ?? false} />
+            : delInner}
+        </del>
+      )
     } else if (token.startsWith('#')) {
       nodes.push(
         <span key={`${keyPrefix}-tag-${index}`} className="inline-flex items-center rounded-full border border-border/70 px-2 py-0.5 text-[0.8em] text-muted-foreground">

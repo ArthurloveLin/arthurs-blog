@@ -685,6 +685,7 @@ function StickyNoteCardFrame({
                 variant={variant}
                 onToggleChecklistItem={checklistControl?.onToggle}
                 checklistPending={checklistControl?.pending}
+                notifiedDues={message.notified_dues}
               />
               {isOverflowing && !showExpanded ? (
                 <div
