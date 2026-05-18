@@ -385,7 +385,7 @@ export default function TrendRadarDisplay({
                       >
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-1 h-3 bg-primary/40 rounded-full" />
-                          <h4 className="text-xs font-bold text-foreground truncate">
+                          <h4 className="text-xs sm:text-[14px] font-bold text-foreground truncate">
                             {source.source_name}
                           </h4>
                         </div>
@@ -396,7 +396,7 @@ export default function TrendRadarDisplay({
                                 href={t.url || t.mobile_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[12px] text-muted-foreground hover:text-primary transition-colors line-clamp-1 leading-snug"
+                                className="text-[12px] sm:text-[14px] text-muted-foreground hover:text-primary transition-colors line-clamp-1 leading-snug"
                               >
                                 {t.title}
                               </a>
@@ -521,7 +521,7 @@ function TrendKeywordCard({
           >
             {rank}
           </span>
-          <h3 className="text-[15px] font-bold text-foreground group-hover:text-primary transition-colors truncate">
+          <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
             {item.word}
           </h3>
         </div>
@@ -567,7 +567,7 @@ function TrendKeywordCard({
                 )}
               </span>
             </div>
-            <p className="text-[13px] text-foreground/75 group-hover/item:text-primary transition-colors line-clamp-2 leading-relaxed">
+            <p className="text-[13px] sm:text-[15px] text-foreground/75 group-hover/item:text-primary transition-colors line-clamp-2 leading-relaxed">
               {title.title}
             </p>
           </a>
@@ -596,7 +596,7 @@ function RssSourceCard({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-2 h-2 rounded-full bg-emerald-500/70 shrink-0" />
-          <h4 className="text-[13px] font-bold text-foreground truncate">{source.name}</h4>
+          <h4 className="text-[13px] sm:text-[15px] font-bold text-foreground truncate">{source.name}</h4>
         </div>
         <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0 ml-2 tabular-nums">
           {source.items.length}
@@ -623,7 +623,7 @@ function RssSourceCard({
                 </span>
               )}
             </div>
-            <p className="text-[13px] text-muted-foreground group-hover/rss:text-emerald-600 dark:group-hover/rss:text-emerald-400 transition-colors line-clamp-2 leading-relaxed">
+            <p className="text-[13px] sm:text-[15px] text-muted-foreground group-hover/rss:text-emerald-600 dark:group-hover/rss:text-emerald-400 transition-colors line-clamp-2 leading-relaxed">
               {item.title}
             </p>
           </a>
@@ -639,7 +639,7 @@ function HotPlatformCard({ platform }: { platform: StandalonePlatform }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-1 h-4 bg-amber-400/80 rounded-full shrink-0" />
-          <h4 className="text-[13px] font-bold text-foreground truncate">{platform.name}</h4>
+          <h4 className="text-[13px] sm:text-[15px] font-bold text-foreground truncate">{platform.name}</h4>
         </div>
         <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0 ml-2 tabular-nums">
           {platform.items.length}
@@ -666,7 +666,7 @@ function HotPlatformCard({ platform }: { platform: StandalonePlatform }) {
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[13px] text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors line-clamp-2 leading-snug"
+              className="text-[13px] sm:text-[15px] text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors line-clamp-2 leading-snug"
             >
               {item.title}
             </a>
