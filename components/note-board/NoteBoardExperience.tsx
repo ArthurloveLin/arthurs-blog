@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlarmClock, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { AlarmClock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import { VisibilityPicker } from '@/components/note-board/components/VisibilityPicker'
@@ -196,61 +196,112 @@ function BoardStickyView({ onToggleViewMode, filters }: { onToggleViewMode: () =
   )
 }
 
-function DueDatePicker({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) => void }) {
   const [open, setOpen] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [label, setLabel] = useState('')
+  const [date, setDate] = useState('')
+  const [time, setTime] = useState('')
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const [panelPos, setPanelPos] = useState<{ bottom: number; left: number }>({ bottom: 0, left: 0 })
 
-  const toLocalDatetimeValue = (iso: string | null) => {
-    if (!iso) return ''
-    const d = new Date(iso)
-    const pad = (n: number) => String(n).padStart(2, '0')
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  function handleToggle() {
+    if (!open && wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect()
+      setPanelPos({
+        bottom: window.innerHeight - rect.top + 8,
+        left: Math.min(rect.left, window.innerWidth - 232 - 8),
+      })
+    }
+    setOpen((v) => !v)
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value
-    onChange(v ? new Date(v).toISOString() : null)
+  useEffect(() => {
+    if (!open) return
+    function onPointerDown(e: PointerEvent) {
+      if (
+        panelRef.current?.contains(e.target as Node) ||
+        wrapperRef.current?.contains(e.target as Node)
+      ) return
+      setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [open])
+
+  function handleInsert() {
+    if (!date) return
+    const iso = new Date(`${date}T${time || '00:00'}`).toISOString()
+    const tag = `@due[${label.trim() || '截止'}](${iso})`
+    insertAtCursor(tag)
+    setOpen(false)
+    setLabel('')
+    setDate('')
+    setTime('')
   }
 
   return (
-    <div className="relative flex items-center">
+    <div ref={wrapperRef}>
       <button
         type="button"
-        title={value ? `截止：${new Date(value).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : '设置截止时间'}
-        onClick={() => {
-          setOpen((v) => !v)
-          setTimeout(() => inputRef.current?.showPicker?.(), 50)
-        }}
-        className={[
-          'inline-flex h-6 w-6 items-center justify-center rounded-full transition-colors',
-          value
-            ? 'text-amber-500 hover:text-amber-600'
-            : 'text-slate-400 hover:text-slate-600',
-        ].join(' ')}
+        title="插入截止时间"
+        onClick={handleToggle}
+        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white/70 text-slate-700 transition-all hover:bg-white"
       >
         <AlarmClock size={13} strokeWidth={1.8} />
       </button>
-      {value ? (
-        <button
-          type="button"
-          title="清除截止时间"
-          onClick={() => { onChange(null); setOpen(false) }}
-          className="inline-flex h-4 w-4 items-center justify-center rounded-full text-slate-400 transition hover:text-slate-600"
+
+      {open ? (
+        <div
+          ref={panelRef}
+          style={{ position: 'fixed', bottom: panelPos.bottom, left: panelPos.left, zIndex: 200 }}
+          className="w-[14.5rem] rounded-xl border border-border/60 bg-card p-3 shadow-xl"
         >
-          <X size={10} strokeWidth={2} />
-        </button>
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">插入截止时间</p>
+          <div className="space-y-2">
+            <input
+              autoFocus
+              type="text"
+              placeholder="标签（如 checklist1）"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleInsert() }}
+              className="w-full rounded-lg border border-border/60 bg-background px-2 py-1.5 text-[12px] text-foreground outline-none focus:ring-1 focus:ring-primary/30"
+            />
+            <div className="flex gap-1.5">
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="min-w-0 flex-1 rounded-lg border border-border/60 bg-background px-2 py-1.5 text-[12px] text-foreground outline-none focus:ring-1 focus:ring-primary/30"
+              />
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-[4.5rem] rounded-lg border border-border/60 bg-background px-2 py-1.5 text-[12px] text-foreground outline-none focus:ring-1 focus:ring-primary/30"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-0.5">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-full border border-border/60 px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/40"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                disabled={!date}
+                onClick={handleInsert}
+                className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-[11px] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+              >
+                插入
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
-      {open && (
-        <input
-          ref={inputRef}
-          type="datetime-local"
-          value={toLocalDatetimeValue(value)}
-          onChange={handleInputChange}
-          onBlur={() => setOpen(false)}
-          className="absolute bottom-full left-0 mb-1 rounded-lg border border-border/60 bg-card px-2 py-1 text-[11px] text-foreground shadow-lg outline-none focus:ring-1 focus:ring-primary/30"
-          style={{ zIndex: 50 }}
-        />
-      )}
     </div>
   )
 }
@@ -294,7 +345,7 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
             minHeightClassName="min-h-[140px]"
             shellClassName="overflow-hidden rounded-[24px] border border-border/70 bg-background/55"
             toolbarClassName="px-4 py-3 text-xs text-muted-foreground"
-            toolbarLeadingAddon={
+            toolbarLeadingAddon={(insertAtCursor) => (
               <>
                 {state.priorityEnabled ? (
                   <PriorityPicker.Dot
@@ -313,13 +364,10 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
                   />
                 ) : null}
                 {state.isAdmin ? (
-                  <DueDatePicker
-                    value={state.editorDueAt}
-                    onChange={actions.updateEditorDueAt}
-                  />
+                  <DueDateInserter insertAtCursor={insertAtCursor} />
                 ) : null}
               </>
-            }
+            )}
             autoFocus={state.editorMode === 'edit' && (boardState.isMobileViewport || autoFocusOnEdit)}
           />
         </form>

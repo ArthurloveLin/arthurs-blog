@@ -10,6 +10,7 @@ import { PriorityPicker } from '@/components/note-board/components/PriorityPicke
 import { useNoteBoardActions } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
 import { getStickyColorIndex, getStickyColorSeed, STICKY_COLORS } from '@/components/note-board/utils/board'
+import { hasInlineDueTags } from '@/components/note-board/utils/editor'
 import { NoteCommentPanel } from '@/components/note-board/components/NoteCommentPanel'
 import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { formatCommentTimeLabel } from '@/lib/date-format'
@@ -199,8 +200,8 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
       </div>
 
 
-      {/* 截止时间 */}
-      {message.due_at ? (() => {
+      {/* 截止时间（仅无 inline @due 标签时显示全局 badge） */}
+      {message.due_at && !hasInlineDueTags(message.content) ? (() => {
         const { label, variant } = formatDueLabel(message.due_at)
         return (
           <div className={[

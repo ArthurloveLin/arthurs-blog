@@ -98,6 +98,31 @@ export function insertLinePrefixSyntax(value: string, start: number, end: number
   return replaceRange(value, block.start, block.end, converted, block.start, block.start + converted.length)
 }
 
+const INLINE_DUE_PATTERN = /@due\[[^\]]*\]\([^)]*\)/g
+const INLINE_DUE_CAPTURE = /@due\[([^\]]*)\]\(([^)]*)\)/g
+
+export function parseInlineDueTags(content: string): Array<{ label: string; iso: string }> {
+  const result: Array<{ label: string; iso: string }> = []
+  INLINE_DUE_CAPTURE.lastIndex = 0
+  let match: RegExpExecArray | null
+  while ((match = INLINE_DUE_CAPTURE.exec(content)) !== null) {
+    const iso = match[2]
+    if (iso && !isNaN(Date.parse(iso))) result.push({ label: match[1], iso })
+  }
+  return result
+}
+
+export function extractEarliestDueAt(content: string): string | null {
+  const tags = parseInlineDueTags(content)
+  if (tags.length === 0) return null
+  return tags.reduce((earliest, t) => Date.parse(t.iso) < Date.parse(earliest) ? t.iso : earliest, tags[0].iso)
+}
+
+export function hasInlineDueTags(content: string): boolean {
+  INLINE_DUE_PATTERN.lastIndex = 0
+  return INLINE_DUE_PATTERN.test(content)
+}
+
 const HASHTAG_PATTERN = /#([\p{L}\p{N}_-]+)/gu
 
 export function parseHashtags(content: string): string[] {

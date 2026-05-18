@@ -8,6 +8,7 @@ import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
 import { NoteContent } from '@/components/note-board/components/NoteContent'
+import { hasInlineDueTags } from '@/components/note-board/utils/editor'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
@@ -702,7 +703,7 @@ function StickyNoteCardFrame({
               ) : null}
             </div>
           )}
-          {!isPreview && message.due_at ? (
+          {!isPreview && message.due_at && !hasInlineDueTags(message.content) ? (
             <StickyDueBadge dueAt={message.due_at} />
           ) : null}
           {!isPreview && reactionControl ? (

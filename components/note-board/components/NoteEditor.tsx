@@ -24,7 +24,7 @@ export interface NoteEditorProps {
   toolbarClassName?: string
   autoFocus?: boolean
   buttonSize?: 'sm' | 'md'
-  toolbarLeadingAddon?: ReactNode
+  toolbarLeadingAddon?: ReactNode | ((insertAtCursor: (text: string) => void) => ReactNode)
   toolbarButtonVariant?: 'filled' | 'bare'
   emojiTriggerVariant?: 'filled' | 'bare'
   showCancelButton?: boolean
@@ -144,6 +144,13 @@ export function NoteEditor({
     const textarea = textareaRef.current
     if (!textarea) return
     commitTextEdit(transform(value, textarea.selectionStart, textarea.selectionEnd))
+  }
+
+  function insertAtCursor(text: string) {
+    const textarea = textareaRef.current
+    const pos = textarea ? textarea.selectionStart : value.length
+    const result = insertTextAtSelection(value, text, pos, pos)
+    commitTextEdit({ value: result.value, selection: { start: result.selectionStart, end: result.selectionEnd } })
   }
 
   function insertLinkTemplate() {
@@ -275,6 +282,10 @@ export function NoteEditor({
     </>
   )
 
+  const resolvedLeadingAddon = typeof toolbarLeadingAddon === 'function'
+    ? toolbarLeadingAddon(insertAtCursor)
+    : toolbarLeadingAddon
+
   return (
     <div className="w-full min-w-0 max-w-full space-y-3">
       <div className="grid w-full min-w-0 max-w-full">
@@ -330,7 +341,7 @@ export function NoteEditor({
         {/* Mobile: formatting tools row + actions row stacked */}
         <div className="sm:hidden">
           <div className={`flex flex-nowrap items-center gap-1.5 overflow-x-auto ${toolbarClassName} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
-            {toolbarLeadingAddon}
+            {resolvedLeadingAddon}
             {formattingButtons}
           </div>
           <div className="flex items-center justify-end gap-2 border-t border-border/60 px-3 py-2">
@@ -342,7 +353,7 @@ export function NoteEditor({
           <EditorActionBar
             noWrap
             className={['border-t-0', toolbarClassName].join(' ')}
-            leading={<>{toolbarLeadingAddon}{formattingButtons}</>}
+            leading={<>{resolvedLeadingAddon}{formattingButtons}</>}
             trailing={actionButtons}
           />
         </div>

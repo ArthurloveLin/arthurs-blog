@@ -1,7 +1,7 @@
 'use client'
 
-import { Check } from 'lucide-react'
-import { memo, useMemo, type ReactNode } from 'react'
+import { AlarmClock, Check } from 'lucide-react'
+import { memo, useMemo, useState, type ReactNode } from 'react'
 import katex from 'katex'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
 import { parseNoteContent } from '@/components/note-board/utils/editor'
@@ -15,7 +15,29 @@ interface NoteContentProps {
   checklistPending?: boolean
 }
 
-const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==|`[^`\n]+`|~~[^~\n]+~~|\[[^\]]+\]\([^)]+\)|#[\w一-龥]+|\$\$[^$\n]+\$\$|\$(?!\$)[^$\n]+\$)/g
+const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==|`[^`\n]+`|~~[^~\n]+~~|@due\[[^\]]*\]\([^)]*\)|\[[^\]]+\]\([^)]+\)|#[\w一-龥]+|\$\$[^$\n]+\$\$|\$(?!\$)[^$\n]+\$)/g
+
+function InlineDueChip({ label, iso }: { label: string; iso: string }) {
+  const [now] = useState(Date.now)
+  const diff = Date.parse(iso) - now
+  const isOverdue = diff < 0
+  const isSoon = !isOverdue && diff < 86400000
+  const formatted = new Date(iso).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return (
+    <span
+      title={`${label || '截止'}：${formatted}`}
+      className={[
+        'inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0 text-[0.78em] font-medium align-baseline cursor-default select-none',
+        isOverdue ? 'border-red-300/70 bg-red-100/70 text-red-600' :
+          isSoon ? 'border-amber-300/70 bg-amber-100/70 text-amber-600' :
+            'border-slate-300/60 bg-slate-100/60 text-slate-500',
+      ].join(' ')}
+    >
+      <AlarmClock size={9} strokeWidth={2} className="shrink-0" />
+      <span>{label || '截止'}</span>
+    </span>
+  )
+}
 
 function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = []
@@ -48,6 +70,13 @@ function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[]
           {token}
         </span>
       )
+    } else if (token.startsWith('@due[')) {
+      const dueMatch = token.match(/^@due\[([^\]]*)\]\(([^)]*)\)$/)
+      if (dueMatch) {
+        nodes.push(<InlineDueChip key={`${keyPrefix}-due-${index}`} label={dueMatch[1]} iso={dueMatch[2]} />)
+      } else {
+        nodes.push(token)
+      }
     } else if (token.startsWith('[')) {
       const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
       if (linkMatch) {

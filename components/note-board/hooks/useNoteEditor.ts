@@ -6,7 +6,7 @@ import type { NoteMessage, NoteVisibility } from '@/lib/note-boards'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { DEFAULT_NOTE_PRIORITY, type NotePriority } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
-import { toggleChecklistLine } from '@/components/note-board/utils/editor'
+import { extractEarliestDueAt, toggleChecklistLine } from '@/components/note-board/utils/editor'
 
 function getResponseErrorMessage(payload: unknown) {
   if (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') {
@@ -206,7 +206,7 @@ export function useNoteEditor({
     setEditDueAt(null)
 
     try {
-      await commitNoteUpdate(editingMessage, nextContent, editPriority, editVisibility, editDueAt)
+      await commitNoteUpdate(editingMessage, nextContent, editPriority, editVisibility, extractEarliestDueAt(nextContent) ?? editDueAt)
     } finally {
       setIsUpdatingNote(false)
     }
@@ -314,7 +314,7 @@ export function useNoteEditor({
     const draftValue = draft.trim()
     const draftPriorityValue = draftPriority
     const draftVisibilityValue = draftVisibility
-    const draftDueAtValue = draftDueAt
+    const draftDueAtValue = extractEarliestDueAt(draftValue) ?? draftDueAt
     const optimisticId = `optimistic-${crypto.randomUUID()}`
     const optimisticMessage: NoteMessage = {
       id: optimisticId,
