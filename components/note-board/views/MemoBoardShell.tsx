@@ -23,10 +23,12 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
   const actions = useNoteBoardActions()
   const [localQuery, setLocalQuery] = useState(state.searchQuery)
   const [isFocused, setIsFocused] = useState(false)
+  const [isExpanding, setIsExpanding] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const displayedQuery = isFocused ? localQuery : state.searchQuery
   const hasQuery = displayedQuery.length > 0
-  const isExpanded = isFocused || state.searchQuery.length > 0
+  const isExpanded = isFocused || isExpanding || state.searchQuery.length > 0
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -39,6 +41,13 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
     setLocalQuery('')
     actions.handleSearch('')
     inputRef.current?.focus()
+  }
+
+  function handleExpandAndFocus() {
+    setIsExpanding(true)
+    expandTimerRef.current = setTimeout(() => {
+      inputRef.current?.focus()
+    }, 400)
   }
 
   return (
@@ -61,6 +70,8 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
         value={displayedQuery}
         onChange={(event) => setLocalQuery(event.target.value)}
         onFocus={() => {
+          if (expandTimerRef.current) { clearTimeout(expandTimerRef.current); expandTimerRef.current = null }
+          setIsExpanding(false)
           setLocalQuery(state.searchQuery)
           setIsFocused(true)
         }}
@@ -82,7 +93,7 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
       <button
         type="button"
         onMouseDown={(event) => event.preventDefault()}
-        onClick={hasQuery ? handleClear : () => inputRef.current?.focus()}
+        onClick={hasQuery ? handleClear : handleExpandAndFocus}
         className="absolute inset-y-0 right-0 flex h-[34px] w-[34px] items-center justify-center text-muted-foreground transition hover:text-foreground"
         aria-label={hasQuery ? '清除搜索' : '搜索'}
       >
@@ -211,7 +222,7 @@ function NoteThemeButton() {
         <Palette size={14} />
       </button>
       {open ? (
-        <div className="absolute right-0 top-full z-20 mt-1.5 min-w-[196px] overflow-hidden rounded-2xl border border-border/70 bg-card p-1.5 shadow-lg">
+        <div className="absolute right-0 top-full z-[1000] mt-1.5 min-w-[196px] overflow-hidden rounded-2xl border border-border/70 bg-card p-1.5 shadow-lg">
           {NOTE_COLOR_THEMES.map((t) => (
             <button
               key={t.id}

@@ -339,7 +339,7 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
       {open ? (
         <div
           ref={panelRef}
-          style={{ position: 'fixed', bottom: panelPos.bottom, left: panelPos.left, zIndex: 200 }}
+          style={{ position: 'fixed', bottom: panelPos.bottom, left: panelPos.left, zIndex: 1000 }}
           className="w-[18.5rem] rounded-[1.25rem] border border-border/70 bg-card/95 p-4 shadow-[0_22px_56px_rgba(15,23,42,0.18)] backdrop-blur-xl"
         >
           {/* 标签输入 */}
@@ -363,6 +363,9 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
             {editingHeader ? (
               <div
                 className="flex items-center gap-1"
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) commitHeader()
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') commitHeader()
                   if (e.key === 'Escape') setEditingHeader(false)
@@ -373,7 +376,6 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
                   type="number"
                   value={editYear}
                   onChange={(e) => setEditYear(e.target.value)}
-                  onBlur={commitHeader}
                   className="w-[3.4rem] rounded-lg border border-border/60 bg-background px-1.5 py-0.5 text-center text-[0.82rem] font-bold text-foreground outline-none focus:ring-1 focus:ring-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
                 <span className="text-[0.82rem] font-bold text-foreground">年</span>
@@ -382,7 +384,6 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
                   min="1" max="12"
                   value={editMonth}
                   onChange={(e) => setEditMonth(e.target.value)}
-                  onBlur={commitHeader}
                   className="w-[2.2rem] rounded-lg border border-border/60 bg-background px-1.5 py-0.5 text-center text-[0.82rem] font-bold text-foreground outline-none focus:ring-1 focus:ring-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
                 <span className="text-[0.82rem] font-bold text-foreground">月</span>

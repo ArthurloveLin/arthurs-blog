@@ -78,7 +78,7 @@ function PriorityPickerFrame({
       top = Math.max(padding, triggerRect.top - menuRect.height - padding)
     }
 
-    setMenuStyle({ left, top, position: 'fixed', zIndex: 90 })
+    setMenuStyle({ left, top, position: 'fixed', zIndex: 1000 })
   }, [menuAlign, menuDirection])
 
   useEffect(() => {
