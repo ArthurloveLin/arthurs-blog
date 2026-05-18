@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Archive, ArchiveRestore, Lock, MessageCircle, PencilLine, Trash2 } from 'lucide-react'
+import { AlarmClock, Archive, ArchiveRestore, Lock, MessageCircle, PencilLine, Trash2 } from 'lucide-react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
@@ -13,6 +13,25 @@ import { getStickyColorIndex, getStickyColorSeed, STICKY_COLORS } from '@/compon
 import { NoteCommentPanel } from '@/components/note-board/components/NoteCommentPanel'
 import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { formatCommentTimeLabel } from '@/lib/date-format'
+
+function formatDueLabel(dueAt: string): { label: string; variant: 'upcoming' | 'soon' | 'overdue' } {
+  const diff = Date.parse(dueAt) - Date.now()
+  const abs = Math.abs(diff)
+  const mins = Math.floor(abs / 60000)
+  const hours = Math.floor(abs / 3600000)
+  const days = Math.floor(abs / 86400000)
+
+  const fmt = (n: number, unit: string) => `${n}${unit}`
+
+  if (diff < 0) {
+    const label = days > 0 ? `超期 ${fmt(days, 'd')}` : hours > 0 ? `超期 ${fmt(hours, 'h')}` : `超期 ${fmt(mins || 1, 'm')}`
+    return { label, variant: 'overdue' }
+  }
+
+  const label = days > 0 ? `${fmt(days, 'd')}后截止` : hours > 0 ? `${fmt(hours, 'h')}后截止` : `${fmt(mins || 1, 'm')}后截止`
+  const variant = diff < 86400000 ? 'soon' : 'upcoming'
+  return { label, variant }
+}
 
 interface MemoStreamCardProps {
   item: NoteCardViewModel
@@ -179,6 +198,24 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
         />
       </div>
 
+
+      {/* 截止时间 */}
+      {message.due_at ? (() => {
+        const { label, variant } = formatDueLabel(message.due_at)
+        return (
+          <div className={[
+            'mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
+            variant === 'overdue'
+              ? 'bg-red-100/80 text-red-600'
+              : variant === 'soon'
+                ? 'bg-amber-100/80 text-amber-600'
+                : 'bg-slate-100/80 text-slate-500',
+          ].join(' ')}>
+            <AlarmClock size={10} strokeWidth={2} />
+            {label}
+          </div>
+        )
+      })() : null}
 
       {/* 表情反应 */}
       <EmojiReactionSummary

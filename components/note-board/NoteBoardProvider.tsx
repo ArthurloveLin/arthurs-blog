@@ -113,6 +113,7 @@ interface NoteBoardActions {
   updateEditorValue: (value: string) => void
   updateEditorPriority: (value: NotePriority) => void
   updateEditorVisibility: (value: NoteVisibility) => void
+  updateEditorDueAt: (value: string | null) => void
   submitEditor: () => Promise<void>
   cancelEditingNote: () => void
   scrollToEditor: () => void
@@ -164,6 +165,7 @@ interface NoteBoardEditorState {
   editorSaving: boolean
   editorPriority: NotePriority
   editorVisibility: NoteVisibility
+  editorDueAt: string | null
   editorSectionLabel: string
   editorPlaceholder: string
   editorSaveLabel: string
@@ -309,6 +311,8 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     setDraftPriority,
     draftVisibility,
     setDraftVisibility,
+    draftDueAt,
+    setDraftDueAt,
     editingNoteId,
     editContent,
     setEditContent,
@@ -316,6 +320,8 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     setEditPriority,
     editVisibility,
     setEditVisibility,
+    editDueAt,
+    setEditDueAt,
     isUpdatingNote,
     isSubmitting,
     updatingNoteIds,
@@ -496,6 +502,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     editorSaving: editingMessage ? isUpdatingNote : isSubmitting,
     editorPriority: editingMessage ? editPriority : draftPriority,
     editorVisibility: editingMessage ? editVisibility : draftVisibility,
+    editorDueAt: editingMessage ? editDueAt : draftDueAt,
     editorSectionLabel: editingMessage ? '便签编辑区' : (board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'),
     editorPlaceholder: editingMessage
       ? '直接修改这张便签的原始文本，checklist 状态也在这里编辑。'
@@ -507,9 +514,11 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     board.slug,
     canWrite,
     draft,
+    draftDueAt,
     draftPriority,
     draftVisibility,
     editContent,
+    editDueAt,
     editPriority,
     editVisibility,
     editingMessage,
@@ -539,6 +548,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     updateEditorValue: editingMessage ? setEditContent : setDraft,
     updateEditorPriority: editingMessage ? setEditPriority : setDraftPriority,
     updateEditorVisibility: editingMessage ? setEditVisibility : setDraftVisibility,
+    updateEditorDueAt: editingMessage ? setEditDueAt : setDraftDueAt,
     submitEditor: editingMessage ? saveEditingNote : submitDraft,
     cancelEditingNote,
     scrollToEditor,
@@ -559,9 +569,11 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     saveEditingNote,
     setCardPosition,
     setDraft,
+    setDraftDueAt,
     setDraftPriority,
     setDraftVisibility,
     setEditContent,
+    setEditDueAt,
     setEditPriority,
     setEditVisibility,
     scrollToEditor,

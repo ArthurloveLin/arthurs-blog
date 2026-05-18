@@ -56,10 +56,12 @@ export function useNoteEditor({
   const [draft, setDraft] = useState('')
   const [draftPriority, setDraftPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
   const [draftVisibility, setDraftVisibility] = useState<NoteVisibility>('public')
+  const [draftDueAt, setDraftDueAt] = useState<string | null>(null)
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [editPriority, setEditPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
   const [editVisibility, setEditVisibility] = useState<NoteVisibility>('public')
+  const [editDueAt, setEditDueAt] = useState<string | null>(null)
   const [isUpdatingNote, setIsUpdatingNote] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [updatingNoteIds, setUpdatingNoteIds] = useState<Record<string, boolean>>({})
@@ -80,6 +82,7 @@ export function useNoteEditor({
     setEditContent('')
     setEditPriority(DEFAULT_NOTE_PRIORITY)
     setEditVisibility('public')
+    setEditDueAt(null)
     setError(null)
   }, [setError])
 
@@ -88,6 +91,7 @@ export function useNoteEditor({
     setEditContent(message.content)
     setEditPriority(message.priority)
     setEditVisibility(message.visibility ?? 'public')
+    setEditDueAt(message.due_at ?? null)
     setError(null)
 
     if (isMobileViewport) {
@@ -104,7 +108,7 @@ export function useNoteEditor({
       return
     }
 
-    async function commitNoteUpdate(message: NoteMessage, content: string, priority: NotePriority, visibility: NoteVisibility) {
+    async function commitNoteUpdate(message: NoteMessage, content: string, priority: NotePriority, visibility: NoteVisibility, dueAt: string | null) {
       const originalContent = message.content
       const originalPriority = message.priority
       const originalVisibility = message.visibility ?? 'public'
@@ -117,6 +121,7 @@ export function useNoteEditor({
           content,
           priority,
           visibility,
+          due_at: dueAt,
         }
         : currentMessage), { resetPositions: false })
 
@@ -148,7 +153,7 @@ export function useNoteEditor({
           const response = await fetch(`/api/note-boards/${board.slug}/${message.id}`, {
             method: 'PATCH',
             headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({ identity, identities: viewerIdentityAliases, content, priority, visibility }),
+            body: JSON.stringify({ identity, identities: viewerIdentityAliases, content, priority, visibility, due_at: dueAt }),
           })
 
           if (!response.ok) {
@@ -198,13 +203,14 @@ export function useNoteEditor({
     setEditContent('')
     setEditPriority(DEFAULT_NOTE_PRIORITY)
     setEditVisibility('public')
+    setEditDueAt(null)
 
     try {
-      await commitNoteUpdate(editingMessage, nextContent, editPriority, editVisibility)
+      await commitNoteUpdate(editingMessage, nextContent, editPriority, editVisibility, editDueAt)
     } finally {
       setIsUpdatingNote(false)
     }
-  }, [board.slug, editContent, editPriority, editVisibility, editingMessage, identity, isUpdatingNote, replaceMessages, setError, viewerIdentityAliases])
+  }, [board.slug, editContent, editDueAt, editPriority, editVisibility, editingMessage, identity, isUpdatingNote, replaceMessages, setError, viewerIdentityAliases])
 
   const toggleChecklistItem = useCallback((message: NoteMessage, lineIndex: number) => {
     if (!identity || editingNoteId === message.id || updatingNoteIds[message.id]) {
@@ -308,6 +314,7 @@ export function useNoteEditor({
     const draftValue = draft.trim()
     const draftPriorityValue = draftPriority
     const draftVisibilityValue = draftVisibility
+    const draftDueAtValue = draftDueAt
     const optimisticId = `optimistic-${crypto.randomUUID()}`
     const optimisticMessage: NoteMessage = {
       id: optimisticId,
@@ -326,6 +333,7 @@ export function useNoteEditor({
       viewer_emojis: [],
       sync_state: 'pending',
       visibility: draftVisibilityValue,
+      due_at: draftDueAtValue,
     }
 
     setIsSubmitting(true)
@@ -333,6 +341,7 @@ export function useNoteEditor({
     setDraft('')
     setDraftPriority(DEFAULT_NOTE_PRIORITY)
     setDraftVisibility('public')
+    setDraftDueAt(null)
     if (onDraftSubmitted) {
       onDraftSubmitted()
     }
@@ -378,7 +387,7 @@ export function useNoteEditor({
         const response = await fetch(`/api/note-boards/${board.slug}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ author: publicIdentity, content: draftValue, priority: draftPriorityValue, visibility: draftVisibilityValue }),
+          body: JSON.stringify({ author: publicIdentity, content: draftValue, priority: draftPriorityValue, visibility: draftVisibilityValue, due_at: draftDueAtValue }),
         })
 
         if (!response.ok) {
@@ -407,11 +416,12 @@ export function useNoteEditor({
       setDraft(draftValue)
       setDraftPriority(draftPriorityValue)
       setDraftVisibility(draftVisibilityValue)
+      setDraftDueAt(draftDueAtValue)
       setError(submitError instanceof Error ? submitError.message : '便签保存失败，请稍后再试。')
     } finally {
       setIsSubmitting(false)
     }
-  }, [board.slug, board.targetId, board.targetType, canWrite, draft, draftPriority, draftVisibility, hasMore, identity, isSubmitting, markMessageFresh, nextOffset, publicIdentity, replaceMessages, setError, onDraftSubmitted])
+  }, [board.slug, board.targetId, board.targetType, canWrite, draft, draftDueAt, draftPriority, draftVisibility, hasMore, identity, isSubmitting, markMessageFresh, nextOffset, publicIdentity, replaceMessages, setError, onDraftSubmitted])
 
   useEffect(() => {
     if (!editingNoteId) return
@@ -434,6 +444,8 @@ export function useNoteEditor({
     setDraftPriority,
     draftVisibility,
     setDraftVisibility,
+    draftDueAt,
+    setDraftDueAt,
     editingNoteId,
     editContent,
     setEditContent,
@@ -441,6 +453,8 @@ export function useNoteEditor({
     setEditPriority,
     editVisibility,
     setEditVisibility,
+    editDueAt,
+    setEditDueAt,
     isUpdatingNote,
     isSubmitting,
     updatingNoteIds,

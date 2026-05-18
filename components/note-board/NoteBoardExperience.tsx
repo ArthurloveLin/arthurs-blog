@@ -1,8 +1,8 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AlarmClock, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import { VisibilityPicker } from '@/components/note-board/components/VisibilityPicker'
@@ -196,6 +196,65 @@ function BoardStickyView({ onToggleViewMode, filters }: { onToggleViewMode: () =
   )
 }
 
+function DueDatePicker({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  const [open, setOpen] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const toLocalDatetimeValue = (iso: string | null) => {
+    if (!iso) return ''
+    const d = new Date(iso)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value
+    onChange(v ? new Date(v).toISOString() : null)
+  }
+
+  return (
+    <div className="relative flex items-center">
+      <button
+        type="button"
+        title={value ? `截止：${new Date(value).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : '设置截止时间'}
+        onClick={() => {
+          setOpen((v) => !v)
+          setTimeout(() => inputRef.current?.showPicker?.(), 50)
+        }}
+        className={[
+          'inline-flex h-6 w-6 items-center justify-center rounded-full transition-colors',
+          value
+            ? 'text-amber-500 hover:text-amber-600'
+            : 'text-slate-400 hover:text-slate-600',
+        ].join(' ')}
+      >
+        <AlarmClock size={13} strokeWidth={1.8} />
+      </button>
+      {value ? (
+        <button
+          type="button"
+          title="清除截止时间"
+          onClick={() => { onChange(null); setOpen(false) }}
+          className="inline-flex h-4 w-4 items-center justify-center rounded-full text-slate-400 transition hover:text-slate-600"
+        >
+          <X size={10} strokeWidth={2} />
+        </button>
+      ) : null}
+      {open && (
+        <input
+          ref={inputRef}
+          type="datetime-local"
+          value={toLocalDatetimeValue(value)}
+          onChange={handleInputChange}
+          onBlur={() => setOpen(false)}
+          className="absolute bottom-full left-0 mb-1 rounded-lg border border-border/60 bg-card px-2 py-1 text-[11px] text-foreground shadow-lg outline-none focus:ring-1 focus:ring-primary/30"
+          style={{ zIndex: 50 }}
+        />
+      )}
+    </div>
+  )
+}
+
 function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?: boolean }) {
   const state = useNoteBoardEditorState()
   const boardState = useNoteBoardBoardState()
@@ -235,7 +294,7 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
             minHeightClassName="min-h-[140px]"
             shellClassName="overflow-hidden rounded-[24px] border border-border/70 bg-background/55"
             toolbarClassName="px-4 py-3 text-xs text-muted-foreground"
-            toolbarLeadingAddon={(state.priorityEnabled || state.isAdmin) ? (
+            toolbarLeadingAddon={
               <>
                 {state.priorityEnabled ? (
                   <PriorityPicker.Dot
@@ -253,8 +312,14 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
                     onChange={actions.updateEditorVisibility}
                   />
                 ) : null}
+                {state.isAdmin ? (
+                  <DueDatePicker
+                    value={state.editorDueAt}
+                    onChange={actions.updateEditorDueAt}
+                  />
+                ) : null}
               </>
-            ) : undefined}
+            }
             autoFocus={state.editorMode === 'edit' && (boardState.isMobileViewport || autoFocusOnEdit)}
           />
         </form>

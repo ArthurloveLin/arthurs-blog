@@ -1,7 +1,7 @@
 'use client'
 
 import gsap from 'gsap'
-import { Archive, ArchiveRestore, ArrowRight, Check, Copy, PencilLine, Trash2, X } from 'lucide-react'
+import { AlarmClock, Archive, ArchiveRestore, ArrowRight, Check, ChevronsDown, Copy, PencilLine, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
@@ -80,6 +80,34 @@ interface StickyNoteCardFrameProps extends StickyNoteCardSharedProps {
   isOptimistic?: boolean
   isOptimisticEditing?: boolean
   isFresh?: boolean
+}
+
+function StickyDueBadge({ dueAt }: { dueAt: string }) {
+  const diff = Date.parse(dueAt) - Date.now()
+  const abs = Math.abs(diff)
+  const days = Math.floor(abs / 86400000)
+  const hours = Math.floor(abs / 3600000)
+  const mins = Math.floor(abs / 60000)
+  const isOverdue = diff < 0
+  const label = isOverdue
+    ? `超期 ${days > 0 ? `${days}d` : hours > 0 ? `${hours}h` : `${mins || 1}m`}`
+    : `${days > 0 ? `${days}d` : hours > 0 ? `${hours}h` : `${mins || 1}m`}后截止`
+
+  return (
+    <div
+      onPointerDown={(e) => e.stopPropagation()}
+      className={[
+        'mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium',
+        isOverdue
+          ? 'bg-red-100/80 text-red-600'
+          : diff < 86400000
+            ? 'bg-amber-100/80 text-amber-600'
+            : 'bg-black/5 text-slate-500',
+      ].join(' ')}>
+      <AlarmClock size={9} strokeWidth={2} />
+      {label}
+    </div>
+  )
 }
 
 const RESTING_NOTE_SHADOW = '0 12px 18px -14px rgba(15, 23, 42, 0.22), inset 0 24px 30px -12px rgba(0, 0, 0, 0.26)'
@@ -657,21 +685,25 @@ function StickyNoteCardFrame({
               />
               {isOverflowing && !showExpanded ? (
                 <div
-                  className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center justify-end pb-2.5 pt-12"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center justify-end pb-2 pt-12"
                   style={{ background: `linear-gradient(to top, ${noteColor} 35%, transparent)` }}
                 >
                   <button
                     type="button"
-                    className="pointer-events-auto rounded-full border border-black/10 bg-white/60 px-3 py-1 text-[11px] font-medium text-slate-700 shadow-sm backdrop-blur-sm transition-all hover:bg-white/80 active:scale-95"
+                    aria-label="展开查看全部"
+                    className="pointer-events-auto inline-flex h-7 w-7 items-center justify-center rounded-full border border-black/10 bg-white/75 text-slate-600 shadow-sm backdrop-blur-sm transition-all hover:bg-white/95 active:scale-95"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); setIsExpanded(true) }}
                   >
-                    展开查看全部
+                    <ChevronsDown size={13} strokeWidth={1.8} />
                   </button>
                 </div>
               ) : null}
             </div>
           )}
+          {!isPreview && message.due_at ? (
+            <StickyDueBadge dueAt={message.due_at} />
+          ) : null}
           {!isPreview && reactionControl ? (
             <div className="mt-auto pt-1" onPointerDown={(event) => event.stopPropagation()}>
               <EmojiReactionSummary

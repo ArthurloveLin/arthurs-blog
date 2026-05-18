@@ -36,6 +36,7 @@ export interface NoteMessage {
   sync_state?: CommentSyncState
   visibility: NoteVisibility
   comment_count?: number
+  due_at?: string | null
 }
 
 function compareBoardMessageTime(
@@ -122,6 +123,7 @@ interface UpdateBoardMessageInput {
   archived?: boolean
   priority?: NotePriority
   visibility?: NoteVisibility
+  due_at?: string | null
 }
 
 export { getNoteBoardConfig, isNoteBoardSlug }
@@ -164,7 +166,7 @@ export const getBoardMessages = cache(async (
 
   let query = supabaseAdmin
     .from('comments')
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at')
     .eq('target_type', config.targetType)
     .eq('target_id', config.targetId)
     .eq('archived', archived)
@@ -206,7 +208,7 @@ export const getBoardMessages = cache(async (
   return messages.map((m) => ({ ...m, comment_count: commentCounts[m.id] ?? 0 }))
 })
 
-export async function createBoardMessage(board: NoteBoardSlug, author: string, content: string, priority?: NotePriority, visibility: NoteVisibility = 'public') {
+export async function createBoardMessage(board: NoteBoardSlug, author: string, content: string, priority?: NotePriority, visibility: NoteVisibility = 'public', dueAt?: string | null) {
   const config = getNoteBoardConfig(board)
   const role = await getUserRole()
 
@@ -242,8 +244,9 @@ export async function createBoardMessage(board: NoteBoardSlug, author: string, c
       priority: nextPriority,
       parent_id: null,
       visibility: safeVisibility,
+      ...(dueAt ? { due_at: dueAt } : {}),
     })
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at')
     .single()
 
   if (error) {
@@ -285,7 +288,7 @@ export async function updateBoardMessage(
     throw new Error('FORBIDDEN')
   }
 
-  const patch: Record<string, string | boolean | number> = {}
+  const patch: Record<string, string | boolean | number | null> = {}
 
   if (typeof input.content === 'string') {
     const content = input.content.trim()
@@ -317,6 +320,11 @@ export async function updateBoardMessage(
     patch.visibility = input.visibility === 'admin_only' && role === 'admin' ? 'admin_only' : 'public'
   }
 
+  if ('due_at' in input) {
+    patch.due_at = input.due_at ?? null
+    patch.notified_at = null
+  }
+
   if (Object.keys(patch).length === 0) {
     throw new Error('MISSING_PATCH')
   }
@@ -325,7 +333,7 @@ export async function updateBoardMessage(
     .from('comments')
     .update(patch)
     .eq('id', id)
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at')
     .single()
 
   if (error || !data) {
