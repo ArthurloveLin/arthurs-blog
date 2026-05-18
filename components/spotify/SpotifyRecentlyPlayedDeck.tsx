@@ -9,6 +9,7 @@ import {
   formatDateLabel,
   formatFullDateLabel,
   formatWeekdayLabel,
+  getCurrentTimeSegmentId,
   groupTracksByHour,
   segmentTracksByTime,
   TIME_SEGMENTS,
@@ -618,14 +619,17 @@ export default function SpotifyRecentlyPlayedDeck({
   }, [tagRequestKey, trackIds, view])
 
   useEffect(() => {
-    const firstAvailableSegment = getFirstAvailableSegmentId(effectiveSegmentMap)
-
     setSelectedSegment((current) => {
       if (current && (effectiveSegmentMap.get(current)?.length ?? 0) > 0) {
         return current
       }
 
-      return firstAvailableSegment
+      const currentTimeSegment = getCurrentTimeSegmentId()
+      if (currentTimeSegment && (effectiveSegmentMap.get(currentTimeSegment)?.length ?? 0) > 0) {
+        return currentTimeSegment
+      }
+
+      return getFirstAvailableSegmentId(effectiveSegmentMap)
     })
   }, [effectiveSegmentMap])
 

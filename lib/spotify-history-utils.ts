@@ -33,6 +33,11 @@ function toDayKey(date: Date) {
   return `${year}-${month}-${day}`
 }
 
+export function getCurrentTimeSegmentId(segments: TimeSegment[] = TIME_SEGMENTS): TimeSegmentId | null {
+  const hour = new Date().getHours()
+  return segments.find((s) => hour >= s.startHour && hour < s.endHour)?.id ?? null
+}
+
 export function segmentTracksByTime(
   tracks: SpotifyRecentlyPlayedTrack[],
   segments: TimeSegment[] = TIME_SEGMENTS

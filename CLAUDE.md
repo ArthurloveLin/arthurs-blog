@@ -65,7 +65,16 @@ For non-trivial tasks, state a brief plan before starting:
 2. [step] → verify: [check]
 ```
 
-Run `npm run check` after each significant step. No test suite exists, so type-check + lint is the only automated safety net.
+No test suite exists, so type-check + lint is the only automated safety net. After each significant step, run the check that matches the change scope:
+
+| Level | When | Command |
+|---|---|---|
+| **File** | Pure markup / style / comment change; no type-surface touched | `npx eslint <file>` |
+| **App** | Logic or type changes confined to `app/`, `components/`, `lib/` | `tsc --noEmit && npm run lint` |
+| **Workers** | Changes only inside `workers/` | `npm run check:workers` |
+| **Full** | Cross-cutting: shared types, `lib/` consumed by workers, config, or any multi-zone change | `npm run check` |
+
+When in doubt, go one level up. If a "File" change touches an exported type, treat it as **App**.
 
 ### Shared Code
 

@@ -102,7 +102,7 @@ export default function SpotifyWidePlayer({ stats }: { stats?: SpotifyWidePlayer
 
   if (loading) {
     return (
-      <div className="rounded-[28px] border border-emerald-500/15 bg-card/85 p-6 shadow-[0_20px_80px_rgba(16,185,129,0.10)] backdrop-blur-sm">
+      <div className="rounded-[28px] border border-emerald-500/15 bg-card/85 p-6 shadow-[0_20px_80px_rgba(16,185,129,0.10)]">
         <div className="grid gap-5 lg:grid-cols-[96px_1fr_220px] lg:items-center">
           <div className="h-24 w-24 animate-pulse rounded-[24px] bg-muted" />
           <div className="space-y-3">
@@ -205,10 +205,9 @@ function SpotifyWidePlayerContent({
             alt=""
             fill
             sizes="(max-width: 1200px) 100vw, 1200px"
-            className="scale-125 saturate-150 object-cover"
+            className="scale-150 saturate-150 object-cover blur-[80px] transform-gpu"
             unoptimized
           />
-          <div className="absolute inset-0 backdrop-blur-[80px] transform-gpu" />
         </div>
       )}
 
