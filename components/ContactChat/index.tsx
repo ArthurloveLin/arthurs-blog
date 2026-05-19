@@ -145,7 +145,7 @@ export default function ContactChat() {
 
                 <button
                   type="submit"
-                  disabled={phase === 'sending' || !name.trim() || !message.trim()}
+                  disabled={phase === 'sending' || !name.trim() || !message.trim() || !turnstileToken}
                   className="w-full flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {phase === 'sending' ? (
