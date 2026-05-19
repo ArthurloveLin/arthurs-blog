@@ -4,25 +4,39 @@ import { useState, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react'
 import Turnstile from '@/components/Turnstile'
+import { useAuth } from '@/components/AuthProvider'
 
 type Phase = 'idle' | 'open' | 'sending' | 'sent' | 'error'
 
 export default function ContactChat() {
   const pathname = usePathname()
+  const { isAuthenticated, email: authEmail, displayName, guestDisplayName } = useAuth()
+
   const [phase, setPhase] = useState<Phase>('idle')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const messageRef = useRef<HTMLTextAreaElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
 
   if (pathname.startsWith('/admin')) return null
 
   const open = () => {
+    if (!isAuthenticated) {
+      setName(guestDisplayName)
+    }
     setPhase('open')
-    setTimeout(() => nameRef.current?.focus(), 50)
+    setTimeout(() => {
+      if (isAuthenticated) {
+        messageRef.current?.focus()
+      } else {
+        nameRef.current?.focus()
+      }
+    }, 50)
   }
+
   const close = () => {
     setPhase('idle')
     setName('')
@@ -32,18 +46,30 @@ export default function ContactChat() {
     setErrorMsg('')
   }
 
+  const canSubmit = isAuthenticated
+    ? !!message.trim()
+    : !!name.trim() && !!message.trim() && !!turnstileToken
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!turnstileToken) {
+    if (!isAuthenticated && !turnstileToken) {
       setErrorMsg('请等待验证完成')
       return
     }
     setPhase('sending')
+
+    const senderName = isAuthenticated ? (displayName ?? authEmail ?? '') : name
+    const senderEmail = isAuthenticated ? (authEmail ?? '') : email
+
     try {
+      const body: Record<string, string> = { name: senderName, message }
+      if (senderEmail) body.email = senderEmail
+      if (!isAuthenticated) body.turnstileToken = turnstileToken
+
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, message, turnstileToken }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({})) as { error?: string }
@@ -97,32 +123,40 @@ export default function ContactChat() {
               <form onSubmit={submit} className="space-y-3">
                 <p className="text-xs text-muted-foreground">Hi！有什么想说的？</p>
 
-                <div>
-                  <input
-                    ref={nameRef}
-                    type="text"
-                    placeholder="昵称 *"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    required
-                    maxLength={50}
-                    className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-
-                <div>
-                  <input
-                    type="email"
-                    placeholder="邮箱（可选，用于回复）"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    maxLength={100}
-                    className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
+                {isAuthenticated ? (
+                  <p className="text-xs text-foreground/60">
+                    发自：<span className="font-medium text-foreground/80">{displayName ?? authEmail}</span>
+                  </p>
+                ) : (
+                  <>
+                    <div>
+                      <input
+                        ref={nameRef}
+                        type="text"
+                        placeholder="昵称 *"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        required
+                        maxLength={50}
+                        className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="email"
+                        placeholder="邮箱（可选，用于回复）"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        maxLength={100}
+                        className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <textarea
+                    ref={messageRef}
                     placeholder="留言内容 *"
                     value={message}
                     onChange={e => setMessage(e.target.value)}
@@ -133,19 +167,21 @@ export default function ContactChat() {
                   />
                 </div>
 
-                <Turnstile
-                  onVerify={setTurnstileToken}
-                  onExpire={() => setTurnstileToken('')}
-                  className="scale-90 origin-left"
-                />
+                {!isAuthenticated && (
+                  <Turnstile
+                    onVerify={setTurnstileToken}
+                    onExpire={() => setTurnstileToken('')}
+                    className="scale-90 origin-left"
+                  />
+                )}
 
-                {(phase === 'error') && (
+                {phase === 'error' && (
                   <p className="text-xs text-destructive">{errorMsg}</p>
                 )}
 
                 <button
                   type="submit"
-                  disabled={phase === 'sending' || !name.trim() || !message.trim() || !turnstileToken}
+                  disabled={phase === 'sending' || !canSubmit}
                   className="w-full flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {phase === 'sending' ? (

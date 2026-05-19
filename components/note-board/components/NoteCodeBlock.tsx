@@ -109,7 +109,7 @@ export function NoteCodeBlock({ code, lang }: NoteCodeBlockProps) {
             : <Copy size={12} strokeWidth={1.8} />}
         </button>
       </div>
-      <pre className="m-0 overflow-x-auto p-0 font-mono text-[0.85em] leading-[1.5]">
+      <pre className="m-0 overflow-x-auto p-0 font-mono text-[0.85em] leading-[1.5] [scrollbar-color:rgba(15,23,42,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-black/15 [&::-webkit-scrollbar-track]:bg-transparent">
         <code
           className="hljs block whitespace-pre px-[14px] pb-3 pt-1.5"
           style={{ background: 'transparent' }}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendNtfy } from '@/lib/ntfy'
 import { verifyTurnstile } from '@/lib/turnstile'
+import { getCurrentUser } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>
@@ -17,10 +18,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Message too long' }, { status: 400 })
   }
 
-  const ip = req.headers.get('cf-connecting-ip') ?? req.headers.get('x-forwarded-for') ?? undefined
-  const valid = await verifyTurnstile(turnstileToken, ip)
-  if (!valid) {
-    return NextResponse.json({ error: 'Verification failed' }, { status: 403 })
+  const currentUser = await getCurrentUser()
+
+  if (!currentUser) {
+    const ip = req.headers.get('cf-connecting-ip') ?? req.headers.get('x-forwarded-for') ?? undefined
+    const valid = await verifyTurnstile(turnstileToken, ip)
+    if (!valid) {
+      return NextResponse.json({ error: 'Verification failed' }, { status: 403 })
+    }
   }
 
   const content = email ? `${message}\n\n📧 ${email}` : message

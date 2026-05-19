@@ -83,9 +83,7 @@ export function NoteCommentPanel({ noteId, onCommentAdded, onCountLoaded }: Note
 
   return (
     <div ref={containerRef} className="mt-4 space-y-2 border-t border-border/25 pt-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
-      {loading ? (
-        <div className="h-[62px] animate-pulse rounded-[14px] bg-muted/25" />
-      ) : previewItems.length > 0 ? (
+      {loading ? null : previewItems.length > 0 ? (
         previewItems.map((comment) => (
           <PreviewCommentCard key={comment.id} comment={comment} />
         ))
