@@ -35,7 +35,8 @@ import { getSiteConfig, getPostsCount, getCategories, getAllTags, getYearArchive
 import { SiteDataProvider } from "@/components/SiteDataProvider"
 import { getCurrentUser, getUserRole } from "@/lib/auth";
 import Script from 'next/script';
-import { MarkdownThemeInitializer } from '@/components/MarkdownThemeInitializer';
+import { MarkdownThemeInitializer } from '@/components/MarkdownThemeInitializer'
+import ContactChat from '@/components/ContactChat';
 
 export const metadata: Metadata = {
   title: "Arthur & Grace",
@@ -105,6 +106,7 @@ export default async function RootLayout({
               >
                 <Navbar />
                 {children}
+                <ContactChat />
               </SiteDataProvider>
             </AuthProvider>
           </ThemeProvider>

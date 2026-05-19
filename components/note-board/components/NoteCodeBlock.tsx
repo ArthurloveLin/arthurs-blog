@@ -20,7 +20,7 @@ import langSQL from 'highlight.js/lib/languages/sql'
 import langTS from 'highlight.js/lib/languages/typescript'
 import langXML from 'highlight.js/lib/languages/xml'
 import langYAML from 'highlight.js/lib/languages/yaml'
-import 'highlight.js/styles/github-dark-dimmed.css'
+import 'highlight.js/styles/github.css'
 
 hljs.registerLanguage('javascript', langJS)
 hljs.registerLanguage('typescript', langTS)
@@ -92,26 +92,27 @@ export function NoteCodeBlock({ code, lang }: NoteCodeBlockProps) {
   }
 
   return (
-    <div className="group relative my-2.5 w-full overflow-hidden rounded-[10px]">
-      {labelText ? (
-        <span className="pointer-events-none absolute right-9 top-[9px] select-none font-mono text-[10px] text-white/30">
-          {labelText}
+    <div className="group my-2.5 w-full overflow-hidden rounded-[10px] bg-black/[0.05]">
+      <div className="flex items-center justify-between px-3.5 pb-0 pt-2">
+        <span className="select-none font-mono text-[10px] text-slate-400/80">
+          {labelText || ' '}
         </span>
-      ) : null}
-      <button
-        type="button"
-        aria-label="复制代码"
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={handleCopy}
-        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md bg-white/10 text-white/50 opacity-0 transition-opacity duration-150 hover:bg-white/20 hover:text-white/90 group-hover:opacity-100 focus-visible:opacity-100"
-      >
-        {copied
-          ? <Check size={12} strokeWidth={2.5} className="text-green-400" />
-          : <Copy size={12} strokeWidth={1.8} />}
-      </button>
+        <button
+          type="button"
+          aria-label="复制代码"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={handleCopy}
+          className="flex h-6 w-6 items-center justify-center rounded-md bg-black/[0.06] text-slate-400 opacity-0 transition-opacity duration-150 hover:bg-black/10 hover:text-slate-600 group-hover:opacity-100 focus-visible:opacity-100"
+        >
+          {copied
+            ? <Check size={12} strokeWidth={2.5} className="text-green-500" />
+            : <Copy size={12} strokeWidth={1.8} />}
+        </button>
+      </div>
       <pre className="m-0 overflow-x-auto p-0 font-mono text-[0.85em] leading-[1.5]">
         <code
-          className="hljs block whitespace-pre px-[14px] py-3"
+          className="hljs block whitespace-pre px-[14px] pb-3 pt-1.5"
+          style={{ background: 'transparent' }}
           dangerouslySetInnerHTML={{ __html: html }}
         />
       </pre>

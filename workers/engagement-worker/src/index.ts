@@ -650,6 +650,40 @@ async function parseJsonResponse<T>(response: Response) {
   return response.clone().json().catch(() => null) as Promise<T | null>
 }
 
+function getNtfyExternalUrl(env: Cloudflare.Env): string | undefined {
+  return (env as Cloudflare.Env & { NTFY_EXTERNAL_URL?: string }).NTFY_EXTERNAL_URL?.trim()
+}
+
+function getNtfyToken(env: Cloudflare.Env): string | undefined {
+  return (env as Cloudflare.Env & { NTFY_TOKEN?: string }).NTFY_TOKEN?.trim()
+}
+
+function sendNtfyWorker(
+  ntfyUrl: string,
+  ntfyToken: string | undefined,
+  topic: string,
+  title: string,
+  message: string,
+  tags: string[],
+  priority: number,
+): Promise<void> {
+  return fetch(ntfyUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(ntfyToken ? { Authorization: `Bearer ${ntfyToken}` } : {}),
+    },
+    body: JSON.stringify({ topic, title, message, tags, priority }),
+  }).then(() => undefined)
+}
+
+function getCommentTargetLabel(targetType: string): string {
+  if (targetType === 'blog_post') return '博客'
+  if (targetType === 'guestbook') return '留言板'
+  if (targetType === 'wardrobe_item') return '穿搭'
+  return targetType
+}
+
 function getBlockedTerms(env: Cloudflare.Env) {
   return (typeof env.COMMENT_BLOCKED_TERMS === 'string' ? env.COMMENT_BLOCKED_TERMS : '')
     .split(',')
@@ -1846,8 +1880,23 @@ export class CommentQueueDurableObject extends DurableObject<EngagementEnv> {
 
     const flushedCount = await callSupabaseCommentBatchRpc(this.env, queuedComments)
 
+    const ntfyUrl = getNtfyExternalUrl(this.env)
+    const ntfyToken = getNtfyToken(this.env)
+
     for (const comment of queuedComments) {
       await this.deleteCommentRecord(comment.id)
+      if (ntfyUrl) {
+        const label = getCommentTargetLabel(comment.target_type)
+        sendNtfyWorker(
+          ntfyUrl,
+          ntfyToken,
+          'blog-comments',
+          `新评论 [${label}]`,
+          `${comment.author}: ${comment.content.slice(0, 120)}`,
+          ['speech_balloon'],
+          3,
+        ).catch(() => {})
+      }
     }
 
     return {

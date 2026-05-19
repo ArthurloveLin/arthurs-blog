@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { applyPostEmojiReaction } from '@/lib/post-reactions'
 import { normalizeReactionIdentity } from '@/lib/comment-reactions'
+import { sendNtfy } from '@/lib/ntfy'
 
 export async function POST(
   req: NextRequest,
@@ -17,6 +18,9 @@ export async function POST(
 
   try {
     const summary = await applyPostEmojiReaction(id, identity, emoji)
+    if (emoji) {
+      sendNtfy('blog-reactions', '新 Emoji 反应', `${emoji}  on post: ${id}`, { tags: ['heart'], priority: 2 }).catch(() => {})
+    }
     return NextResponse.json(summary)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update emoji reaction'
