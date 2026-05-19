@@ -136,6 +136,22 @@ npm run spotify:sync-tags:force # Sync Last.fm tags (force all)
 
 No test suite is configured.
 
+## Deployment
+
+Standalone Docker image, managed by `docker-compose.yml` in the repo root. Watchtower auto-pulls new images from GHCR on push.
+
+### Env var changes require `docker compose up -d`
+
+`env_file: .env.local` is only read at **container creation** time. Watchtower updates the image but reconstructs the container from the original creation parameters — it does **not** re-read `.env.local`. After adding or changing an env var, run:
+
+```bash
+docker compose up -d   # run from /home/arthur/repositories/arthurs-blog
+```
+
+`docker restart` is not enough — it restarts the process but does not re-inject the env file.
+
+---
+
 ## Architecture
 
 Personal blog + wardrobe management app. Next.js 16 (with `viewTransition` experimental enabled), React 19, TypeScript, Tailwind CSS 4, Supabase (PostgreSQL + Auth), Cloudflare R2 for file storage. Deployed as a standalone Docker image.
