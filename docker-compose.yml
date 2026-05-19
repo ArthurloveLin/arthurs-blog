@@ -6,7 +6,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     env_file:
-      - /home/arthur/arthurs-blog/.env.local
+      - ./.env.local
     logging:
       driver: "json-file"
       options:

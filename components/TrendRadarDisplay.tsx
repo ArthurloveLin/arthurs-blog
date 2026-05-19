@@ -113,7 +113,7 @@ export default function TrendRadarDisplay({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
-            <span className="text-[11px] font-mono text-muted-foreground">
+            <span className="text-[11px] lg:text-[13px] font-mono text-muted-foreground">
               更新于{" "}
               <span className="text-foreground font-semibold">{formattedTime}</span>
             </span>
@@ -122,6 +122,7 @@ export default function TrendRadarDisplay({
           <span className="sm:hidden text-[11px] font-mono text-muted-foreground">
             共 <span className="text-foreground font-semibold tabular-nums">{totalAll}</span> 条
           </span>
+
           {/* sm+: full stat pills */}
           <div className="hidden sm:flex items-center gap-5 flex-wrap">
             <StatPill value={stats.length} label="趋势词" color="purple" />
@@ -181,14 +182,14 @@ export default function TrendRadarDisplay({
                         key={tag}
                         onClick={() => setActiveTag(tag)}
                         className={cn(
-                          "w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[12px] transition-all text-left",
+                          "w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[12px] lg:text-[14px] transition-all text-left",
                           isActive
                             ? "bg-primary/10 text-primary font-semibold"
                             : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                         )}
                       >
                         <span className="truncate">{tag}</span>
-                        <span className="text-[10px] font-mono opacity-50 shrink-0 ml-2 tabular-nums">
+                        <span className="text-[10px] lg:text-[12px] font-mono opacity-50 shrink-0 ml-2 tabular-nums">
                           {count}
                         </span>
                       </button>
@@ -205,10 +206,10 @@ export default function TrendRadarDisplay({
                   {rssBySource.slice(0, 12).map((source, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between px-3 py-1.5 text-[11px] text-muted-foreground"
+                      className="flex items-center justify-between px-3 py-1.5 text-[11px] lg:text-[13px] text-muted-foreground"
                     >
                       <span className="truncate">{source.name}</span>
-                      <span className="font-mono text-[10px] opacity-50 shrink-0 ml-2 tabular-nums">
+                      <span className="font-mono text-[10px] lg:text-[12px] opacity-50 shrink-0 ml-2 tabular-nums">
                         {source.items.length}
                       </span>
                     </div>
@@ -224,10 +225,10 @@ export default function TrendRadarDisplay({
                   {standalonePlatforms.slice(0, 12).map((p, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between px-3 py-1.5 text-[11px] text-muted-foreground"
+                      className="flex items-center justify-between px-3 py-1.5 text-[11px] lg:text-[13px] text-muted-foreground"
                     >
                       <span className="truncate">{p.name}</span>
-                      <span className="font-mono text-[10px] opacity-50 shrink-0 ml-2 tabular-nums">
+                      <span className="font-mono text-[10px] lg:text-[12px] opacity-50 shrink-0 ml-2 tabular-nums">
                         {p.items.length}
                       </span>
                     </div>
@@ -269,8 +270,8 @@ export default function TrendRadarDisplay({
                           />
                         </svg>
                         <div className="min-w-0">
-                          <div className="text-[11px] font-mono font-medium">{item.date}</div>
-                          <div className="text-[10px] font-mono opacity-60">{item.time}</div>
+                          <div className="text-[11px] lg:text-[13px] font-mono font-medium">{item.date}</div>
+                          <div className="text-[10px] lg:text-[12px] font-mono opacity-60">{item.time}</div>
                         </div>
                       </a>
                     );
@@ -302,10 +303,10 @@ export default function TrendRadarDisplay({
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">{tab.label}</span>
+                    <span className="text-sm lg:text-base font-semibold">{tab.label}</span>
                     <span
                       className={cn(
-                        "text-[10px] font-mono px-1.5 py-0.5 rounded-full transition-colors",
+                        "text-[10px] lg:text-[13px] font-mono px-1.5 py-0.5 rounded-full transition-colors",
                         isActive
                           ? "bg-primary/15 text-primary"
                           : "bg-muted text-muted-foreground/60",
@@ -314,7 +315,7 @@ export default function TrendRadarDisplay({
                       {counts[tab.id]}
                     </span>
                   </div>
-                  <span className="hidden sm:block text-[10px] font-mono text-muted-foreground/40 mt-0.5">
+                  <span className="hidden sm:block text-[10px] lg:text-[12px] font-mono text-muted-foreground/40 mt-0.5">
                     {tab.sub}
                   </span>
                   <div
@@ -374,7 +375,7 @@ export default function TrendRadarDisplay({
               {/* New source section */}
               {new_titles && new_titles.length > 0 && activeTag === "全部" && (
                 <div className="pt-4 space-y-4 border-t border-border/40">
-                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                  <h3 className="text-[10px] lg:text-[12px] font-bold uppercase tracking-widest text-muted-foreground/50">
                     最新来源聚合
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -385,7 +386,7 @@ export default function TrendRadarDisplay({
                       >
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-1 h-3 bg-primary/40 rounded-full" />
-                          <h4 className="text-xs sm:text-[14px] font-bold text-foreground truncate">
+                          <h4 className="text-xs sm:text-[14px] lg:text-[15px] font-bold text-foreground truncate">
                             {source.source_name}
                           </h4>
                         </div>
@@ -396,7 +397,7 @@ export default function TrendRadarDisplay({
                                 href={t.url || t.mobile_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[12px] sm:text-[14px] text-muted-foreground hover:text-primary transition-colors line-clamp-1 leading-snug"
+                                className="text-[12px] sm:text-[14px] lg:text-[15px] text-muted-foreground hover:text-primary transition-colors line-clamp-1 leading-snug"
                               >
                                 {t.title}
                               </a>
@@ -445,7 +446,7 @@ function SideSection({
 }) {
   return (
     <div>
-      <h4 className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40 px-3 mb-2">
+      <h4 className="text-[9px] lg:text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40 px-3 mb-2">
         {title}
       </h4>
       {children}
@@ -474,8 +475,8 @@ function StatPill({
   return (
     <div className="flex items-center gap-2">
       <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", dotColor)} />
-      <span className="text-[12px] font-mono font-semibold tabular-nums">{value}</span>
-      <span className="text-[11px] text-muted-foreground">{label}</span>
+      <span className="text-[12px] lg:text-[15px] font-mono font-semibold tabular-nums">{value}</span>
+      <span className="text-[11px] lg:text-[13px] text-muted-foreground">{label}</span>
     </div>
   );
 }
@@ -515,17 +516,17 @@ function TrendKeywordCard({
         <div className="flex items-center gap-3 min-w-0">
           <span
             className={cn(
-              "flex items-center justify-center w-7 h-7 rounded-lg text-[11px] font-bold font-mono shrink-0",
+              "flex items-center justify-center w-7 h-7 lg:w-8 lg:h-8 rounded-lg text-[11px] lg:text-[13px] font-bold font-mono shrink-0",
               rankStyle,
             )}
           >
             {rank}
           </span>
-          <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
+          <h3 className="text-base lg:text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
             {item.word}
           </h3>
         </div>
-        <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0 ml-3 tabular-nums">
+        <span className="text-[10px] lg:text-[13px] font-mono text-muted-foreground/50 shrink-0 ml-3 tabular-nums">
           {item.count ?? 0}
         </span>
       </div>
@@ -552,22 +553,22 @@ function TrendKeywordCard({
             className="block group/item"
           >
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[10px] font-mono text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded leading-none shrink-0 max-w-[6rem] truncate">
+              <span className="text-[10px] lg:text-[12px] font-mono text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded leading-none shrink-0 max-w-[6rem] truncate">
                 {title.source_name}
               </span>
               {title.is_new && (
-                <span className="text-[9px] font-bold text-red-500 uppercase tracking-tighter shrink-0">
+                <span className="text-[9px] lg:text-[11px] font-bold text-red-500 uppercase tracking-tighter shrink-0">
                   NEW
                 </span>
               )}
-              <span className="text-[10px] text-muted-foreground/40 ml-auto shrink-0 font-mono tabular-nums flex items-center gap-1">
+              <span className="text-[10px] lg:text-[12px] text-muted-foreground/40 ml-auto shrink-0 font-mono tabular-nums flex items-center gap-1">
                 {title.time_display && <span>{title.time_display}</span>}
                 {title.count !== undefined && title.count > 1 && (
                   <span className="bg-muted/40 px-1 rounded">×{title.count}</span>
                 )}
               </span>
             </div>
-            <p className="text-[13px] sm:text-[15px] text-foreground/75 group-hover/item:text-primary transition-colors line-clamp-2 leading-relaxed">
+            <p className="text-[13px] sm:text-[15px] lg:text-base text-foreground/75 group-hover/item:text-primary transition-colors line-clamp-2 leading-relaxed">
               {title.title}
             </p>
           </a>
@@ -596,9 +597,9 @@ function RssSourceCard({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-2 h-2 rounded-full bg-emerald-500/70 shrink-0" />
-          <h4 className="text-[13px] sm:text-[15px] font-bold text-foreground truncate">{source.name}</h4>
+          <h4 className="text-[13px] sm:text-[15px] lg:text-base font-bold text-foreground truncate">{source.name}</h4>
         </div>
-        <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0 ml-2 tabular-nums">
+        <span className="text-[10px] lg:text-[12px] font-mono text-muted-foreground/50 shrink-0 ml-2 tabular-nums">
           {source.items.length}
         </span>
       </div>
@@ -613,17 +614,17 @@ function RssSourceCard({
           >
             <div className="flex items-center gap-1.5 mb-0.5">
               {item.word && (
-                <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/8 px-1.5 py-0.5 rounded leading-none">
+                <span className="text-[9px] lg:text-[11px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/8 px-1.5 py-0.5 rounded leading-none">
                   {item.word}
                 </span>
               )}
               {item.time_display && (
-                <span className="text-[9px] font-mono text-muted-foreground/35 ml-auto">
+                <span className="text-[9px] lg:text-[11px] font-mono text-muted-foreground/35 ml-auto">
                   {item.time_display}
                 </span>
               )}
             </div>
-            <p className="text-[13px] sm:text-[15px] text-muted-foreground group-hover/rss:text-emerald-600 dark:group-hover/rss:text-emerald-400 transition-colors line-clamp-2 leading-relaxed">
+            <p className="text-[13px] sm:text-[15px] lg:text-base text-muted-foreground group-hover/rss:text-emerald-600 dark:group-hover/rss:text-emerald-400 transition-colors line-clamp-2 leading-relaxed">
               {item.title}
             </p>
           </a>
@@ -639,9 +640,9 @@ function HotPlatformCard({ platform }: { platform: StandalonePlatform }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-1 h-4 bg-amber-400/80 rounded-full shrink-0" />
-          <h4 className="text-[13px] sm:text-[15px] font-bold text-foreground truncate">{platform.name}</h4>
+          <h4 className="text-[13px] sm:text-[15px] lg:text-base font-bold text-foreground truncate">{platform.name}</h4>
         </div>
-        <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0 ml-2 tabular-nums">
+        <span className="text-[10px] lg:text-[12px] font-mono text-muted-foreground/50 shrink-0 ml-2 tabular-nums">
           {platform.items.length}
         </span>
       </div>
@@ -650,7 +651,7 @@ function HotPlatformCard({ platform }: { platform: StandalonePlatform }) {
           <li key={i} className="flex items-start gap-2.5">
             <span
               className={cn(
-                "text-[10px] font-mono mt-0.5 w-5 shrink-0 text-right tabular-nums font-bold",
+                "text-[10px] lg:text-[13px] font-mono mt-0.5 w-5 lg:w-6 shrink-0 text-right tabular-nums font-bold",
                 i === 0
                   ? "text-amber-500"
                   : i === 1
@@ -666,7 +667,7 @@ function HotPlatformCard({ platform }: { platform: StandalonePlatform }) {
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[13px] sm:text-[15px] text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors line-clamp-2 leading-snug"
+              className="text-[13px] sm:text-[15px] lg:text-base text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors line-clamp-2 leading-snug"
             >
               {item.title}
             </a>
