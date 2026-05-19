@@ -5,15 +5,9 @@ const DEFAULT_COMMENT_MAX_LENGTH = 500
 const DEFAULT_COMMENT_URL_LIMIT = 2
 const DEFAULT_COMMENT_RATE_LIMIT_MAX_REQUESTS = 5
 const DEFAULT_COMMENT_RATE_LIMIT_WINDOW_SECONDS = 60
-const DEFAULT_REACTION_FLUSH_INTERVAL_SECONDS = 300
-const DEFAULT_REACTION_FLUSH_RETRY_SECONDS = 60
 const COMMENT_THREAD_CACHE_TTL_SECONDS = 60
 const COMMENT_THREAD_LIMIT_MAX = 100
 const DEFAULT_BLOCKED_TERMS = ['博彩', '裸聊', '刷单', '代刷', '纸飞机', 'telegram', '免费兼职', '加v', '加微']
-const COMMENT_QUEUE_DO_NAME = 'global'
-const COMMENT_QUEUE_RECORD_PREFIX = 'comment-queue:record:'
-const COMMENT_QUEUE_THREAD_PREFIX = 'comment-queue:thread:'
-const COMMENT_QUEUE_THREAD_LOOKUP_PREFIX = 'comment-queue:lookup:'
 const SUPABASE_COMMENT_SELECT = 'id,target_type,target_id,author,content,parent_id,created_at,updated_at,upvotes,downvotes'
 const COMMENT_THREAD_HEADER_HAS_MORE = 'X-Comment-Thread-Has-More'
 const COMMENT_THREAD_HEADER_NEXT_OFFSET = 'X-Comment-Thread-Next-Offset'
@@ -29,7 +23,6 @@ const POST_REACTION_VALUE_PREFIX = 'post-reaction:value:'
 const POST_REACTION_PENDING_PREFIX = 'post-reaction:pending:'
 
 type EngagementEnv = Cloudflare.Env & {
-  COMMENT_QUEUE_DO: DurableObjectNamespace
   COMMENT_RATE_LIMITER: DurableObjectNamespace
 }
 
@@ -68,17 +61,6 @@ type CommentPayload = {
   author: unknown
   content: unknown
   parent_id?: unknown
-}
-
-type CommentQueuedRecord = {
-  id: string
-  target_type: string
-  target_id: string
-  author: string
-  content: string
-  parent_id: string | null
-  created_at: string
-  updated_at: string | null
 }
 
 type CommentThreadTarget = {
@@ -121,24 +103,18 @@ type CommentPublicRecord = {
   sync_state: 'pending' | 'persisted'
 }
 
-type CommentMutationResult = {
-  comment: CommentPublicRecord
-  targetType: string
-  targetId: string
+type CommentInsertRecord = {
+  id: string
+  target_type: string
+  target_id: string
+  author: string
+  content: string
+  parent_id: string | null
+  created_at: string
+  updated_at: string | null
 }
 
-type CommentDeletionResult = CommentThreadTarget
-
-type CommentQueueFlushResult = {
-  flushedCount: number
-  threadTargets: CommentThreadTarget[]
-}
-
-type CommentBatchRpcResult = {
-  inserted_count?: unknown
-}
-
-type CommentPersistedRecord = CommentQueuedRecord & {
+type CommentPersistedRecord = CommentInsertRecord & {
   upvotes: number
   downvotes: number
 }
@@ -289,26 +265,6 @@ function normalizeNullableCommentId(value: unknown) {
   return nextValue || null
 }
 
-function encodeStorageKeyPart(value: string) {
-  return encodeURIComponent(value)
-}
-
-function getCommentQueueRecordKey(commentId: string) {
-  return `${COMMENT_QUEUE_RECORD_PREFIX}${encodeStorageKeyPart(commentId)}`
-}
-
-function getCommentQueueThreadPrefix(targetType: string, targetId: string) {
-  return `${COMMENT_QUEUE_THREAD_PREFIX}${encodeStorageKeyPart(targetType)}:${encodeStorageKeyPart(targetId)}:`
-}
-
-function getCommentQueueThreadIndexKey(comment: CommentQueuedRecord) {
-  return `${getCommentQueueThreadPrefix(comment.target_type, comment.target_id)}${comment.created_at}:${encodeStorageKeyPart(comment.id)}`
-}
-
-function getCommentQueueThreadLookupKey(commentId: string) {
-  return `${COMMENT_QUEUE_THREAD_LOOKUP_PREFIX}${encodeStorageKeyPart(commentId)}`
-}
-
 function compareComments(left: Pick<CommentPublicRecord, 'created_at' | 'id'>, right: Pick<CommentPublicRecord, 'created_at' | 'id'>) {
   const timeDifference = new Date(left.created_at).getTime() - new Date(right.created_at).getTime()
 
@@ -453,23 +409,6 @@ function createCommentThreadQueryResponse(result: AppliedCommentThreadQuery) {
   })
 }
 
-function createPublicCommentRecord(comment: CommentQueuedRecord, syncState: 'pending' | 'persisted' = 'pending'): CommentPublicRecord {
-  return {
-    id: comment.id,
-    author: comment.author,
-    content: comment.content,
-    created_at: comment.created_at,
-    updated_at: comment.updated_at,
-    parent_id: comment.parent_id,
-    upvotes: 0,
-    downvotes: 0,
-    viewer_reaction: 0,
-    emoji_reactions: [],
-    viewer_emojis: [],
-    sync_state: syncState,
-  }
-}
-
 function normalizeCommentEmoji(value: unknown) {
   if (typeof value !== 'string') {
     return null
@@ -549,19 +488,7 @@ function normalizeCommentThreadPayload(value: unknown) {
   })
 }
 
-function mergeCommentThreads(originComments: CommentPublicRecord[], queuedComments: CommentPublicRecord[]) {
-  const mergedComments = new Map(originComments.map((comment) => [comment.id, comment]))
-
-  for (const queuedComment of queuedComments) {
-    if (!mergedComments.has(queuedComment.id)) {
-      mergedComments.set(queuedComment.id, queuedComment)
-    }
-  }
-
-  return [...mergedComments.values()].sort(compareComments)
-}
-
-function normalizeQueuedCommentRecord(value: unknown) {
+function normalizePersistedCommentRecord(value: unknown) {
   if (!value || typeof value !== 'object') {
     return null
   }
@@ -587,19 +514,6 @@ function normalizeQueuedCommentRecord(value: unknown) {
     parent_id: normalizeNullableCommentId(payload.parent_id),
     created_at: createdAt,
     updated_at: typeof payload.updated_at === 'string' ? payload.updated_at : null,
-  } satisfies CommentQueuedRecord
-}
-
-function normalizePersistedCommentRecord(value: unknown) {
-  const comment = normalizeQueuedCommentRecord(value)
-  if (!comment || !value || typeof value !== 'object') {
-    return null
-  }
-
-  const payload = value as Record<string, unknown>
-
-  return {
-    ...comment,
     upvotes: typeof payload.upvotes === 'number' && Number.isFinite(payload.upvotes) ? payload.upvotes : 0,
     downvotes: typeof payload.downvotes === 'number' && Number.isFinite(payload.downvotes) ? payload.downvotes : 0,
   } satisfies CommentPersistedRecord
@@ -681,6 +595,7 @@ function getCommentTargetLabel(targetType: string): string {
   if (targetType === 'blog_post') return '博客'
   if (targetType === 'guestbook') return '留言板'
   if (targetType === 'wardrobe_item') return '穿搭'
+  if (targetType === 'note') return '卡片评论'
   return targetType
 }
 
@@ -717,22 +632,6 @@ function getCommentRateLimitWindowMs(env: Cloudflare.Env) {
   const seconds = typeof env.COMMENT_RATE_LIMIT_WINDOW_SECONDS === 'number' && Number.isFinite(env.COMMENT_RATE_LIMIT_WINDOW_SECONDS)
     ? env.COMMENT_RATE_LIMIT_WINDOW_SECONDS
     : DEFAULT_COMMENT_RATE_LIMIT_WINDOW_SECONDS
-
-  return Math.max(1, seconds) * 1_000
-}
-
-function getReactionFlushIntervalMs(env: Cloudflare.Env) {
-  const seconds = typeof env.REACTION_FLUSH_INTERVAL_SECONDS === 'number' && Number.isFinite(env.REACTION_FLUSH_INTERVAL_SECONDS)
-    ? env.REACTION_FLUSH_INTERVAL_SECONDS
-    : DEFAULT_REACTION_FLUSH_INTERVAL_SECONDS
-
-  return Math.max(1, seconds) * 1_000
-}
-
-function getReactionFlushRetryMs(env: Cloudflare.Env) {
-  const seconds = typeof env.REACTION_FLUSH_RETRY_SECONDS === 'number' && Number.isFinite(env.REACTION_FLUSH_RETRY_SECONDS)
-    ? env.REACTION_FLUSH_RETRY_SECONDS
-    : DEFAULT_REACTION_FLUSH_RETRY_SECONDS
 
   return Math.max(1, seconds) * 1_000
 }
@@ -1487,79 +1386,51 @@ async function callSupabasePostReactionRpc(env: Cloudflare.Env, postId: string, 
   }
 }
 
-async function callSupabaseCommentBatchRpc(env: EngagementEnv, comments: CommentQueuedRecord[]) {
+async function insertCommentToSupabase(env: Cloudflare.Env, comment: CommentInsertRecord) {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
   const serviceRoleKey = getSupabaseServiceRoleKey(env)
 
   try {
-    const response = await fetch(`${getSupabaseUrl(env)}/rest/v1/rpc/apply_comment_batch`, {
+    const response = await fetch(`${getSupabaseUrl(env)}/rest/v1/comments`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Prefer: 'return=representation',
         apikey: serviceRoleKey,
         Authorization: `Bearer ${serviceRoleKey}`,
       },
       body: JSON.stringify({
-        comments: comments.map((comment) => ({
-          id: comment.id,
-          target_type: comment.target_type,
-          target_id: comment.target_id,
-          author: comment.author,
-          content: comment.content,
-          parent_id: comment.parent_id,
-          created_at: comment.created_at,
-          updated_at: comment.updated_at,
-        })),
+        id: comment.id,
+        target_type: comment.target_type,
+        target_id: comment.target_id,
+        author: comment.author,
+        content: comment.content,
+        parent_id: comment.parent_id,
+        created_at: comment.created_at,
+        updated_at: comment.updated_at,
       }),
       signal: controller.signal,
     })
 
     const payload = await response.json().catch(() => null)
     if (!response.ok) {
-      throw new Error(getErrorMessage(payload, `SUPABASE_COMMENT_RPC_${response.status}`))
+      throw new Error(getErrorMessage(payload, `SUPABASE_COMMENT_INSERT_${response.status}`))
     }
 
-    if (typeof payload === 'number' && Number.isFinite(payload)) {
-      return payload
+    if (!Array.isArray(payload) || payload.length === 0) {
+      throw new Error('INVALID_SUPABASE_COMMENT_RESPONSE')
     }
 
-    if (Array.isArray(payload)) {
-      const [firstEntry] = payload as CommentBatchRpcResult[]
-      if (typeof firstEntry?.inserted_count === 'number' && Number.isFinite(firstEntry.inserted_count)) {
-        return firstEntry.inserted_count
-      }
+    const inserted = normalizePersistedCommentRecord(payload[0])
+    if (!inserted) {
+      throw new Error('INVALID_SUPABASE_COMMENT_RESPONSE')
     }
 
-    if (payload && typeof payload === 'object' && typeof (payload as CommentBatchRpcResult).inserted_count === 'number') {
-      return (payload as CommentBatchRpcResult).inserted_count as number
-    }
-
-    return comments.length
+    return inserted
   } finally {
     clearTimeout(timeoutId)
   }
-}
-
-async function requestCommentQueueDurableObject<T>(
-  env: EngagementEnv,
-  pathname: '/thread' | '/create' | '/update' | '/delete' | '/flush',
-  payload?: Record<string, unknown>,
-) {
-  const response = await env.COMMENT_QUEUE_DO.getByName(COMMENT_QUEUE_DO_NAME).fetch(`https://comment-queue${pathname}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: payload ? JSON.stringify(payload) : undefined,
-  })
-
-  const body = await response.json().catch(() => null)
-  if (!response.ok) {
-    throw new Error(getErrorMessage(body, `COMMENT_QUEUE_${response.status}`))
-  }
-
-  return body as T
 }
 
 async function handleCommentThreadGet(request: Request, env: EngagementEnv, ctx: ExecutionContext) {
@@ -1597,36 +1468,17 @@ async function handleCommentThreadGet(request: Request, env: EngagementEnv, ctx:
     })
   }
 
-  let persistedComments: CommentPublicRecord[]
-  let pendingComments: CommentPublicRecord[]
+  let comments: CommentPublicRecord[]
 
   try {
-    [persistedComments, pendingComments] = await Promise.all([
-      fetchPersistedCommentThreadPublicRecords(
-        env,
-        cacheEntry.targetType,
-        cacheEntry.targetId,
-        cacheEntry.archived,
-      ),
-      cacheEntry.archived === true
-        ? Promise.resolve([])
-        : requestCommentQueueDurableObject<CommentPublicRecord[]>(env, '/thread', {
-            targetType: cacheEntry.targetType,
-            targetId: cacheEntry.targetId,
-          }).catch((error) => {
-            log('error', 'pending comment thread load failed', {
-              path: url.pathname,
-              targetType: cacheEntry.targetType,
-              targetId: cacheEntry.targetId,
-              archived: cacheEntry.archived,
-              error: error instanceof Error ? error.message : String(error),
-            })
-
-            return []
-          }),
-    ])
+    comments = await fetchPersistedCommentThreadPublicRecords(
+      env,
+      cacheEntry.targetType,
+      cacheEntry.targetId,
+      cacheEntry.archived,
+    )
   } catch (error) {
-    log('error', 'persisted comment thread load failed', {
+    log('error', 'comment thread load failed', {
       path: url.pathname,
       targetType: cacheEntry.targetType,
       targetId: cacheEntry.targetId,
@@ -1637,8 +1489,7 @@ async function handleCommentThreadGet(request: Request, env: EngagementEnv, ctx:
     return jsonResponse({ error: '评论加载失败。' }, { status: 503 })
   }
 
-  const mergedComments = mergeCommentThreads(persistedComments, pendingComments)
-  const canonicalResponse = withCommentThreadCacheHeaders(jsonResponse(mergedComments))
+  const canonicalResponse = withCommentThreadCacheHeaders(jsonResponse(comments))
   ctx.waitUntil(caches.default.put(cacheEntry.cacheKey, canonicalResponse.clone()))
 
   log('log', 'comment thread cache miss', {
@@ -1649,7 +1500,7 @@ async function handleCommentThreadGet(request: Request, env: EngagementEnv, ctx:
   })
 
   if (!isDefaultQuery) {
-    return createCommentThreadQueryResponse(applyCommentThreadQuery(mergedComments, query))
+    return createCommentThreadQueryResponse(applyCommentThreadQuery(comments, query))
   }
 
   return canonicalResponse
@@ -1704,28 +1555,44 @@ async function handleCommentCreate(request: Request, env: EngagementEnv, ctx: Ex
     return jsonResponse({ error: '评论缺少必要字段。' }, { status: 400 })
   }
 
+  let inserted: CommentPersistedRecord
   try {
-    const result = await requestCommentQueueDurableObject<CommentMutationResult>(env, '/create', {
-      comment: {
-        id: crypto.randomUUID(),
-        ...payload,
-        created_at: new Date().toISOString(),
-        updated_at: null,
-      },
+    inserted = await insertCommentToSupabase(env, {
+      id: crypto.randomUUID(),
+      ...payload,
+      created_at: new Date().toISOString(),
+      updated_at: null,
     })
-
-    invalidateCommentThreadCache(ctx, request.url, result.targetType, result.targetId, 'create')
-    return jsonResponse(result.comment, { status: 201 })
   } catch (error) {
-    log('error', 'comment queue create failed', {
+    log('error', 'comment insert failed', {
       path: getRequestPath(request),
       targetType: payload.target_type,
       targetId: payload.target_id,
       error: error instanceof Error ? error.message : String(error),
     })
 
-    return jsonResponse({ error: '评论入队失败。' }, { status: 503 })
+    return jsonResponse({ error: '评论提交失败。' }, { status: 503 })
   }
+
+  invalidateCommentThreadCache(ctx, request.url, inserted.target_type, inserted.target_id, 'create')
+
+  const ntfyUrl = getNtfyExternalUrl(env)
+  const ntfyToken = getNtfyToken(env)
+  if (ntfyUrl) {
+    ctx.waitUntil(
+      sendNtfyWorker(
+        ntfyUrl,
+        ntfyToken,
+        'blog-comments',
+        `新评论 [${getCommentTargetLabel(inserted.target_type)}]`,
+        `${inserted.author}: ${inserted.content.slice(0, 120)}`,
+        ['speech_balloon'],
+        3,
+      ).catch(() => {}),
+    )
+  }
+
+  return jsonResponse(createPersistedCommentPublicRecord(inserted), { status: 201 })
 }
 
 async function handleCommentMutation(request: Request, env: EngagementEnv, ctx: ExecutionContext) {
@@ -1740,6 +1607,13 @@ async function handleCommentMutation(request: Request, env: EngagementEnv, ctx: 
   const content = typeof body?.content === 'string' ? body.content.trim() : ''
 
   try {
+    const comment = await fetchPersistedCommentById(env, commentId)
+    if (!comment) {
+      return jsonResponse({ error: 'Comment not found' }, { status: 404 })
+    }
+
+    await assertCanModifyPersistedComment(request, env, comment, identities)
+
     if (request.method === 'PATCH') {
       if (!content) {
         return jsonResponse({ error: 'Missing content' }, { status: 400 })
@@ -1754,256 +1628,36 @@ async function handleCommentMutation(request: Request, env: EngagementEnv, ctx: 
         return jsonResponse({ error: spamError }, { status: 400 })
       }
 
-      const result = await requestCommentQueueDurableObject<CommentMutationResult>(env, '/update', {
-        commentId,
-        content,
-        identities,
-      })
+      const updatedComment = await updatePersistedComment(env, commentId, content)
+      if (!updatedComment) {
+        return jsonResponse({ error: 'Comment not found' }, { status: 404 })
+      }
 
-      invalidateCommentThreadCache(ctx, request.url, result.targetType, result.targetId, 'update')
-      return jsonResponse(result.comment)
+      invalidateCommentThreadCache(ctx, request.url, updatedComment.target_type, updatedComment.target_id, 'update')
+      return jsonResponse(createPersistedCommentPublicRecord(updatedComment))
     }
 
-    const result = await requestCommentQueueDurableObject<CommentDeletionResult>(env, '/delete', {
-      commentId,
-      identities,
-    })
-
-    invalidateCommentThreadCache(ctx, request.url, result.targetType, result.targetId, 'delete')
+    await deletePersistedComment(env, commentId)
+    invalidateCommentThreadCache(ctx, request.url, comment.target_type, comment.target_id, 'delete')
     return new Response(null, {
       status: 204,
       headers: corsHeaders(),
     })
   } catch (error) {
-    let message = error instanceof Error ? error.message : String(error)
-
-    if (message === 'NOT_FOUND') {
-      try {
-        const persistedComment = await fetchPersistedCommentById(env, commentId)
-        if (!persistedComment) {
-          return jsonResponse({ error: 'Comment not found' }, { status: 404 })
-        }
-
-        await assertCanModifyPersistedComment(request, env, persistedComment, identities)
-
-        if (request.method === 'PATCH') {
-          const updatedComment = await updatePersistedComment(env, commentId, content)
-          if (!updatedComment) {
-            return jsonResponse({ error: 'Comment not found' }, { status: 404 })
-          }
-
-          invalidateCommentThreadCache(ctx, request.url, updatedComment.target_type, updatedComment.target_id, 'update')
-          return jsonResponse(createPersistedCommentPublicRecord(updatedComment))
-        }
-
-        await deletePersistedComment(env, commentId)
-        invalidateCommentThreadCache(ctx, request.url, persistedComment.target_type, persistedComment.target_id, 'delete')
-        return new Response(null, {
-          status: 204,
-          headers: corsHeaders(),
-        })
-      } catch (persistedError) {
-        message = persistedError instanceof Error ? persistedError.message : String(persistedError)
-      }
-    }
+    const message = error instanceof Error ? error.message : String(error)
 
     if (message === 'FORBIDDEN') {
       return jsonResponse({ error: 'Forbidden' }, { status: 403 })
     }
 
-    if (message === 'MISSING_CONTENT') {
-      return jsonResponse({ error: 'Missing content' }, { status: 400 })
-    }
-
-    log('error', 'pending comment mutation failed', {
+    log('error', 'comment mutation failed', {
       path: getRequestPath(request),
       method: request.method,
       commentId,
       error: message,
     })
 
-    return jsonResponse({ error: '待同步评论变更失败。' }, { status: 500 })
-  }
-}
-
-export class CommentQueueDurableObject extends DurableObject<EngagementEnv> {
-  private async getCommentRecord(commentId: string) {
-    return this.ctx.storage.get<CommentQueuedRecord>(getCommentQueueRecordKey(commentId))
-  }
-
-  private async putCommentRecord(comment: CommentQueuedRecord) {
-    await Promise.all([
-      this.ctx.storage.put(getCommentQueueRecordKey(comment.id), comment),
-      this.ctx.storage.put(getCommentQueueThreadIndexKey(comment), comment.id),
-      this.ctx.storage.put(getCommentQueueThreadLookupKey(comment.id), getCommentQueueThreadIndexKey(comment)),
-    ])
-  }
-
-  private async deleteCommentRecord(commentId: string) {
-    const threadIndexKey = await this.ctx.storage.get<string>(getCommentQueueThreadLookupKey(commentId))
-
-    await Promise.all([
-      this.ctx.storage.delete(getCommentQueueRecordKey(commentId)),
-      this.ctx.storage.delete(getCommentQueueThreadLookupKey(commentId)),
-      threadIndexKey ? this.ctx.storage.delete(threadIndexKey) : Promise.resolve(false),
-    ])
-  }
-
-  private async listThreadComments(targetType: string, targetId: string) {
-    const threadEntries = await this.ctx.storage.list<string>({ prefix: getCommentQueueThreadPrefix(targetType, targetId) })
-    const queuedComments = await Promise.all(
-      [...threadEntries.values()].map((commentId) => this.getCommentRecord(commentId)),
-    )
-
-    return queuedComments
-      .flatMap((comment) => comment ? [createPublicCommentRecord(comment)] : [])
-      .sort(compareComments)
-  }
-
-  private async flushPendingComments(): Promise<CommentQueueFlushResult> {
-    const queuedEntries = await this.ctx.storage.list<CommentQueuedRecord>({ prefix: COMMENT_QUEUE_RECORD_PREFIX })
-    const queuedComments = [...queuedEntries.values()]
-
-    if (queuedComments.length === 0) {
-      return {
-        flushedCount: 0,
-        threadTargets: [],
-      }
-    }
-
-    const threadTargets = new Map(
-      queuedComments.map((comment) => [`${comment.target_type}:${comment.target_id}`, {
-        targetType: comment.target_type,
-        targetId: comment.target_id,
-      } satisfies CommentThreadTarget]),
-    )
-
-    const flushedCount = await callSupabaseCommentBatchRpc(this.env, queuedComments)
-
-    const ntfyUrl = getNtfyExternalUrl(this.env)
-    const ntfyToken = getNtfyToken(this.env)
-
-    for (const comment of queuedComments) {
-      await this.deleteCommentRecord(comment.id)
-      if (ntfyUrl) {
-        const label = getCommentTargetLabel(comment.target_type)
-        sendNtfyWorker(
-          ntfyUrl,
-          ntfyToken,
-          'blog-comments',
-          `新评论 [${label}]`,
-          `${comment.author}: ${comment.content.slice(0, 120)}`,
-          ['speech_balloon'],
-          3,
-        ).catch(() => {})
-      }
-    }
-
-    return {
-      flushedCount,
-      threadTargets: [...threadTargets.values()],
-    }
-  }
-
-  private async assertCanModify(comment: CommentQueuedRecord, identities: string[]) {
-    if (!identities.includes(comment.author)) {
-      throw new Error('FORBIDDEN')
-    }
-  }
-
-  async fetch(request: Request) {
-    if (request.method !== 'POST') {
-      return jsonResponse({ error: 'Method not allowed' }, { status: 405 })
-    }
-
-    return this.ctx.blockConcurrencyWhile(async () => {
-      const url = new URL(request.url)
-      const body = await request.json().catch(() => null) as Record<string, unknown> | null
-
-      if (url.pathname === '/thread') {
-        const targetType = typeof body?.targetType === 'string' ? body.targetType.trim() : ''
-        const targetId = normalizeCommentId(body?.targetId)
-
-        if (!targetType || !targetId) {
-          return jsonResponse({ error: 'MISSING_TARGET' }, { status: 400 })
-        }
-
-        return jsonResponse(await this.listThreadComments(targetType, targetId))
-      }
-
-      if (url.pathname === '/create') {
-        const comment = normalizeQueuedCommentRecord(body?.comment)
-        if (!comment) {
-          return jsonResponse({ error: 'INVALID_COMMENT' }, { status: 400 })
-        }
-
-        await this.putCommentRecord(comment)
-        return jsonResponse({
-          comment: createPublicCommentRecord(comment),
-          targetType: comment.target_type,
-          targetId: comment.target_id,
-        } satisfies CommentMutationResult)
-      }
-
-      if (url.pathname === '/update') {
-        const commentId = normalizeCommentId(body?.commentId)
-        const content = typeof body?.content === 'string' ? body.content.trim() : ''
-
-        if (!commentId) {
-          return jsonResponse({ error: 'NOT_FOUND' }, { status: 404 })
-        }
-
-        if (!content) {
-          return jsonResponse({ error: 'MISSING_CONTENT' }, { status: 400 })
-        }
-
-        const comment = await this.getCommentRecord(commentId)
-        if (!comment) {
-          return jsonResponse({ error: 'NOT_FOUND' }, { status: 404 })
-        }
-
-        await this.assertCanModify(comment, normalizeCommentIdentities(body))
-
-        const updatedComment = {
-          ...comment,
-          content,
-          updated_at: new Date().toISOString(),
-        } satisfies CommentQueuedRecord
-
-        await this.putCommentRecord(updatedComment)
-        return jsonResponse({
-          comment: createPublicCommentRecord(updatedComment),
-          targetType: updatedComment.target_type,
-          targetId: updatedComment.target_id,
-        } satisfies CommentMutationResult)
-      }
-
-      if (url.pathname === '/delete') {
-        const commentId = normalizeCommentId(body?.commentId)
-        if (!commentId) {
-          return jsonResponse({ error: 'NOT_FOUND' }, { status: 404 })
-        }
-
-        const comment = await this.getCommentRecord(commentId)
-        if (!comment) {
-          return jsonResponse({ error: 'NOT_FOUND' }, { status: 404 })
-        }
-
-        await this.assertCanModify(comment, normalizeCommentIdentities(body))
-        await this.deleteCommentRecord(commentId)
-
-        return jsonResponse({
-          targetType: comment.target_type,
-          targetId: comment.target_id,
-        } satisfies CommentDeletionResult)
-      }
-
-      if (url.pathname === '/flush') {
-        return jsonResponse(await this.flushPendingComments())
-      }
-
-      return jsonResponse({ error: 'NOT_FOUND' }, { status: 404 })
-    })
+    return jsonResponse({ error: '评论变更失败。' }, { status: 500 })
   }
 }
 
@@ -2098,22 +1752,6 @@ const worker = {
     }
 
     return jsonResponse({ error: 'Not found' }, { status: 404 })
-  },
-
-  async scheduled(_controller, env, ctx) {
-    ctx.waitUntil((async () => {
-      try {
-        const result = await requestCommentQueueDurableObject<CommentQueueFlushResult>(env, '/flush')
-        log('log', 'scheduled comment flush finished', {
-          flushedCount: result.flushedCount,
-          threadCount: result.threadTargets.length,
-        })
-      } catch (error) {
-        log('error', 'scheduled comment flush failed', {
-          error: error instanceof Error ? error.message : String(error),
-        })
-      }
-    })())
   },
 } satisfies ExportedHandler<EngagementEnv>
 

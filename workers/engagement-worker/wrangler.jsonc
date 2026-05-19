@@ -7,10 +7,6 @@
   "durable_objects": {
     "bindings": [
       {
-        "name": "COMMENT_QUEUE_DO",
-        "class_name": "CommentQueueDurableObject"
-      },
-      {
         "name": "COMMENT_RATE_LIMITER",
         "class_name": "CommentRateLimiterDurableObject"
       }
@@ -32,11 +28,12 @@
     {
       "tag": "v4-delete-post-reactions",
       "deleted_classes": ["PostReactionDurableObject"]
+    },
+    {
+      "tag": "v5-delete-comment-queue",
+      "deleted_classes": ["CommentQueueDurableObject"]
     }
   ],
-  "triggers": {
-    "crons": ["*/5 * * * *"]
-  },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
