@@ -11,7 +11,7 @@ import {
   type NoteSortDirection,
   type NoteSortMode,
 } from '@/lib/note-priority'
-import { getUserRole, type UserRole } from '@/lib/auth'
+import { getCurrentUser, getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { supabaseAdmin } from '@/lib/supabase-admin'
@@ -96,7 +96,9 @@ async function getGuestbookMessages(
 }
 
 function canWriteBoard(board: NoteBoardSlug, role: UserRole) {
-  return board === 'guestbook' || role === 'admin'
+  // Memo: any authenticated user (admin or regular user)
+  // Guestbook: anyone including guests
+  return board === 'guestbook' || role === 'admin' || role === 'user'
 }
 
 function normalizeRequesterIdentities(requesterIdentity?: string | string[] | null) {
@@ -107,6 +109,7 @@ function normalizeRequesterIdentities(requesterIdentity?: string | string[] | nu
 
 function canDeleteBoardMessage(board: NoteBoardSlug, role: UserRole, noteAuthor: string, requesterIdentity?: string | string[] | null) {
   if (board === 'memo') {
+    // Memo delete: admin always allowed; owner allowed via user_id check in caller
     return role === 'admin'
   }
 
@@ -155,6 +158,7 @@ export const getBoardMessages = cache(async (
   viewerIdentity?: string | null,
   searchQuery?: string | null,
   tagFilter?: string | null,
+  ownerUserId?: string | null,
 ) => {
   const config = getNoteBoardConfig(board)
 
@@ -162,8 +166,18 @@ export const getBoardMessages = cache(async (
     return getGuestbookMessages(limit, offset, archived, sortDirection, viewerIdentity, searchQuery, tagFilter)
   }
 
+  // Fall back to the public demo owner so unauthenticated visitors see the board
+  const effectiveOwnerId = ownerUserId ?? process.env.MEMO_PUBLIC_OWNER_ID ?? null
+  if (board === 'memo' && !effectiveOwnerId) {
+    return []
+  }
+
   const role = await getUserRole()
   const isAdmin = role === 'admin'
+
+  // Guests viewing the demo always see only public notes, regardless of role
+  const isOwner = ownerUserId != null
+  const showAdminOnly = isAdmin && isOwner
 
   let query = supabaseAdmin
     .from('comments')
@@ -172,9 +186,10 @@ export const getBoardMessages = cache(async (
     .eq('target_id', config.targetId)
     .eq('archived', archived)
     .is('parent_id', null)
+    .eq('user_id', effectiveOwnerId!)
     .range(offset, offset + limit - 1)
 
-  if (!isAdmin) {
+  if (!showAdminOnly) {
     query = query.eq('visibility', 'public')
   }
 
@@ -209,11 +224,16 @@ export const getBoardMessages = cache(async (
   return messages.map((m) => ({ ...m, comment_count: commentCounts[m.id] ?? 0 }))
 })
 
-export async function createBoardMessage(board: NoteBoardSlug, author: string, content: string, priority?: NotePriority, visibility: NoteVisibility = 'public', dueAt?: string | null) {
+export async function createBoardMessage(board: NoteBoardSlug, author: string, content: string, priority?: NotePriority, visibility: NoteVisibility = 'public', dueAt?: string | null, userId?: string | null) {
   const config = getNoteBoardConfig(board)
   const role = await getUserRole()
 
   if (!canWriteBoard(board, role)) {
+    throw new Error('FORBIDDEN')
+  }
+
+  // Memo requires an authenticated user identity
+  if (board === 'memo' && !userId) {
     throw new Error('FORBIDDEN')
   }
 
@@ -245,6 +265,7 @@ export async function createBoardMessage(board: NoteBoardSlug, author: string, c
       priority: nextPriority,
       parent_id: null,
       visibility: safeVisibility,
+      ...(userId ? { user_id: userId } : {}),
       ...(dueAt ? { due_at: dueAt } : {}),
     })
     .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues')
@@ -269,11 +290,11 @@ export async function updateBoardMessage(
   requesterIdentity?: string | string[] | null,
 ) {
   const config = getNoteBoardConfig(board)
-  const role = await getUserRole()
+  const [role, currentUser] = await Promise.all([getUserRole(), getCurrentUser()])
 
   const { data: note, error: fetchError } = await supabaseAdmin
     .from('comments')
-    .select('id, author, target_type, target_id')
+    .select('id, author, user_id, target_type, target_id')
     .eq('id', id)
     .single()
 
@@ -285,7 +306,13 @@ export async function updateBoardMessage(
     throw new Error('NOT_FOUND')
   }
 
-  if (!canEditBoardMessage(role, note.author, requesterIdentity)) {
+  if (board === 'memo') {
+    // Memo: owner (matched by auth user_id) or admin
+    const isOwner = currentUser?.id != null && currentUser.id === (note as { user_id?: string | null }).user_id
+    if (role !== 'admin' && !isOwner) {
+      throw new Error('FORBIDDEN')
+    }
+  } else if (!canEditBoardMessage(role, note.author, requesterIdentity)) {
     throw new Error('FORBIDDEN')
   }
 
@@ -357,11 +384,11 @@ export async function deleteBoardMessage(
   requesterIdentity?: string | string[] | null,
 ) {
   const config = getNoteBoardConfig(board)
-  const role = await getUserRole()
+  const [role, currentUser] = await Promise.all([getUserRole(), getCurrentUser()])
 
   const { data: note, error: fetchError } = await supabaseAdmin
     .from('comments')
-    .select('id, author, target_type, target_id')
+    .select('id, author, user_id, target_type, target_id')
     .eq('id', id)
     .single()
 
@@ -373,7 +400,13 @@ export async function deleteBoardMessage(
     throw new Error('NOT_FOUND')
   }
 
-  if (!canDeleteBoardMessage(board, role, note.author, requesterIdentity)) {
+  if (board === 'memo') {
+    // Memo: owner (matched by auth user_id) or admin
+    const isOwner = currentUser?.id != null && currentUser.id === (note as { user_id?: string | null }).user_id
+    if (role !== 'admin' && !isOwner) {
+      throw new Error('FORBIDDEN')
+    }
+  } else if (!canDeleteBoardMessage(board, role, note.author, requesterIdentity)) {
     throw new Error('FORBIDDEN')
   }
 

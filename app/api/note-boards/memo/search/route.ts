@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getBoardMessages } from '@/lib/note-boards'
 import { normalizeSearchQuery, SEARCH_MIN_QUERY_LENGTH } from '@/lib/blog-search'
+import { getCurrentUser } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -11,8 +12,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results: [] })
   }
 
+  const currentUser = await getCurrentUser()
+
   try {
-    const messages = await getBoardMessages('memo', limit, 0, false, 'time', 'desc', null, q)
+    const messages = await getBoardMessages('memo', limit, 0, false, 'time', 'desc', null, q, null, currentUser?.id ?? null)
     return NextResponse.json({
       results: messages.map((m) => ({
         id: m.id,

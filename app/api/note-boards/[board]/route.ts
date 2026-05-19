@@ -7,6 +7,7 @@ import {
   getNoteBoardConfig,
   isNoteBoardSlug,
 } from '@/lib/note-boards'
+import { getCurrentUser } from '@/lib/auth'
 
 export async function GET(
   req: NextRequest,
@@ -36,8 +37,10 @@ export async function GET(
   const searchQuery = searchParams.get('q') ?? null
   const tagFilter = searchParams.get('tag') ?? null
 
+  const currentUser = await getCurrentUser()
+
   try {
-    const messages = await getBoardMessages(board, limit, offset, archived, sort, sortDirection, identity, searchQuery, tagFilter)
+    const messages = await getBoardMessages(board, limit, offset, archived, sort, sortDirection, identity, searchQuery, tagFilter, currentUser?.id ?? null)
     return NextResponse.json({ messages, nextOffset: offset + messages.length, hasMore: messages.length === limit })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to load board' }, { status: 500 })
@@ -73,8 +76,10 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid priority' }, { status: 400 })
   }
 
+  const currentUser = await getCurrentUser()
+
   try {
-    const message = await createBoardMessage(board, author, content, priority, visibility, dueAt)
+    const message = await createBoardMessage(board, author, content, priority, visibility, dueAt, currentUser?.id ?? null)
     return NextResponse.json(message, { status: 201 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create note'

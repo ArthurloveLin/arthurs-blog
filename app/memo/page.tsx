@@ -9,9 +9,11 @@ import {
   normalizeNoteBoardViewMode,
 } from '@/lib/note-board-view-mode'
 import PageHero from '@/components/PageHero'
+import { getCurrentUser } from '@/lib/auth'
 
 export const metadata = { title: 'Memo' }
-export const revalidate = 300
+// Memo is per-user — cannot be statically cached
+export const dynamic = 'force-dynamic'
 
 export default async function MemoPage({
   searchParams,
@@ -19,7 +21,7 @@ export default async function MemoPage({
   searchParams: Promise<{ q?: string }>
 }) {
   const config = getNoteBoardConfig('memo')
-  const [params, cookieStore] = await Promise.all([searchParams, cookies()])
+  const [params, cookieStore, currentUser] = await Promise.all([searchParams, cookies(), getCurrentUser()])
   const { q } = params
   const initialQuery = typeof q === 'string' ? q.trim() : ''
   const initialViewMode = normalizeNoteBoardViewMode(
@@ -27,7 +29,7 @@ export default async function MemoPage({
   )
 
   const [messages, siteConfig] = await Promise.all([
-    getBoardMessages('memo', config.initialPageLimit, 0, false, 'time', 'desc', null, initialQuery || null),
+    getBoardMessages('memo', config.initialPageLimit, 0, false, 'time', 'desc', null, initialQuery || null, null, currentUser?.id ?? null),
     getSiteConfig(),
   ])
 
