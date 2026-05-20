@@ -46,6 +46,31 @@ export function toDateKey(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
+function getShanghaHourMinute(iso: string): { hour: number; minute: number } {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Shanghai',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(new Date(iso))
+  return {
+    hour: Number(parts.find((p) => p.type === 'hour')?.value ?? 0),
+    minute: Number(parts.find((p) => p.type === 'minute')?.value ?? 0),
+  }
+}
+
+function formatShanghaTime(iso: string): string {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Shanghai',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(iso))
+  const h = parts.find((p) => p.type === 'hour')?.value ?? '00'
+  const m = parts.find((p) => p.type === 'minute')?.value ?? '00'
+  return `${h}:${m}`
+}
+
 function buildCalendarCells(year: number, month: number) {
   const firstDow = new Date(year, month - 1, 1).getDay()
   const daysInMonth = new Date(year, month, 0).getDate()
@@ -216,6 +241,99 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, on
   )
 }
 
+const TIMELINE_HOURS = Array.from({ length: 24 }, (_, i) => i)
+
+interface AgendaDayPanelProps {
+  dateKey: string
+  items: MemoAgendaItem[]
+  accentColor: string
+  selectedDueDate: string | null
+  onBack: () => void
+  onFilterDay: (key: string | null) => void
+}
+
+function AgendaDayPanel({ dateKey, items, accentColor, selectedDueDate, onBack, onFilterDay }: AgendaDayPanelProps) {
+  const [yearStr, monthStr, dayStr] = dateKey.split('-')
+  const dateLabel = formatStableDate(
+    new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr)),
+    { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' },
+  )
+
+  const byHour = useMemo(() => {
+    const map = new Map<number, Array<{ item: MemoAgendaItem; timeLabel: string; minute: number }>>()
+    for (const item of items) {
+      const { hour, minute } = getShanghaHourMinute(item.dueAt)
+      const bucket = map.get(hour) ?? []
+      bucket.push({ item, timeLabel: formatShanghaTime(item.dueAt), minute })
+      bucket.sort((a, b) => a.minute - b.minute)
+      map.set(hour, bucket)
+    }
+    return map
+  }, [items])
+
+  const isFiltered = selectedDueDate === dateKey
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onBack}
+          className="shrink-0 rounded-full p-1 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          aria-label="返回日历"
+        >
+          <ChevronLeft size={14} />
+        </button>
+        <p className="flex-1 truncate text-[13px] font-semibold text-foreground/80">{dateLabel}</p>
+        <span className="shrink-0 text-[11px] text-muted-foreground/45">{items.length}项</span>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onFilterDay(isFiltered ? null : dateKey)}
+        className={[
+          'flex w-full items-center justify-center gap-1 rounded-full py-1.5 text-[12px] font-medium transition',
+          isFiltered
+            ? 'bg-foreground/10 text-foreground ring-1 ring-inset ring-foreground/20'
+            : 'border border-border/60 text-muted-foreground hover:bg-accent hover:text-foreground',
+        ].join(' ')}
+      >
+        {isFiltered ? <><X size={11} /><span>取消筛选</span></> : '筛选当日截止'}
+      </button>
+
+      <div className="max-h-[min(58vh,380px)] overflow-y-auto overscroll-contain rounded-xl border border-border/30 bg-background/40">
+        <div className="px-2 py-0.5">
+          {TIMELINE_HOURS.map((h) => {
+            const hourItems = byHour.get(h)
+            return (
+              <div key={h}>
+                <div className="flex h-6 items-center gap-2">
+                  <span className="w-7 shrink-0 text-right text-[9px] tabular-nums text-muted-foreground/30">
+                    {String(h).padStart(2, '0')}
+                  </span>
+                  <div className="flex-1 border-t border-border/20" />
+                </div>
+                {hourItems?.map(({ item, timeLabel }, idx) => (
+                  <div key={idx} className="mb-1.5 flex items-start gap-1.5 pl-9">
+                    <span className="shrink-0 text-[9px] tabular-nums leading-[18px] text-muted-foreground/50">{timeLabel}</span>
+                    <span
+                      className="flex-1 truncate rounded-[4px] px-1.5 py-[3px] text-[11px] leading-[14px] text-white"
+                      style={{ backgroundColor: accentColor }}
+                      title={item.label}
+                    >
+                      {item.label || '截止'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export interface SidebarAgendaCalendarProps {
   agendaItems: MemoAgendaItem[]
   onSwitchMode: () => void
@@ -234,6 +352,7 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
   }, [])
 
   const [displayMonth, setDisplayMonth] = useState(() => ({ year: today.year, month: today.month }))
+  const [detailDay, setDetailDay] = useState<string | null>(null)
 
   const monthLabel = formatStableDate(
     new Date(displayMonth.year, displayMonth.month - 1, 1),
@@ -255,18 +374,37 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
   const cells = useMemo(() => buildCalendarCells(displayMonth.year, displayMonth.month), [displayMonth])
 
   const byDate = useMemo(() => {
-    const map = new Map<string, string[]>()
+    const map = new Map<string, MemoAgendaItem[]>()
     for (const item of agendaItems) {
       const { year, month, day } = getShanghaDateParts(item.dueAt)
       const key = toDateKey(year, month, day)
       const existing = map.get(key) ?? []
-      existing.push(item.label)
+      existing.push(item)
       map.set(key, existing)
     }
     return map
   }, [agendaItems])
 
   const selectedDueDate = state.activeDueDate
+
+  if (detailDay !== null) {
+    return (
+      <AgendaDayPanel
+        dateKey={detailDay}
+        items={byDate.get(detailDay) ?? []}
+        accentColor={accentColor}
+        selectedDueDate={selectedDueDate}
+        onBack={() => setDetailDay(null)}
+        onFilterDay={(key) => {
+          actions.handleDueDateFilter(key)
+          if (!key) {
+            setDetailDay(null)
+            onAfterSelect?.()
+          }
+        }}
+      />
+    )
+  }
 
   return (
     <div className="space-y-2">
@@ -314,31 +452,30 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
         {cells.map((cell, i) => {
           if (cell.kind !== 'current') {
             return (
-              <div key={i} className="min-h-[56px] rounded-sm p-1">
-                <span className="block text-[10px] text-muted-foreground/15">{cell.day}</span>
+              <div key={i} className="flex h-[72px] flex-col rounded-sm p-1">
+                <span className="shrink-0 text-[10px] text-muted-foreground/15">{cell.day}</span>
               </div>
             )
           }
           const key = toDateKey(displayMonth.year, displayMonth.month, cell.day)
-          const labels = byDate.get(key) ?? []
+          const items = byDate.get(key) ?? []
+          const labels = items.map((it) => it.label)
           const isSelected = selectedDueDate === key
           const isToday = key === today.key
           return (
             <button
               key={i}
               type="button"
-              onClick={() => { actions.handleDueDateFilter(isSelected ? null : key); if (!isSelected) onAfterSelect?.() }}
+              onClick={() => { setDetailDay(key); actions.handleDueDateFilter(key) }}
               className={[
-                'min-h-[56px] w-full rounded-sm p-1 text-left transition',
+                'flex h-[72px] w-full flex-col rounded-sm p-1 text-left transition',
                 isSelected
                   ? 'bg-foreground/10 ring-1 ring-inset ring-foreground/25'
-                  : labels.length > 0
-                    ? 'hover:bg-accent cursor-pointer'
-                    : 'cursor-default',
+                  : 'cursor-pointer hover:bg-accent',
               ].join(' ')}
             >
               <span className={[
-                'block text-[10px] font-medium leading-tight',
+                'shrink-0 text-[10px] font-medium leading-tight',
                 isSelected
                   ? 'text-foreground'
                   : isToday
@@ -347,20 +484,20 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
               ].join(' ')}>
                 {cell.day}
               </span>
-              <div className="mt-0.5 space-y-px">
-                {labels.slice(0, 2).map((label, li) => (
+              <div className="mt-0.5 flex-1 overflow-hidden space-y-px">
+                {labels.slice(0, 3).map((label, li) => (
                   <span
                     key={li}
                     className="block truncate rounded-[3px] px-0.5 text-[9px] leading-[13px] text-white"
                     style={{ backgroundColor: accentColor }}
                     title={label}
                   >
-                    {label}
+                    {label || '截止'}
                   </span>
                 ))}
-                {labels.length > 2 ? (
-                  <span className="block text-[9px] leading-[13px] text-muted-foreground/50">
-                    +{labels.length - 2}
+                {labels.length > 3 ? (
+                  <span className="block text-[9px] leading-[13px] text-muted-foreground/40">
+                    +{labels.length - 3}
                   </span>
                 ) : null}
               </div>
