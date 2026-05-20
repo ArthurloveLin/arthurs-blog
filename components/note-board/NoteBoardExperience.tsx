@@ -35,7 +35,12 @@ const MemosStreamView = dynamic(
 
 const MobileStickyStack = dynamic(
   () => import('@/components/note-board/views/MobileStickyStack').then((module) => module.MobileStickyStack),
-  { ssr: false },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-[280px] animate-pulse rounded-[24px] border border-dashed border-border/50 bg-background/15" />
+    ),
+  },
 )
 
 interface NoteBoardPageProps {

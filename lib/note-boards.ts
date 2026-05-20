@@ -212,14 +212,17 @@ export const getBoardMessages = cache(async (
     throw new Error(error.message)
   }
 
-  const withReactions = await attachViewerReactions(
-    (data ?? []) as Array<Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emojis'>>,
-    viewerIdentity,
-  )
+  const baseData = (data ?? []) as Array<Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emojis'>>
+  const noteIds = baseData.map((m) => m.id)
+
+  // batchFetchNoteCommentCounts only needs noteIds (available now), so run it
+  // in parallel with the reactions chain rather than after it.
+  const [withReactions, commentCounts] = await Promise.all([
+    attachViewerReactions(baseData, viewerIdentity),
+    batchFetchNoteCommentCounts(noteIds),
+  ])
 
   const messages = await attachViewerEmojiReactions(withReactions, viewerIdentity) as NoteMessage[]
-  const noteIds = messages.map((m) => m.id)
-  const commentCounts = await batchFetchNoteCommentCounts(noteIds)
 
   return messages.map((m) => ({ ...m, comment_count: commentCounts[m.id] ?? 0 }))
 })

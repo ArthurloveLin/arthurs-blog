@@ -60,7 +60,7 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
           : 'border-border/70 bg-background/70 hover:bg-accent/35 hover:ring-2 hover:ring-primary/20',
       ].join(' ')}
       style={{
-        width: isExpanded ? '210px' : '34px',
+        width: isExpanded ? 'min(210px, 100%)' : '34px',
         transitionTimingFunction: isExpanded ? 'cubic-bezier(0,1.22,.66,1.39)' : 'cubic-bezier(0.4,0,0.2,1)',
       }}
     >
@@ -437,8 +437,10 @@ export function MemoBoardShell({
             ) : null}
           </div>
         </div>
-        <div className="flex flex-row-reverse justify-start shrink-0 items-center gap-1.5 sm:flex-row sm:justify-end">
-          <MemoSearchField placeholder={searchPlaceholder} />
+        <div className="flex items-center gap-1.5 sm:shrink-0 sm:justify-end">
+          <div className="flex-1 min-w-0 sm:contents">
+            <MemoSearchField placeholder={searchPlaceholder} />
+          </div>
           <MemoSortDropdown allowPrioritySort={allowPrioritySort} />
           <NoteThemeButton />
           {extraControls}
