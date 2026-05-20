@@ -176,6 +176,50 @@ docker compose up -d   # run from /home/arthur/repositories/arthurs-blog
 
 `docker restart` is not enough — it restarts the process but does not re-inject the env file.
 
+### Docker image tags
+
+Each push to `main` automatically produces these tags in GHCR:
+
+| Tag | Example | Meaning |
+|---|---|---|
+| `latest` | `latest` | Always the current `main` tip; Watchtower tracks this |
+| `sha-<short>` | `sha-32285dc` | Immutable snapshot of a specific commit |
+| `main` | `main` | Same as `latest` for branch-based reference |
+| `v<date>-<time>` | `v2025.05.20-1523` | Auto-generated release snapshot (UTC); **no rebuild** — re-tags the sha image |
+
+The `release` CI job runs in parallel with `deploy` after `docker` completes. It uses `docker buildx imagetools create` to copy the digest (no rebuild), then calls the GitHub API to create a matching git tag. No manual tagging required.
+
+### Rollback SOP
+
+1. **Find the target version** — either a named tag or the sha of a good commit:
+
+   ```bash
+   git log --oneline -10                          # find the commit sha
+   # or: check GHCR package page for available tags
+   ```
+
+2. **Pull the target image on the server:**
+
+   ```bash
+   docker pull ghcr.io/arthurlovelin/arthurs-blog:v2025.05.18
+   # or by sha:
+   docker pull ghcr.io/arthurlovelin/arthurs-blog:sha-9fec17d
+   ```
+
+3. **Edit `docker-compose.yml`** — change `image:` to the target tag:
+
+   ```yaml
+   image: ghcr.io/arthurlovelin/arthurs-blog:v2025.05.18
+   ```
+
+4. **Recreate the container:**
+
+   ```bash
+   docker compose up -d   # run from /home/arthur/repositories/arthurs-blog
+   ```
+
+5. **Restore normal tracking** — after the issue is fixed, revert `docker-compose.yml` back to `:latest` and `docker compose up -d` again.
+
 ---
 
 ## Architecture
