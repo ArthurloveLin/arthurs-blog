@@ -257,11 +257,10 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
   const byDate = useMemo(() => {
     const map = new Map<string, string[]>()
     for (const item of agendaItems) {
-      const key = toDateKey(...Object.values(getShanghaDateParts(item.due_at)) as [number, number, number])
+      const { year, month, day } = getShanghaDateParts(item.dueAt)
+      const key = toDateKey(year, month, day)
       const existing = map.get(key) ?? []
-      for (const tag of item.tags) {
-        if (!existing.includes(tag)) existing.push(tag)
-      }
+      existing.push(item.label)
       map.set(key, existing)
     }
     return map
@@ -270,7 +269,7 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
   const selectedDueDate = state.activeDueDate
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       {/* 月份导航 */}
       <div className="flex items-center justify-between">
         <button
@@ -306,22 +305,22 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
       {/* 星期标题 */}
       <div className="grid grid-cols-7 text-center">
         {['一', '二', '三', '四', '五', '六', '日'].map((lbl) => (
-          <span key={lbl} className="text-[12px] text-muted-foreground/60">{lbl}</span>
+          <span key={lbl} className="text-[11px] text-muted-foreground/50">{lbl}</span>
         ))}
       </div>
 
       {/* 网格 */}
-      <div className="grid grid-cols-7 gap-0.5">
+      <div className="grid grid-cols-7 gap-px">
         {cells.map((cell, i) => {
           if (cell.kind !== 'current') {
             return (
-              <div key={i} className="min-h-[48px] rounded p-0.5">
-                <span className="block text-[11px] text-muted-foreground/20">{cell.day}</span>
+              <div key={i} className="min-h-[56px] rounded-sm p-1">
+                <span className="block text-[10px] text-muted-foreground/15">{cell.day}</span>
               </div>
             )
           }
           const key = toDateKey(displayMonth.year, displayMonth.month, cell.day)
-          const tags = byDate.get(key) ?? []
+          const labels = byDate.get(key) ?? []
           const isSelected = selectedDueDate === key
           const isToday = key === today.key
           return (
@@ -330,35 +329,41 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
               type="button"
               onClick={() => { actions.handleDueDateFilter(isSelected ? null : key); if (!isSelected) onAfterSelect?.() }}
               className={[
-                'group min-h-[48px] w-full rounded p-0.5 text-left transition',
+                'min-h-[56px] w-full rounded-sm p-1 text-left transition',
                 isSelected
-                  ? 'bg-foreground/10 ring-1 ring-foreground/30'
-                  : 'hover:bg-accent',
+                  ? 'bg-foreground/10 ring-1 ring-inset ring-foreground/25'
+                  : labels.length > 0
+                    ? 'hover:bg-accent cursor-pointer'
+                    : 'cursor-default',
               ].join(' ')}
             >
               <span className={[
-                'block text-[11px] font-medium leading-tight mb-0.5',
-                isSelected ? 'text-foreground' : isToday ? 'text-foreground font-semibold' : 'text-muted-foreground/60',
+                'block text-[10px] font-medium leading-tight',
+                isSelected
+                  ? 'text-foreground'
+                  : isToday
+                    ? 'font-bold text-foreground'
+                    : 'text-muted-foreground/50',
               ].join(' ')}>
                 {cell.day}
               </span>
-              <div className="flex flex-wrap gap-0.5">
-                {tags.slice(0, 3).map((tag) => (
+              <div className="mt-0.5 space-y-px">
+                {labels.slice(0, 2).map((label, li) => (
                   <span
-                    key={tag}
-                    className="block max-w-full truncate rounded px-0.5 text-[9px] leading-[14px] text-white"
-                    style={{ backgroundColor: getTagColor(tag) }}
+                    key={li}
+                    className="block truncate rounded-[3px] px-0.5 text-[9px] leading-[13px] text-white"
+                    style={{ backgroundColor: accentColor }}
+                    title={label}
                   >
-                    #{tag}
+                    {label}
                   </span>
                 ))}
-                {tags.length > 3 ? (
-                  <span className="text-[9px] leading-[14px] text-muted-foreground/50">+{tags.length - 3}</span>
+                {labels.length > 2 ? (
+                  <span className="block text-[9px] leading-[13px] text-muted-foreground/50">
+                    +{labels.length - 2}
+                  </span>
                 ) : null}
               </div>
-              {tags.length > 0 && (
-                <span className="mt-0.5 block h-0.5 w-2 rounded-full" style={{ backgroundColor: accentColor }} />
-              )}
             </button>
           )
         })}

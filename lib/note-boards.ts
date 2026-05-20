@@ -202,19 +202,21 @@ export const getMemoTagCounts = cache(async (ownerUserId: string, showAdminOnly 
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
 })
 
-export type MemoAgendaItem = { id: string; due_at: string; tags: string[] }
+export type MemoAgendaItem = { memoId: string; dueAt: string; label: string }
+
+const INLINE_DUE_RE = /@due\[([^\]]*)\]\(([^)]*)\)/g
 
 export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnly = false) => {
   const config = getNoteBoardConfig('memo')
   let query = supabaseAdmin
     .from('comments')
-    .select('id, content, due_at')
+    .select('id, content')
     .eq('target_type', config.targetType)
     .eq('target_id', config.targetId)
     .eq('archived', false)
     .is('parent_id', null)
     .eq('user_id', ownerUserId)
-    .not('due_at', 'is', null)
+    .ilike('content', '%@due[%')
 
   if (!showAdminOnly) {
     query = query.eq('visibility', 'public')
@@ -223,17 +225,19 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
   const { data, error } = await query
   if (error) throw new Error(error.message)
 
-  return (data ?? []).map((row) => {
-    const tags: string[] = []
-    HASHTAG_RE.lastIndex = 0
+  const items: MemoAgendaItem[] = []
+  for (const row of data ?? []) {
+    INLINE_DUE_RE.lastIndex = 0
     let match: RegExpExecArray | null
-    while ((match = HASHTAG_RE.exec(row.content as string)) !== null) {
-      const tag = match[1].toLowerCase()
-      if (tag.length > 0 && tag.length <= 32 && !tags.includes(tag)) tags.push(tag)
-      HASHTAG_RE.lastIndex = match.index + 1
+    while ((match = INLINE_DUE_RE.exec(row.content as string)) !== null) {
+      const label = match[1].trim() || '截止'
+      const iso = match[2]
+      if (iso && !isNaN(Date.parse(iso))) {
+        items.push({ memoId: row.id as string, dueAt: iso, label })
+      }
     }
-    return { id: row.id as string, due_at: row.due_at as string, tags }
-  })
+  }
+  return items
 })
 
 export { getNoteBoardConfig, isNoteBoardSlug }
