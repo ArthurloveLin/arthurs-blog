@@ -7,7 +7,8 @@ import {
   useNoteBoardBoardState,
 } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
-import { SidebarCalendar, SidebarTagCloud, getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
+import { SidebarAgendaCalendar, SidebarCalendar, SidebarTagCloud, getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
+import type { MemoAgendaItem } from '@/lib/note-boards'
 import { NOTE_COLOR_THEMES, useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import type { NoteSortMode } from '@/lib/note-priority'
 
@@ -263,12 +264,13 @@ function SidebarQuickFilters({ filters }: { filters: MemoBoardFilters }) {
     return toDateKey(year, month, day)
   }, [])
 
-  const isAll = !state.searchQuery && state.activeTags.length === 0 && !filters.effectiveSelectedDate && !state.showArchived
+  const isAll = !state.searchQuery && state.activeTags.length === 0 && !filters.effectiveSelectedDate && !state.activeDueDate && !state.showArchived
   const isToday = filters.effectiveSelectedDate === today && !state.searchQuery && state.activeTags.length === 0
 
   function handleAll() {
     if (state.searchQuery) actions.handleSearch('')
     if (state.activeTags.length > 0) actions.handleTagFilter('')
+    if (state.activeDueDate) actions.handleDueDateFilter(null)
     if (state.showArchived) actions.handleSwitchArchiveView(false)
     filters.clearDateFilter()
   }
@@ -323,20 +325,21 @@ export interface MemoBoardFilters {
 
 export function useMemoBoardFilters(
   allItems: NoteCardViewModel[],
-  selectedDate: string | null,
-  setSelectedDate: (key: string | null) => void,
+  externalDateCounts: Map<string, number> | null,
 ): MemoBoardFilters {
   const state = useNoteBoardBoardState()
-  const effectiveSelectedDate = state.searchQuery || state.activeTags.length > 0 ? null : selectedDate
+  const actions = useNoteBoardActions()
+  const effectiveSelectedDate = state.searchQuery || state.activeTags.length > 0 ? null : state.activeDate
 
-  const memoDateCounts = useMemo(() => {
+  const computedDateCounts = useMemo(() => {
+    if (externalDateCounts) return externalDateCounts
     const counts = new Map<string, number>()
     for (const item of allItems) {
       const key = getItemDateKey(item)
       counts.set(key, (counts.get(key) ?? 0) + 1)
     }
     return counts
-  }, [allItems])
+  }, [allItems, externalDateCounts])
 
   const filterItemsByDate = useCallback((items: NoteCardViewModel[]) => {
     if (!effectiveSelectedDate) return items
@@ -344,12 +347,12 @@ export function useMemoBoardFilters(
   }, [effectiveSelectedDate])
 
   return {
-    memoDateCounts,
-    selectedDate,
+    memoDateCounts: computedDateCounts,
+    selectedDate: state.activeDate,
     effectiveSelectedDate,
-    isFilterMode: Boolean(state.searchQuery || state.activeTags.length > 0 || effectiveSelectedDate),
-    setSelectedDate,
-    clearDateFilter: () => setSelectedDate(null),
+    isFilterMode: Boolean(state.searchQuery || state.activeTags.length > 0 || effectiveSelectedDate || state.activeDueDate),
+    setSelectedDate: actions.handleDateFilter,
+    clearDateFilter: () => actions.handleDateFilter(null),
     filterItemsByDate,
   }
 }
@@ -370,6 +373,7 @@ interface MemoBoardShellProps {
   filters: MemoBoardFilters
   searchPlaceholder: string
   allowPrioritySort: boolean
+  agendaItems?: MemoAgendaItem[] | null
   extraControls?: ReactNode
   children: ReactNode
 }
@@ -384,6 +388,7 @@ export function MemoBoardShell({
   filters,
   searchPlaceholder,
   allowPrioritySort,
+  agendaItems,
   extraControls,
   children,
 }: MemoBoardShellProps) {
@@ -391,6 +396,7 @@ export function MemoBoardShell({
   const actions = useNoteBoardActions()
   const { theme } = useNoteColorTheme()
   const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false)
+  const [calendarMode, setCalendarMode] = useState<'heatmap' | 'agenda'>('heatmap')
   const isMobileCalendarOpen = state.isMobileViewport && mobileCalendarOpen
 
   const shellBg = `radial-gradient(ellipse at top left, rgba(${hexToRgb(theme.shell[0])},0.32) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(${hexToRgb(theme.shell[1])},0.26) 0%, transparent 50%)`
@@ -401,13 +407,16 @@ export function MemoBoardShell({
       ? `${state.activeTags.map((t) => `#${t}`).join(' ')} · ${filteredCount}${itemUnit}`
       : filters.effectiveSelectedDate
         ? `${filters.effectiveSelectedDate} · ${filteredCount}${itemUnit}`
-        : null
+        : state.activeDueDate
+          ? `截止 ${state.activeDueDate} · ${filteredCount}${itemUnit}`
+          : null
 
   const handleClearFilter = useCallback(() => {
     if (state.searchQuery) { actions.handleSearch(''); return }
     if (state.activeTags.length > 0) { actions.handleTagFilter(''); return }
+    if (state.activeDueDate) { actions.handleDueDateFilter(null); return }
     filters.clearDateFilter()
-  }, [actions, filters, state.activeTags, state.searchQuery])
+  }, [actions, filters, state.activeDueDate, state.activeTags, state.searchQuery])
 
   const ToggleIcon = toggleTarget === 'stream' ? LayoutList : Layers
   const toggleLabel = toggleTarget === 'stream' ? '流式视图' : '便签视图'
@@ -467,11 +476,21 @@ export function MemoBoardShell({
         {/* 桌面侧边栏 */}
         <aside className="hidden shrink-0 sm:block sm:w-[240px] lg:w-[280px]">
           <div className="sticky top-6 space-y-6">
-            <SidebarCalendar
-              memoDateCounts={filters.memoDateCounts}
-              selectedDate={filters.selectedDate}
-              onSelectDate={filters.setSelectedDate}
-            />
+            {calendarMode === 'agenda' && agendaItems != null
+              ? (
+                  <SidebarAgendaCalendar
+                    agendaItems={agendaItems}
+                    onSwitchMode={() => setCalendarMode('heatmap')}
+                  />
+                )
+              : (
+                  <SidebarCalendar
+                    memoDateCounts={filters.memoDateCounts}
+                    selectedDate={filters.selectedDate}
+                    onSelectDate={filters.setSelectedDate}
+                    onSwitchMode={agendaItems != null ? () => setCalendarMode('agenda') : undefined}
+                  />
+                )}
             <SidebarQuickFilters filters={filters} />
             <SidebarTagCloud />
           </div>
@@ -486,23 +505,44 @@ export function MemoBoardShell({
               className="flex h-[36px] w-full items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 text-[13px] text-muted-foreground transition hover:bg-accent"
             >
               <CalendarDays size={14} className="shrink-0" />
-              <span className="flex-1 text-left">{filters.effectiveSelectedDate ?? '按日期筛选'}</span>
+              <span className="flex-1 text-left">
+                {filters.effectiveSelectedDate
+                  ? filters.effectiveSelectedDate
+                  : state.activeDueDate
+                    ? `截止 ${state.activeDueDate}`
+                    : calendarMode === 'agenda'
+                      ? '日程视图'
+                      : '按日期筛选'}
+              </span>
               {filters.effectiveSelectedDate ? (
                 <X size={13} onClick={(e) => { e.stopPropagation(); filters.clearDateFilter() }} />
+              ) : state.activeDueDate ? (
+                <X size={13} onClick={(e) => { e.stopPropagation(); actions.handleDueDateFilter(null) }} />
               ) : (
                 <ChevronDown size={13} className={`transition-transform${isMobileCalendarOpen ? ' rotate-180' : ''}`} />
               )}
             </button>
             {isMobileCalendarOpen ? (
               <div className="mt-2 rounded-2xl border border-border/60 bg-background/80 p-3">
-                <SidebarCalendar
-                  memoDateCounts={filters.memoDateCounts}
-                  selectedDate={filters.selectedDate}
-                  onSelectDate={(key) => {
-                    filters.setSelectedDate(key)
-                    if (key) setMobileCalendarOpen(false)
-                  }}
-                />
+                {calendarMode === 'agenda' && agendaItems != null
+                  ? (
+                      <SidebarAgendaCalendar
+                        agendaItems={agendaItems}
+                        onSwitchMode={() => setCalendarMode('heatmap')}
+                        onAfterSelect={() => setMobileCalendarOpen(false)}
+                      />
+                    )
+                  : (
+                      <SidebarCalendar
+                        memoDateCounts={filters.memoDateCounts}
+                        selectedDate={filters.selectedDate}
+                        onSelectDate={(key) => {
+                          filters.setSelectedDate(key)
+                          if (key) setMobileCalendarOpen(false)
+                        }}
+                        onSwitchMode={agendaItems != null ? () => setCalendarMode('agenda') : undefined}
+                      />
+                    )}
               </div>
             ) : null}
           </div>

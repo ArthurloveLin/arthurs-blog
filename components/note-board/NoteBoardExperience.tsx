@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import useSWR from 'swr'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlarmClock, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
@@ -50,7 +51,7 @@ interface NoteBoardPageProps {
   initialViewMode?: NoteBoardViewMode
 }
 
-function BoardStickyView({ onToggleViewMode, filters }: { onToggleViewMode: () => void; filters: MemoBoardFilters }) {
+function BoardStickyView({ onToggleViewMode, filters, agendaItems }: { onToggleViewMode: () => void; filters: MemoBoardFilters; agendaItems?: import('@/lib/note-boards').MemoAgendaItem[] | null }) {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
   const meta = useNoteBoardMeta()
@@ -83,6 +84,7 @@ function BoardStickyView({ onToggleViewMode, filters }: { onToggleViewMode: () =
       filters={filters}
       searchPlaceholder={meta.board.slug === 'guestbook' ? '搜索留言内容…' : '搜索 Memo…'}
       allowPrioritySort={meta.board.slug === 'memo'}
+      agendaItems={agendaItems}
     >
       {!state.viewportReady ? (
         <div
@@ -616,10 +618,28 @@ function NoteBoardToast() {
 function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?: NoteBoardViewMode }) {
   const meta = useNoteBoardMeta()
   const state = useNoteBoardBoardState()
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const viewModeStorageKey = getNoteBoardViewModeStorageKey(meta.board.slug)
   const viewModeCookieName = getNoteBoardViewModeCookieName(meta.board.slug)
-  const filters = useMemoBoardFilters(state.allNoteItems, selectedDate, setSelectedDate)
+
+  const { data: dateCountsRaw } = useSWR<{ date: string; count: number }[]>(
+    meta.board.slug === 'memo' ? '/api/note-boards/memo/dates' : null,
+    (url: string) => fetch(url).then((r) => r.json()),
+    { revalidateOnFocus: false, dedupingInterval: 120_000 },
+  )
+  const externalDateCounts = useMemo(() => {
+    if (!dateCountsRaw) return null
+    const map = new Map<string, number>()
+    for (const { date, count } of dateCountsRaw) map.set(date, count)
+    return map
+  }, [dateCountsRaw])
+
+  const filters = useMemoBoardFilters(state.allNoteItems, externalDateCounts)
+
+  const { data: agendaItems } = useSWR<import('@/lib/note-boards').MemoAgendaItem[]>(
+    meta.board.slug === 'memo' ? '/api/note-boards/memo/agenda' : null,
+    (url: string) => fetch(url).then((r) => r.json()),
+    { revalidateOnFocus: false, dedupingInterval: 60_000 },
+  )
 
   const [viewMode, setViewMode] = useState<NoteBoardViewMode>(initialViewMode)
 
@@ -636,8 +656,8 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
   return (
     <div className="space-y-6">
       {viewMode === 'stream'
-        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} />
-        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} />}
+        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} />
+        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} />}
       <NoteBoardEditorSection autoFocusOnEdit={viewMode === 'stream'} />
       <NoteBoardToast />
     </div>
@@ -645,9 +665,15 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
 }
 
 export function NoteBoardPage({ board, initialMessages, initialQuery = '', initialViewMode = 'sticky' }: NoteBoardPageProps) {
+  const { data: externalTagsRaw } = useSWR<{ name: string; count: number }[]>(
+    board.slug === 'memo' ? '/api/note-boards/memo/tags' : null,
+    (url: string) => fetch(url).then((r) => r.json()),
+    { revalidateOnFocus: false, dedupingInterval: 120_000 },
+  )
+
   return (
     <NoteColorThemeProvider>
-      <NoteBoardProvider board={board} initialMessages={initialMessages} initialQuery={initialQuery}>
+      <NoteBoardProvider board={board} initialMessages={initialMessages} initialQuery={initialQuery} externalTags={externalTagsRaw ?? null}>
         <NoteBoardExperience initialViewMode={initialViewMode} />
       </NoteBoardProvider>
     </NoteColorThemeProvider>

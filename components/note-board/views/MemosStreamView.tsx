@@ -7,6 +7,7 @@ import {
   useNoteBoardMeta,
 } from '@/components/note-board/NoteBoardProvider'
 import { MemoBoardShell, type MemoBoardFilters } from '@/components/note-board/views/MemoBoardShell'
+import type { MemoAgendaItem } from '@/lib/note-boards'
 import { MemoStreamCard } from '@/components/note-board/views/MemoStreamCard'
 import { getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
 import type { NoteCardViewModel } from '@/components/note-board/types'
@@ -16,6 +17,7 @@ import { NOTE_PRIORITY_META } from '@/lib/note-priority'
 interface MemosStreamViewProps {
   onToggleViewMode: () => void
   filters: MemoBoardFilters
+  agendaItems?: MemoAgendaItem[] | null
 }
 
 type FeedGroup = {
@@ -32,7 +34,7 @@ type FeedGroup = {
 
 const DATE_META_BLOCK_HEIGHT_CLASS = 'h-[2.15rem] sm:h-[2.6rem]'
 
-export function MemosStreamView({ onToggleViewMode, filters }: MemosStreamViewProps) {
+export function MemosStreamView({ onToggleViewMode, filters, agendaItems }: MemosStreamViewProps) {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
   const meta = useNoteBoardMeta()
@@ -127,6 +129,7 @@ export function MemosStreamView({ onToggleViewMode, filters }: MemosStreamViewPr
       filters={filters}
       searchPlaceholder={meta.board.slug === 'guestbook' ? '搜索留言内容…' : '搜索 Memo…'}
       allowPrioritySort={meta.board.slug === 'memo'}
+      agendaItems={agendaItems}
     >
       {isLoading ? (
         <div className="space-y-3">

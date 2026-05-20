@@ -37,6 +37,7 @@ interface NoteBoardProviderProps {
   board: NoteBoardViewConfig
   initialMessages: NoteMessage[]
   initialQuery?: string
+  externalTags?: { name: string; count: number }[] | null
   children: ReactNode
 }
 
@@ -110,6 +111,8 @@ interface NoteBoardActions {
   handleToggleSortDirection: () => void
   handleSearch: (q: string) => void
   handleTagFilter: (tag: string) => void
+  handleDateFilter: (date: string | null) => void
+  handleDueDateFilter: (date: string | null) => void
   updateEditorValue: (value: string) => void
   updateEditorPriority: (value: NotePriority) => void
   updateEditorVisibility: (value: NoteVisibility) => void
@@ -141,6 +144,8 @@ interface NoteBoardBoardState {
   sortDirection: NoteSortDirection
   searchQuery: string
   activeTags: string[]
+  activeDate: string | null
+  activeDueDate: string | null
   allTags: { name: string; count: number }[]
   currentPage: number
   pageSize: number
@@ -203,7 +208,7 @@ function useRequiredContext<T>(context: React.Context<T | null>, name: string) {
   return value
 }
 
-export function NoteBoardProvider({ board, initialMessages, initialQuery = '', children }: NoteBoardProviderProps) {
+export function NoteBoardProvider({ board, initialMessages, initialQuery = '', externalTags, children }: NoteBoardProviderProps) {
   const { identity, identityAliases, isAdmin, loading, publicIdentity } = useAuth()
   
   const [error, setError] = useState<string | null>(null)
@@ -234,6 +239,8 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     sortDirection,
     searchQuery,
     activeTags,
+    activeDate,
+    activeDueDate,
     isPending,
     isRefreshingBoard,
     messagesRef,
@@ -246,6 +253,8 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     handleToggleSortDirection,
     handleSearch,
     handleTagFilter,
+    handleDateFilter,
+    handleDueDateFilter,
     handleLoadMore,
     handlePreviousPage,
     handleNextPage,
@@ -381,6 +390,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
   })
 
   const allTags = useMemo<{ name: string; count: number }[]>(() => {
+    if (externalTags) return externalTags
     const counts = new Map<string, number>()
     for (const message of messages) {
       for (const tag of parseHashtags(message.content)) {
@@ -390,7 +400,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     return [...counts.entries()]
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-  }, [messages])
+  }, [externalTags, messages])
 
   const { noteItems: allNoteItems } = useBoardNoteItems({
     visibleMessages: messages,
@@ -456,6 +466,8 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     sortDirection,
     searchQuery,
     activeTags,
+    activeDate,
+    activeDueDate,
     allTags,
     currentPage: isDesktopViewport ? currentPageIndex + 1 : 1,
     pageSize: DESKTOP_NOTES_PER_PAGE,
@@ -468,6 +480,8 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
   }), [
     allNoteItems,
     allTags,
+    activeDate,
+    activeDueDate,
     activeTags,
     cardZIndices,
     currentPageIndex,
@@ -545,6 +559,8 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     handleToggleSortDirection,
     handleSearch,
     handleTagFilter,
+    handleDateFilter,
+    handleDueDateFilter,
     updateEditorValue: editingMessage ? setEditContent : setDraft,
     updateEditorPriority: editingMessage ? setEditPriority : setDraftPriority,
     updateEditorVisibility: editingMessage ? setEditVisibility : setDraftVisibility,
@@ -566,6 +582,8 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     handleSubmit,
     handleSwitchArchiveView,
     handleTagFilter,
+    handleDateFilter,
+    handleDueDateFilter,
     saveEditingNote,
     setCardPosition,
     setDraft,

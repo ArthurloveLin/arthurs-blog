@@ -125,6 +125,117 @@ interface UpdateBoardMessageInput {
   due_at?: string | null
 }
 
+function toShanghaiDateKey(ts: string): string {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(ts))
+  const y = parts.find((p) => p.type === 'year')?.value ?? '0'
+  const m = parts.find((p) => p.type === 'month')?.value ?? '00'
+  const d = parts.find((p) => p.type === 'day')?.value ?? '00'
+  return `${y}-${m}-${d}`
+}
+
+export const getMemoDateCounts = cache(async (ownerUserId: string, showAdminOnly = false) => {
+  const config = getNoteBoardConfig('memo')
+  let query = supabaseAdmin
+    .from('comments')
+    .select('updated_at, created_at')
+    .eq('target_type', config.targetType)
+    .eq('target_id', config.targetId)
+    .eq('archived', false)
+    .is('parent_id', null)
+    .eq('user_id', ownerUserId)
+
+  if (!showAdminOnly) {
+    query = query.eq('visibility', 'public')
+  }
+
+  const { data, error } = await query
+  if (error) throw new Error(error.message)
+
+  const counts = new Map<string, number>()
+  for (const row of data ?? []) {
+    const ts = (row.updated_at ?? row.created_at) as string
+    const key = toShanghaiDateKey(ts)
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  return [...counts.entries()].map(([date, count]) => ({ date, count }))
+})
+
+const HASHTAG_RE = /#([\p{L}\p{N}_-]+)/gu
+
+export const getMemoTagCounts = cache(async (ownerUserId: string, showAdminOnly = false) => {
+  const config = getNoteBoardConfig('memo')
+  let query = supabaseAdmin
+    .from('comments')
+    .select('content')
+    .eq('target_type', config.targetType)
+    .eq('target_id', config.targetId)
+    .eq('archived', false)
+    .is('parent_id', null)
+    .eq('user_id', ownerUserId)
+
+  if (!showAdminOnly) {
+    query = query.eq('visibility', 'public')
+  }
+
+  const { data, error } = await query
+  if (error) throw new Error(error.message)
+
+  const counts = new Map<string, number>()
+  for (const row of data ?? []) {
+    HASHTAG_RE.lastIndex = 0
+    let match: RegExpExecArray | null
+    while ((match = HASHTAG_RE.exec(row.content as string)) !== null) {
+      const tag = match[1].toLowerCase()
+      if (tag.length > 0 && tag.length <= 32) {
+        counts.set(tag, (counts.get(tag) ?? 0) + 1)
+      }
+      HASHTAG_RE.lastIndex = match.index + 1
+    }
+  }
+  return [...counts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+})
+
+export type MemoAgendaItem = { id: string; due_at: string; tags: string[] }
+
+export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnly = false) => {
+  const config = getNoteBoardConfig('memo')
+  let query = supabaseAdmin
+    .from('comments')
+    .select('id, content, due_at')
+    .eq('target_type', config.targetType)
+    .eq('target_id', config.targetId)
+    .eq('archived', false)
+    .is('parent_id', null)
+    .eq('user_id', ownerUserId)
+    .not('due_at', 'is', null)
+
+  if (!showAdminOnly) {
+    query = query.eq('visibility', 'public')
+  }
+
+  const { data, error } = await query
+  if (error) throw new Error(error.message)
+
+  return (data ?? []).map((row) => {
+    const tags: string[] = []
+    HASHTAG_RE.lastIndex = 0
+    let match: RegExpExecArray | null
+    while ((match = HASHTAG_RE.exec(row.content as string)) !== null) {
+      const tag = match[1].toLowerCase()
+      if (tag.length > 0 && tag.length <= 32 && !tags.includes(tag)) tags.push(tag)
+      HASHTAG_RE.lastIndex = match.index + 1
+    }
+    return { id: row.id as string, due_at: row.due_at as string, tags }
+  })
+})
+
 export { getNoteBoardConfig, isNoteBoardSlug }
 
 async function batchFetchNoteCommentCounts(noteIds: string[]): Promise<Record<string, number>> {
@@ -154,6 +265,8 @@ export const getBoardMessages = cache(async (
   searchQuery?: string | null,
   tagFilters: string[] = [],
   ownerUserId?: string | null,
+  dateFilter?: string | null,
+  dueDateFilter?: string | null,
 ) => {
   const config = getNoteBoardConfig(board)
 
@@ -193,6 +306,18 @@ export const getBoardMessages = cache(async (
   } else {
     for (const tag of tagFilters) {
       if (tag.trim()) query = query.ilike('content', `%#${tag.trim()}%`)
+    }
+    if (dateFilter) {
+      const startUtc = new Date(`${dateFilter}T00:00:00+08:00`).toISOString()
+      const nextDay = new Date(`${dateFilter}T00:00:00+08:00`)
+      nextDay.setDate(nextDay.getDate() + 1)
+      query = query.gte('updated_at', startUtc).lt('updated_at', nextDay.toISOString())
+    }
+    if (dueDateFilter) {
+      const startUtc = new Date(`${dueDateFilter}T00:00:00+08:00`).toISOString()
+      const nextDay = new Date(`${dueDateFilter}T00:00:00+08:00`)
+      nextDay.setDate(nextDay.getDate() + 1)
+      query = query.gte('due_at', startUtc).lt('due_at', nextDay.toISOString())
     }
   }
 

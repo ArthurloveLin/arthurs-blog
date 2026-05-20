@@ -36,11 +36,13 @@ export async function GET(
   const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0
   const searchQuery = searchParams.get('q') ?? null
   const tagFilters = (searchParams.get('tag') ?? '').split(',').map((t) => t.trim()).filter(Boolean)
+  const dateFilter = searchParams.get('date') ?? null
+  const dueDateFilter = searchParams.get('due_date') ?? null
 
   const currentUser = await getCurrentUser()
 
   try {
-    const messages = await getBoardMessages(board, limit, offset, archived, sort, sortDirection, identity, searchQuery, tagFilters, currentUser?.id ?? null)
+    const messages = await getBoardMessages(board, limit, offset, archived, sort, sortDirection, identity, searchQuery, tagFilters, currentUser?.id ?? null, dateFilter, dueDateFilter)
     return NextResponse.json({ messages, nextOffset: offset + messages.length, hasMore: messages.length === limit })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to load board' }, { status: 500 })

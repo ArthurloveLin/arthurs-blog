@@ -18,8 +18,10 @@ function getBoardQueryKey(
   direction: NoteSortDirection,
   searchQuery: string,
   activeTags: string[],
+  activeDate: string | null,
+  activeDueDate: string | null,
 ) {
-  return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:${direction}:q=${searchQuery}:tags=${[...activeTags].sort().join(',')}`
+  return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:${direction}:q=${searchQuery}:tags=${[...activeTags].sort().join(',')}:date=${activeDate ?? ''}:due=${activeDueDate ?? ''}`
 }
 
 export interface UseBoardDataProps {
@@ -64,6 +66,8 @@ export function useBoardData({
   const [sortDirection, setSortDirection] = useState<NoteSortDirection>('desc')
   const [searchQuery, setSearchQuery] = useState(initialQuery)
   const [activeTags, setActiveTags] = useState<string[]>([])
+  const [activeDate, setActiveDate] = useState<string | null>(null)
+  const [activeDueDate, setActiveDueDate] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const messagesRef = useRef(initialSortedMessages)
@@ -74,8 +78,8 @@ export function useBoardData({
   // resetBoardSurface that would revert the optimistic update.
   const lastBoardPayloadRef = useRef<typeof boardPayload | undefined>(undefined)
   const activeBoardQueryKey = useMemo(
-    () => getBoardQueryKey(board.slug, showArchived, sortMode, sortDirection, searchQuery, activeTags) + `:${reactionIdentity || 'anon'}`,
-    [activeTags, board.slug, reactionIdentity, searchQuery, showArchived, sortDirection, sortMode],
+    () => getBoardQueryKey(board.slug, showArchived, sortMode, sortDirection, searchQuery, activeTags, activeDate, activeDueDate) + `:${reactionIdentity || 'anon'}`,
+    [activeDate, activeDueDate, activeTags, board.slug, reactionIdentity, searchQuery, showArchived, sortDirection, sortMode],
   )
   const initialBoardQueryKeyRef = useRef<string | null>(null)
   if (initialBoardQueryKeyRef.current === null) {
@@ -106,6 +110,8 @@ export function useBoardData({
     limit = board.initialPageLimit,
     q = searchQuery,
     tags = activeTags,
+    date = activeDate,
+    dueDate = activeDueDate,
   ) => {
     if (board.slug === 'guestbook') {
       const threadSearchParams = new URLSearchParams({
@@ -191,8 +197,10 @@ export function useBoardData({
 
     if (q.trim()) {
       searchParams.set('q', q.trim())
-    } else if (tags.length > 0) {
-      searchParams.set('tag', tags.join(','))
+    } else {
+      if (tags.length > 0) searchParams.set('tag', tags.join(','))
+      if (date) searchParams.set('date', date)
+      if (dueDate) searchParams.set('due_date', dueDate)
     }
 
     const response = await fetch(`/api/note-boards/${board.slug}?${searchParams.toString()}`)
@@ -202,7 +210,7 @@ export function useBoardData({
 
     const payload = await response.json() as { messages: NoteMessage[]; nextOffset: number; hasMore: boolean }
     return createBoardPayload(payload.messages, archived, sort, direction, payload.nextOffset, payload.hasMore)
-  }, [activeTags, board.initialPageLimit, board.slug, board.targetId, board.targetType, reactionIdentity, searchQuery, sortDirection, sortMode])
+  }, [activeDate, activeDueDate, activeTags, board.initialPageLimit, board.slug, board.targetId, board.targetType, reactionIdentity, searchQuery, sortDirection, sortMode])
 
   const {
     data: boardPayload,
@@ -330,6 +338,8 @@ export function useBoardData({
     setError(null)
     setCurrentPageIndex(0)
     setActiveTags([])
+    setActiveDate(null)
+    setActiveDueDate(null)
     setSearchQuery(q)
   }, [searchQuery, setError])
 
@@ -337,6 +347,8 @@ export function useBoardData({
     setError(null)
     setCurrentPageIndex(0)
     setSearchQuery('')
+    setActiveDate(null)
+    setActiveDueDate(null)
     if (!tag) {
       setActiveTags([])
       return
@@ -346,12 +358,32 @@ export function useBoardData({
     )
   }, [setError])
 
+  const handleDateFilter = useCallback((date: string | null) => {
+    setError(null)
+    setCurrentPageIndex(0)
+    setSearchQuery('')
+    setActiveTags([])
+    setActiveDueDate(null)
+    setActiveDate(date)
+  }, [setError])
+
+  const handleDueDateFilter = useCallback((date: string | null) => {
+    setError(null)
+    setCurrentPageIndex(0)
+    setSearchQuery('')
+    setActiveTags([])
+    setActiveDate(null)
+    setActiveDueDate(date)
+  }, [setError])
+
   const handleSwitchArchiveView = useCallback((archived: boolean) => {
     if (archived === showArchived || isRefreshingBoard) return
 
     setError(null)
     setSearchQuery('')
     setActiveTags([])
+    setActiveDate(null)
+    setActiveDueDate(null)
     if (cancelEditingNoteRef.current) {
       cancelEditingNoteRef.current()
     }
@@ -370,6 +402,8 @@ export function useBoardData({
     setCurrentPageIndex(0)
     setSearchQuery('')
     setActiveTags([])
+    setActiveDate(null)
+    setActiveDueDate(null)
     setSortMode(nextSortMode)
   }, [isRefreshingBoard, sortMode, setError, cancelEditingNoteRef])
 
@@ -383,6 +417,8 @@ export function useBoardData({
     setCurrentPageIndex(0)
     setSearchQuery('')
     setActiveTags([])
+    setActiveDate(null)
+    setActiveDueDate(null)
     setSortDirection((current) => current === 'desc' ? 'asc' : 'desc')
   }, [isRefreshingBoard, setError, cancelEditingNoteRef])
 
@@ -530,6 +566,8 @@ export function useBoardData({
     sortDirection,
     searchQuery,
     activeTags,
+    activeDate,
+    activeDueDate,
     isPending,
     isRefreshingBoard,
     messagesRef,
@@ -543,6 +581,8 @@ export function useBoardData({
     handleToggleSortDirection,
     handleSearch,
     handleTagFilter,
+    handleDateFilter,
+    handleDueDateFilter,
     handleLoadMore,
     handlePreviousPage,
     handleNextPage,
