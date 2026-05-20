@@ -35,12 +35,12 @@ export async function GET(
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), config?.pageSize ?? 24) : config?.initialPageLimit ?? 48
   const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0
   const searchQuery = searchParams.get('q') ?? null
-  const tagFilter = searchParams.get('tag') ?? null
+  const tagFilters = (searchParams.get('tag') ?? '').split(',').map((t) => t.trim()).filter(Boolean)
 
   const currentUser = await getCurrentUser()
 
   try {
-    const messages = await getBoardMessages(board, limit, offset, archived, sort, sortDirection, identity, searchQuery, tagFilter, currentUser?.id ?? null)
+    const messages = await getBoardMessages(board, limit, offset, archived, sort, sortDirection, identity, searchQuery, tagFilters, currentUser?.id ?? null)
     return NextResponse.json({ messages, nextOffset: offset + messages.length, hasMore: messages.length === limit })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to load board' }, { status: 500 })

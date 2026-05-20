@@ -140,7 +140,7 @@ interface NoteBoardBoardState {
   sortMode: NoteSortMode
   sortDirection: NoteSortDirection
   searchQuery: string
-  activeTag: string
+  activeTags: string[]
   allTags: { name: string; count: number }[]
   currentPage: number
   pageSize: number
@@ -233,7 +233,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     sortMode,
     sortDirection,
     searchQuery,
-    activeTag,
+    activeTags,
     isPending,
     isRefreshingBoard,
     messagesRef,
@@ -455,7 +455,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     sortMode,
     sortDirection,
     searchQuery,
-    activeTag,
+    activeTags,
     allTags,
     currentPage: isDesktopViewport ? currentPageIndex + 1 : 1,
     pageSize: DESKTOP_NOTES_PER_PAGE,
@@ -468,7 +468,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
   }), [
     allNoteItems,
     allTags,
-    activeTag,
+    activeTags,
     cardZIndices,
     currentPageIndex,
     customPositions,

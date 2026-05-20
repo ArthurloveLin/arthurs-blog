@@ -215,7 +215,7 @@ export function SidebarTagCloud() {
       </p>
       <div className="flex flex-wrap gap-1.5">
         {state.allTags.slice(0, 30).map(({ name, count }) => {
-          const isActive = state.activeTag === name
+          const isActive = state.activeTags.includes(name)
           return (
             <button
               key={name}
@@ -237,10 +237,10 @@ export function SidebarTagCloud() {
           <span className="text-[13px] text-muted-foreground/60">+{state.allTags.length - 30}</span>
         ) : null}
       </div>
-      {state.activeTag ? (
+      {state.activeTags.length > 0 ? (
         <button
           type="button"
-          onClick={() => actions.handleTagFilter(state.activeTag)}
+          onClick={() => actions.handleTagFilter('')}
           className="flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground"
         >
           <X size={12} />

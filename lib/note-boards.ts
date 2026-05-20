@@ -67,11 +67,11 @@ async function getGuestbookMessages(
   sortDirection: NoteSortDirection = 'desc',
   viewerIdentity?: string | null,
   searchQuery?: string | null,
-  tagFilter?: string | null,
+  tagFilters: string[] = [],
 ) {
   const config = getNoteBoardConfig('guestbook')
   const normalizedQuery = searchQuery?.trim().toLocaleLowerCase() ?? ''
-  const normalizedTag = tagFilter?.trim().toLocaleLowerCase() ?? ''
+  const normalizedTags = tagFilters.map((t) => t.trim().toLocaleLowerCase()).filter(Boolean)
   const [thread, viewerState] = await Promise.all([
     getCommentThread(config.targetType, config.targetId, { archived }),
     viewerIdentity ? getCommentViewerState(config.targetType, config.targetId, viewerIdentity) : Promise.resolve([]),
@@ -81,14 +81,9 @@ async function getGuestbookMessages(
 
   return createGuestbookMessagesFromComments(mergedThread, archived)
     .filter((message) => {
-      if (normalizedQuery) {
-        return message.content.toLocaleLowerCase().includes(normalizedQuery)
-      }
-
-      if (normalizedTag) {
-        return message.content.toLocaleLowerCase().includes(`#${normalizedTag}`)
-      }
-
+      const lower = message.content.toLocaleLowerCase()
+      if (normalizedQuery) return lower.includes(normalizedQuery)
+      if (normalizedTags.length > 0) return normalizedTags.every((tag) => lower.includes(`#${tag}`))
       return true
     })
     .sort((left, right) => compareBoardMessageTime(left, right, sortDirection))
@@ -157,13 +152,13 @@ export const getBoardMessages = cache(async (
   sortDirection: NoteSortDirection = 'desc',
   viewerIdentity?: string | null,
   searchQuery?: string | null,
-  tagFilter?: string | null,
+  tagFilters: string[] = [],
   ownerUserId?: string | null,
 ) => {
   const config = getNoteBoardConfig(board)
 
   if (board === 'guestbook') {
-    return getGuestbookMessages(limit, offset, archived, sortDirection, viewerIdentity, searchQuery, tagFilter)
+    return getGuestbookMessages(limit, offset, archived, sortDirection, viewerIdentity, searchQuery, tagFilters)
   }
 
   // Fall back to the public demo owner so unauthenticated visitors see the board
@@ -195,8 +190,10 @@ export const getBoardMessages = cache(async (
 
   if (searchQuery?.trim()) {
     query = query.ilike('content', `%${searchQuery.trim()}%`)
-  } else if (tagFilter?.trim()) {
-    query = query.ilike('content', `%#${tagFilter.trim()}%`)
+  } else {
+    for (const tag of tagFilters) {
+      if (tag.trim()) query = query.ilike('content', `%#${tag.trim()}%`)
+    }
   }
 
   if (sort === 'priority') {

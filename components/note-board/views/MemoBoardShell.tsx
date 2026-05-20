@@ -263,19 +263,19 @@ function SidebarQuickFilters({ filters }: { filters: MemoBoardFilters }) {
     return toDateKey(year, month, day)
   }, [])
 
-  const isAll = !state.searchQuery && !state.activeTag && !filters.effectiveSelectedDate && !state.showArchived
-  const isToday = filters.effectiveSelectedDate === today && !state.searchQuery && !state.activeTag
+  const isAll = !state.searchQuery && state.activeTags.length === 0 && !filters.effectiveSelectedDate && !state.showArchived
+  const isToday = filters.effectiveSelectedDate === today && !state.searchQuery && state.activeTags.length === 0
 
   function handleAll() {
     if (state.searchQuery) actions.handleSearch('')
-    if (state.activeTag) actions.handleTagFilter(state.activeTag)
+    if (state.activeTags.length > 0) actions.handleTagFilter('')
     if (state.showArchived) actions.handleSwitchArchiveView(false)
     filters.clearDateFilter()
   }
 
   function handleToday() {
     if (state.searchQuery) actions.handleSearch('')
-    if (state.activeTag) actions.handleTagFilter(state.activeTag)
+    if (state.activeTags.length > 0) actions.handleTagFilter('')
     if (state.showArchived) actions.handleSwitchArchiveView(false)
     filters.setSelectedDate(isToday ? null : today)
   }
@@ -327,7 +327,7 @@ export function useMemoBoardFilters(
   setSelectedDate: (key: string | null) => void,
 ): MemoBoardFilters {
   const state = useNoteBoardBoardState()
-  const effectiveSelectedDate = state.searchQuery || state.activeTag ? null : selectedDate
+  const effectiveSelectedDate = state.searchQuery || state.activeTags.length > 0 ? null : selectedDate
 
   const memoDateCounts = useMemo(() => {
     const counts = new Map<string, number>()
@@ -347,7 +347,7 @@ export function useMemoBoardFilters(
     memoDateCounts,
     selectedDate,
     effectiveSelectedDate,
-    isFilterMode: Boolean(state.searchQuery || state.activeTag || effectiveSelectedDate),
+    isFilterMode: Boolean(state.searchQuery || state.activeTags.length > 0 || effectiveSelectedDate),
     setSelectedDate,
     clearDateFilter: () => setSelectedDate(null),
     filterItemsByDate,
@@ -397,17 +397,17 @@ export function MemoBoardShell({
 
   const filterPillLabel = state.searchQuery
     ? `"${state.searchQuery}" · ${filteredCount}${itemUnit}`
-    : state.activeTag
-      ? `#${state.activeTag} · ${filteredCount}${itemUnit}`
+    : state.activeTags.length > 0
+      ? `${state.activeTags.map((t) => `#${t}`).join(' ')} · ${filteredCount}${itemUnit}`
       : filters.effectiveSelectedDate
         ? `${filters.effectiveSelectedDate} · ${filteredCount}${itemUnit}`
         : null
 
   const handleClearFilter = useCallback(() => {
     if (state.searchQuery) { actions.handleSearch(''); return }
-    if (state.activeTag) { actions.handleTagFilter(state.activeTag); return }
+    if (state.activeTags.length > 0) { actions.handleTagFilter(''); return }
     filters.clearDateFilter()
-  }, [actions, filters, state.activeTag, state.searchQuery])
+  }, [actions, filters, state.activeTags, state.searchQuery])
 
   const ToggleIcon = toggleTarget === 'stream' ? LayoutList : Layers
   const toggleLabel = toggleTarget === 'stream' ? '流式视图' : '便签视图'
@@ -517,7 +517,7 @@ export function MemoBoardShell({
                   onClick={() => actions.handleTagFilter(name)}
                   className={[
                     'rounded-full px-2.5 py-1 text-[12px] transition',
-                    state.activeTag === name
+                    state.activeTags.includes(name)
                       ? 'bg-foreground text-background'
                       : 'border border-border/70 text-muted-foreground hover:bg-accent',
                   ].join(' ')}
@@ -525,10 +525,10 @@ export function MemoBoardShell({
                   #{name}
                 </button>
               ))}
-              {state.activeTag ? (
+              {state.activeTags.length > 0 ? (
                 <button
                   type="button"
-                  onClick={() => actions.handleTagFilter(state.activeTag)}
+                  onClick={() => actions.handleTagFilter('')}
                   className="flex items-center gap-1 rounded-full border border-border/70 px-2.5 py-1 text-[12px] text-muted-foreground"
                 >
                   <X size={12} />

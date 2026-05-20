@@ -72,7 +72,7 @@ async function MemoBoard({
     'desc',
     null,
     initialQuery || null,
-    null,
+    [],
     currentUser?.id ?? null,
   )
   return (

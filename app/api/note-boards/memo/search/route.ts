@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const currentUser = await getCurrentUser()
 
   try {
-    const messages = await getBoardMessages('memo', limit, 0, false, 'time', 'desc', null, q, null, currentUser?.id ?? null)
+    const messages = await getBoardMessages('memo', limit, 0, false, 'time', 'desc', null, q, [], currentUser?.id ?? null)
     return NextResponse.json({
       results: messages.map((m) => ({
         id: m.id,

@@ -17,9 +17,9 @@ function getBoardQueryKey(
   sort: NoteSortMode,
   direction: NoteSortDirection,
   searchQuery: string,
-  activeTag: string,
+  activeTags: string[],
 ) {
-  return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:${direction}:q=${searchQuery}:tag=${activeTag}`
+  return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:${direction}:q=${searchQuery}:tags=${[...activeTags].sort().join(',')}`
 }
 
 export interface UseBoardDataProps {
@@ -63,7 +63,7 @@ export function useBoardData({
   const [sortMode, setSortMode] = useState<NoteSortMode>('time')
   const [sortDirection, setSortDirection] = useState<NoteSortDirection>('desc')
   const [searchQuery, setSearchQuery] = useState(initialQuery)
-  const [activeTag, setActiveTag] = useState('')
+  const [activeTags, setActiveTags] = useState<string[]>([])
   const [isPending, startTransition] = useTransition()
 
   const messagesRef = useRef(initialSortedMessages)
@@ -74,8 +74,8 @@ export function useBoardData({
   // resetBoardSurface that would revert the optimistic update.
   const lastBoardPayloadRef = useRef<typeof boardPayload | undefined>(undefined)
   const activeBoardQueryKey = useMemo(
-    () => getBoardQueryKey(board.slug, showArchived, sortMode, sortDirection, searchQuery, activeTag) + `:${reactionIdentity || 'anon'}`,
-    [activeTag, board.slug, reactionIdentity, searchQuery, showArchived, sortDirection, sortMode],
+    () => getBoardQueryKey(board.slug, showArchived, sortMode, sortDirection, searchQuery, activeTags) + `:${reactionIdentity || 'anon'}`,
+    [activeTags, board.slug, reactionIdentity, searchQuery, showArchived, sortDirection, sortMode],
   )
   const initialBoardQueryKeyRef = useRef<string | null>(null)
   if (initialBoardQueryKeyRef.current === null) {
@@ -105,7 +105,7 @@ export function useBoardData({
     offset = 0,
     limit = board.initialPageLimit,
     q = searchQuery,
-    tag = activeTag,
+    tags = activeTags,
   ) => {
     if (board.slug === 'guestbook') {
       const threadSearchParams = new URLSearchParams({
@@ -120,8 +120,8 @@ export function useBoardData({
 
       if (q.trim()) {
         threadSearchParams.set('q', q.trim())
-      } else if (tag.trim()) {
-        threadSearchParams.set('tag', tag.trim())
+      } else if (tags.length > 0) {
+        threadSearchParams.set('tag', tags.join(','))
       }
 
       const viewerStatePromise = reactionIdentity
@@ -191,8 +191,8 @@ export function useBoardData({
 
     if (q.trim()) {
       searchParams.set('q', q.trim())
-    } else if (tag.trim()) {
-      searchParams.set('tag', tag.trim())
+    } else if (tags.length > 0) {
+      searchParams.set('tag', tags.join(','))
     }
 
     const response = await fetch(`/api/note-boards/${board.slug}?${searchParams.toString()}`)
@@ -202,7 +202,7 @@ export function useBoardData({
 
     const payload = await response.json() as { messages: NoteMessage[]; nextOffset: number; hasMore: boolean }
     return createBoardPayload(payload.messages, archived, sort, direction, payload.nextOffset, payload.hasMore)
-  }, [activeTag, board.initialPageLimit, board.slug, board.targetId, board.targetType, reactionIdentity, searchQuery, sortDirection, sortMode])
+  }, [activeTags, board.initialPageLimit, board.slug, board.targetId, board.targetType, reactionIdentity, searchQuery, sortDirection, sortMode])
 
   const {
     data: boardPayload,
@@ -329,24 +329,29 @@ export function useBoardData({
     if (q === searchQuery) return
     setError(null)
     setCurrentPageIndex(0)
-    setActiveTag('')
+    setActiveTags([])
     setSearchQuery(q)
   }, [searchQuery, setError])
 
   const handleTagFilter = useCallback((tag: string) => {
-    const next = tag === activeTag ? '' : tag
     setError(null)
     setCurrentPageIndex(0)
     setSearchQuery('')
-    setActiveTag(next)
-  }, [activeTag, setError])
+    if (!tag) {
+      setActiveTags([])
+      return
+    }
+    setActiveTags((current) =>
+      current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag]
+    )
+  }, [setError])
 
   const handleSwitchArchiveView = useCallback((archived: boolean) => {
     if (archived === showArchived || isRefreshingBoard) return
 
     setError(null)
     setSearchQuery('')
-    setActiveTag('')
+    setActiveTags([])
     if (cancelEditingNoteRef.current) {
       cancelEditingNoteRef.current()
     }
@@ -364,7 +369,7 @@ export function useBoardData({
     }
     setCurrentPageIndex(0)
     setSearchQuery('')
-    setActiveTag('')
+    setActiveTags([])
     setSortMode(nextSortMode)
   }, [isRefreshingBoard, sortMode, setError, cancelEditingNoteRef])
 
@@ -377,7 +382,7 @@ export function useBoardData({
     }
     setCurrentPageIndex(0)
     setSearchQuery('')
-    setActiveTag('')
+    setActiveTags([])
     setSortDirection((current) => current === 'desc' ? 'asc' : 'desc')
   }, [isRefreshingBoard, setError, cancelEditingNoteRef])
 
@@ -524,7 +529,7 @@ export function useBoardData({
     sortMode,
     sortDirection,
     searchQuery,
-    activeTag,
+    activeTags,
     isPending,
     isRefreshingBoard,
     messagesRef,
