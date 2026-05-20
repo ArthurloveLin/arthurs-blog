@@ -37,6 +37,7 @@ import { getCurrentUser, getUserRole } from "@/lib/auth";
 import Script from 'next/script';
 import { MarkdownThemeInitializer } from '@/components/MarkdownThemeInitializer'
 import ContactChat from '@/components/ContactChat';
+import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 
 export const metadata: Metadata = {
   title: "Arthur & Grace",
@@ -104,6 +105,7 @@ export default async function RootLayout({
                   }
                 }}
               >
+                <ServiceWorkerRegistration />
                 <Navbar />
                 {children}
                 <ContactChat />
