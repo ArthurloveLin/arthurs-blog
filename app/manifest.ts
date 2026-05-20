@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Arthur & Grace',
+    name: 'Memo',
     short_name: 'Memo',
     description: '便签',
     start_url: '/memo',

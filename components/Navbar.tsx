@@ -292,7 +292,18 @@ function NavbarContent() {
     isSearching,
   } = useNavbarUiState()
 
+  const isPWA = useSyncExternalStore(
+    (notify) => {
+      const mq = window.matchMedia('(display-mode: standalone)')
+      mq.addEventListener('change', notify)
+      return () => mq.removeEventListener('change', notify)
+    },
+    () => window.matchMedia('(display-mode: standalone)').matches,
+    () => false,
+  )
+
   const isNowWatchingPage = pathname === '/now-watching'
+  const isMemoStandalone = isPWA && pathname === '/memo'
 
   const isOnArticle = pathname.startsWith('/blog/') && pathname !== '/blog'
 
@@ -421,14 +432,14 @@ function NavbarContent() {
               <div className="absolute inset-0 rounded-xl bg-gradient-primary opacity-0 group-hover:opacity-40 blur-md group-hover:blur-lg transition-all duration-500 scale-50 group-hover:scale-125" />
               
               <div className="w-full h-full relative rounded-xl bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 flex items-center justify-center shadow-sm overflow-hidden z-10">
-                {logoUrl ? (
-                  <Image 
-                    src={logoUrl} 
-                    alt="Logo" 
-                    fill 
-                    className="object-cover" 
+                {(isMemoStandalone || logoUrl) ? (
+                  <Image
+                    src={isMemoStandalone ? '/icons/notes.png' : logoUrl!}
+                    alt="Logo"
+                    fill
+                    className="object-cover"
                     sizes="32px"
-                    priority 
+                    priority
                   />
                 ) : (
                   <span className="text-primary text-[10px] font-bold tracking-tight leading-none">A&G</span>
@@ -436,14 +447,14 @@ function NavbarContent() {
               </div>
             </div>
             <span className="text-gradient-primary font-bold text-lg sm:text-xl tracking-tight">
-              Arthur & Grace
+              {isMemoStandalone ? 'Memo' : 'Arthur & Grace'}
             </span>
           </Link>
 
           {/* ── Center: Navigation Links ───────────────────────────── */}
           <nav
-            aria-hidden={isSearching}
-            className={`hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2 transition-[opacity,transform] duration-200 ${desktopChromeClass}`}
+            aria-hidden={isSearching || isMemoStandalone}
+            className={`hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2 transition-[opacity,transform] duration-200 ${desktopChromeClass} ${isMemoStandalone ? 'invisible pointer-events-none' : ''}`}
           >
             {navLinks.map((link) =>
               link.external ? (
@@ -474,19 +485,21 @@ function NavbarContent() {
 
           {/* ── Right: Icons ───────────────────────────────────────── */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            <div
-              aria-hidden={isSearching}
-              className={`hidden md:flex items-center gap-1 transition-[opacity,transform] duration-200 ${desktopChromeClass}`}
-            >
-              <NavbarSearch />
-              <ThemeToggle />
-              <NavDesktopAuthStatus />
-            </div>
+            {!isMemoStandalone && (
+              <div
+                aria-hidden={isSearching}
+                className={`hidden md:flex items-center gap-1 transition-[opacity,transform] duration-200 ${desktopChromeClass}`}
+              >
+                <NavbarSearch />
+                <ThemeToggle />
+                <NavDesktopAuthStatus />
+              </div>
+            )}
 
             {/* Mobile Menu Toggle */}
             <button
               onClick={toggleMobileMenu}
-              className={`md:hidden p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? 'animate-apple-fade-out delay-out-8' : 'animate-apple-fade-in delay-in-8'}`}
+              className={`md:hidden p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? 'animate-apple-fade-out delay-out-8' : 'animate-apple-fade-in delay-in-8'} ${isMemoStandalone ? 'hidden' : ''}`}
               aria-label="菜单"
             >
               {isMobileMenuOpen ? (
