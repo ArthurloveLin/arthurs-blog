@@ -5,6 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Module-level docs
 
 - [`components/note-board/CLAUDE.md`](components/note-board/CLAUDE.md) — Note Board / Guestbook module: shell architecture, filter state flow, card component split, NoteActionButton convention, color theming.
+- [`app/blog/CLAUDE.md`](app/blog/CLAUDE.md) — Blog module: `unstable_cache` TTL constraints, reindex delta detection, CF cache purge.
+- [`components/recipe/CLAUDE.md`](components/recipe/CLAUDE.md) — Recipe module: book-shell theme switching, right-panel overlay context, revision system, skill graph.
+- [`workers/engagement-worker/CLAUDE.md`](workers/engagement-worker/CLAUDE.md) — engagement-worker: routes, CommentRateLimiterDO, thread cache, dead code warnings.
+- [`workers/cloudflare-worker/CLAUDE.md`](workers/cloudflare-worker/CLAUDE.md) — cloudflare-worker (spotify-sync-worker): public API routes, sync workflow, cron schedule.
+- [`components/spotify/CLAUDE.md`](components/spotify/CLAUDE.md) — Spotify dashboard: server-vs-client data layers, pagination hook, poster system, tag component imports.
+- [`workers/genius-worker/CLAUDE.md`](workers/genius-worker/CLAUDE.md) — genius-worker: 执行流程、Genius 非标 JSON 解析、歌词多步清理顺序、KV 缓存策略。
+- [`workers/spotify-now-playing-worker/CLAUDE.md`](workers/spotify-now-playing-worker/CLAUDE.md) — now-playing worker: 内存 token 缓存、播放状态感知 Cache-Control、强制刷新绕过。
+- [`app/session/CLAUDE.md`](app/session/CLAUDE.md) — Session 模块: 模板系统、custom 模板维度约束（3–6 个）、template_config 仅在 custom 时传入。
+- [`components/life-gallery/CLAUDE.md`](components/life-gallery/CLAUDE.md) — Life Gallery: 5 层叠卡时序常量耦合、canvas 取色竞态保护、mod 环形导航。
+- [`components/now-watching/CLAUDE.md`](components/now-watching/CLAUDE.md) — Now Watching: prefetchedRef 预加载策略、GSAP 视差列选择、IntersectionObserver 触底。
+- [`app/memo/CLAUDE.md`](app/memo/CLAUDE.md) — Memo 页面: 流式 Suspense 分层、force-dynamic 原因、三源配置融合优先级。
 
 ## Living Documentation
 
@@ -26,10 +37,25 @@ Write when you discover or establish:
 
 Do not document: things derivable from code reading, git history, ephemeral task state, or anything already captured elsewhere.
 
+### Documentation decision gate (required before creating any CLAUDE.md)
+
+Before writing a new sub-module CLAUDE.md — or adding a section to an existing one — **say out loud**:
+
+> "If a Claude read only the source files, would it make a wrong decision here?"
+
+- **Yes** → write it. State specifically what wrong decision would be made.
+- **No / Unsure** → don't write it. Check if a code comment in the source file is the better home.
+
+Complexity alone is not sufficient justification. A 700-line file with clear variable names and existing comments does not need a CLAUDE.md. A 100-line file with a hidden timing invariant or a deleted-class landmine does.
+
+Two common failure modes to avoid:
+1. **Re-explaining code** — documenting what `if (length >= 6) return` already enforces. The code is the doc.
+2. **Documenting comments** — if the source file already has comments explaining the design decision, a CLAUDE.md that paraphrases them adds maintenance cost with no benefit.
+
 ### When to propose documentation
 
 - **Mid-task** — when a non-obvious pattern surfaces or a new convention is established, capture it then, not at the end.
-- **After exploring a module** — if no sub-module CLAUDE.md exists, ask whether one should be created.
+- **After exploring a module** — if no sub-module CLAUDE.md exists, *apply the decision gate first* before asking whether one should be created.
 - **After completing a significant task** — close with: "Should I document any findings from this session?"
 
 ### Sub-module CLAUDE.md checklist
@@ -172,15 +198,12 @@ Personal blog + wardrobe management app. Next.js 16 (with `viewTransition` exper
 
 ### Data Layer
 
-- **Blog posts**: Markdown files in R2 with YAML frontmatter (parsed by `gray-matter`), metadata indexed into Supabase via `/api/blog/reindex`. `lib/blog.ts` handles all queries with `unstable_cache` tag-based caching (`posts`, `categories`, `tags`).
-  - **Cache TTL constraint**: never use `revalidate: false` for blog `unstable_cache` entries. `revalidateTag()` only clears the in-memory stale-tag set; the actual data lives in `.next/cache/fetch-cache/` on disk. After a process restart (Docker redeploy, `next dev` restart), the in-memory markers are gone and on-disk stale data is served as fresh indefinitely. All blog caches must carry a TTL (post content/meta: 86400s; aggregates: 3600s; sidebar: 1800s) — reindex's `revalidateTag()` handles immediate invalidation, the TTL is the restart-recovery fallback.
-  - Reindex delta detection uses `R2 lastModified > DB updated_at`; `updated_at` is set to `new Date().toISOString()` (Node.js clock) inside `upsertPost()`. Force a full reindex with `?force=1` if delta is suspected to be wrong.
-  - `purgeCloudflareFiles()` returns `{ success, purged, errors }` and the reindex response includes a `cloudflare` field — check it to confirm CF cache was actually cleared.
+- **Blog posts**: Markdown files in R2, metadata indexed in Supabase via `/api/blog/reindex`. `lib/blog.ts` handles all queries with `unstable_cache` tag-based caching. See [`app/blog/CLAUDE.md`](app/blog/CLAUDE.md) for cache TTL constraints, reindex delta detection, and CF purge details.
 - **Wardrobe/Sessions**: Fully in Supabase. Items belong to sessions, have categories, multi-dimension ratings, notes, price. Supabase Realtime used for live updates (`RealtimeSync.tsx`). Images uploaded as WebP to R2 under `{sessionToken}/{itemId}.webp`. Session-level templates defined in `lib/templates.ts` (wardrobe, games, etc.).
-- **Recipes**: Stored in Supabase with versioning/revision snapshots. `lib/recipes.ts` handles CRUD, revision history, and ingredient/step management.
-- **Comments & Reactions**: Routed through the `engagement-worker` (Cloudflare Durable Objects). The Next.js app never writes comments directly to Supabase — it proxies via `lib/engagement-public-api.ts` → worker. Post reactions (upvote/downvote) and emoji reactions are batched and flushed by the worker. `lib/comments-server.ts` reads comment threads server-side.
+- **Recipes**: Stored in Supabase with versioning/revision snapshots. `lib/recipes.ts` handles CRUD, revision history, and ingredient/step management. See [`components/recipe/CLAUDE.md`](components/recipe/CLAUDE.md) for book-shell architecture and revision system.
+- **Comments & Reactions**: Routed through the `engagement-worker`. The Next.js app never writes comments directly to Supabase — it proxies via `lib/engagement-public-api.ts` → worker. `lib/comments-server.ts` reads comment threads server-side. See [`workers/engagement-worker/CLAUDE.md`](workers/engagement-worker/CLAUDE.md) for routes, DO architecture, and hard constraints.
 - **Note Boards / Guestbook**: Notes stored in Supabase `comments` table with `target_type`/`target_id`. Board configs defined in `lib/note-board-config.ts`. Guestbook is a special note board.
-- **Spotify**: Listening data stored as JSON shards in R2 (`spotify/` prefix). `lib/spotify.ts` reads these server-side. The `cloudflare-worker` handles Spotify OAuth token refresh and data sync. `lib/spotify-history-utils.ts` provides time-segment analysis helpers.
+- **Spotify**: Listening data stored as JSON shards in R2 (`spotify/` prefix). `lib/spotify.ts` reads these server-side. The `cloudflare-worker` handles Spotify OAuth token refresh and data sync. See [`workers/cloudflare-worker/CLAUDE.md`](workers/cloudflare-worker/CLAUDE.md) for sync workflow and cron schedule.
 - **Trend Radar**: Aggregated trending data stored as JSON in R2 (`trend-radar/` prefix), read by `lib/trend-radar.ts`.
 - **Now Watching**: Poster images and metadata JSON stored in R2 (`now-watching/` prefix), read by `lib/now-watching.ts`.
 - **Life Gallery**: Images in R2 under `Gallery/` prefix, organized by theme folders. Read by `lib/life-gallery.ts`.
@@ -196,8 +219,8 @@ Six workers in the `workers/` directory, each independently deployable:
 
 | Worker | Purpose |
 |---|---|
-| `engagement-worker` | Comment queue (Durable Objects), rate limiting, post reactions, emoji reactions — all engagement writes go here |
-| `cloudflare-worker` | Spotify data sync (OAuth, library/history snapshots to R2), now-playing proxy |
+| `engagement-worker` | All comment writes (rate limiting via DO, direct Supabase insert), comment thread cache, ntfy notifications — see sub-module CLAUDE.md |
+| `cloudflare-worker` | Spotify data sync (OAuth, library/history snapshots to R2), public Spotify data API — see sub-module CLAUDE.md |
 | `spotify-now-playing-worker` | Lightweight now-playing endpoint (cached) |
 | `genius-worker` | Genius API proxy for lyrics/song metadata |
 | `spotify-image-proxy` | Spotify artwork proxy (CORS + caching) |
