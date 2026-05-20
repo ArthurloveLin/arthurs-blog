@@ -71,6 +71,13 @@ function formatShanghaTime(iso: string): string {
   return `${h}:${m}`
 }
 
+function getDueLabelColor(dueAt: string): string {
+  const diff = Date.parse(dueAt) - Date.now()
+  if (diff < 0) return '#ef4444'        // overdue
+  if (diff < 86400000) return '#f59e0b' // within 24h
+  return '#94a3b8'                       // upcoming
+}
+
 function buildCalendarCells(year: number, month: number) {
   const firstDow = new Date(year, month - 1, 1).getDay()
   const daysInMonth = new Date(year, month, 0).getDate()
@@ -246,13 +253,12 @@ const TIMELINE_HOURS = Array.from({ length: 24 }, (_, i) => i)
 interface AgendaDayPanelProps {
   dateKey: string
   items: MemoAgendaItem[]
-  accentColor: string
   selectedDueDate: string | null
   onBack: () => void
   onFilterDay: (key: string | null) => void
 }
 
-function AgendaDayPanel({ dateKey, items, accentColor, selectedDueDate, onBack, onFilterDay }: AgendaDayPanelProps) {
+function AgendaDayPanel({ dateKey, items, selectedDueDate, onBack, onFilterDay }: AgendaDayPanelProps) {
   const [yearStr, monthStr, dayStr] = dateKey.split('-')
   const dateLabel = formatStableDate(
     new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr)),
@@ -318,7 +324,7 @@ function AgendaDayPanel({ dateKey, items, accentColor, selectedDueDate, onBack, 
                     <span className="shrink-0 text-[9px] tabular-nums leading-[18px] text-muted-foreground/50">{timeLabel}</span>
                     <span
                       className="flex-1 truncate rounded-[4px] px-1.5 py-[3px] text-[11px] leading-[14px] text-white"
-                      style={{ backgroundColor: accentColor }}
+                      style={{ backgroundColor: getDueLabelColor(item.dueAt) }}
                       title={item.label}
                     >
                       {item.label || '截止'}
@@ -343,8 +349,6 @@ export interface SidebarAgendaCalendarProps {
 export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect }: SidebarAgendaCalendarProps) {
   const actions = useNoteBoardActions()
   const state = useNoteBoardBoardState()
-  const { theme } = useNoteColorTheme()
-  const accentColor = theme.shell[1]
 
   const today = useMemo(() => {
     const { year, month, day } = getShanghaDateParts(new Date())
@@ -392,7 +396,6 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
       <AgendaDayPanel
         dateKey={detailDay}
         items={byDate.get(detailDay) ?? []}
-        accentColor={accentColor}
         selectedDueDate={selectedDueDate}
         onBack={() => setDetailDay(null)}
         onFilterDay={(key) => {
@@ -459,7 +462,6 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
           }
           const key = toDateKey(displayMonth.year, displayMonth.month, cell.day)
           const items = byDate.get(key) ?? []
-          const labels = items.map((it) => it.label)
           const isSelected = selectedDueDate === key
           const isToday = key === today.key
           return (
@@ -485,19 +487,19 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
                 {cell.day}
               </span>
               <div className="mt-0.5 flex-1 overflow-hidden space-y-px">
-                {labels.slice(0, 3).map((label, li) => (
+                {items.slice(0, 3).map((item, li) => (
                   <span
                     key={li}
                     className="block truncate rounded-[3px] px-0.5 text-[9px] leading-[13px] text-white"
-                    style={{ backgroundColor: accentColor }}
-                    title={label}
+                    style={{ backgroundColor: getDueLabelColor(item.dueAt) }}
+                    title={item.label}
                   >
-                    {label || '截止'}
+                    {item.label || '截止'}
                   </span>
                 ))}
-                {labels.length > 3 ? (
+                {items.length > 3 ? (
                   <span className="block text-[9px] leading-[13px] text-muted-foreground/40">
-                    +{labels.length - 3}
+                    +{items.length - 3}
                   </span>
                 ) : null}
               </div>
