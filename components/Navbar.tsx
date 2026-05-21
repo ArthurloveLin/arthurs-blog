@@ -485,21 +485,19 @@ function NavbarContent() {
 
           {/* ── Right: Icons ───────────────────────────────────────── */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            {!isMemoStandalone && (
-              <div
-                aria-hidden={isSearching}
-                className={`hidden md:flex items-center gap-1 transition-[opacity,transform] duration-200 ${desktopChromeClass}`}
-              >
-                <NavbarSearch />
-                <ThemeToggle />
-                <NavDesktopAuthStatus />
-              </div>
-            )}
+            <div
+              aria-hidden={isSearching}
+              className={`hidden md:flex items-center gap-1 transition-[opacity,transform] duration-200 ${desktopChromeClass}`}
+            >
+              {!isMemoStandalone && <NavbarSearch />}
+              <ThemeToggle />
+              <NavDesktopAuthStatus />
+            </div>
 
             {/* Mobile Menu Toggle */}
             <button
               onClick={toggleMobileMenu}
-              className={`md:hidden p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? 'animate-apple-fade-out delay-out-8' : 'animate-apple-fade-in delay-in-8'} ${isMemoStandalone ? 'hidden' : ''}`}
+              className={`md:hidden p-2 text-foreground/60 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200 ${isSearching ? 'animate-apple-fade-out delay-out-8' : 'animate-apple-fade-in delay-in-8'}`}
               aria-label="菜单"
             >
               {isMobileMenuOpen ? (

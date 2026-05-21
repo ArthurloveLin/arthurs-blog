@@ -70,6 +70,10 @@ A good sub-module CLAUDE.md answers four questions:
 
 ## Coding Conventions
 
+### Time Estimates
+
+When estimating how long a task takes, use Claude's execution speed as the reference — not human hours. A task that takes a human 2 hours might take Claude 5 minutes. Express estimates in Claude-minutes or Claude-sessions, not human-hours.
+
 ### Think Before Coding
 
 Before implementing, **state your interpretation** if a request could be read multiple ways. Don't pick silently — present the options and confirm.

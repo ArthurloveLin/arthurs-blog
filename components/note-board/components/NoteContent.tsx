@@ -6,6 +6,7 @@ import katex from 'katex'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
 import { parseNoteContent } from '@/components/note-board/utils/editor'
 import { NoteCodeBlock } from '@/components/note-board/components/NoteCodeBlock'
+import type { ChecklistItemDraft } from '@/components/note-board/types'
 import 'katex/dist/katex.min.css'
 
 interface NoteContentProps {
@@ -215,10 +216,18 @@ function renderTableRows(rows: string[], keyPrefix: string, notifiedDues?: strin
 function NoteContentComponent({ content, variant, onToggleChecklistItem, checklistPending = false, notifiedDues }: NoteContentProps) {
   const parsed = useMemo(() => parseNoteContent(content), [content])
 
-  const bodyElements = useMemo(() => {
-    if (parsed.body.length === 0) return []
+  const allElements = useMemo(() => {
+    if (!content.trim()) return []
 
-    const lines = parsed.body.split('\n')
+    // Build lineIndex → checklist item lookup so we can render inline
+    const checklistByLine = new Map<number, ChecklistItemDraft>()
+    for (const item of parsed.checklistItems) {
+      if (typeof item.lineIndex === 'number') {
+        checklistByLine.set(item.lineIndex, item)
+      }
+    }
+
+    const lines = content.split('\n')
     const result: ReactNode[] = []
     let inCodeBlock = false
     let currentCode: string[] = []
@@ -231,6 +240,10 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
     let listBuffer: string[] = []
     let listType: 'ul' | 'ol' | null = null
     let listStart = 0
+    let checklistBuffer: ChecklistItemDraft[] = []
+    let checklistStart = 0
+
+    const isStream = variant === 'stream'
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     function flushTable(_untilIndex: number) {
@@ -238,8 +251,6 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       result.push(renderTableRows(tableBuffer, `${variant}-tbl-${tableStart}`, notifiedDues))
       tableBuffer = []
     }
-
-    const isStream = variant === 'stream'
 
     function flushList() {
       if (listBuffer.length === 0 || !listType) return
@@ -259,6 +270,59 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       listType = null
     }
 
+    function flushChecklist() {
+      if (checklistBuffer.length === 0) return
+      const clsSize = isStream ? 'text-[15px]' : 'text-[1.05rem]'
+      result.push(
+        <ul key={`${variant}-cl-${checklistStart}`} className={`space-y-1.5 leading-relaxed text-slate-800/90 ${clsSize}`}>
+          {checklistBuffer.map((item) => {
+            const lineIndex = typeof item.lineIndex === 'number' ? item.lineIndex : null
+            return (
+              <li key={item.id} className="flex items-start gap-2">
+                {onToggleChecklistItem && lineIndex !== null ? (
+                  <>
+                    <button
+                      type="button"
+                      aria-label={item.checked ? `取消勾选：${item.text}` : `勾选清单项：${item.text}`}
+                      className="mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={checklistPending}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onToggleChecklistItem(lineIndex)
+                      }}
+                    >
+                      <span className={[
+                        'inline-flex h-full w-full items-center justify-center rounded-full',
+                        item.checked
+                          ? 'border-slate-400/60 bg-slate-400/30 text-slate-500'
+                          : 'border-slate-700/35 text-transparent',
+                      ].join(' ')}>
+                        <Check size={10} strokeWidth={2.4} />
+                      </span>
+                    </button>
+                    <span className={item.checked ? 'line-through text-slate-700/65' : ''}>
+                      {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`, notifiedDues)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-slate-700/35 text-[10px]">
+                      {item.checked ? 'x' : ''}
+                    </span>
+                    <span className={item.checked ? 'line-through text-slate-700/65' : ''}>
+                      {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`)}
+                    </span>
+                  </>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )
+      checklistBuffer = []
+    }
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
 
@@ -266,6 +330,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       if (line.startsWith('$$')) {
         flushTable(i)
         flushList()
+        flushChecklist()
         const singleLine = line.match(/^\$\$(.+)\$\$$/)
         if (singleLine) {
           const html = katex.renderToString(singleLine[1], { throwOnError: false, displayMode: true })
@@ -297,6 +362,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       if (line.startsWith('```')) {
         flushTable(i)
         flushList()
+        flushChecklist()
         if (inCodeBlock) {
           result.push(
             <NoteCodeBlock key={`cb-${i}`} code={currentCode.join('\n')} lang={currentLang} />
@@ -319,6 +385,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       // Table rows
       if (TABLE_ROW_PATTERN.test(line)) {
         flushList()
+        flushChecklist()
         if (tableBuffer.length === 0) tableStart = i
         tableBuffer.push(line)
         continue
@@ -326,9 +393,18 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
         flushTable(i)
       }
 
+      // Checklist — must come before UL since checklist lines also match UL_PATTERN
+      if (checklistByLine.has(i)) {
+        flushList()
+        if (checklistBuffer.length === 0) checklistStart = i
+        checklistBuffer.push(checklistByLine.get(i)!)
+        continue
+      }
+
       // Unordered list
       const ulMatch = line.match(UL_PATTERN)
       if (ulMatch) {
+        flushChecklist()
         if (listType === 'ol') flushList()
         if (listBuffer.length === 0) { listType = 'ul'; listStart = i }
         listBuffer.push(ulMatch[1])
@@ -338,14 +414,16 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       // Ordered list
       const olMatch = line.match(OL_PATTERN)
       if (olMatch) {
+        flushChecklist()
         if (listType === 'ul') flushList()
         if (listBuffer.length === 0) { listType = 'ol'; listStart = i }
         listBuffer.push(olMatch[1])
         continue
       }
 
-      // Non-list line flushes any open list
+      // Non-list line flushes any open list/checklist
       flushList()
+      flushChecklist()
 
       // Heading
       const headingMatch = line.match(HEADING_PATTERN)
@@ -411,9 +489,10 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       )
     }
 
-    // Flush trailing table, list, code block, or math block
+    // Flush trailing buffers
     flushTable(lines.length)
     flushList()
+    flushChecklist()
     if (inMathBlock && currentMath.length > 0) {
       const html = katex.renderToString(currentMath.join('\n'), { throwOnError: false, displayMode: true })
       result.push(
@@ -428,67 +507,15 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
     }
 
     return result
-  }, [parsed.body, variant, notifiedDues])
+  }, [content, parsed.checklistItems, variant, notifiedDues, onToggleChecklistItem, checklistPending])
 
   const textClassName = variant === 'stream'
     ? styles.streamText
     : [styles.text, variant === 'preview' ? styles.previewText : styles.boardText].join(' ')
 
   return (
-    <div className="space-y-3">
-      {bodyElements.length > 0 ? (
-        <div className={textClassName}>
-          {bodyElements}
-        </div>
-      ) : null}
-      {parsed.checklistItems.length > 0 ? (
-        <ul className={`space-y-1.5 leading-relaxed text-slate-800/90 ${variant === 'stream' ? 'text-[15px]' : 'text-[1.05rem]'}`}>
-          {parsed.checklistItems.map((item) => {
-            const lineIndex = typeof item.lineIndex === 'number' ? item.lineIndex : null
-
-            return (
-              <li key={item.id} className="flex items-start gap-2">
-                {onToggleChecklistItem && lineIndex !== null ? (
-                  <>
-                    <button
-                      type="button"
-                      aria-label={item.checked ? `取消勾选：${item.text}` : `勾选清单项：${item.text}`}
-                      className="mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={checklistPending}
-                      onPointerDown={(event) => event.stopPropagation()}
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        onToggleChecklistItem(lineIndex)
-                      }}
-                    >
-                      <span className={[
-                        'inline-flex h-full w-full items-center justify-center rounded-full',
-                        item.checked
-                          ? 'border-slate-400/60 bg-slate-400/30 text-slate-500'
-                          : 'border-slate-700/35 text-transparent',
-                      ].join(' ')}>
-                        <Check size={10} strokeWidth={2.4} />
-                      </span>
-                    </button>
-                    <span
-                      className={item.checked ? 'line-through text-slate-700/65' : ''}
-                    >
-                      {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`, notifiedDues)}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-slate-700/35 text-[10px]">
-                      {item.checked ? 'x' : ''}
-                    </span>
-                    <span className={item.checked ? 'line-through text-slate-700/65' : ''}>{renderInlineFormattedText(item.text, `${variant}-check-${item.id}`)}</span>
-                  </>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-      ) : null}
+    <div className={textClassName}>
+      {allElements}
     </div>
   )
 }
