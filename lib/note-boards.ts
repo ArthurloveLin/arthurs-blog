@@ -82,7 +82,10 @@ async function getGuestbookMessages(
   return createGuestbookMessagesFromComments(mergedThread, archived)
     .filter((message) => {
       const lower = message.content.toLocaleLowerCase()
-      if (normalizedQuery) return lower.includes(normalizedQuery)
+      if (normalizedQuery) {
+        const tokens = normalizedQuery.split(/[\s　]+/).filter(Boolean)
+        return tokens.every((token) => lower.includes(token))
+      }
       if (normalizedTags.length > 0) return normalizedTags.every((tag) => lower.includes(`#${tag}`))
       return true
     })
@@ -306,7 +309,10 @@ export const getBoardMessages = cache(async (
   }
 
   if (searchQuery?.trim()) {
-    query = query.ilike('content', `%${searchQuery.trim()}%`)
+    const tokens = searchQuery.trim().split(/[\s　]+/).filter(Boolean)
+    for (const token of tokens) {
+      query = query.ilike('content', `%${token}%`)
+    }
   } else {
     for (const tag of tagFilters) {
       if (tag.trim()) query = query.ilike('content', `%#${tag.trim()}%`)
