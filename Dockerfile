@@ -6,7 +6,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 FROM base AS deps
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 FROM base AS builder
 ARG NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
@@ -54,6 +55,7 @@ RUN --mount=type=cache,id=nextjs-cache,target=/app/.next/cache \
     R2_CDN_BUCKET="$(cat /run/secrets/R2_CDN_BUCKET 2>/dev/null || true)" \
     R2_CDN_PUBLIC_DOMAIN="$(cat /run/secrets/R2_CDN_PUBLIC_DOMAIN 2>/dev/null || true)" \
     npm run build
+
 FROM node:20-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
@@ -67,4 +69,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000', r => process.exit(r.statusCode < 400 ? 0 : 1)).on('error', () => process.exit(1))"
 CMD ["node", "server.js"]
