@@ -396,7 +396,7 @@ export function MemoBoardShell({
   const actions = useNoteBoardActions()
   const { theme } = useNoteColorTheme()
   const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false)
-  const [calendarMode, setCalendarMode] = useState<'heatmap' | 'agenda'>('heatmap')
+  const [calendarMode, setCalendarMode] = useState<'heatmap' | 'agenda'>('agenda')
   const isMobileCalendarOpen = state.isMobileViewport && mobileCalendarOpen
 
   const shellBg = `radial-gradient(ellipse at top left, rgba(${hexToRgb(theme.shell[0])},0.32) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(${hexToRgb(theme.shell[1])},0.26) 0%, transparent 50%)`
