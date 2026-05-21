@@ -108,6 +108,8 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             NEXT_PUBLIC_SUPABASE_URL=${{ github.event_name == 'pull_request' && 'https://placeholder.supabase.co' || vars.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ github.event_name == 'pull_request' && 'placeholder' || vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}

@@ -28,7 +28,8 @@ ENV NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN --mount=type=secret,id=SUPABASE_SERVICE_ROLE_KEY \
+RUN --mount=type=cache,id=nextjs-cache,target=/app/.next/cache \
+    --mount=type=secret,id=SUPABASE_SERVICE_ROLE_KEY \
     --mount=type=secret,id=R2_ACCOUNT_ID \
     --mount=type=secret,id=R2_ACCESS_KEY_ID \
     --mount=type=secret,id=R2_SECRET_ACCESS_KEY \
