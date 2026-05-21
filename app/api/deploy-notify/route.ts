@@ -23,9 +23,9 @@ export async function POST(req: NextRequest) {
   const shortSha = sha ? sha.slice(0, 7) : '?'
   await sendNtfy(
     TOPIC,
-    '🚀 部署成功',
-    `提交: ${shortSha}\n内容: ${message ?? '(无描述)'}`,
-    { tags: ['rocket'], priority: 3 },
+    `🚀 arthurs-blog 部署成功 · ${shortSha}`,
+    message ?? '(无描述)',
+    { tags: ['white_check_mark'], priority: 3 },
   )
 
   return NextResponse.json({ ok: true })
