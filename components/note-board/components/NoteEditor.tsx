@@ -30,6 +30,7 @@ export interface NoteEditorProps {
   showCancelButton?: boolean
   counterVariant?: 'full' | 'compact'
   compactToolbar?: boolean
+  splitToolbar?: boolean
 }
 
 function ToolbarIconButton({
@@ -106,6 +107,7 @@ export function NoteEditor({
   showCancelButton = true,
   counterVariant = 'full',
   compactToolbar = false,
+  splitToolbar = false,
 }: NoteEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pendingSelectionRef = useRef<TextSelectionRange | null>(null)
@@ -234,9 +236,11 @@ export function NoteEditor({
       <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '**'))} label="加粗">
         <Bold size={iconSize} strokeWidth={1.8} />
       </ToolbarIconButton>
-      <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '*'))} label="斜体">
-        <Italic size={iconSize} strokeWidth={1.8} />
-      </ToolbarIconButton>
+      {!compactToolbar ? (
+        <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '*'))} label="斜体">
+          <Italic size={iconSize} strokeWidth={1.8} />
+        </ToolbarIconButton>
+      ) : null}
       <ToolbarIconButton size={buttonSize} variant={toolbarButtonVariant} onClick={() => withSelection((text, start, end) => wrapSelectionWithSyntax(text, start, end, '=='))} label="高亮">
         <Highlighter size={iconSize} strokeWidth={1.8} />
       </ToolbarIconButton>
@@ -338,25 +342,40 @@ export function NoteEditor({
       ) : null}
 
       <div className={["w-full min-w-0 max-w-full", shellClassName].join(' ')}>
-        {/* Mobile: formatting tools row + actions row stacked */}
-        <div className="sm:hidden">
-          <div className={`flex flex-nowrap items-center gap-1.5 overflow-x-auto ${toolbarClassName} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
-            {resolvedLeadingAddon}
-            {formattingButtons}
-          </div>
-          <div className="flex items-center justify-end gap-2 border-t border-border/60 px-3 py-2">
-            {actionButtons}
-          </div>
-        </div>
-        {/* Desktop: original single-row layout */}
-        <div className="hidden sm:block">
-          <EditorActionBar
-            noWrap
-            className={['border-t-0', toolbarClassName].join(' ')}
-            leading={<>{resolvedLeadingAddon}{formattingButtons}</>}
-            trailing={actionButtons}
-          />
-        </div>
+        {splitToolbar ? (
+          // Split layout: formatting row (scrollable) + action row always visible
+          <>
+            <div className={`flex flex-nowrap items-center gap-1.5 overflow-x-auto ${toolbarClassName} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
+              {resolvedLeadingAddon}
+              {formattingButtons}
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-border/60 px-3 py-2">
+              {actionButtons}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Mobile: formatting tools row + actions row stacked */}
+            <div className="sm:hidden">
+              <div className={`flex flex-nowrap items-center gap-1.5 overflow-x-auto ${toolbarClassName} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
+                {resolvedLeadingAddon}
+                {formattingButtons}
+              </div>
+              <div className="flex items-center justify-end gap-2 border-t border-border/60 px-3 py-2">
+                {actionButtons}
+              </div>
+            </div>
+            {/* Desktop: original single-row layout */}
+            <div className="hidden sm:block">
+              <EditorActionBar
+                noWrap
+                className={['border-t-0', toolbarClassName].join(' ')}
+                leading={<>{resolvedLeadingAddon}{formattingButtons}</>}
+                trailing={actionButtons}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

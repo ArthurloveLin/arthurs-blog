@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { AlarmClock, Archive, ArrowDown, ArrowUp, ArrowUpDown, CalendarCheck, CalendarDays, Check, ChevronDown, Layers, LayoutList, Palette, Plus, Search, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, Filter, Layers, LayoutList, Palette, Plus, Search, X } from 'lucide-react'
 import {
   useNoteBoardActions,
   useNoteBoardBoardState,
@@ -303,29 +303,31 @@ function SidebarQuickFilters({ filters, agendaItems }: { filters: MemoBoardFilte
   }
 
   const quickFilters = [
-    { key: 'all', label: '全部便签', icon: Layers, active: isAll, count: state.totalLoaded, onClick: handleAll },
-    { key: 'today-created', label: '今日创建', icon: CalendarCheck, active: isTodayCreated, count: todayCreatedCount, onClick: handleTodayCreated },
-    { key: 'today-due', label: '今日截止', icon: AlarmClock, active: isTodayDue, count: todayDueCount, onClick: handleTodayDue },
-    { key: 'archive', label: '已归档', icon: Archive, active: state.showArchived, count: null, onClick: () => actions.handleSwitchArchiveView(!state.showArchived) },
+    { key: 'all', label: '全部便签', active: isAll, count: state.totalLoaded, onClick: handleAll },
+    { key: 'today-created', label: '今日创建', active: isTodayCreated, count: todayCreatedCount, onClick: handleTodayCreated },
+    { key: 'today-due', label: '今日截止', active: isTodayDue, count: todayDueCount, onClick: handleTodayDue },
+    { key: 'archive', label: '已归档', active: state.showArchived, count: null, onClick: () => actions.handleSwitchArchiveView(!state.showArchived) },
   ] as const
 
   return (
     <div className="space-y-2">
-      <p className="text-[12.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">快速筛选</p>
+      <p className="flex items-center gap-1.5 text-[12.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <Filter size={11} />
+        快速筛选
+      </p>
       <div className="flex flex-col gap-0.5">
-        {quickFilters.map(({ key, label, icon: Icon, active, count, onClick }) => (
+        {quickFilters.map(({ key, label, active, count, onClick }) => (
           <button
             key={key}
             type="button"
             onClick={onClick}
             className={[
-              'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] transition',
+              'flex w-full items-center rounded-lg px-2.5 py-2 text-[13px] transition',
               active
                 ? 'bg-[#c0644a]/10 font-medium text-foreground'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             ].join(' ')}
           >
-            <Icon size={13} className="shrink-0 opacity-70" />
             <span className="flex-1 text-left">{label}</span>
             {count !== null ? (
               <span className={['text-[11px] tabular-nums', active ? 'text-foreground/55' : 'text-muted-foreground/50'].join(' ')}>

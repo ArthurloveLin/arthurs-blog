@@ -53,6 +53,7 @@ interface NoteBoardPageProps {
 
 function BoardStickyView({ onToggleViewMode, filters, agendaItems }: { onToggleViewMode: () => void; filters: MemoBoardFilters; agendaItems?: import('@/lib/note-boards').MemoAgendaItem[] | null }) {
   const state = useNoteBoardBoardState()
+  const editorState = useNoteBoardEditorState()
   const actions = useNoteBoardActions()
   const meta = useNoteBoardMeta()
   const bindings = useNoteBoardBindings()
@@ -105,7 +106,7 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems }: { onToggleV
         <div>
           <div
             ref={bindContainer}
-            className="note-board-canvas relative overflow-hidden rounded-[28px] p-5 sm:p-6"
+            className={['note-board-canvas relative rounded-[28px] p-5 sm:p-6', editorState.editingMessage ? 'overflow-visible' : 'overflow-hidden'].join(' ')}
             style={{ minHeight: Math.max(meta.surface.height, 420) }}
           >
             {!meta.surface.hasMeasured ? null : (

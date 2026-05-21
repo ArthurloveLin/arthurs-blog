@@ -663,6 +663,7 @@ function StickyNoteCardFrame({
                 showCancelButton={false}
                 counterVariant="compact"
                 compactToolbar
+                splitToolbar
                 autoFocus
               />
             </div>
