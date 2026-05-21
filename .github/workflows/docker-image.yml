@@ -164,6 +164,44 @@ jobs:
               }')" \
             https://arthurlovegrace.top/ntfy-push
 
+  notify-failure:
+    name: Notify on failure
+    needs: [check, docker, deploy]
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Send failure notification
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          SUMMARY=$(printf '%s' "$COMMIT_MSG" | head -1)
+
+          if [ "${{ needs.check.result }}" = "failure" ]; then
+            STAGE="类型检查 & Lint"
+          elif [ "${{ needs.docker.result }}" = "failure" ]; then
+            STAGE="Docker 构建 & 推送"
+          else
+            STAGE="部署触发"
+          fi
+
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg sha "${{ github.sha }}" \
+              --arg msg "$SUMMARY" \
+              --arg stage "$STAGE" \
+              --arg run_url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              '{
+                topic: "watchtower-arthur71684",
+                title: "❌ arthurs-blog 构建失败",
+                message: ("━━━━━━━━━━━━━━━━━━\n💥 阶段: \($stage)\n🔖 提交: \($sha[:7])\n📝 内容: \($msg)\n━━━━━━━━━━━━━━━━━━"),
+                tags: ["x"],
+                priority: 4,
+                click: $run_url
+              }')" \
+            https://arthurlovegrace.top/ntfy-push
+
   release:
     name: Create version snapshot
     needs: docker
