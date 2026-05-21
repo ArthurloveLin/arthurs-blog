@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight, LayoutGrid, Tag, X } from 'lucide-react'
 import type { MemoAgendaItem } from '@/lib/note-boards'
+import { NOTE_PRIORITY_META } from '@/lib/note-priority'
 import {
   useNoteBoardActions,
   useNoteBoardBoardState,
@@ -71,12 +72,6 @@ function formatShanghaTime(iso: string): string {
   return `${h}:${m}`
 }
 
-function getDueLabelColor(dueAt: string): string {
-  const diff = Date.parse(dueAt) - Date.now()
-  if (diff < 0) return '#ef4444'        // overdue
-  if (diff < 86400000) return '#f59e0b' // within 24h
-  return '#94a3b8'                       // upcoming
-}
 
 function buildCalendarCells(year: number, month: number) {
   const firstDow = new Date(year, month - 1, 1).getDay()
@@ -190,7 +185,7 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, on
       {/* 星期标题 */}
       <div className="grid grid-cols-7 text-center">
         {WEEKDAY_LABELS.map((lbl) => (
-          <span key={lbl} className="text-[12px] text-muted-foreground/60">{lbl}</span>
+          <span key={lbl} className="text-[12px] text-muted-foreground/35">{lbl}</span>
         ))}
       </div>
 
@@ -198,7 +193,7 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, on
       <div className="grid grid-cols-7 gap-y-0.5 text-center">
         {cells.map((cell, i) => {
           if (cell.kind !== 'current') {
-            return <span key={i} className="py-1 text-[13px] text-muted-foreground/25">{cell.day}</span>
+            return <span key={i} className="py-1 text-[13px] text-muted-foreground/18">{cell.day}</span>
           }
           const key = toDateKey(displayMonth.year, displayMonth.month, cell.day)
           const hasMemos = memoDateCounts.has(key)
@@ -217,10 +212,10 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, on
                 isSelected
                   ? 'bg-foreground font-semibold text-background'
                   : isToday
-                    ? 'font-semibold text-foreground ring-1 ring-border'
+                    ? 'bg-foreground/10 font-semibold text-foreground ring-1 ring-foreground/25'
                     : hasMemos
                       ? 'text-foreground hover:bg-accent'
-                      : 'cursor-default text-muted-foreground/40',
+                      : 'cursor-default text-muted-foreground/55',
               ].join(' ')}
               style={hasMemos && !isSelected ? { backgroundColor: `rgba(${hexToRgb(heatColor)},${heatOpacity})` } : undefined}
               title={hasMemos ? `${count} 条 Memo` : undefined}
@@ -324,7 +319,7 @@ function AgendaDayPanel({ dateKey, items, selectedDueDate, onBack, onFilterDay }
                     <span className="shrink-0 text-[9px] tabular-nums leading-[18px] text-muted-foreground/50">{timeLabel}</span>
                     <span
                       className="flex-1 truncate rounded-[4px] px-1.5 py-[3px] text-[11px] leading-[14px] text-white"
-                      style={{ backgroundColor: getDueLabelColor(item.dueAt) }}
+                      style={{ backgroundColor: NOTE_PRIORITY_META[item.priority].color }}
                       title={item.label}
                     >
                       {item.label || '截止'}
@@ -446,7 +441,7 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
       {/* 星期标题 */}
       <div className="grid grid-cols-7 text-center">
         {['一', '二', '三', '四', '五', '六', '日'].map((lbl) => (
-          <span key={lbl} className="text-[11px] text-muted-foreground/50">{lbl}</span>
+          <span key={lbl} className="text-[11px] text-muted-foreground/35">{lbl}</span>
         ))}
       </div>
 
@@ -456,7 +451,7 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
           if (cell.kind !== 'current') {
             return (
               <div key={i} className="flex h-[72px] flex-col rounded-sm p-1">
-                <span className="shrink-0 text-[10px] text-muted-foreground/15">{cell.day}</span>
+                <span className="shrink-0 text-[10px] text-muted-foreground/10">{cell.day}</span>
               </div>
             )
           }
@@ -481,8 +476,8 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
                 isSelected
                   ? 'text-foreground'
                   : isToday
-                    ? 'font-bold text-foreground'
-                    : 'text-muted-foreground/50',
+                    ? 'font-bold text-foreground underline decoration-dotted underline-offset-2'
+                    : 'text-foreground/70',
               ].join(' ')}>
                 {cell.day}
               </span>
@@ -491,7 +486,7 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
                   <span
                     key={li}
                     className="block truncate rounded-[3px] px-0.5 text-[9px] leading-[13px] text-white"
-                    style={{ backgroundColor: getDueLabelColor(item.dueAt) }}
+                    style={{ backgroundColor: NOTE_PRIORITY_META[item.priority].color }}
                     title={item.label}
                   >
                     {item.label || '截止'}

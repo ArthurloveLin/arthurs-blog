@@ -7,6 +7,7 @@ import { createGuestbookMessagesFromComments } from '@/lib/guestbook-comments'
 import {
   DEFAULT_NOTE_PRIORITY,
   isNotePriority,
+  normalizeNotePriority,
   type NotePriority,
   type NoteSortDirection,
   type NoteSortMode,
@@ -205,7 +206,7 @@ export const getMemoTagCounts = cache(async (ownerUserId: string, showAdminOnly 
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
 })
 
-export type MemoAgendaItem = { memoId: string; dueAt: string; label: string }
+export type MemoAgendaItem = { memoId: string; dueAt: string; label: string; priority: NotePriority }
 
 const INLINE_DUE_RE = /@due\[([^\]]*)\]\(([^)]*)\)/g
 
@@ -213,7 +214,7 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
   const config = getNoteBoardConfig('memo')
   let query = supabaseAdmin
     .from('comments')
-    .select('id, content')
+    .select('id, content, priority')
     .eq('target_type', config.targetType)
     .eq('target_id', config.targetId)
     .eq('archived', false)
@@ -236,7 +237,7 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
       const label = match[1].trim() || '截止'
       const iso = match[2]
       if (iso && !isNaN(Date.parse(iso))) {
-        items.push({ memoId: row.id as string, dueAt: iso, label })
+        items.push({ memoId: row.id as string, dueAt: iso, label, priority: normalizeNotePriority(row.priority) })
       }
     }
   }

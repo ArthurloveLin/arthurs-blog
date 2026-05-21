@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, Layers, LayoutList, Palette, Plus, Search, X } from 'lucide-react'
+import { AlarmClock, Archive, ArrowDown, ArrowUp, ArrowUpDown, CalendarCheck, CalendarDays, Check, ChevronDown, Layers, LayoutList, Palette, Plus, Search, X } from 'lucide-react'
 import {
   useNoteBoardActions,
   useNoteBoardBoardState,
@@ -256,7 +256,7 @@ function NoteThemeButton() {
 }
 
 // ── 快速筛选 ────────────────────────────────────────────────────────────────
-function SidebarQuickFilters({ filters }: { filters: MemoBoardFilters }) {
+function SidebarQuickFilters({ filters, agendaItems }: { filters: MemoBoardFilters; agendaItems?: MemoAgendaItem[] | null }) {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
   const today = useMemo(() => {
@@ -265,7 +265,18 @@ function SidebarQuickFilters({ filters }: { filters: MemoBoardFilters }) {
   }, [])
 
   const isAll = !state.searchQuery && state.activeTags.length === 0 && !filters.effectiveSelectedDate && !state.activeDueDate && !state.showArchived
-  const isToday = filters.effectiveSelectedDate === today && !state.searchQuery && state.activeTags.length === 0
+  const isTodayCreated = filters.effectiveSelectedDate === today && !state.searchQuery && state.activeTags.length === 0 && !state.activeDueDate
+  const isTodayDue = state.activeDueDate === today && !state.searchQuery && state.activeTags.length === 0 && !filters.effectiveSelectedDate
+
+  const todayDueCount = useMemo(() => {
+    if (!agendaItems) return 0
+    return agendaItems.filter((item) => {
+      const { year, month, day } = getShanghaDateParts(item.dueAt)
+      return toDateKey(year, month, day) === today
+    }).length
+  }, [agendaItems, today])
+
+  const todayCreatedCount = filters.memoDateCounts.get(today) ?? 0
 
   function handleAll() {
     if (state.searchQuery) actions.handleSearch('')
@@ -275,36 +286,52 @@ function SidebarQuickFilters({ filters }: { filters: MemoBoardFilters }) {
     filters.clearDateFilter()
   }
 
-  function handleToday() {
+  function handleTodayCreated() {
     if (state.searchQuery) actions.handleSearch('')
     if (state.activeTags.length > 0) actions.handleTagFilter('')
     if (state.showArchived) actions.handleSwitchArchiveView(false)
-    filters.setSelectedDate(isToday ? null : today)
+    if (state.activeDueDate) actions.handleDueDateFilter(null)
+    filters.setSelectedDate(isTodayCreated ? null : today)
+  }
+
+  function handleTodayDue() {
+    if (state.searchQuery) actions.handleSearch('')
+    if (state.activeTags.length > 0) actions.handleTagFilter('')
+    if (state.showArchived) actions.handleSwitchArchiveView(false)
+    filters.clearDateFilter()
+    actions.handleDueDateFilter(isTodayDue ? null : today)
   }
 
   const quickFilters = [
-    { key: 'all', label: '全部便签', active: isAll, onClick: handleAll },
-    { key: 'today', label: '今日', active: isToday, onClick: handleToday },
-    { key: 'archive', label: '已归档', active: state.showArchived, onClick: () => actions.handleSwitchArchiveView(!state.showArchived) },
+    { key: 'all', label: '全部便签', icon: Layers, active: isAll, count: state.totalLoaded, onClick: handleAll },
+    { key: 'today-created', label: '今日创建', icon: CalendarCheck, active: isTodayCreated, count: todayCreatedCount, onClick: handleTodayCreated },
+    { key: 'today-due', label: '今日截止', icon: AlarmClock, active: isTodayDue, count: todayDueCount, onClick: handleTodayDue },
+    { key: 'archive', label: '已归档', icon: Archive, active: state.showArchived, count: null, onClick: () => actions.handleSwitchArchiveView(!state.showArchived) },
   ] as const
 
   return (
     <div className="space-y-2">
       <p className="text-[12.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">快速筛选</p>
       <div className="flex flex-col gap-0.5">
-        {quickFilters.map(({ key, label, active, onClick }) => (
+        {quickFilters.map(({ key, label, icon: Icon, active, count, onClick }) => (
           <button
             key={key}
             type="button"
             onClick={onClick}
             className={[
-              'flex w-full items-center rounded-lg px-2.5 py-2 text-[13px] transition',
+              'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] transition',
               active
                 ? 'bg-[#c0644a]/10 font-medium text-foreground'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             ].join(' ')}
           >
-            {label}
+            <Icon size={13} className="shrink-0 opacity-70" />
+            <span className="flex-1 text-left">{label}</span>
+            {count !== null ? (
+              <span className={['text-[11px] tabular-nums', active ? 'text-foreground/55' : 'text-muted-foreground/50'].join(' ')}>
+                {count}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
@@ -491,7 +518,7 @@ export function MemoBoardShell({
                     onSwitchMode={agendaItems != null ? () => setCalendarMode('agenda') : undefined}
                   />
                 )}
-            <SidebarQuickFilters filters={filters} />
+            <SidebarQuickFilters filters={filters} agendaItems={agendaItems} />
             <SidebarTagCloud />
           </div>
         </aside>
