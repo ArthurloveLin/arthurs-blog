@@ -475,10 +475,8 @@ export function MemoBoardShell({
             ) : null}
           </div>
         </div>
-        <div className="flex items-center gap-1.5 sm:shrink-0 sm:justify-end">
-          <div className="flex-1 min-w-0 sm:contents">
-            <MemoSearchField placeholder={searchPlaceholder} />
-          </div>
+        <div className="flex shrink-0 items-center justify-end gap-1.5">
+          <MemoSearchField placeholder={searchPlaceholder} />
           <MemoSortDropdown allowPrioritySort={allowPrioritySort} />
           <NoteThemeButton />
           {extraControls}
