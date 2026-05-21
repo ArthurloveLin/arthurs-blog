@@ -151,7 +151,12 @@ jobs:
           curl -fsS -X POST \
             -H "Authorization: Bearer ${{ secrets.DEPLOY_NOTIFY_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "$(jq -n --arg sha "${{ github.sha }}" --arg msg "$SUMMARY" '{sha: $sha, message: $msg}')" \
+            -d "$(jq -n \
+              --arg sha "${{ github.sha }}" \
+              --arg msg "$SUMMARY" \
+              --arg container "arthurs-blog" \
+              --arg image "${{ env.IMAGE_NAME }}" \
+              '{sha: $sha, message: $msg, container: $container, image: $image}')" \
             https://arthurlovegrace.top/api/deploy-notify
 
   release:

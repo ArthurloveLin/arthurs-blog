@@ -12,19 +12,32 @@ export async function POST(req: NextRequest) {
 
   let sha: string | undefined
   let message: string | undefined
+  let container: string | undefined
+  let image: string | undefined
   try {
     const body = await req.json()
-    sha = typeof body.sha === 'string' ? body.sha : undefined
-    message = typeof body.message === 'string' ? body.message : undefined
+    sha       = typeof body.sha       === 'string' ? body.sha       : undefined
+    message   = typeof body.message   === 'string' ? body.message   : undefined
+    container = typeof body.container === 'string' ? body.container : undefined
+    image     = typeof body.image     === 'string' ? body.image     : undefined
   } catch {
     return NextResponse.json({ error: 'invalid json' }, { status: 400 })
   }
 
   const shortSha = sha ? sha.slice(0, 7) : '?'
+  const lines = [
+    '━━━━━━━━━━━━━━━━━━',
+    `✅ 容器: ${container ?? 'arthurs-blog'}`,
+    `🐳 镜像: ${image ?? 'ghcr.io/arthurlovelin/arthurs-blog'}`,
+    `🔖 提交: ${shortSha}`,
+    `📝 内容: ${message ?? '(无描述)'}`,
+    '━━━━━━━━━━━━━━━━━━',
+  ]
+
   await sendNtfy(
     TOPIC,
-    `🚀 arthurs-blog 部署成功 · ${shortSha}`,
-    message ?? '(无描述)',
+    '🚀 arthurs-blog 部署成功',
+    lines.join('\n'),
     { tags: ['white_check_mark'], priority: 3 },
   )
 
