@@ -143,6 +143,17 @@ jobs:
             https://arthurlovegrace.top/deploy
         timeout-minutes: 2
 
+      - name: Send deploy notification
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          SUMMARY=$(printf '%s' "$COMMIT_MSG" | head -1)
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.DEPLOY_NOTIFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg sha "${{ github.sha }}" --arg msg "$SUMMARY" '{sha: $sha, message: $msg}')" \
+            https://arthurlovegrace.top/api/deploy-notify
+
   release:
     name: Create version snapshot
     needs: docker
