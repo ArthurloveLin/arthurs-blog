@@ -200,8 +200,7 @@ class TestNavigationFlows:
         if post_links.count() == 0:
             pytest.skip("No blog posts in test environment")
         post_links.first.click()
-        page.wait_for_load_state("domcontentloaded")
-        assert "/blog/" in page.url
+        page.wait_for_url("**/blog/**", timeout=10000)
         expect(page.locator("article h1, h1").first).to_be_visible()
 
     def test_search_result_click_navigates_to_article(self, page: Page, base_url: str):
@@ -212,8 +211,7 @@ class TestNavigationFlows:
         if result_links.count() == 0:
             pytest.skip("No search results for 'memo' in test environment")
         result_links.first.click()
-        page.wait_for_load_state("domcontentloaded")
-        assert "/blog/" in page.url
+        page.wait_for_url("**/blog/**", timeout=10000)
         expect(page.locator("article h1, h1").first).to_be_visible()
 
     def test_article_category_link_navigates(self, page: Page, base_url: str):
@@ -227,6 +225,5 @@ class TestNavigationFlows:
         if category_links.count() == 0:
             pytest.skip("Article has no category links")
         category_links.first.click()
-        page.wait_for_load_state("domcontentloaded")
-        assert "/category/" in page.url
+        page.wait_for_url("**/category/**", timeout=10000)
         expect(page.locator("main")).to_be_visible()

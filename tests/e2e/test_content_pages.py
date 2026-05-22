@@ -29,8 +29,8 @@ class TestSpotifyPage:
 
     def test_spotify_page_has_main(self, page: Page, base_url: str):
         page.goto(f"{base_url}/spotify")
-        page.wait_for_load_state("networkidle", timeout=15000)
-        expect(page.locator("main")).to_be_visible()
+        # Streaming SSR may deliver <main> after networkidle; wait on the element directly.
+        expect(page.locator("main")).to_be_visible(timeout=20000)
 
     def test_spotify_page_has_navbar(self, page: Page, base_url: str):
         page.goto(f"{base_url}/spotify", wait_until="domcontentloaded")
@@ -55,7 +55,8 @@ class TestNowWatchingPage:
         expect(page.locator("section, main").first).to_be_visible()
 
     def test_now_watching_page_has_navbar(self, page: Page, base_url: str):
-        page.goto(f"{base_url}/now-watching", wait_until="domcontentloaded")
+        page.goto(f"{base_url}/now-watching")
+        page.wait_for_load_state("networkidle", timeout=15000)
         expect(page.locator("nav").first).to_be_visible()
 
 

@@ -44,10 +44,12 @@ class TestMobileViewport:
         expect(mobile_page.locator("main")).to_be_visible()
 
     def test_navbar_accessible_on_mobile(self, mobile_page: Page, base_url: str):
-        """Navigation must be reachable on mobile (hamburger or always-visible nav)."""
+        """Navigation must be reachable on mobile (bottom dock must be visible)."""
         mobile_page.goto(base_url, wait_until="domcontentloaded")
-        nav = mobile_page.locator("nav").first
-        expect(nav).to_be_visible()
+        # The desktop nav has class "hidden md:flex" — CSS-hidden on 375px viewport.
+        # On mobile, navigation uses a fixed bottom dock (md:hidden = visible on mobile).
+        mobile_dock = mobile_page.locator("div[class*='bottom-5']").first
+        expect(mobile_dock).to_be_visible()
 
     def test_homepage_no_horizontal_overflow(self, mobile_page: Page, base_url: str):
         """Page must not exceed viewport width (horizontal scroll on mobile is a layout bug)."""
