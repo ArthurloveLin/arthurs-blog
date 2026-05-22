@@ -467,8 +467,8 @@ jobs:
         continue-on-error: true
         timeout-minutes: 5
         run: |
+          rm -rf ~/.gemini/antigravity-cli/brain/ 2>/dev/null || true
           /home/arthur/.local/bin/agy \
-            --add-dir . \
             --dangerously-skip-permissions \
             -p "$(cat /tmp/failure-analysis-prompt.md)"
 
@@ -573,9 +573,11 @@ jobs:
         timeout-minutes: 8
         run: |
           mkdir -p tests/ai_generated
+          # Clear brain to avoid cross-session directory contamination from
+          # interactive agy sessions on the same VPS user account.
+          rm -rf ~/.gemini/antigravity-cli/brain/ 2>/dev/null || true
           /home/arthur/.local/bin/agy \
-            --add-dir . \
-            --add-dir tests/ \
+            --add-dir tests/ai_generated/ \
             --dangerously-skip-permissions \
             -p "$(cat /tmp/test-gen-prompt.md)"
 
