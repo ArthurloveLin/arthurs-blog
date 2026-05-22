@@ -27,7 +27,8 @@ import {
   getNoteBoardViewModeStorageKey,
   type NoteBoardViewMode,
 } from '@/lib/note-board-view-mode'
-import type { NoteMessage } from '@/lib/note-boards'
+import type { MemoAgendaItem, NoteMessage } from '@/lib/note-boards'
+import { getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
 export { StickyStackPreview } from '@/components/note-board/views/StickyStackPreview'
 
 const MemosStreamView = dynamic(
@@ -60,7 +61,19 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems }: { onToggleV
   const bindContainer = useCallback((node: HTMLDivElement | null) => {
     bindings.bindContainer(node)
   }, [bindings])
-  const filteredNoteItems = filters.filterItemsByDate(state.noteItems)
+  const filteredNoteItems = useMemo(() => {
+    const byDate = filters.filterItemsByDate(state.noteItems)
+    if (!state.activeDueDate || !agendaItems?.length) return byDate
+    const matchingIds = new Set(
+      agendaItems
+        .filter((a: MemoAgendaItem) => {
+          const { year, month, day } = getShanghaDateParts(a.dueAt)
+          return toDateKey(year, month, day) === state.activeDueDate
+        })
+        .map((a: MemoAgendaItem) => a.memoId),
+    )
+    return byDate.filter((item) => matchingIds.has(item.message.id))
+  }, [filters, state.noteItems, state.activeDueDate, agendaItems])
   const filteredItemIds = useMemo(
     () => new Set(filteredNoteItems.map((item) => item.message.id)),
     [filteredNoteItems],

@@ -39,7 +39,19 @@ export function MemosStreamView({ onToggleViewMode, filters, agendaItems }: Memo
   const actions = useNoteBoardActions()
   const meta = useNoteBoardMeta()
   const sentinelRef = useRef<HTMLDivElement>(null)
-  const filteredItems = filters.filterItemsByDate(state.allNoteItems)
+  const filteredItems = useMemo(() => {
+    const byDate = filters.filterItemsByDate(state.allNoteItems)
+    if (!state.activeDueDate || !agendaItems?.length) return byDate
+    const matchingIds = new Set(
+      agendaItems
+        .filter((a) => {
+          const { year, month, day } = getShanghaDateParts(a.dueAt)
+          return toDateKey(year, month, day) === state.activeDueDate
+        })
+        .map((a) => a.memoId),
+    )
+    return byDate.filter((item) => matchingIds.has(item.message.id))
+  }, [filters, state.allNoteItems, state.activeDueDate, agendaItems])
 
   const feedGroups = useMemo<FeedGroup[]>(() => {
     if (meta.board.slug === 'memo' && state.sortMode === 'priority') {

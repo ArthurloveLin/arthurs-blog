@@ -19,9 +19,8 @@ function getBoardQueryKey(
   searchQuery: string,
   activeTags: string[],
   activeDate: string | null,
-  activeDueDate: string | null,
 ) {
-  return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:${direction}:q=${searchQuery}:tags=${[...activeTags].sort().join(',')}:date=${activeDate ?? ''}:due=${activeDueDate ?? ''}`
+  return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:${direction}:q=${searchQuery}:tags=${[...activeTags].sort().join(',')}:date=${activeDate ?? ''}`
 }
 
 export interface UseBoardDataProps {
@@ -78,8 +77,8 @@ export function useBoardData({
   // resetBoardSurface that would revert the optimistic update.
   const lastBoardPayloadRef = useRef<typeof boardPayload | undefined>(undefined)
   const activeBoardQueryKey = useMemo(
-    () => getBoardQueryKey(board.slug, showArchived, sortMode, sortDirection, searchQuery, activeTags, activeDate, activeDueDate) + `:${reactionIdentity || 'anon'}`,
-    [activeDate, activeDueDate, activeTags, board.slug, reactionIdentity, searchQuery, showArchived, sortDirection, sortMode],
+    () => getBoardQueryKey(board.slug, showArchived, sortMode, sortDirection, searchQuery, activeTags, activeDate) + `:${reactionIdentity || 'anon'}`,
+    [activeDate, activeTags, board.slug, reactionIdentity, searchQuery, showArchived, sortDirection, sortMode],
   )
   const initialBoardQueryKeyRef = useRef<string | null>(null)
   if (initialBoardQueryKeyRef.current === null) {
@@ -111,7 +110,6 @@ export function useBoardData({
     q = searchQuery,
     tags = activeTags,
     date = activeDate,
-    dueDate = activeDueDate,
   ) => {
     if (board.slug === 'guestbook') {
       const threadSearchParams = new URLSearchParams({
@@ -200,7 +198,6 @@ export function useBoardData({
     } else {
       if (tags.length > 0) searchParams.set('tag', tags.join(','))
       if (date) searchParams.set('date', date)
-      if (dueDate) searchParams.set('due_date', dueDate)
     }
 
     const response = await fetch(`/api/note-boards/${board.slug}?${searchParams.toString()}`)
@@ -210,7 +207,7 @@ export function useBoardData({
 
     const payload = await response.json() as { messages: NoteMessage[]; nextOffset: number; hasMore: boolean }
     return createBoardPayload(payload.messages, archived, sort, direction, payload.nextOffset, payload.hasMore)
-  }, [activeDate, activeDueDate, activeTags, board.initialPageLimit, board.slug, board.targetId, board.targetType, reactionIdentity, searchQuery, sortDirection, sortMode])
+  }, [activeDate, activeTags, board.initialPageLimit, board.slug, board.targetId, board.targetType, reactionIdentity, searchQuery, sortDirection, sortMode])
 
   const {
     data: boardPayload,

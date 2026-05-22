@@ -450,7 +450,7 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
         {cells.map((cell, i) => {
           if (cell.kind !== 'current') {
             return (
-              <div key={i} className="flex h-[72px] flex-col rounded-sm p-1">
+              <div key={i} className="flex h-[60px] flex-col rounded-sm p-1">
                 <span className="shrink-0 text-[10px] text-muted-foreground/10">{cell.day}</span>
               </div>
             )
@@ -465,7 +465,7 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
               type="button"
               onClick={() => { setDetailDay(key); actions.handleDueDateFilter(key) }}
               className={[
-                'flex h-[72px] w-full flex-col rounded-sm p-1 text-left transition',
+                'flex h-[60px] w-full flex-col rounded-sm p-1 text-left transition',
                 isSelected
                   ? 'bg-foreground/10 ring-1 ring-inset ring-foreground/25'
                   : 'cursor-pointer hover:bg-accent',
@@ -482,7 +482,7 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
                 {cell.day}
               </span>
               <div className="mt-0.5 flex-1 overflow-hidden space-y-px">
-                {items.slice(0, 3).map((item, li) => (
+                {items.slice(0, 2).map((item, li) => (
                   <span
                     key={li}
                     className="block truncate rounded-[3px] px-0.5 text-[9px] leading-[13px] text-white"
@@ -492,9 +492,9 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
                     {item.label || '截止'}
                   </span>
                 ))}
-                {items.length > 3 ? (
+                {items.length > 2 ? (
                   <span className="block text-[9px] leading-[13px] text-muted-foreground/40">
-                    +{items.length - 3}
+                    +{items.length - 2}
                   </span>
                 ) : null}
               </div>
