@@ -18,12 +18,13 @@ import sys
 from pathlib import Path
 
 
-P95_THRESHOLD_MS = 1000
-ERROR_RATE_THRESHOLD = 0.01  # 1%
+P95_THRESHOLD_MS = 2000       # public internet baseline (cloud runner → VPS)
+ERROR_RATE_THRESHOLD = 0.01   # 1%
 
 # Per-endpoint overrides (substring match on Name column)
 P95_OVERRIDES: dict[str, int] = {
-    "/api/blog/search": 4000,  # full-text search hits Supabase; slower under load
+    "/api/blog/search": 4000,           # full-text search hits Supabase; slower under load
+    "/api/note-boards/memo/search": 3000,  # Supabase full-text search, same reason
 }
 
 

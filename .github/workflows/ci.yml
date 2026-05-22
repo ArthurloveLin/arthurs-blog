@@ -391,6 +391,20 @@ jobs:
           path: allure-report/
           if-no-files-found: warn
 
+      - name: Sync Allure report to R2 CDN
+        if: always()
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_CDN_BUCKET: ${{ secrets.R2_CDN_BUCKET }}
+        run: |
+          aws s3 sync allure-report/ s3://${R2_CDN_BUCKET}/allure/latest/ \
+            --endpoint-url https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com \
+            --delete \
+            --cache-control "public,max-age=3600"
+
 # ─── 8. Deploy — only after all three test suites pass ────────────────────────
   deploy:
     name: Trigger Watchtower Deploy
