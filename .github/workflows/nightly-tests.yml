@@ -463,3 +463,156 @@ jobs:
                 priority: 3
               }')" \
             https://arthurlovegrace.top/ntfy-push
+
+# ─── 10. AI Test Generation ────────────────────────────────────────────────────
+#
+# Non-blocking job that runs after the test container is torn down.
+# Scans git commits from the last 24h for source files without test coverage,
+# invokes agy to generate pytest stubs, validates them, and opens a PR.
+# continue-on-error: true — a failure here never affects the nightly run result.
+  ai-test-gen:
+    name: AI Test Generation
+    needs: [teardown]
+    runs-on: [self-hosted, linux, vps]
+    if: always()
+    continue-on-error: true
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # full history needed for git log --since
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: tests/requirements.txt
+
+      - run: pip install -r tests/requirements.txt
+
+      - name: Scan coverage gaps
+        id: scan
+        run: |
+          python3 tests/ai_hooks/scan_coverage_gaps.py \
+            --since "24 hours ago" \
+            --repo . \
+            --output /tmp/coverage-gaps.md
+          if [ -f /tmp/coverage-gaps.md ]; then
+            echo "gaps_found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "gaps_found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip if no gaps
+        if: steps.scan.outputs.gaps_found != 'true'
+        run: |
+          echo "No coverage gaps detected. Skipping AI test generation."
+
+      - name: Idempotency check (skip if today's branch already exists)
+        if: steps.scan.outputs.gaps_found == 'true'
+        id: idempotency
+        run: |
+          TODAY=$(date -u +%Y%m%d)
+          EXISTING=$(git ls-remote --heads origin "refs/heads/ai-tests/${TODAY}-*" | head -1)
+          if [ -n "$EXISTING" ]; then
+            echo "already_ran=true" >> "$GITHUB_OUTPUT"
+            echo "Branch for today already exists — skipping"
+          else
+            echo "already_ran=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Assemble agy prompt
+        if: steps.scan.outputs.gaps_found == 'true' && steps.idempotency.outputs.already_ran != 'true'
+        run: |
+          python3 - << 'PYEOF'
+          import pathlib
+          template = pathlib.Path("tests/ai_hooks/prompts/test_gen.md").read_text()
+          gaps = pathlib.Path("/tmp/coverage-gaps.md").read_text()
+          prompt = template.replace("{COVERAGE_GAPS_CONTENT}", gaps)
+          pathlib.Path("/tmp/test-gen-prompt.md").write_text(prompt)
+          print(f"Prompt assembled: {len(prompt)} chars")
+          PYEOF
+
+      - name: Invoke agy to generate tests
+        if: steps.scan.outputs.gaps_found == 'true' && steps.idempotency.outputs.already_ran != 'true'
+        timeout-minutes: 8
+        run: |
+          mkdir -p tests/ai_generated
+          /home/arthur/.local/bin/agy \
+            --add-dir . \
+            --add-dir tests/ \
+            --dangerously-skip-permissions \
+            -p "$(cat /tmp/test-gen-prompt.md)"
+
+      - name: Validate — syntax check
+        if: steps.scan.outputs.gaps_found == 'true' && steps.idempotency.outputs.already_ran != 'true'
+        id: validate_syntax
+        run: |
+          GENERATED=$(find tests/ai_generated -name "test_*.py" -newer tests/ai_generated/__init__.py 2>/dev/null)
+          if [ -z "$GENERATED" ]; then
+            echo "No new test files generated — skipping PR creation"
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          FAILED=0
+          for f in $GENERATED; do
+            python3 -m py_compile "$f" || { echo "Syntax error in $f"; FAILED=1; }
+          done
+          [ "$FAILED" -eq 0 ] \
+            && echo "valid=true" >> "$GITHUB_OUTPUT" \
+            || echo "valid=false" >> "$GITHUB_OUTPUT"
+
+      - name: Validate — pytest collection check
+        if: steps.validate_syntax.outputs.valid == 'true'
+        id: validate_collect
+        run: |
+          pytest tests/ai_generated/ --collect-only -q 2>&1
+          echo "collected=true" >> "$GITHUB_OUTPUT"
+
+      - name: Create branch and open PR
+        if: steps.validate_syntax.outputs.valid == 'true' && steps.validate_collect.outputs.collected == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TODAY=$(date -u +%Y%m%d)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          BRANCH="ai-tests/${TODAY}-${SHORT_SHA}"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add tests/ai_generated/
+          git commit -m "test(ai-gen): add AI-generated tests for coverage gaps [${TODAY}]
+
+          Co-Authored-By: agy <noreply@anthropic.com>"
+
+          git push origin "$BRANCH"
+
+          PR_URL=$(gh pr create \
+            --title "test(ai-gen): AI-generated tests for coverage gaps [${TODAY}]" \
+            --body-file tests/ai_hooks/pr_body_template.md \
+            --base main \
+            --head "$BRANCH")
+
+          echo "PR_URL=$PR_URL" >> "$GITHUB_ENV"
+
+      - name: Notify via ntfy
+        if: env.PR_URL != ''
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg url "$PR_URL" \
+              '{
+                topic: "watchtower-arthur71684",
+                title: "🤖 AI Test Gen PR Ready",
+                message: ("新 AI 生成测试 PR，请审核: " + $url),
+                tags: ["test_tube"],
+                priority: 2,
+                click: $url
+              }')" \
+            https://arthurlovegrace.top/ntfy-push
