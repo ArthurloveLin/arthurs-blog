@@ -25,4 +25,3 @@ supabase==2.10.0
 # Utilities
 python-dotenv==1.0.1
 pytest-xdist==3.6.1  # parallel test execution (-n auto)
-pytest-json-report==1.5.0  # --json-report flag for AI failure analysis hook

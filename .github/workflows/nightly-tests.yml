@@ -114,16 +114,15 @@ jobs:
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
         run: |
           pytest tests/api/ -v \
-            --json-report \
-            --json-report-file=tests/ai_hooks/report.json \
+            --junit-xml=tests/ai_hooks/report.xml \
             --timeout=30 \
             -m "not slow"
-      - name: Upload JSON report
+      - name: Upload JUnit report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: nightly-json-report-${{ github.run_number }}
-          path: tests/ai_hooks/report.json
+          name: nightly-junit-report-${{ github.run_number }}
+          path: tests/ai_hooks/report.xml
 
 # ─── 3. Docker Infrastructure Tests ───────────────────────────────────────────
   infra-tests:
@@ -216,11 +215,11 @@ jobs:
     if: failure()
     steps:
       - uses: actions/checkout@v4
-      - name: Download JSON report
+      - name: Download JUnit report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: nightly-json-report-${{ github.run_number }}
+          name: nightly-junit-report-${{ github.run_number }}
           path: tests/ai_hooks/
       - uses: actions/setup-python@v5
         with:

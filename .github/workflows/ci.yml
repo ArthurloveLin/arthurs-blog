@@ -259,8 +259,7 @@ jobs:
         run: |
           pytest tests/api/ -v \
             --alluredir=allure-results/api \
-            --json-report \
-            --json-report-file=tests/ai_hooks/report.json \
+            --junit-xml=tests/ai_hooks/report.xml \
             --timeout=30 \
             -m "not slow"
 
@@ -271,12 +270,12 @@ jobs:
           name: allure-api-${{ github.run_number }}
           path: allure-results/api/
 
-      - name: Upload JSON report (for AI analysis)
+      - name: Upload JUnit report (for AI analysis)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: json-report-${{ github.run_number }}
-          path: tests/ai_hooks/report.json
+          name: junit-report-${{ github.run_number }}
+          path: tests/ai_hooks/report.xml
 
 # ─── 5. Docker Infrastructure Tests ───────────────────────────────────────────
   infra-tests:
@@ -559,11 +558,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download JSON report
+      - name: Download JUnit report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: json-report-${{ github.run_number }}
+          name: junit-report-${{ github.run_number }}
           path: tests/ai_hooks/
 
       - name: Set up Python
@@ -574,7 +573,7 @@ jobs:
       - name: Format failure report
         run: |
           python tests/ai_hooks/format_report.py \
-            --input tests/ai_hooks/report.json \
+            --input tests/ai_hooks/report.xml \
             --output /tmp/failure-context.md
           echo "=== Failure Context ==="
           cat /tmp/failure-context.md

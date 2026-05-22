@@ -1,74 +1,66 @@
 """
-Parse pytest JSON report (--json-report) + Allure results and output
-a structured Markdown document for AI analysis.
-
-The output format is intentionally simple and verbose so that any
-AI agent (Antigravity CLI, Claude Code, GPT, etc.) can consume it
-without requiring a custom schema.
+Parse pytest JUnit XML report (--junit-xml) and output a structured Markdown
+document for AI analysis.
 
 Usage:
-  pytest --json-report --json-report-file=tests/ai_hooks/report.json ...
+  pytest --junit-xml=tests/ai_hooks/report.xml ...
   python tests/ai_hooks/format_report.py \\
-      --input tests/ai_hooks/report.json \\
+      --input tests/ai_hooks/report.xml \\
       --output /tmp/failure-context.md
 
 Output is written to stdout if --output is omitted.
 """
 
 import argparse
-import json
 import sys
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 
 
-def format_failure(test: dict) -> str:
-    name = test.get("nodeid", "unknown")
-    outcome = test.get("outcome", "")
-    call = test.get("call", {})
-    longrepr = call.get("longrepr", "") or test.get("longrepr", "")
+def build_markdown(xml_path: Path) -> str:
+    tree = ET.parse(xml_path)
+    root = tree.getroot()
 
-    lines = [f"### `{name}`"]
-    lines.append(f"**Outcome:** {outcome}")
+    # JUnit XML root may be <testsuites> or <testsuite>
+    if root.tag == "testsuites":
+        suites = list(root)
+    else:
+        suites = [root]
 
-    if longrepr:
-        lines.append("\n**Traceback:**")
-        lines.append("```")
-        # Trim very long tracebacks
-        lines.append(str(longrepr)[:2000])
-        lines.append("```")
+    total = passed = failed = errored = skipped = 0
+    duration = 0.0
+    failures: list[dict] = []
 
-    setup = test.get("setup", {})
-    if setup.get("outcome") == "error":
-        lines.append("\n**Setup Error:**")
-        lines.append("```")
-        lines.append(str(setup.get("longrepr", ""))[:500])
-        lines.append("```")
+    for suite in suites:
+        total    += int(suite.get("tests",    0))
+        failed   += int(suite.get("failures", 0))
+        errored  += int(suite.get("errors",   0))
+        skipped  += int(suite.get("skipped",  0))
+        duration += float(suite.get("time",   0))
 
-    return "\n".join(lines)
+        for case in suite.iter("testcase"):
+            fail = case.find("failure")
+            err  = case.find("error")
+            node = fail or err
+            if node is not None:
+                failures.append({
+                    "name":    f"{case.get('classname', '')}.{case.get('name', '')}",
+                    "outcome": "error" if err is not None else "failed",
+                    "message": node.get("message", ""),
+                    "detail":  (node.text or "").strip(),
+                })
 
-
-def build_markdown(report: dict) -> str:
+    passed = total - failed - errored - skipped
     created = datetime.now(timezone.utc).isoformat()
-    summary = report.get("summary", {})
-
-    total = summary.get("total", 0)
-    passed = summary.get("passed", 0)
-    failed = summary.get("failed", 0)
-    error = summary.get("error", 0)
-    skipped = summary.get("skipped", 0)
-    duration = report.get("duration", 0)
-
-    tests: list[dict] = report.get("tests", [])
-    failures = [t for t in tests if t.get("outcome") in ("failed", "error")]
 
     lines = [
-        f"# Test Failure Report",
-        f"",
+        "# Test Failure Report",
+        "",
         f"**Generated:** {created}",
         f"**Duration:** {duration:.1f}s",
-        f"**Total:** {total} | Passed: {passed} | Failed: {failed} | Error: {error} | Skipped: {skipped}",
-        f"",
+        f"**Total:** {total} | Passed: {passed} | Failed: {failed} | Error: {errored} | Skipped: {skipped}",
+        "",
     ]
 
     if not failures:
@@ -78,26 +70,36 @@ def build_markdown(report: dict) -> str:
     lines.append(f"## Failed Tests ({len(failures)})")
     lines.append("")
 
-    for test in failures:
-        lines.append(format_failure(test))
+    for t in failures:
+        lines.append(f"### `{t['name']}`")
+        lines.append(f"**Outcome:** {t['outcome']}")
+        if t["message"]:
+            lines.append(f"**Message:** {t['message'][:300]}")
+        if t["detail"]:
+            lines.append("\n**Detail:**")
+            lines.append("```")
+            lines.append(t["detail"][:2000])
+            lines.append("```")
         lines.append("")
 
-    lines.append("---")
-    lines.append("## Suggested Analysis Questions")
-    lines.append("")
-    lines.append("1. Are these failures new (regression) or pre-existing?")
-    lines.append("2. Do multiple failures share a common root cause (e.g., auth, network, test data)?")
-    lines.append("3. Is there a setup/teardown fixture that may have failed first?")
-    lines.append("4. Could this be a timing issue (slow container startup, network timeout)?")
-    lines.append("5. What changed in the latest commit that could cause these failures?")
+    lines += [
+        "---",
+        "## Suggested Analysis Questions",
+        "",
+        "1. Are these failures new (regression) or pre-existing?",
+        "2. Do multiple failures share a common root cause (e.g., auth, network, test data)?",
+        "3. Is there a setup/teardown fixture that may have failed first?",
+        "4. Could this be a timing issue (slow container startup, network timeout)?",
+        "5. What changed in the latest commit that could cause these failures?",
+    ]
 
     return "\n".join(lines)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Format pytest JSON report for AI analysis")
-    parser.add_argument("--input", required=True, help="Path to pytest-json-report output (report.json)")
-    parser.add_argument("--output", default=None, help="Output markdown file path (stdout if omitted)")
+    parser = argparse.ArgumentParser(description="Format pytest JUnit XML report for AI analysis")
+    parser.add_argument("--input",  required=True, help="Path to JUnit XML report (report.xml)")
+    parser.add_argument("--output", default=None,  help="Output markdown file (stdout if omitted)")
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -105,10 +107,7 @@ def main():
         print(f"ERROR: Input file not found: {input_path}", file=sys.stderr)
         sys.exit(1)
 
-    with open(input_path) as f:
-        report = json.load(f)
-
-    markdown = build_markdown(report)
+    markdown = build_markdown(input_path)
 
     if args.output:
         Path(args.output).write_text(markdown)
