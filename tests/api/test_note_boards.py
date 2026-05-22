@@ -22,14 +22,16 @@ class TestMemoBoardList:
         resp = client.get("/api/note-boards/memo")
         assert resp.status_code == 200
 
-    def test_memo_board_response_is_array(self, client):
-        resp = client.get("/api/note-boards/memo")
-        assert isinstance(resp.json(), list)
+    def test_memo_board_response_shape(self, client):
+        # Response is {messages: [...], nextOffset: N, hasMore: bool} — not a bare array
+        data = client.get("/api/note-boards/memo").json()
+        assert "messages" in data
+        assert isinstance(data["messages"], list)
 
     def test_memo_board_pagination_limit(self, client):
         resp = client.get("/api/note-boards/memo", params={"limit": "5"})
         assert resp.status_code == 200
-        assert len(resp.json()) <= 5
+        assert len(resp.json()["messages"]) <= 5
 
     def test_memo_board_sort_time_desc(self, client):
         resp = client.get("/api/note-boards/memo", params={"sort": "time", "order": "desc"})

@@ -9,9 +9,10 @@ Auth strategy:
   Tests without these env vars are skipped automatically.
 """
 
+import base64
 import json
 import os
-import re
+from urllib.parse import urlparse
 
 import allure
 import httpx
@@ -28,10 +29,16 @@ TEST_ADMIN_EMAIL = os.getenv("TEST_ADMIN_EMAIL", "")
 TEST_ADMIN_PASSWORD = os.getenv("TEST_ADMIN_PASSWORD", "")
 
 
-def _supabase_project_ref(supabase_url: str) -> str:
-    """Extract project ref from Supabase URL, e.g. https://abc.supabase.co -> abc"""
-    match = re.search(r"https://([^.]+)\.supabase\.co", supabase_url)
-    return match.group(1) if match else "unknown"
+def _supabase_storage_key(supabase_url: str) -> str:
+    """
+    Mirror the JS SDK's cookie-name logic:
+      `sb-${new URL(url).hostname.split(".")[0]}-auth-token`
+    Works for both https://xxx.supabase.co and custom domains like
+    https://api.example.com (first hostname segment is used as the ref).
+    """
+    hostname = urlparse(supabase_url).hostname or ""
+    ref = hostname.split(".")[0]
+    return f"sb-{ref}-auth-token"
 
 
 @pytest.fixture(scope="session")
@@ -64,17 +71,30 @@ def admin_session_cookie() -> dict[str, str]:
     assert resp.status_code == 200, f"Admin sign-in failed: {resp.text}"
     session = resp.json()
 
-    project_ref = _supabase_project_ref(TEST_SUPABASE_URL)
-    # @supabase/ssr stores the session as a JSON-encoded cookie
-    cookie_value = json.dumps({
+    cookie_name = _supabase_storage_key(TEST_SUPABASE_URL)
+
+    # @supabase/ssr encodes cookies as "base64-<base64url(json)>" (no padding).
+    # Raw JSON is rejected — the server-side client strips the prefix and
+    # decodes before parsing, so passing bare JSON results in auth failure.
+    session_obj = {
         "access_token": session["access_token"],
         "refresh_token": session["refresh_token"],
         "expires_in": session.get("expires_in", 3600),
         "expires_at": session.get("expires_at"),
         "token_type": "bearer",
         "user": session.get("user"),
-    })
-    return {f"sb-{project_ref}-auth-token": cookie_value}
+    }
+    raw = json.dumps(session_obj, separators=(",", ":"))
+    b64 = base64.urlsafe_b64encode(raw.encode()).decode().rstrip("=")
+    encoded = f"base64-{b64}"
+
+    # Chunk if > 3180 chars (MAX_CHUNK_SIZE in @supabase/ssr)
+    if len(encoded) <= 3180:
+        return {cookie_name: encoded}
+    return {
+        f"{cookie_name}.{i}": encoded[i * 3180:(i + 1) * 3180]
+        for i in range((len(encoded) + 3179) // 3180)
+    }
 
 
 @pytest.fixture(scope="session")

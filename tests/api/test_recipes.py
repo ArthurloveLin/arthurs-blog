@@ -141,7 +141,17 @@ class TestRecipeCRUD:
 @allure.story("Prerequisites")
 class TestRecipePrerequisites:
 
-    def test_list_prerequisites_public(self, client):
+    def test_prerequisites_get_is_not_defined(self, client):
+        """GET /api/recipes/prerequisites has no handler — only POST (admin).
+        Verify the route exists but GET returns 405, not 404.
+        """
         resp = client.get("/api/recipes/prerequisites")
-        assert resp.status_code == 200
-        assert isinstance(resp.json(), list)
+        assert resp.status_code == 405
+
+    def test_prerequisites_post_requires_admin(self, client):
+        resp = client.post("/api/recipes/prerequisites", json={
+            "from_recipe_id": "00000000-0000-0000-0000-000000000000",
+            "to_recipe_id": "00000000-0000-0000-0000-000000000001",
+            "skill_label": "test",
+        })
+        assert resp.status_code in (401, 403)
