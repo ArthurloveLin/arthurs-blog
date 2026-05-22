@@ -573,6 +573,8 @@ jobs:
         timeout-minutes: 8
         run: |
           mkdir -p tests/ai_generated
+          # Reference timestamp: files created by agy will be newer than this.
+          touch /tmp/agy-gen-start
           # Clear brain to avoid cross-session directory contamination from
           # interactive agy sessions on the same VPS user account.
           rm -rf ~/.gemini/antigravity-cli/brain/ 2>/dev/null || true
@@ -585,7 +587,7 @@ jobs:
         if: steps.scan.outputs.gaps_found == 'true' && steps.idempotency.outputs.already_ran != 'true'
         id: validate_syntax
         run: |
-          GENERATED=$(find tests/ai_generated -name "test_*.py" -newer tests/ai_generated/__init__.py 2>/dev/null)
+          GENERATED=$(find tests/ai_generated -name "test_*.py" -newer /tmp/agy-gen-start 2>/dev/null)
           if [ -z "$GENERATED" ]; then
             echo "No new test files generated — skipping PR creation"
             echo "valid=false" >> "$GITHUB_OUTPUT"
