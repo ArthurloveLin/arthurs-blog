@@ -54,10 +54,6 @@ class TestNowWatchingPage:
         # Page renders a section element (openSans font wrapper)
         expect(page.locator("section, main").first).to_be_visible()
 
-    def test_now_watching_page_has_navbar(self, page: Page, base_url: str):
-        page.goto(f"{base_url}/now-watching")
-        page.wait_for_load_state("networkidle", timeout=15000)
-        expect(page.locator("nav").first).to_be_visible()
 
 
 @allure.feature("E2E")

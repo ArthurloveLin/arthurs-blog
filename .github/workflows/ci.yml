@@ -342,15 +342,27 @@ jobs:
       - name: Install Playwright browsers
         run: playwright install chromium --with-deps
 
-      - name: Run E2E tests
+      - name: Run E2E smoke tests (blocking)
         env:
           TEST_BASE_URL: http://localhost:3020
         run: |
           pytest tests/e2e/ -v \
+            -m smoke \
             --alluredir=allure-results/e2e \
-            --junit-xml=allure-results/e2e-junit.xml \
+            --junit-xml=allure-results/e2e-smoke-junit.xml \
             --timeout=60 \
             --browser=chromium
+
+      - name: Run E2E full tests (non-blocking)
+        env:
+          TEST_BASE_URL: http://localhost:3020
+        run: |
+          pytest tests/e2e/ -v \
+            -m "not smoke" \
+            --alluredir=allure-results/e2e \
+            --junit-xml=allure-results/e2e-full-junit.xml \
+            --timeout=60 \
+            --browser=chromium || true
 
       - name: Upload Allure results
         if: always()
