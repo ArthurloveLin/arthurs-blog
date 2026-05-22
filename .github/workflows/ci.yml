@@ -37,9 +37,10 @@ env:
 # Job dependency graph (push to main):
 #
 #   check → docker → setup → api-tests ──┐
-#                         └─ infra-tests ─┼→ deploy → perf-tests
+#                         └─ infra-tests ─┼→ report (allure, always)
 #                              api-tests → e2e-tests ┘
-#                         └─────────────────────────── teardown (always)
+#                                       └─────────────→ deploy → perf-tests
+#                         └──────────────────────────── teardown (always)
 #                   └─ release (after deploy)
 #
 # On PR: only check + docker build (no push, no tests, no deploy).
@@ -349,7 +350,48 @@ jobs:
           name: allure-e2e-${{ github.run_number }}
           path: allure-results/e2e/
 
-# ─── 7. Deploy — only after all three test suites pass ────────────────────────
+# ─── 7. Generate Allure report — runs after all test suites, even on failure ──
+  report:
+    name: Generate Allure Report
+    needs: [api-tests, infra-tests, e2e-tests]
+    runs-on: ubuntu-latest
+    if: always() && github.event_name != 'pull_request'
+    steps:
+      - name: Download API allure results
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: allure-api-${{ github.run_number }}
+          path: allure-results/
+
+      - name: Download Infra allure results
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: allure-infra-${{ github.run_number }}
+          path: allure-results/
+
+      - name: Download E2E allure results
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: allure-e2e-${{ github.run_number }}
+          path: allure-results/
+
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline --save-dev
+
+      - name: Generate Allure report
+        run: allure generate allure-results/ -o allure-report/ --clean
+
+      - name: Upload Allure report
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-${{ github.run_number }}
+          path: allure-report/
+          if-no-files-found: warn
+
+# ─── 8. Deploy — only after all three test suites pass ────────────────────────
   deploy:
     name: Trigger Watchtower Deploy
     needs: [api-tests, infra-tests, e2e-tests]
@@ -384,7 +426,7 @@ jobs:
               }')" \
             https://arthurlovegrace.top/ntfy-push
 
-# ─── 8. Performance Tests — cloud runner, after deploy is live ─────────────────
+# ─── 9. Performance Tests — cloud runner, after deploy is live ─────────────────
   perf-tests:
     name: Performance Tests (Locust)
     needs: deploy
@@ -404,6 +446,8 @@ jobs:
         run: pip install -r tests/requirements.txt
 
       - name: Run Locust performance smoke test
+        id: locust
+        continue-on-error: true
         env:
           PERF_TARGET_HOST: ${{ vars.TEST_SITE_URL || 'https://test.arthurlovegrace.top' }}
         run: |
@@ -417,19 +461,111 @@ jobs:
             --html tests/perf/report.html
 
       - name: Check performance thresholds
+        id: perf_thresholds
         if: always()
-        run: python tests/perf/thresholds.py --csv tests/perf/results_stats.csv
+        continue-on-error: true
+        run: |
+          python tests/perf/thresholds.py \
+            --csv tests/perf/results_stats.csv \
+            --markdown-out tests/perf/thresholds-summary.md
 
       - name: Upload performance report
+        id: perf_artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: perf-report-${{ github.run_number }}
+          if-no-files-found: warn
           path: |
             tests/perf/results*.csv
             tests/perf/report.html
+            tests/perf/thresholds-summary.md
 
-# ─── 9. Teardown — always runs, waits for all test + perf jobs ────────────────
+      - name: Publish performance summary
+        if: always()
+        env:
+          PERF_TARGET_HOST: ${{ vars.TEST_SITE_URL || 'https://test.arthurlovegrace.top' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          LOCUST_OUTCOME: ${{ steps.locust.outcome }}
+          THRESHOLD_OUTCOME: ${{ steps.perf_thresholds.outcome }}
+        run: |
+          if [ "$LOCUST_OUTCOME" = "success" ] && [ "$THRESHOLD_OUTCOME" = "success" ]; then
+            STATUS="PASS"
+            NOTE="Performance smoke test passed."
+          else
+            STATUS="WARN"
+            NOTE="Performance smoke test completed with warnings. Deployment was not blocked."
+            echo "::warning::$NOTE"
+          fi
+
+          {
+            echo "## Performance Smoke Test"
+            echo
+            echo "- Status: ${STATUS}"
+            echo "- Target: ${PERF_TARGET_HOST}"
+            echo "- Locust run: ${LOCUST_OUTCOME}"
+            echo "- Threshold check: ${THRESHOLD_OUTCOME}"
+            echo "- Artifact: perf-report-${{ github.run_number }}"
+            echo "- Run: ${RUN_URL}"
+            echo
+            if [ -f tests/perf/thresholds-summary.md ]; then
+              cat tests/perf/thresholds-summary.md
+            else
+              echo "Threshold summary was not generated."
+            fi
+            echo
+            echo "> Open this workflow run, then read the Performance Tests job summary or download artifact perf-report-${{ github.run_number }}."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Send performance report notification
+        if: always()
+        env:
+          PERF_TARGET_HOST: ${{ vars.TEST_SITE_URL || 'https://test.arthurlovegrace.top' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          LOCUST_OUTCOME: ${{ steps.locust.outcome }}
+          THRESHOLD_OUTCOME: ${{ steps.perf_thresholds.outcome }}
+          PERF_ARTIFACT_NAME: perf-report-${{ github.run_number }}
+        run: |
+          if [ "$LOCUST_OUTCOME" = "success" ] && [ "$THRESHOLD_OUTCOME" = "success" ]; then
+            TITLE="📈 arthurs-blog 性能测试通过"
+            STATUS="PASS"
+            PRIORITY=2
+            TAG="bar_chart"
+          else
+            TITLE="📈 arthurs-blog 性能测试完成（有告警）"
+            STATUS="WARN"
+            PRIORITY=3
+            TAG="warning"
+          fi
+
+          MESSAGE=$(cat <<EOF
+状态: ${STATUS}
+目标: ${PERF_TARGET_HOST}
+Artifact: ${PERF_ARTIFACT_NAME}
+打开本次 GitHub Actions run 查看 Performance Tests job summary 或下载 artifact。
+EOF
+)
+
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg title "$TITLE" \
+              --arg message "$MESSAGE" \
+              --arg click "$RUN_URL" \
+              --arg tag "$TAG" \
+              --argjson priority "$PRIORITY" \
+              '{
+                topic: "watchtower-arthur71684",
+                title: $title,
+                message: $message,
+                tags: [$tag],
+                priority: $priority,
+                click: $click
+              }')" \
+            https://arthurlovegrace.top/ntfy-push
+
+# ─── 10. Teardown — always runs, waits for all test + perf jobs ───────────────
   teardown:
     name: Stop Test Container
     needs: [api-tests, infra-tests, e2e-tests, perf-tests]
@@ -440,7 +576,7 @@ jobs:
       - name: Stop test container
         run: docker compose -f tests/docker-compose.test.yml down --remove-orphans
 
-# ─── 10. Version snapshot — only for deployed code ────────────────────────────
+# ─── 11. Version snapshot — only for deployed code ───────────────────────────
   release:
     name: Create Version Snapshot
     needs: deploy
@@ -501,7 +637,7 @@ jobs:
               --arg sha "${TAG_SHA}" \
               '{ref: $ref, sha: $sha}')"
 
-# ─── 11. Unified failure notification ─────────────────────────────────────────
+# ─── 12. Unified failure notification ────────────────────────────────────────
   notify:
     name: Notify on Failure
     needs: [check, docker, api-tests, infra-tests, e2e-tests, deploy, perf-tests]
@@ -551,7 +687,7 @@ jobs:
               }')" \
             https://arthurlovegrace.top/ntfy-push
 
-# ─── 12. AI Failure Analysis ──────────────────────────────────────────────────
+# ─── 13. AI Failure Analysis ─────────────────────────────────────────────────
   ai-analysis:
     name: AI Failure Analysis
     needs: [api-tests, infra-tests]

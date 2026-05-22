@@ -31,6 +31,20 @@ This repository is deployed as a **single-container Docker application** on a VP
 1. **GitHub Actions**: Code pushed to `main` automatically runs type-checking & linting. If successful, it builds the Docker image and publishes it to `ghcr.io`.
 2. **VPS**: Pulls the pre-built image and runs it via `docker compose`.
 
+### CI Test Reports
+
+**Allure report (API + Infra + E2E):**
+- Open the GitHub Actions run → download artifact `allure-report-<run_number>`.
+- Unzip and open `index.html` in a browser, or run `allure open allure-report/` locally.
+- The report runs even when tests fail (`if: always()`), so you always get a result breakdown.
+
+**Performance report (Locust):**
+- Open the GitHub Actions run linked from the ntfy notification.
+- Open the `Performance Tests (Locust)` job and read the job summary for the threshold table.
+- Download artifact `perf-report-<run_number>` for `report.html` and raw CSV files.
+
+Performance threshold warnings are reported in the job summary and ntfy notification, but they do not block the already-finished deploy.
+
 ### VPS Operations & Maintenance
 
 *It is highly recommended NOT to run `docker compose build` or `npm run build` directly on a 2GB VPS.*
