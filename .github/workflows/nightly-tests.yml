@@ -135,7 +135,7 @@ jobs:
           path: allure-results/api/
 
       - name: Upload JUnit report (for AI analysis)
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nightly-junit-${{ github.run_number }}
@@ -169,6 +169,13 @@ jobs:
         with:
           name: allure-infra-${{ github.run_number }}
           path: allure-results/infra/
+
+      - name: Upload JUnit report (for AI analysis)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-junit-infra-${{ github.run_number }}
+          path: allure-results/infra-junit.xml
 
 # ─── 4. E2E Tests ─────────────────────────────────────────────────────────────
   e2e-tests:
@@ -420,51 +427,92 @@ jobs:
               }')" \
             https://arthurlovegrace.top/ntfy-push
 
-# ─── 9. AI Failure Analysis ────────────────────────────────────────────────────
+# ─── 9. AI Nightly Summary ─────────────────────────────────────────────────────
+#
+# Always runs after api-tests + infra-tests (success or failure).
+# Picks the prompt template based on whether any test job failed:
+#   failure → failure_analysis.md (root-cause analysis)
+#   success → test_summary.md    (brief all-clear summary)
 #
 # Runs on VPS (self-hosted) so agy OAuth credentials are available.
 # continue-on-error: true at the agy step level so a crash never drops the
-# ntfy notification — the step falls back to the raw failure context.
+# ntfy notification — the step falls back to the raw context.
   ai-analysis:
-    name: AI Failure Analysis
+    name: AI Nightly Summary
     needs: [api-tests, infra-tests]
     runs-on: [self-hosted, linux, vps]
-    if: failure()
+    if: always()
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download JUnit report
+      - name: Download API JUnit report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: nightly-junit-${{ github.run_number }}
           path: tests/ai_hooks/
 
+      - name: Download infra JUnit report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: nightly-junit-infra-${{ github.run_number }}
+          path: tests/ai_hooks/
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Format failure report
+      - name: Format test report
         run: |
           rm -f /tmp/failure-context.md /tmp/failure-analysis-prompt.md /tmp/ai-analysis-result.md
-          python3 tests/ai_hooks/format_report.py \
-            --input tests/ai_hooks/report.xml \
-            --output /tmp/failure-context.md
-          echo "=== Failure Context ==="
+          # Collect whichever JUnit XMLs arrived — partial downloads are fine.
+          INPUTS=()
+          [ -f tests/ai_hooks/report.xml ]       && INPUTS+=(tests/ai_hooks/report.xml)
+          [ -f tests/ai_hooks/infra-junit.xml ]  && INPUTS+=(tests/ai_hooks/infra-junit.xml)
+          if [ ${#INPUTS[@]} -gt 0 ]; then
+            python3 tests/ai_hooks/format_report.py \
+              --input "${INPUTS[@]}" \
+              --output /tmp/failure-context.md
+          else
+            echo "# Test Report" > /tmp/failure-context.md
+            echo "" >> /tmp/failure-context.md
+            echo "No JUnit XML reports were available. Check CI logs for details." >> /tmp/failure-context.md
+          fi
+          echo "=== Test Context ==="
           cat /tmp/failure-context.md
+
+      - name: Choose prompt template
+        id: prompt
+        run: |
+          API="${{ needs.api-tests.result }}"
+          INFRA="${{ needs.infra-tests.result }}"
+          if [ "$API" = "failure" ] || [ "$API" = "cancelled" ] || \
+             [ "$INFRA" = "failure" ] || [ "$INFRA" = "cancelled" ]; then
+            echo "template=failure_analysis" >> "$GITHUB_OUTPUT"
+            echo "title=🤖 AI Failure Analysis" >> "$GITHUB_OUTPUT"
+            echo "tag=mag" >> "$GITHUB_OUTPUT"
+            echo "priority=3" >> "$GITHUB_OUTPUT"
+          else
+            echo "template=test_summary" >> "$GITHUB_OUTPUT"
+            echo "title=🤖 AI Nightly Summary" >> "$GITHUB_OUTPUT"
+            echo "tag=white_check_mark" >> "$GITHUB_OUTPUT"
+            echo "priority=2" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Assemble agy prompt
         run: |
           python3 - << 'PYEOF'
           import pathlib
-          template = pathlib.Path("tests/ai_hooks/prompts/failure_analysis.md").read_text()
+          template_name = "${{ steps.prompt.outputs.template }}"
+          template = pathlib.Path(f"tests/ai_hooks/prompts/{template_name}.md").read_text()
           context = pathlib.Path("/tmp/failure-context.md").read_text()
           prompt = template.replace("{FAILURE_CONTEXT}", context)
           pathlib.Path("/tmp/failure-analysis-prompt.md").write_text(prompt)
-          print(f"Prompt assembled: {len(prompt)} chars")
+          print(f"Prompt assembled ({template_name}): {len(prompt)} chars")
           PYEOF
 
-      - name: Invoke agy for failure analysis
+      - name: Invoke agy
         continue-on-error: true
         timeout-minutes: 5
         run: |
@@ -473,14 +521,16 @@ jobs:
             --dangerously-skip-permissions \
             -p "$(cat /tmp/failure-analysis-prompt.md)"
 
-      - name: Send analysis via ntfy
+      - name: Send summary via ntfy
         run: |
+          TITLE="${{ steps.prompt.outputs.title }}"
+          TAG="${{ steps.prompt.outputs.tag }}"
+          PRIORITY="${{ steps.prompt.outputs.priority }}"
           if [ -f /tmp/ai-analysis-result.md ]; then
             CONTENT=$(head -c 3000 /tmp/ai-analysis-result.md)
-            TITLE="🤖 AI Failure Analysis"
           else
             CONTENT=$(head -c 1500 /tmp/failure-context.md)
-            TITLE="🤖 Nightly AI Failure Context"
+            TITLE="$TITLE (raw)"
           fi
           curl -fsS -X POST \
             -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
@@ -488,12 +538,14 @@ jobs:
             -d "$(jq -n \
               --arg title "$TITLE" \
               --arg msg "$CONTENT" \
+              --arg tag "$TAG" \
+              --argjson pri "$PRIORITY" \
               '{
                 topic: "watchtower-arthur71684",
                 title: $title,
                 message: $msg,
-                tags: ["mag"],
-                priority: 3
+                tags: [$tag],
+                priority: $pri
               }')" \
             https://arthurlovegrace.top/ntfy-push
 
