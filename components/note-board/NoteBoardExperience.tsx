@@ -127,7 +127,7 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems }: { onToggleV
                 {state.noteItems.map((item, index) => {
                   const { message, actions: cardActions, priorityControl, reactionControl, checklistControl, inlineEditor, isEditing, isOptimistic, isOptimisticEditing, isFresh } = item
 
-                  if (filters.effectiveSelectedDate && !filteredItemIds.has(message.id)) {
+                  if ((filters.effectiveSelectedDate || state.activeDueDate) && !filteredItemIds.has(message.id)) {
                     return null
                   }
 
