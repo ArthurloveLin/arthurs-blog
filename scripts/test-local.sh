@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# test-local.sh — run infra + API tests locally before pushing.
+# test-local.sh — debug tool for validating the test pipeline itself.
+#
+# Intended use: run by Claude when modifying CI/test infrastructure to verify
+# changes before committing. Not a mandatory pre-push gate — CI is the
+# authoritative test gate.
 #
 # Usage:
 #   ./scripts/test-local.sh            # run tests, keep container running
@@ -85,9 +89,9 @@ fi
 # ── 5. Summary ─────────────────────────────────────────────────────────────────
 echo ""
 if [ "$FAILED" -eq 0 ]; then
-  pass "All local checks passed — safe to push."
+  pass "All local checks passed."
   exit 0
 else
-  fail "$FAILED test suite(s) failed — fix before pushing."
+  fail "$FAILED test suite(s) failed."
   exit 1
 fi
