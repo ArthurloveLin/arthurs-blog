@@ -1,0 +1,601 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'MD/**'
+      - '**/*.md'
+      - 'workers/**'
+      - 'supabase/**'
+      - '.claude/**'
+      - '.agents/**'
+      - 'tmp/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'MD/**'
+      - '**/*.md'
+      - 'workers/**'
+      - 'supabase/**'
+      - '.claude/**'
+      - '.agents/**'
+      - 'tmp/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/arthurlovelin/arthurs-blog
+
+# Job dependency graph (push to main):
+#
+#   check → docker → setup → api-tests ──┐
+#                         └─ infra-tests ─┼→ deploy → perf-tests
+#                              api-tests → e2e-tests ┘
+#                         └─────────────────────────── teardown (always)
+#                   └─ release (after deploy)
+#
+# On PR: only check + docker build (no push, no tests, no deploy).
+
+jobs:
+
+# ─── 1. Static checks ──────────────────────────────────────────────────────────
+  check:
+    name: Type check & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run check
+        run: npm run check
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+
+# ─── 2. Build & push Docker image ──────────────────────────────────────────────
+  docker:
+    name: Build & Push Image
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 1
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Extract commit summary
+        id: commit_info
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          FIRST_LINE=$(printf '%s' "$COMMIT_MSG" | head -1)
+          echo "summary=${FIRST_LINE}" >> $GITHUB_OUTPUT
+
+      - name: Validate publish-time public env vars
+        if: github.event_name != 'pull_request'
+        run: |
+          test -n "$NEXT_PUBLIC_SUPABASE_URL"
+          test -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY"
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Generate Docker metadata
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.description=${{ steps.commit_info.outputs.summary }}
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ github.event_name == 'pull_request' && 'https://placeholder.supabase.co' || vars.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ github.event_name == 'pull_request' && 'placeholder' || vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_SPOTIFY_WORKER_URL=${{ vars.NEXT_PUBLIC_SPOTIFY_WORKER_URL }}
+            NEXT_PUBLIC_SPOTIFY_NOW_PLAYING_WORKER_URL=${{ vars.NEXT_PUBLIC_SPOTIFY_NOW_PLAYING_WORKER_URL }}
+            NEXT_PUBLIC_GENIUS_WORKER_URL=${{ vars.NEXT_PUBLIC_GENIUS_WORKER_URL }}
+            NEXT_PUBLIC_ENGAGEMENT_WORKER_URL=${{ vars.NEXT_PUBLIC_ENGAGEMENT_WORKER_URL }}
+            NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY }}
+          secrets: |
+            "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+            "R2_ACCOUNT_ID=${{ secrets.R2_ACCOUNT_ID }}"
+            "R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }}"
+            "R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }}"
+            "R2_BLOG_BUCKET=${{ secrets.R2_BLOG_BUCKET }}"
+            "R2_BLOG_PUBLIC_DOMAIN=${{ secrets.R2_BLOG_PUBLIC_DOMAIN }}"
+            "R2_SPOTIFY_BUCKET=${{ secrets.R2_SPOTIFY_BUCKET }}"
+            "R2_SPOTIFY_PUBLIC_DOMAIN=${{ secrets.R2_SPOTIFY_PUBLIC_DOMAIN }}"
+            "R2_WARDROBE_BUCKET=${{ secrets.R2_WARDROBE_BUCKET }}"
+            "R2_WARDROBE_PUBLIC_URL=${{ secrets.R2_WARDROBE_PUBLIC_URL }}"
+            "R2_CDN_BUCKET=${{ secrets.R2_CDN_BUCKET }}"
+            "R2_CDN_PUBLIC_DOMAIN=${{ secrets.R2_CDN_PUBLIC_DOMAIN }}"
+
+# ─── 3. Start test container on VPS (port 3020) ────────────────────────────────
+  setup:
+    name: Start Test Container
+    needs: docker
+    if: github.event_name != 'pull_request'
+    runs-on: [self-hosted, linux, vps]
+    outputs:
+      container_ready: ${{ steps.health.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate .env.test.local from secrets
+        env:
+          TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          TEST_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BLOG_BUCKET: ${{ secrets.R2_BLOG_BUCKET }}
+          R2_BLOG_PUBLIC_DOMAIN: ${{ secrets.R2_BLOG_PUBLIC_DOMAIN }}
+          R2_WARDROBE_BUCKET: ${{ secrets.R2_WARDROBE_BUCKET }}
+          R2_WARDROBE_PUBLIC_URL: ${{ secrets.R2_WARDROBE_PUBLIC_URL }}
+          R2_CDN_BUCKET: ${{ secrets.R2_CDN_BUCKET }}
+          R2_CDN_PUBLIC_DOMAIN: ${{ secrets.R2_CDN_PUBLIC_DOMAIN }}
+          NEXT_PUBLIC_ENGAGEMENT_WORKER_URL: ${{ secrets.NEXT_PUBLIC_ENGAGEMENT_WORKER_URL }}
+          NEXT_PUBLIC_SPOTIFY_WORKER_URL: ${{ secrets.NEXT_PUBLIC_SPOTIFY_WORKER_URL }}
+          NEXT_PUBLIC_GENIUS_WORKER_URL: ${{ secrets.NEXT_PUBLIC_GENIUS_WORKER_URL }}
+          NEXT_PUBLIC_SPOTIFY_NOW_PLAYING_WORKER_URL: ${{ secrets.NEXT_PUBLIC_SPOTIFY_NOW_PLAYING_WORKER_URL }}
+          MEMO_PUBLIC_OWNER_ID: ${{ secrets.MEMO_PUBLIC_OWNER_ID }}
+        run: |
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=${TEST_SUPABASE_URL}"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${TEST_SUPABASE_ANON_KEY}"
+            echo "SUPABASE_SERVICE_ROLE_KEY=${TEST_SUPABASE_SERVICE_ROLE_KEY}"
+            echo "TEST_ADMIN_EMAIL=${TEST_ADMIN_EMAIL}"
+            echo "TEST_ADMIN_PASSWORD=${TEST_ADMIN_PASSWORD}"
+            echo "R2_ACCOUNT_ID=${R2_ACCOUNT_ID}"
+            echo "R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}"
+            echo "R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}"
+            echo "R2_BLOG_BUCKET=${R2_BLOG_BUCKET}"
+            echo "R2_BLOG_PUBLIC_DOMAIN=${R2_BLOG_PUBLIC_DOMAIN}"
+            echo "R2_WARDROBE_BUCKET=${R2_WARDROBE_BUCKET}"
+            echo "R2_WARDROBE_PUBLIC_URL=${R2_WARDROBE_PUBLIC_URL}"
+            echo "R2_CDN_BUCKET=${R2_CDN_BUCKET}"
+            echo "R2_CDN_PUBLIC_DOMAIN=${R2_CDN_PUBLIC_DOMAIN}"
+            echo "NEXT_PUBLIC_ENGAGEMENT_WORKER_URL=${NEXT_PUBLIC_ENGAGEMENT_WORKER_URL}"
+            echo "NEXT_PUBLIC_SPOTIFY_WORKER_URL=${NEXT_PUBLIC_SPOTIFY_WORKER_URL}"
+            echo "NEXT_PUBLIC_GENIUS_WORKER_URL=${NEXT_PUBLIC_GENIUS_WORKER_URL}"
+            echo "NEXT_PUBLIC_SPOTIFY_NOW_PLAYING_WORKER_URL=${NEXT_PUBLIC_SPOTIFY_NOW_PLAYING_WORKER_URL}"
+            echo "MEMO_PUBLIC_OWNER_ID=${MEMO_PUBLIC_OWNER_ID}"
+            echo "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY=1x00000000000000000000AA"
+            echo "CLOUDFLARE_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA"
+            echo "NEXT_PUBLIC_SITE_URL=http://localhost:3020"
+          } > .env.test.local
+          echo "✅ .env.test.local generated ($(wc -l < .env.test.local) lines)"
+
+      - name: Pull latest image
+        run: docker pull ghcr.io/arthurlovelin/arthurs-blog:latest
+
+      - name: Stop any existing test container
+        run: docker compose -f tests/docker-compose.test.yml down --remove-orphans 2>/dev/null || true
+
+      - name: Start test container
+        run: docker compose -f tests/docker-compose.test.yml up -d
+
+      - name: Wait for health check
+        id: health
+        run: |
+          for i in $(seq 1 18); do
+            if curl -sf http://localhost:3020/api/blog/search?q=test -o /dev/null; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              echo "✅ Test container healthy after ${i}0s"
+              exit 0
+            fi
+            echo "⏳ Waiting for container... attempt $i/18"
+            sleep 10
+          done
+          echo "❌ Container failed to become healthy"
+          docker logs arthurs-blog-test --tail 50
+          exit 1
+
+# ─── 4. API Integration Tests ─────────────────────────────────────────────────
+  api-tests:
+    name: API Integration Tests (pytest)
+    needs: setup
+    runs-on: [self-hosted, linux, vps]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: tests/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r tests/requirements.txt
+
+      - name: Run API tests
+        env:
+          TEST_BASE_URL: http://localhost:3020
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+        run: |
+          pytest tests/api/ -v \
+            --alluredir=allure-results/api \
+            --json-report \
+            --json-report-file=tests/ai_hooks/report.json \
+            --timeout=30 \
+            -m "not slow"
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-api-${{ github.run_number }}
+          path: allure-results/api/
+
+      - name: Upload JSON report (for AI analysis)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: json-report-${{ github.run_number }}
+          path: tests/ai_hooks/report.json
+
+# ─── 5. Docker Infrastructure Tests ───────────────────────────────────────────
+  infra-tests:
+    name: Docker Infra Tests (testinfra)
+    needs: setup
+    runs-on: [self-hosted, linux, vps]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: tests/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r tests/requirements.txt
+
+      - name: Run infrastructure tests
+        run: |
+          pytest tests/infra/ -v \
+            --hosts=docker://arthurs-blog-test \
+            --alluredir=allure-results/infra \
+            --timeout=30
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-infra-${{ github.run_number }}
+          path: allure-results/infra/
+
+# ─── 6. E2E Tests (Playwright) ────────────────────────────────────────────────
+  e2e-tests:
+    name: E2E Tests (Playwright)
+    needs: api-tests
+    runs-on: [self-hosted, linux, vps]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: tests/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r tests/requirements.txt
+
+      - name: Install Playwright browsers
+        run: playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        env:
+          TEST_BASE_URL: http://localhost:3020
+        run: |
+          pytest tests/e2e/ -v \
+            --alluredir=allure-results/e2e \
+            --timeout=60 \
+            --browser=chromium \
+            --headed=false
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-e2e-${{ github.run_number }}
+          path: allure-results/e2e/
+
+# ─── 7. Deploy — only after all three test suites pass ────────────────────────
+  deploy:
+    name: Trigger Watchtower Deploy
+    needs: [api-tests, infra-tests, e2e-tests]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Call Watchtower webhook
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.WATCHTOWER_TOKEN }}" \
+            https://arthurlovegrace.top/deploy
+        timeout-minutes: 2
+
+      - name: Send deploy notification
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          SUMMARY=$(printf '%s' "$COMMIT_MSG" | head -1)
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg sha "${{ github.sha }}" \
+              --arg msg "$SUMMARY" \
+              --arg image "${{ env.IMAGE_NAME }}" \
+              '{
+                topic: "watchtower-arthur71684",
+                title: "🚀 arthurs-blog 部署成功",
+                message: ("━━━━━━━━━━━━━━━━━━\n✅ 容器: arthurs-blog\n🐳 镜像: \($image)\n🔖 提交: \($sha[:7])\n📝 内容: \($msg)\n━━━━━━━━━━━━━━━━━━"),
+                tags: ["white_check_mark"],
+                priority: 3
+              }')" \
+            https://arthurlovegrace.top/ntfy-push
+
+# ─── 8. Performance Tests — cloud runner, after deploy is live ─────────────────
+  perf-tests:
+    name: Performance Tests (Locust)
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: tests/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r tests/requirements.txt
+
+      - name: Run Locust performance smoke test
+        env:
+          PERF_TARGET_HOST: ${{ vars.TEST_SITE_URL || 'https://test.arthurlovegrace.top' }}
+        run: |
+          locust -f tests/perf/locustfile.py \
+            --headless \
+            -u 20 -r 2 \
+            --run-time 60s \
+            --host "$PERF_TARGET_HOST" \
+            --csv tests/perf/results \
+            --exit-code-on-error 1 \
+            --html tests/perf/report.html
+
+      - name: Check performance thresholds
+        if: always()
+        run: python tests/perf/thresholds.py --csv tests/perf/results_stats.csv
+
+      - name: Upload performance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-report-${{ github.run_number }}
+          path: |
+            tests/perf/results*.csv
+            tests/perf/report.html
+
+# ─── 9. Teardown — always runs, waits for all test + perf jobs ────────────────
+  teardown:
+    name: Stop Test Container
+    needs: [api-tests, infra-tests, e2e-tests, perf-tests]
+    runs-on: [self-hosted, linux, vps]
+    if: always() && github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop test container
+        run: docker compose -f tests/docker-compose.test.yml down --remove-orphans
+
+# ─── 10. Version snapshot — only for deployed code ────────────────────────────
+  release:
+    name: Create Version Snapshot
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate version tag
+        id: version
+        run: echo "tag=v$(date -u +%Y.%m.%d-%H%M)" >> $GITHUB_OUTPUT
+
+      - name: Re-tag image without rebuild
+        run: |
+          SHA_TAG="sha-$(echo ${{ github.sha }} | cut -c1-7)"
+          docker buildx imagetools create \
+            --tag ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }} \
+            ${{ env.IMAGE_NAME }}:${SHA_TAG}
+
+      - name: Get commit message
+        id: commit
+        run: |
+          MSG=$(curl -fsS \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}" \
+            | jq -r '.commit.message | split("\n")[0]')
+          echo "message=${MSG}" >> $GITHUB_OUTPUT
+
+      - name: Create annotated git tag
+        run: |
+          TAG_SHA=$(curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/git/tags \
+            -d "$(jq -n \
+              --arg tag "${{ steps.version.outputs.tag }}" \
+              --arg msg "${{ steps.commit.outputs.message }}" \
+              --arg sha "${{ github.sha }}" \
+              '{tag: $tag, message: $msg, object: $sha, type: "commit"}')" \
+            | jq -r '.sha')
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/git/refs \
+            -d "$(jq -n \
+              --arg ref "refs/tags/${{ steps.version.outputs.tag }}" \
+              --arg sha "${TAG_SHA}" \
+              '{ref: $ref, sha: $sha}')"
+
+# ─── 11. Unified failure notification ─────────────────────────────────────────
+  notify:
+    name: Notify on Failure
+    needs: [check, docker, api-tests, infra-tests, e2e-tests, deploy, perf-tests]
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Determine failure stage
+        id: status
+        run: |
+          if [ "${{ needs.check.result }}" = "failure" ]; then
+            echo "stage=类型检查 & Lint" >> $GITHUB_OUTPUT
+          elif [ "${{ needs.docker.result }}" = "failure" ]; then
+            echo "stage=Docker 构建" >> $GITHUB_OUTPUT
+          elif [ "${{ needs.deploy.result }}" = "failure" ]; then
+            echo "stage=部署触发" >> $GITHUB_OUTPUT
+          elif [ "${{ needs.perf-tests.result }}" = "failure" ]; then
+            echo "stage=性能测试" >> $GITHUB_OUTPUT
+          else
+            FAILED=""
+            [ "${{ needs.api-tests.result }}" = "failure" ] && FAILED="${FAILED}API "
+            [ "${{ needs.infra-tests.result }}" = "failure" ] && FAILED="${FAILED}Infra "
+            [ "${{ needs.e2e-tests.result }}" = "failure" ] && FAILED="${FAILED}E2E"
+            echo "stage=测试失败: ${FAILED}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send failure notification
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          SUMMARY=$(printf '%s' "$COMMIT_MSG" | head -1)
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg sha "${{ github.sha }}" \
+              --arg msg "$SUMMARY" \
+              --arg stage "${{ steps.status.outputs.stage }}" \
+              --arg url "$RUN_URL" \
+              '{
+                topic: "watchtower-arthur71684",
+                title: "❌ CI 失败",
+                message: ("━━━━━━━━━━━━━━━━━━\n💥 阶段: \($stage)\n🔖 提交: \($sha[:7])\n📝 内容: \($msg)\n━━━━━━━━━━━━━━━━━━"),
+                tags: ["x"],
+                priority: 4,
+                click: $url
+              }')" \
+            https://arthurlovegrace.top/ntfy-push
+
+# ─── 12. AI Failure Analysis ──────────────────────────────────────────────────
+  ai-analysis:
+    name: AI Failure Analysis
+    needs: [api-tests, infra-tests]
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download JSON report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: json-report-${{ github.run_number }}
+          path: tests/ai_hooks/
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Format failure report
+        run: |
+          python tests/ai_hooks/format_report.py \
+            --input tests/ai_hooks/report.json \
+            --output /tmp/failure-context.md
+          echo "=== Failure Context ==="
+          cat /tmp/failure-context.md
+
+      # ── Wire up your AI agent here ──────────────────────────────────────────
+      # Option A: Antigravity CLI
+      # - name: Run Antigravity analysis
+      #   run: antigravity run --input /tmp/failure-context.md --output /tmp/analysis.md
+      #
+      # Option B: Claude Code
+      # - name: Run Claude analysis
+      #   run: |
+      #     claude --print "Analyze these test failures:\n$(cat /tmp/failure-context.md)" \
+      #       > /tmp/analysis.md
+      # ────────────────────────────────────────────────────────────────────────
+
+      - name: Send failure context to ntfy
+        run: |
+          PREVIEW=$(head -c 1500 /tmp/failure-context.md)
+          curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg msg "$PREVIEW" \
+              '{title: "🤖 AI Failure Context", message: $msg, tags: ["mag"], priority: 3}')" \
+            https://arthurlovegrace.top/ntfy-push
