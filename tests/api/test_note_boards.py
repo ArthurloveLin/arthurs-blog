@@ -1,5 +1,5 @@
 """
-API tests for /api/note-boards/* endpoints (memo board).
+API tests for /api/note-boards/* endpoints.
 
 Endpoints covered:
   GET /api/note-boards/memo          — list memo notes
@@ -7,6 +7,9 @@ Endpoints covered:
   GET /api/note-boards/memo/tags     — tag counts
   GET /api/note-boards/memo/dates    — date hierarchy for calendar sidebar
   GET /api/note-boards/memo/agenda   — notes with upcoming due dates
+  GET /api/note-boards/guestbook     — 410 Gone (migrated to /api/comments)
+  POST /api/note-boards/guestbook    — 410 Gone (migrated to /api/comments)
+  GET /api/note-boards/<invalid>     — 404 Not Found
 """
 
 import allure
@@ -126,3 +129,22 @@ class TestMemoAgenda:
 
     def test_agenda_response_is_array(self, client):
         assert isinstance(client.get("/api/note-boards/memo/agenda").json(), list)
+
+
+@allure.feature("Note Boards")
+@allure.story("Guestbook (Migrated)")
+class TestGuestbookBoard:
+    """Guestbook reads/writes were migrated to /api/comments via the engagement-worker.
+    /api/note-boards/guestbook returns 410 Gone for both GET and POST."""
+
+    def test_guestbook_list_returns_410(self, client):
+        resp = client.get("/api/note-boards/guestbook")
+        assert resp.status_code == 410
+
+    def test_guestbook_post_returns_410(self, client):
+        resp = client.post("/api/note-boards/guestbook", json={"author": "test", "content": "hello"})
+        assert resp.status_code == 410
+
+    def test_invalid_board_slug_returns_404(self, client):
+        resp = client.get("/api/note-boards/nonexistent-board-xyz")
+        assert resp.status_code == 404

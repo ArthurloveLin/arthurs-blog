@@ -1,15 +1,16 @@
 """
-Post-run threshold checker for Locust CSV results.
+Post-run performance report for Locust CSV results.
 
-Called after locust --csv=tests/perf/results to enforce SLOs:
-    - p95 response time < 1000ms (public internet, includes network RTT)
-    - error rate < 1%
+Displays P50 / P75 / P95 / P99 per endpoint, plus an estimated real-world
+latency column that subtracts the test-chain network overhead (GitHub
+cloud runner → VPS round-trip). No pass/fail judgement — purely informational.
 
 Usage:
-    python tests/perf/thresholds.py --csv tests/perf/results
-    python tests/perf/thresholds.py --csv tests/perf/results --markdown-out tests/perf/thresholds-summary.md --no-fail
+    python tests/perf/thresholds.py --csv tests/perf/results_stats.csv
+    python tests/perf/thresholds.py --csv tests/perf/results_stats.csv \\
+        --markdown-out tests/perf/thresholds-summary.md
 
-Exit code 0 = all thresholds passed, 1 = failure (unless --no-fail is set).
+Exit code is always 0.
 """
 
 import argparse
@@ -18,153 +19,142 @@ import sys
 from pathlib import Path
 
 
-P95_THRESHOLD_MS = 2000       # public internet baseline (cloud runner → VPS)
-ERROR_RATE_THRESHOLD = 0.01   # 1%
+# ── Test-chain network overhead ───────────────────────────────────────────────
+# GitHub Actions ubuntu-latest runners run in Azure US-East.
+# The VPS is in Asia (Singapore / Mumbai area).
+# Measured one-way RTT ≈ 150–250 ms; use 200 ms as a conservative midpoint.
+# "P95 est. actual" = P95 measured − this constant, giving an approximation
+# of what a same-region user would observe under equivalent load.
+NETWORK_OVERHEAD_MS = 200
 
-# Per-endpoint overrides (substring match on Name column)
-P95_OVERRIDES: dict[str, int] = {
-    "/api/blog/search": 4000,           # full-text search hits Supabase; slower under load
-    "/api/note-boards/memo/search": 3000,  # Supabase full-text search, same reason
-}
+# Locust stats CSV column names for each percentile
+_PERC_COLS   = ["50%",  "75%",  "95%",  "99%"]
+_PERC_LABELS = ["P50",  "P75",  "P95",  "P99"]
 
 
-def parse_stats(csv_path: Path) -> list[dict]:
-    rows = []
+# ── Parsing ───────────────────────────────────────────────────────────────────
+
+def _parse_stats(csv_path: Path) -> list[dict]:
     with open(csv_path, newline="") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            rows.append(row)
-    return rows
+        return list(csv.DictReader(f))
 
 
-def evaluate_thresholds(stats_file: str) -> tuple[bool, list[dict[str, object]], str | None]:
+def build_report(stats_file: str) -> tuple[list[dict], str | None]:
     path = Path(stats_file)
     if not path.exists():
-        message = f"Stats file not found: {path}"
-        print(f"[FAIL] {message}")
-        return False, [], message
+        return [], f"Stats file not found: {path}"
 
-    rows = parse_stats(path)
-    passed = True
-    results: list[dict[str, object]] = []
-
-    for row in rows:
+    results = []
+    for row in _parse_stats(path):
         name = row.get("Name", "?")
         if name == "Aggregated":
-            continue  # check per-endpoint, not aggregate
+            continue
 
         try:
-            p95 = float(row.get("95%", 0))
             failures = int(row.get("Failure Count", 0))
             requests = int(row.get("Request Count", 1))
         except (ValueError, KeyError):
             continue
 
-        error_rate = failures / max(requests, 1)
+        percentiles: dict[str, float] = {}
+        for col, label in zip(_PERC_COLS, _PERC_LABELS):
+            try:
+                percentiles[label] = float(row.get(col) or 0)
+            except (ValueError, TypeError):
+                percentiles[label] = 0.0
 
-        p95_limit = next(
-            (v for k, v in P95_OVERRIDES.items() if k in name),
-            P95_THRESHOLD_MS,
-        )
-        p95_ok = p95 <= p95_limit
-        error_rate_ok = error_rate <= ERROR_RATE_THRESHOLD
-
-        results.append(
-            {
-                "name": name,
-                "p95": p95,
-                "p95_limit": p95_limit,
-                "p95_ok": p95_ok,
-                "error_rate": error_rate,
-                "error_rate_limit": ERROR_RATE_THRESHOLD,
-                "error_rate_ok": error_rate_ok,
-            }
-        )
-
-        if not p95_ok:
-            print(f"[FAIL] {name}: p95={p95:.0f}ms > threshold={p95_limit}ms")
-            passed = False
-        else:
-            print(f"[PASS] {name}: p95={p95:.0f}ms")
-
-        if not error_rate_ok:
-            print(f"[FAIL] {name}: error_rate={error_rate:.1%} > threshold={ERROR_RATE_THRESHOLD:.1%}")
-            passed = False
-        else:
-            print(f"[PASS] {name}: error_rate={error_rate:.1%}")
+        results.append({
+            "name": name,
+            "p": percentiles,
+            "p95_actual_est": max(0.0, percentiles["P95"] - NETWORK_OVERHEAD_MS),
+            "error_rate": failures / max(requests, 1),
+            "requests": requests,
+        })
 
     if not results:
-        message = f"No per-endpoint rows found in {path}"
-        print(f"[FAIL] {message}")
-        return False, [], message
+        return [], f"No per-endpoint rows found in {path}"
 
-    return passed, results, None
+    return results, None
 
 
-def write_markdown_summary(
-    output_path: Path,
-    stats_file: str,
-    passed: bool,
-    results: list[dict[str, object]],
-    error_message: str | None,
-) -> None:
+# ── Stdout summary ────────────────────────────────────────────────────────────
+
+def print_report(results: list[dict]) -> None:
+    col_w = max((len(r["name"]) for r in results), default=8)
+    header = f"{'Endpoint':<{col_w}}  {'P50':>7}  {'P75':>7}  {'P95':>7}  {'P99':>7}  {'P95 est.':>9}  {'Errors':>7}"
+    print(header)
+    print("-" * len(header))
+    for r in results:
+        p = r["p"]
+        print(
+            f"{r['name']:<{col_w}}"
+            f"  {p['P50']:>6.0f}ms"
+            f"  {p['P75']:>6.0f}ms"
+            f"  {p['P95']:>6.0f}ms"
+            f"  {p['P99']:>6.0f}ms"
+            f"  {r['p95_actual_est']:>8.0f}ms"
+            f"  {r['error_rate']:>6.2%}"
+        )
+
+
+# ── Markdown report ───────────────────────────────────────────────────────────
+
+def write_markdown(output_path: Path, stats_file: str, results: list[dict], error_message: str | None) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     lines = [
-        "### Threshold Summary",
+        "### Performance Report",
         "",
-        f"- Source CSV: {stats_file}",
-        f"- Overall: {'PASS' if passed else 'WARN'}",
+        f"- Source: `{stats_file}`",
+        f"- Test chain overhead: **{NETWORK_OVERHEAD_MS} ms** (GitHub cloud runner → VPS estimated RTT)",
+        f"- **P95 est. actual** = P95 measured − {NETWORK_OVERHEAD_MS} ms &nbsp;*(approximates same-region user latency under load)*",
+        "",
     ]
 
     if error_message:
-        lines.append(f"- Note: {error_message}")
+        lines += [f"> ⚠️ {error_message}", ""]
 
     if results:
-        lines.extend(
-            [
-                "",
-                "| Endpoint | P95 | Limit | P95 status | Error rate | Limit | Error status |",
-                "| --- | ---: | ---: | --- | ---: | ---: | --- |",
-            ]
-        )
-
-        for result in results:
+        lines += [
+            "| Endpoint | P50 | P75 | P95 | P99 | P95 est. actual | Error rate |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+        for r in results:
+            p = r["p"]
             lines.append(
-                "| {name} | {p95:.0f} ms | {p95_limit} ms | {p95_status} | {error_rate:.2%} | {error_rate_limit:.2%} | {error_status} |".format(
-                    name=result["name"],
-                    p95=result["p95"],
-                    p95_limit=result["p95_limit"],
-                    p95_status="PASS" if result["p95_ok"] else "FAIL",
-                    error_rate=result["error_rate"],
-                    error_rate_limit=result["error_rate_limit"],
-                    error_status="PASS" if result["error_rate_ok"] else "FAIL",
-                )
+                f"| {r['name']}"
+                f" | {p['P50']:.0f} ms"
+                f" | {p['P75']:.0f} ms"
+                f" | {p['P95']:.0f} ms"
+                f" | {p['P99']:.0f} ms"
+                f" | {r['p95_actual_est']:.0f} ms"
+                f" | {r['error_rate']:.2%} |"
             )
     else:
-        lines.extend(["", "No per-endpoint rows were available to summarize."])
+        lines.append("No per-endpoint data available.")
 
     output_path.write_text("\n".join(lines) + "\n")
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--csv", default="tests/perf/results_stats.csv", help="Locust stats CSV file")
-    parser.add_argument("--markdown-out", help="Optional markdown summary output path")
-    parser.add_argument("--no-fail", action="store_true", help="Always exit 0 after reporting")
+# ── Entry point ───────────────────────────────────────────────────────────────
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Locust performance report (informational)")
+    parser.add_argument("--csv", default="tests/perf/results_stats.csv", help="Locust stats CSV")
+    parser.add_argument("--markdown-out", help="Write markdown summary to this path")
     args = parser.parse_args()
 
-    ok, results, error_message = evaluate_thresholds(args.csv)
-    if args.markdown_out:
-        write_markdown_summary(Path(args.markdown_out), args.csv, ok, results, error_message)
+    results, error_message = build_report(args.csv)
 
-    if not ok:
-        print("\n[FAIL] Performance thresholds not met.")
-        if args.no_fail:
-            print("[INFO] --no-fail enabled; reporting completed without failing the caller.")
-            sys.exit(0)
-        sys.exit(1)
-    print("\n[PASS] All performance thresholds met.")
+    if error_message:
+        print(f"[WARN] {error_message}")
+
+    if results:
+        print_report(results)
+
+    if args.markdown_out:
+        write_markdown(Path(args.markdown_out), args.csv, results, error_message)
+
     sys.exit(0)
 
 

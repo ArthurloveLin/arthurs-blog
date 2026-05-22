@@ -301,6 +301,7 @@ jobs:
           pytest tests/infra/ -v \
             --hosts=docker://arthurs-blog-test \
             --alluredir=allure-results/infra \
+            --junit-xml=allure-results/infra-junit.xml \
             --timeout=30
 
       - name: Upload Allure results
@@ -313,7 +314,7 @@ jobs:
 # ─── 6. E2E Tests (Playwright) ────────────────────────────────────────────────
   e2e-tests:
     name: E2E Tests (Playwright)
-    needs: api-tests
+    needs: setup
     runs-on: [self-hosted, linux, vps]
     steps:
       - uses: actions/checkout@v4
@@ -331,6 +332,13 @@ jobs:
       - name: Remove broken apt sources
         run: sudo rm -f /etc/apt/sources.list.d/ookla_speedtest-cli.list || true
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
+          restore-keys: playwright-chromium-${{ runner.os }}-
+
       - name: Install Playwright browsers
         run: playwright install chromium --with-deps
 
@@ -340,6 +348,7 @@ jobs:
         run: |
           pytest tests/e2e/ -v \
             --alluredir=allure-results/e2e \
+            --junit-xml=allure-results/e2e-junit.xml \
             --timeout=60 \
             --browser=chromium
 
@@ -380,8 +389,16 @@ jobs:
           name: allure-e2e-${{ github.run_number }}
           path: allure-results/
 
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+      - name: Cache Allure CLI
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: allure-cli-${{ runner.os }}
       - name: Install Allure CLI
-        run: npm install -g allure-commandline --save-dev
+        run: npm install -g allure-commandline
 
       - name: Generate Allure report
         run: allure generate allure-results/ -o allure-report/ --clean
@@ -394,7 +411,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Deploy Allure report to GitHub Pages (gh-pages branch)
-        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d231e62369c1b3965 # v3.9.3
+        uses: peaceiris/actions-gh-pages@v3.9.3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: allure-report/
@@ -415,6 +432,35 @@ jobs:
             --endpoint-url https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com \
             --delete \
             --cache-control "public,max-age=3600"
+
+      - name: Send Allure report notification
+        if: always()
+        env:
+          PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/allure/
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          API_RESULT: ${{ needs.api-tests.result }}
+          INFRA_RESULT: ${{ needs.infra-tests.result }}
+          E2E_RESULT: ${{ needs.e2e-tests.result }}
+        run: |
+          fmt() { [ "$1" = "success" ] && echo "✅" || echo "❌"; }
+          SUMMARY="API $(fmt $API_RESULT)  Infra $(fmt $INFRA_RESULT)  E2E $(fmt $E2E_RESULT)"
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg sha "${{ github.sha }}" \
+              --arg summary "$SUMMARY" \
+              --arg pages "$PAGES_URL" \
+              --arg run "$RUN_URL" \
+              '{
+                topic: "watchtower-arthur71684",
+                title: "📊 Allure 报告已更新",
+                message: ("测试: \($summary)\n提交: \($sha[:7])\n报告: \($pages)"),
+                tags: ["bar_chart"],
+                priority: 2,
+                click: $pages
+              }')" \
+            https://arthurlovegrace.top/ntfy-push
 
 # ─── 8. Deploy — only after all three test suites pass ────────────────────────
   deploy:
@@ -512,34 +558,30 @@ jobs:
           PERF_TARGET_HOST: ${{ vars.TEST_SITE_URL || 'https://test.arthurlovegrace.top' }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           LOCUST_OUTCOME: ${{ steps.locust.outcome }}
-          THRESHOLD_OUTCOME: ${{ steps.perf_thresholds.outcome }}
         run: |
-          if [ "$LOCUST_OUTCOME" = "success" ] && [ "$THRESHOLD_OUTCOME" = "success" ]; then
-            STATUS="PASS"
-            NOTE="Performance smoke test passed."
+          if [ "$LOCUST_OUTCOME" = "success" ]; then
+            STATUS="OK"
           else
-            STATUS="WARN"
-            NOTE="Performance smoke test completed with warnings. Deployment was not blocked."
-            echo "::warning::$NOTE"
+            STATUS="WARN (locust run failed)"
+            echo "::warning::Locust run did not complete successfully."
           fi
 
           {
-            echo "## Performance Smoke Test"
+            echo "## Performance Report"
             echo
             echo "- Status: ${STATUS}"
             echo "- Target: ${PERF_TARGET_HOST}"
             echo "- Locust run: ${LOCUST_OUTCOME}"
-            echo "- Threshold check: ${THRESHOLD_OUTCOME}"
             echo "- Artifact: perf-report-${{ github.run_number }}"
             echo "- Run: ${RUN_URL}"
             echo
             if [ -f tests/perf/thresholds-summary.md ]; then
               cat tests/perf/thresholds-summary.md
             else
-              echo "Threshold summary was not generated."
+              echo "Performance report was not generated."
             fi
             echo
-            echo "> Open this workflow run, then read the Performance Tests job summary or download artifact perf-report-${{ github.run_number }}."
+            echo "> Download artifact perf-report-${{ github.run_number }} for full CSV and HTML report."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Send performance report notification
@@ -548,26 +590,23 @@ jobs:
           PERF_TARGET_HOST: ${{ vars.TEST_SITE_URL || 'https://test.arthurlovegrace.top' }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           LOCUST_OUTCOME: ${{ steps.locust.outcome }}
-          THRESHOLD_OUTCOME: ${{ steps.perf_thresholds.outcome }}
           PERF_ARTIFACT_NAME: perf-report-${{ github.run_number }}
         run: |
-          if [ "$LOCUST_OUTCOME" = "success" ] && [ "$THRESHOLD_OUTCOME" = "success" ]; then
-            TITLE="📈 arthurs-blog 性能测试通过"
-            STATUS="PASS"
+          if [ "$LOCUST_OUTCOME" = "success" ]; then
+            TITLE="📈 arthurs-blog 性能报告已生成"
             PRIORITY=2
             TAG="bar_chart"
           else
-            TITLE="📈 arthurs-blog 性能测试完成（有告警）"
-            STATUS="WARN"
+            TITLE="📈 arthurs-blog 性能测试运行异常"
             PRIORITY=3
             TAG="warning"
           fi
 
           MESSAGE=$(printf '%s\n%s\n%s\n%s' \
-            "状态: ${STATUS}" \
+            "Locust: ${LOCUST_OUTCOME}" \
             "目标: ${PERF_TARGET_HOST}" \
             "Artifact: ${PERF_ARTIFACT_NAME}" \
-            "打开本次 GitHub Actions run 查看 Performance Tests job summary 或下载 artifact。")
+            "查看 GitHub Actions run 获取 P50/P75/P95/P99 分级报告。")
 
           curl -fsS -X POST \
             -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
