@@ -10,7 +10,7 @@ import { GUEST_AUTH_STATE, useAuth } from '@/components/AuthProvider'
 import { logout } from '@/app/auth/logout/actions'
 import { useTheme } from 'next-themes'
 import { useSiteConfig } from './SiteDataProvider'
-import { Menu, X, Settings, User, LayoutList, Tag, Clock, Archive, Wrench, BarChart2 } from 'lucide-react'
+import { Menu, X, Settings, User, LayoutList, Tag, Clock, Archive, Wrench } from 'lucide-react'
 import NavbarSearch from './NavbarSearch'
 import {
   BLOG_RETURN_CURRENT_POST_ID_KEY,
@@ -106,15 +106,6 @@ function DesktopSignedInAuth({
   return (
     <>
       {isAdmin && <AdminRoleBadge />}
-      {isAdmin && (
-        <Link
-          href="/admin/allure"
-          className="p-1 px-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-foreground/5 rounded-md flex items-center gap-1"
-        >
-          <BarChart2 className="w-3 h-3" strokeWidth={2} />
-          报告
-        </Link>
-      )}
       <span className="text-sm text-foreground/60 max-w-[120px] truncate">
         {displayName ?? email}
       </span>
@@ -159,14 +150,6 @@ function MobileSignedInAuth({
             >
               <Settings className="w-3 h-3" strokeWidth={2} />
               设置
-            </Link>
-            <Link
-              href="/admin/allure"
-              className="p-1 px-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-foreground/5 rounded-md flex items-center gap-1"
-              onClick={onClose}
-            >
-              <BarChart2 className="w-3 h-3" strokeWidth={2} />
-              报告
             </Link>
           </>
         )}

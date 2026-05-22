@@ -5,7 +5,8 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { SpotifyProvider } from './SpotifyProvider'
 import SpotifyNowPlaying from './SpotifyNowPlaying'
-import { ShoppingBag, Newspaper, BarChart2, ExternalLink, Camera, NotebookText, MessageSquareText, Clapperboard, ChefHat } from 'lucide-react'
+import { useAuth } from './AuthProvider'
+import { ShoppingBag, Newspaper, BarChart2, ExternalLink, Camera, NotebookText, MessageSquareText, Clapperboard, ChefHat, FlaskConical } from 'lucide-react'
 
 const AnalyticsDashboard = dynamic(() => import('./AnalyticsDashboard'), { ssr: false })
 
@@ -144,6 +145,8 @@ function AnalyticsToolSection({
 const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
   const placement = id === 'mobile' ? 'mobile' : 'desktop'
   const [activePanel, setActivePanel] = useState<'analytics' | null>(null)
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
 
   const toggleAnalyticsPanel = () => {
     const nextPanel = activePanel === 'analytics' ? null : 'analytics'
@@ -201,6 +204,17 @@ const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
           onToggle={toggleAnalyticsPanel}
           placement={placement}
         />
+        {isAdmin && (
+          <li>
+            <Link href="/admin/allure" transitionTypes={['nav-forward']}>
+              <ToolRow
+                icon={<FlaskConical className="w-4 h-4" strokeWidth={1.75} />}
+                label="自动化测试报告"
+                description="CI 全链路测试结果 Allure 报告"
+              />
+            </Link>
+          </li>
+        )}
       </ul>
 
     </div>

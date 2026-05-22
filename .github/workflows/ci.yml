@@ -356,6 +356,8 @@ jobs:
     needs: [api-tests, infra-tests, e2e-tests]
     runs-on: ubuntu-latest
     if: always() && github.event_name != 'pull_request'
+    permissions:
+      contents: write
     steps:
       - name: Download API allure results
         uses: actions/download-artifact@v4
@@ -390,6 +392,15 @@ jobs:
           name: allure-report-${{ github.run_number }}
           path: allure-report/
           if-no-files-found: warn
+
+      - name: Deploy Allure report to GitHub Pages (gh-pages branch)
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d231e62369c1b3965 # v3.9.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: allure-report/
+          destination_dir: allure
+          keep_files: false
+          commit_message: "ci: update allure report [run ${{ github.run_number }}]"
 
       - name: Sync Allure report to R2 CDN
         if: always()
