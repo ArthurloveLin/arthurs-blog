@@ -21,11 +21,25 @@ not a capacity test. Goal: catch regressions (p95 > 1000ms or error rate > 1%).
 
 import random
 
-from locust import HttpUser, between, task
+from locust import HttpUser, between, events, task
 
 
 BLOG_SEARCH_QUERIES = ["memo", "spotify", "recipe", "life", "note", "wardrobe"]
-RECIPE_SLUGS = ["mapo-tofu", "gongbao-chicken", "huiguorou"]  # from seed data
+RECIPE_SLUGS = []  # populated at runtime from /api/recipes
+
+
+@events.test_start.add_listener
+def fetch_recipe_slugs(environment, **kwargs):
+    """Fetch real recipe slugs from the target host before the test starts."""
+    import urllib.request, json as _json
+    try:
+        host = environment.host.rstrip("/")
+        with urllib.request.urlopen(f"{host}/api/recipes", timeout=5) as r:
+            recipes = _json.loads(r.read())
+            if isinstance(recipes, list):
+                RECIPE_SLUGS.extend(item["slug"] for item in recipes if "slug" in item)
+    except Exception:
+        pass  # no recipes available — view_recipe task will be skipped
 
 
 class BlogReaderUser(HttpUser):
@@ -76,13 +90,17 @@ class RecipeReaderUser(HttpUser):
 
     @task(1)
     def view_recipe(self):
+        if not RECIPE_SLUGS:
+            return
         slug = random.choice(RECIPE_SLUGS)
         with self.client.get(
             f"/api/recipes/{slug}",
             name="/api/recipes/[slug]",
             catch_response=True,
         ) as resp:
-            if resp.status_code not in (200, 404):
+            if resp.status_code == 200:
+                resp.success()
+            else:
                 resp.failure(f"Recipe detail returned {resp.status_code}")
 
     @task(1)

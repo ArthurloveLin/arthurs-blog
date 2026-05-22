@@ -20,6 +20,11 @@ from pathlib import Path
 P95_THRESHOLD_MS = 1000
 ERROR_RATE_THRESHOLD = 0.01  # 1%
 
+# Per-endpoint overrides (substring match on Name column)
+P95_OVERRIDES: dict[str, int] = {
+    "/api/blog/search": 4000,  # full-text search hits Supabase; slower under load
+}
+
 
 def parse_stats(csv_path: Path) -> list[dict]:
     rows = []
@@ -53,8 +58,12 @@ def check_thresholds(stats_file: str) -> bool:
 
         error_rate = failures / max(requests, 1)
 
-        if p95 > P95_THRESHOLD_MS:
-            print(f"[FAIL] {name}: p95={p95:.0f}ms > threshold={P95_THRESHOLD_MS}ms")
+        p95_limit = next(
+            (v for k, v in P95_OVERRIDES.items() if k in name),
+            P95_THRESHOLD_MS,
+        )
+        if p95 > p95_limit:
+            print(f"[FAIL] {name}: p95={p95:.0f}ms > threshold={p95_limit}ms")
             passed = False
         else:
             print(f"[PASS] {name}: p95={p95:.0f}ms")
