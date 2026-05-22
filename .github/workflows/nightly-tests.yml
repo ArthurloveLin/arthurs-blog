@@ -446,6 +446,7 @@ jobs:
 
       - name: Format failure report
         run: |
+          rm -f /tmp/failure-context.md /tmp/failure-analysis-prompt.md /tmp/ai-analysis-result.md
           python3 tests/ai_hooks/format_report.py \
             --input tests/ai_hooks/report.xml \
             --output /tmp/failure-context.md
@@ -528,6 +529,8 @@ jobs:
       - name: Scan coverage gaps
         id: scan
         run: |
+          # Remove stale tmp files from previous runs — /tmp persists on self-hosted runners.
+          rm -f /tmp/coverage-gaps.md /tmp/test-gen-prompt.md /tmp/agy-gen-start
           python3 tests/ai_hooks/scan_coverage_gaps.py \
             --since "24 hours ago" \
             --repo . \
