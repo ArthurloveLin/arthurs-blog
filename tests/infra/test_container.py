@@ -6,13 +6,31 @@ Run with:
 
 These tests verify container health, security posture, process state, and
 file system layout — directly demonstrating Docker + Linux QA skills.
+
+Note: The Next.js standalone image is based on node-alpine (minimal).
+Tools like ss, netstat, curl, pgrep, and touch are NOT present.
+All networking checks use /proc/net/tcp; HTTP checks use the node binary.
 """
 
 import allure
 import pytest
 
-# testinfra injects `host` via --hosts CLI argument or the @pytest.fixture below
-# Each test receives `host` as a fixture automatically when --hosts is used.
+# Hex representation of port 3000 (used in /proc/net/tcp)
+_PORT_3000_HEX = "0BB8"
+
+
+def _http_status(host, url: str) -> int:
+    """Use the node binary (always present) to fetch a URL and return the HTTP status code."""
+    script = (
+        f"var h=require('http');"
+        f"h.get('{url}',function(r){{process.stdout.write(String(r.statusCode));process.exit(0);}});"
+        f"setTimeout(function(){{process.exit(2);}},5000);"
+    )
+    result = host.run(f"node -e \"{script}\"")
+    try:
+        return int(result.stdout.strip())
+    except ValueError:
+        return -1
 
 
 @allure.feature("Infrastructure")
@@ -21,38 +39,52 @@ class TestNetworking:
 
     @pytest.mark.smoke
     def test_app_port_listening_inside_container(self, host, app_port):
-        """Next.js must listen on port 3000 inside the container."""
-        sock = host.socket(f"tcp://0.0.0.0:{app_port}")
-        assert sock.is_listening, f"Port {app_port} is not listening"
+        """Next.js must listen on port 3000 inside the container.
+
+        Uses /proc/net/tcp and /proc/net/tcp6 because ss/netstat are not
+        present in the minimal node-alpine image.
+        """
+        port_hex = format(app_port, "04X")
+        result = host.run(
+            f"cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | grep -i ':{port_hex}'"
+        )
+        assert result.rc == 0, (
+            f"Port {app_port} not found in /proc/net/tcp — app may not be listening"
+        )
 
     @pytest.mark.smoke
     def test_health_endpoint_responds_200(self, host):
         """Health check: GET / returns HTTP 200."""
-        result = host.run(
-            "curl -sf http://localhost:3000/ -o /dev/null -w '%{http_code}'"
-        )
-        assert result.rc == 0, "curl failed — app may not be running"
-        assert result.stdout.strip() == "200", f"Unexpected status: {result.stdout}"
+        status = _http_status(host, "http://localhost:3000/")
+        assert status == 200, f"Expected 200, got {status}"
 
     def test_api_search_endpoint_reachable(self, host):
-        result = host.run(
-            "curl -sf 'http://localhost:3000/api/blog/search?q=test' -o /dev/null -w '%{http_code}'"
-        )
-        assert result.stdout.strip() == "200"
+        status = _http_status(host, "http://localhost:3000/api/blog/search?q=test")
+        assert status == 200, f"Expected 200, got {status}"
 
     def test_no_unexpected_ports_listening(self, host):
-        """Only port 3000 should be open inside the container."""
-        result = host.run("ss -tlnp")
-        lines = [l for l in result.stdout.splitlines() if "LISTEN" in l]
-        listening_ports = []
-        for line in lines:
+        """Only port 3000 should be open inside the container.
+
+        Reads /proc/net/tcp and /proc/net/tcp6 (hex port in column 2).
+        """
+        result = host.run("cat /proc/net/tcp /proc/net/tcp6 2>/dev/null")
+        listening_ports = set()
+        for line in result.stdout.splitlines():
             parts = line.split()
-            for part in parts:
-                if ":" in part:
-                    port = part.rsplit(":", 1)[-1]
-                    if port.isdigit():
-                        listening_ports.append(int(port))
-        unexpected = [p for p in listening_ports if p not in (3000,)]
+            # Lines with actual sockets have ≥10 columns; skip header
+            if len(parts) < 4 or parts[0] == "sl":
+                continue
+            # st column == "0A" means TCP_LISTEN
+            if parts[3] != "0A":
+                continue
+            local_addr = parts[1]
+            if ":" in local_addr:
+                hex_port = local_addr.rsplit(":", 1)[-1]
+                try:
+                    listening_ports.add(int(hex_port, 16))
+                except ValueError:
+                    pass
+        unexpected = [p for p in listening_ports if p != 3000]
         assert unexpected == [], f"Unexpected listening ports: {unexpected}"
 
 
@@ -77,7 +109,7 @@ class TestSecurity:
     def test_app_dir_not_world_writable(self, host):
         result = host.run("stat -c '%a' /app")
         mode = result.stdout.strip()
-        # Should not be world-writable (last octet should not include 2 or 6)
+        # World-writable if last octet contains write bit (2, 3, 6, 7)
         assert mode[-1] not in ("2", "3", "6", "7"), f"/app is world-writable: mode={mode}"
 
     def test_no_sensitive_env_in_process_list(self, host):
@@ -94,10 +126,16 @@ class TestProcess:
 
     @pytest.mark.smoke
     def test_node_process_running(self, host):
-        result = host.run("pgrep -c node")
+        """At least one node process must be running.
+
+        Scans /proc/*/comm because pgrep is not available in the minimal image.
+        """
+        result = host.run(
+            "sh -c 'for f in /proc/[0-9]*/comm; do cat \"$f\" 2>/dev/null; done | grep -c node'"
+        )
         assert result.rc == 0, "No node process found"
         count = int(result.stdout.strip())
-        assert count >= 1
+        assert count >= 1, f"Expected ≥1 node process, found {count}"
 
     def test_process_has_uptime(self, host):
         """Container's main process should be alive."""
@@ -126,8 +164,14 @@ class TestFileSystem:
         assert host.file("/app/public").is_directory
 
     def test_cache_directory_writable(self, host):
-        result = host.run("touch /app/.next/cache/.pytest-probe && rm /app/.next/cache/.pytest-probe")
-        assert result.rc == 0, "/app/.next/cache is not writable by the app user"
+        """Write and delete a probe file using node (touch is not in alpine)."""
+        script = (
+            "var fs=require('fs');"
+            "fs.writeFileSync('/app/.next/cache/.pytest-probe','');"
+            "fs.unlinkSync('/app/.next/cache/.pytest-probe');"
+        )
+        result = host.run(f"node -e \"{script}\"")
+        assert result.rc == 0, f"/app/.next/cache is not writable: {result.stderr}"
 
 
 @allure.feature("Infrastructure")
@@ -137,13 +181,9 @@ class TestLogging:
     def test_app_produces_stdout_output(self, host):
         """Next.js should log startup messages."""
         result = host.run("timeout 2 cat /proc/1/fd/1 2>/dev/null || true")
-        # We can't guarantee stdout content from /proc, so just check the process is logging
-        # Alternative: use docker logs externally (done in CI workflow)
         assert result.rc in (0, 1)
 
     def test_no_crash_in_recent_output(self, host):
-        """Check the app hasn't output 'FATAL ERROR' or similar crash indicators."""
-        result = host.run(
-            "curl -sf http://localhost:3000/ -o /dev/null && echo OK"
-        )
-        assert "OK" in result.stdout, "App may have crashed — health check failed"
+        """Verify the app responds to HTTP requests (indicates no crash)."""
+        status = _http_status(host, "http://localhost:3000/")
+        assert status == 200, f"App may have crashed — HTTP status {status}"
