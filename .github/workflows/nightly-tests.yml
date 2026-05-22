@@ -421,10 +421,14 @@ jobs:
             https://arthurlovegrace.top/ntfy-push
 
 # ─── 9. AI Failure Analysis ────────────────────────────────────────────────────
+#
+# Runs on VPS (self-hosted) so agy OAuth credentials are available.
+# continue-on-error: true at the agy step level so a crash never drops the
+# ntfy notification — the step falls back to the raw failure context.
   ai-analysis:
     name: AI Failure Analysis
     needs: [api-tests, infra-tests]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, vps]
     if: failure()
     steps:
       - uses: actions/checkout@v4
@@ -442,22 +446,50 @@ jobs:
 
       - name: Format failure report
         run: |
-          python tests/ai_hooks/format_report.py \
+          python3 tests/ai_hooks/format_report.py \
             --input tests/ai_hooks/report.xml \
             --output /tmp/failure-context.md
           echo "=== Failure Context ==="
           cat /tmp/failure-context.md
 
-      - name: Send failure context to ntfy
+      - name: Assemble agy prompt
         run: |
-          PREVIEW=$(head -c 1500 /tmp/failure-context.md)
+          python3 - << 'PYEOF'
+          import pathlib
+          template = pathlib.Path("tests/ai_hooks/prompts/failure_analysis.md").read_text()
+          context = pathlib.Path("/tmp/failure-context.md").read_text()
+          prompt = template.replace("{FAILURE_CONTEXT}", context)
+          pathlib.Path("/tmp/failure-analysis-prompt.md").write_text(prompt)
+          print(f"Prompt assembled: {len(prompt)} chars")
+          PYEOF
+
+      - name: Invoke agy for failure analysis
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          /home/arthur/.local/bin/agy \
+            --add-dir . \
+            --dangerously-skip-permissions \
+            -p "$(cat /tmp/failure-analysis-prompt.md)"
+
+      - name: Send analysis via ntfy
+        run: |
+          if [ -f /tmp/ai-analysis-result.md ]; then
+            CONTENT=$(head -c 3000 /tmp/ai-analysis-result.md)
+            TITLE="🤖 AI Failure Analysis"
+          else
+            CONTENT=$(head -c 1500 /tmp/failure-context.md)
+            TITLE="🤖 Nightly AI Failure Context"
+          fi
           curl -fsS -X POST \
             -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "$(jq -n --arg msg "$PREVIEW" \
+            -d "$(jq -n \
+              --arg title "$TITLE" \
+              --arg msg "$CONTENT" \
               '{
                 topic: "watchtower-arthur71684",
-                title: "🤖 Nightly AI Failure Context",
+                title: $title,
                 message: $msg,
                 tags: ["mag"],
                 priority: 3
