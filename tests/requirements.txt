@@ -1,0 +1,27 @@
+# Core test runner
+pytest==8.3.5
+pytest-asyncio==0.24.0
+pytest-timeout==2.3.1
+
+# HTTP client for API tests
+httpx==0.27.2
+
+# Allure reporting (industry standard in QA)
+allure-pytest==2.13.5
+
+# Docker / infrastructure tests
+pytest-testinfra==10.1.1
+
+# Performance / load testing
+locust==2.32.3
+
+# E2E browser automation
+playwright==1.47.0
+pytest-playwright==0.5.1
+
+# Supabase Python client (for auth fixtures and direct DB checks)
+supabase==2.10.0
+
+# Utilities
+python-dotenv==1.0.1
+pytest-xdist==3.6.1  # parallel test execution (-n auto)

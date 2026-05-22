@@ -78,3 +78,8 @@ dist/
 # local one-off scripts with credentials
 scripts/get-token.js
 scripts/spotify_token.json
+.env.test.local
+__pycache__/
+allure-results/
+tests/perf/results*
+tests/ai_hooks/report.json
