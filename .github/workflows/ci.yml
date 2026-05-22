@@ -538,13 +538,11 @@ jobs:
             TAG="warning"
           fi
 
-          MESSAGE=$(cat <<EOF
-状态: ${STATUS}
-目标: ${PERF_TARGET_HOST}
-Artifact: ${PERF_ARTIFACT_NAME}
-打开本次 GitHub Actions run 查看 Performance Tests job summary 或下载 artifact。
-EOF
-)
+          MESSAGE=$(printf '%s\n%s\n%s\n%s' \
+            "状态: ${STATUS}" \
+            "目标: ${PERF_TARGET_HOST}" \
+            "Artifact: ${PERF_ARTIFACT_NAME}" \
+            "打开本次 GitHub Actions run 查看 Performance Tests job summary 或下载 artifact。")
 
           curl -fsS -X POST \
             -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
