@@ -36,6 +36,55 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Generate .env.test.local from secrets
+        env:
+          TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          TEST_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BLOG_BUCKET: ${{ secrets.R2_BLOG_BUCKET }}
+          R2_BLOG_PUBLIC_DOMAIN: ${{ secrets.R2_BLOG_PUBLIC_DOMAIN }}
+          R2_WARDROBE_BUCKET: ${{ secrets.R2_WARDROBE_BUCKET }}
+          R2_WARDROBE_PUBLIC_URL: ${{ secrets.R2_WARDROBE_PUBLIC_URL }}
+          R2_CDN_BUCKET: ${{ secrets.R2_CDN_BUCKET }}
+          R2_CDN_PUBLIC_DOMAIN: ${{ secrets.R2_CDN_PUBLIC_DOMAIN }}
+          NEXT_PUBLIC_ENGAGEMENT_WORKER_URL: ${{ secrets.NEXT_PUBLIC_ENGAGEMENT_WORKER_URL }}
+          NEXT_PUBLIC_SPOTIFY_WORKER_URL: ${{ secrets.NEXT_PUBLIC_SPOTIFY_WORKER_URL }}
+          NEXT_PUBLIC_GENIUS_WORKER_URL: ${{ secrets.NEXT_PUBLIC_GENIUS_WORKER_URL }}
+          NEXT_PUBLIC_SPOTIFY_NOW_PLAYING_WORKER_URL: ${{ secrets.NEXT_PUBLIC_SPOTIFY_NOW_PLAYING_WORKER_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+          MEMO_PUBLIC_OWNER_ID: ${{ secrets.MEMO_PUBLIC_OWNER_ID }}
+        run: |
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=${TEST_SUPABASE_URL}"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${TEST_SUPABASE_ANON_KEY}"
+            echo "SUPABASE_SERVICE_ROLE_KEY=${TEST_SUPABASE_SERVICE_ROLE_KEY}"
+            echo "TEST_ADMIN_EMAIL=${TEST_ADMIN_EMAIL}"
+            echo "TEST_ADMIN_PASSWORD=${TEST_ADMIN_PASSWORD}"
+            echo "R2_ACCOUNT_ID=${R2_ACCOUNT_ID}"
+            echo "R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}"
+            echo "R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}"
+            echo "R2_BLOG_BUCKET=${R2_BLOG_BUCKET}"
+            echo "R2_BLOG_PUBLIC_DOMAIN=${R2_BLOG_PUBLIC_DOMAIN}"
+            echo "R2_WARDROBE_BUCKET=${R2_WARDROBE_BUCKET}"
+            echo "R2_WARDROBE_PUBLIC_URL=${R2_WARDROBE_PUBLIC_URL}"
+            echo "R2_CDN_BUCKET=${R2_CDN_BUCKET}"
+            echo "R2_CDN_PUBLIC_DOMAIN=${R2_CDN_PUBLIC_DOMAIN}"
+            echo "NEXT_PUBLIC_ENGAGEMENT_WORKER_URL=${NEXT_PUBLIC_ENGAGEMENT_WORKER_URL}"
+            echo "NEXT_PUBLIC_SPOTIFY_WORKER_URL=${NEXT_PUBLIC_SPOTIFY_WORKER_URL}"
+            echo "NEXT_PUBLIC_GENIUS_WORKER_URL=${NEXT_PUBLIC_GENIUS_WORKER_URL}"
+            echo "NEXT_PUBLIC_SPOTIFY_NOW_PLAYING_WORKER_URL=${NEXT_PUBLIC_SPOTIFY_NOW_PLAYING_WORKER_URL}"
+            echo "MEMO_PUBLIC_OWNER_ID=${MEMO_PUBLIC_OWNER_ID}"
+            echo "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY=1x00000000000000000000AA"
+            echo "CLOUDFLARE_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA"
+            echo "NEXT_PUBLIC_SITE_URL=http://localhost:3020"
+          } > .env.test.local
+          echo "✅ .env.test.local generated ($(wc -l < .env.test.local) lines)"
+
       - name: Pull latest image
         run: docker pull ghcr.io/arthurlovelin/arthurs-blog:latest
 
@@ -280,6 +329,7 @@ jobs:
 
       - name: Download JSON report
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: json-report-${{ github.run_number }}
           path: tests/ai_hooks/
