@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import useSWR from 'swr'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlarmClock, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react'
+import { AlarmClock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import { VisibilityPicker } from '@/components/note-board/components/VisibilityPicker'
@@ -239,10 +239,19 @@ const REPEAT_MODE_OPTIONS: { value: RepeatMode; label: string }[] = [
 
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 
-function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) => void }) {
-  const actions = useNoteBoardActions()
-  const editorState = useNoteBoardEditorState()
+const TIME_PRESETS = [
+  { h: 7, m: 0, label: '07:00' },
+  { h: 9, m: 0, label: '09:00' },
+  { h: 12, m: 0, label: '12:00' },
+  { h: 15, m: 0, label: '15:00' },
+  { h: 18, m: 0, label: '18:00' },
+  { h: 21, m: 0, label: '21:00' },
+]
 
+function DueDateInserter() {
+  const editorState = useNoteBoardEditorState()
+  const boardActions = useNoteBoardActions()
+  const [saving, setSaving] = useState(false)
   const [nowTs] = useState(Date.now)
   const today = useMemo(() => {
     const d = new Date(nowTs)
@@ -347,21 +356,36 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
     setEditingMinute(false)
   }
 
-  function handleInsert() {
-    if (!selectedDay) return
+  async function handleInsert() {
+    if (!selectedDay || saving) return
+    if (repeatMode === 'custom' && customDays.length === 0) return
     const pad = (n: number) => String(n).padStart(2, '0')
     const dateStr = `${selectedDay.year}-${pad(selectedDay.month)}-${pad(selectedDay.day)}`
-    const iso = new Date(`${dateStr}T${pad(hour)}:${pad(minute)}`).toISOString()
+    const due_at = new Date(`${dateStr}T${pad(hour)}:${pad(minute)}`).toISOString()
+    const reminder = {
+      label: label.trim() || '提醒',
+      due_at,
+      repeat_mode: repeatMode,
+      repeat_days: repeatMode === 'custom' ? customDays : null,
+    }
 
-    if (repeatMode === 'once') {
-      // Insert inline @due tag into content (existing one-time behavior)
-      const tag = `@due[${label.trim() || '截止'}](${iso})`
-      insertAtCursor(tag)
-    } else {
-      // Set due_at field on the note + repeat settings (no content modification)
-      actions.updateEditorDueAt(iso)
-      actions.updateEditorRepeatMode(repeatMode)
-      actions.updateEditorRepeatDays(repeatMode === 'custom' ? customDays : null)
+    setSaving(true)
+    try {
+      if (editorState.editorMode === 'edit' && editorState.editingMessage) {
+        const res = await fetch('/api/note-boards/memo/reminders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memo_id: editorState.editingMessage.id, ...reminder }),
+        })
+        if (res.ok) {
+          const created = await res.json()
+          boardActions.addReminderToMessage(editorState.editingMessage.id, created)
+        }
+      } else {
+        boardActions.addDraftReminder(reminder)
+      }
+    } finally {
+      setSaving(false)
     }
 
     setOpen(false)
@@ -371,28 +395,17 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
     setCustomDays([])
   }
 
-  const spinBtn = 'inline-flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted/50 hover:text-foreground'
   const timeInput = 'w-9 border-b border-border/60 bg-transparent text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground outline-none focus:border-primary/50'
-
-  const hasRepeatReminder = editorState.editorRepeatMode && editorState.editorRepeatMode !== 'once' && editorState.editorDueAt
 
   return (
     <div ref={wrapperRef}>
       <button
         type="button"
-        title={hasRepeatReminder ? `重复提醒已设置（${editorState.editorRepeatMode}）` : '插入截止时间'}
+        title="插入提醒"
         onClick={handleToggle}
-        className={[
-          'relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-all',
-          hasRepeatReminder
-            ? 'border-amber-500/60 bg-amber-50 text-amber-600 hover:bg-amber-100'
-            : 'border-black/10 bg-white/70 text-slate-700 hover:bg-white',
-        ].join(' ')}
+        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white/70 text-slate-700 transition-all hover:bg-white"
       >
         <AlarmClock size={13} strokeWidth={1.8} />
-        {hasRepeatReminder ? (
-          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber-500" />
-        ) : null}
       </button>
 
       {open ? (
@@ -492,12 +505,12 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
             })}
           </div>
 
-          {/* 时间拨轮 — 数字可点击直接输入 */}
-          <div className="mt-3 border-t border-border/40 pt-3">
-            <div className="flex items-center justify-center gap-3">
-              {/* 小时 */}
-              <div className="flex flex-col items-center gap-0.5">
-                <button type="button" onClick={() => setHour((h) => (h + 1) % 24)} className={spinBtn}><ChevronUp size={14} /></button>
+          {/* 时间 + 重复 + 标签 — 统一配置区 */}
+          <div className="mt-3 rounded-2xl bg-muted/30 p-3 space-y-3">
+
+            {/* 时间 */}
+            <div>
+              <div className="flex items-center justify-center gap-1.5 mb-2.5">
                 {editingHour ? (
                   <input
                     autoFocus
@@ -511,20 +524,13 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
                     className={timeInput}
                   />
                 ) : (
-                  <button type="button" title="点击直接输入小时"
+                  <button type="button" title="点击输入小时"
                     onClick={() => { setHourInput(String(hour).padStart(2, '0')); setEditingHour(true) }}
                     className="w-9 text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground transition-colors hover:text-primary">
                     {String(hour).padStart(2, '0')}
                   </button>
                 )}
-                <button type="button" onClick={() => setHour((h) => (h - 1 + 24) % 24)} className={spinBtn}><ChevronDown size={14} /></button>
-              </div>
-
-              <span className="pb-px text-[1.1rem] font-semibold text-muted-foreground">:</span>
-
-              {/* 分钟 */}
-              <div className="flex flex-col items-center gap-0.5">
-                <button type="button" onClick={() => setMinute((m) => (m + 5) % 60)} className={spinBtn}><ChevronUp size={14} /></button>
+                <span className="pb-px font-mono text-[1.1rem] font-semibold text-muted-foreground/60">:</span>
                 {editingMinute ? (
                   <input
                     autoFocus
@@ -538,98 +544,100 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
                     className={timeInput}
                   />
                 ) : (
-                  <button type="button" title="点击直接输入分钟"
+                  <button type="button" title="点击输入分钟"
                     onClick={() => { setMinuteInput(String(minute).padStart(2, '0')); setEditingMinute(true) }}
                     className="w-9 text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground transition-colors hover:text-primary">
                     {String(minute).padStart(2, '0')}
                   </button>
                 )}
-                <button type="button" onClick={() => setMinute((m) => (m - 5 + 60) % 60)} className={spinBtn}><ChevronDown size={14} /></button>
+              </div>
+              <div className="grid grid-cols-6 gap-1">
+                {TIME_PRESETS.map((p) => (
+                  <button
+                    key={p.h}
+                    type="button"
+                    onClick={() => { setHour(p.h); setMinute(p.m) }}
+                    className={[
+                      'rounded-lg py-1 text-[10px] font-mono font-medium transition-colors',
+                      hour === p.h && minute === p.m
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-background/70 text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                    ].join(' ')}
+                  >
+                    {p.label}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
 
-          {/* 重复模式 */}
-          <div className="mt-3 border-t border-border/40 pt-3">
-            <p className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/60">重复</p>
-            <div className="flex flex-wrap gap-1">
-              {REPEAT_MODE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => { setRepeatMode(opt.value); if (opt.value !== 'custom') setCustomDays([]) }}
-                  className={[
-                    'rounded-full border px-2.5 py-0.5 text-[11px] transition-all',
-                    repeatMode === opt.value
-                      ? 'border-slate-900 bg-slate-900 text-white'
-                      : 'border-border/60 text-muted-foreground hover:bg-muted/40',
-                  ].join(' ')}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-
-            {repeatMode === 'custom' ? (
-              <div className="mt-2 flex gap-1">
-                {WEEKDAY_LABELS.map((lbl, dow) => {
-                  const active = customDays.includes(dow)
-                  return (
-                    <button
-                      key={dow}
-                      type="button"
-                      onClick={() => setCustomDays((prev) =>
-                        active ? prev.filter((d) => d !== dow) : [...prev, dow].sort((a, b) => a - b)
-                      )}
-                      className={[
-                        'flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-medium transition-all',
-                        active
-                          ? 'bg-slate-900 text-white'
-                          : 'border border-border/60 text-muted-foreground hover:bg-muted/40',
-                      ].join(' ')}
-                    >
-                      {lbl}
-                    </button>
-                  )
-                })}
+            {/* 重复模式 */}
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-1">
+                {REPEAT_MODE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => { setRepeatMode(opt.value); if (opt.value !== 'custom') setCustomDays([]) }}
+                    className={[
+                      'rounded-full border px-2.5 py-0.5 text-[11px] transition-all',
+                      repeatMode === opt.value
+                        ? 'border-slate-900 bg-slate-900 text-white'
+                        : 'border-border/60 text-muted-foreground hover:bg-muted/40',
+                    ].join(' ')}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-            ) : null}
-
-            {repeatMode !== 'once' && editorState.editorDueAt ? (
-              <p className="mt-1.5 text-[10px] text-amber-600">
-                当前便签已有重复提醒，设置后会覆盖。
-              </p>
-            ) : null}
-          </div>
-
-          {/* 标签输入（仅一次性模式） */}
-          {repeatMode === 'once' ? (
-            <div className="mt-3 border-t border-border/40 pt-3">
-              <input
-                ref={labelInputRef}
-                type="text"
-                placeholder="标签名称（如 checklist1）"
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && selectedDay) handleInsert() }}
-                className="w-full rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/50 focus:ring-1 focus:ring-primary/30"
-              />
+              {repeatMode === 'custom' ? (
+                <div className="flex gap-1">
+                  {WEEKDAY_LABELS.map((lbl, dow) => {
+                    const active = customDays.includes(dow)
+                    return (
+                      <button
+                        key={dow}
+                        type="button"
+                        onClick={() => setCustomDays((prev) =>
+                          active ? prev.filter((d) => d !== dow) : [...prev, dow].sort((a, b) => a - b)
+                        )}
+                        className={[
+                          'flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-medium transition-all',
+                          active ? 'bg-slate-900 text-white' : 'border border-border/60 text-muted-foreground hover:bg-muted/40',
+                        ].join(' ')}
+                      >
+                        {lbl}
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : null}
             </div>
-          ) : null}
+
+            {/* 提醒标题 */}
+            <input
+              ref={labelInputRef}
+              type="text"
+              placeholder="提醒标题（显示在通知中）"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && selectedDay) handleInsert() }}
+              className="w-full rounded-xl border border-border/60 bg-background/70 px-3 py-2 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/40 focus:ring-1 focus:ring-primary/30"
+            />
+          </div>
 
           {/* 操作按钮 */}
-          <div className="mt-3 flex justify-end gap-2 border-t border-border/40 pt-3">
+          <div className="mt-3 flex justify-end gap-2">
             <button type="button" onClick={() => setOpen(false)}
               className="rounded-full border border-border/60 px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/40">
               取消
             </button>
             <button
               type="button"
-              disabled={!selectedDay || (repeatMode === 'custom' && customDays.length === 0)}
-              onClick={handleInsert}
+              disabled={!selectedDay || (repeatMode === 'custom' && customDays.length === 0) || saving}
+              onClick={() => void handleInsert()}
               className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-[11px] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
             >
-              {repeatMode === 'once' ? '插入' : '设置'}
+              {saving ? '保存中…' : '保存提醒'}
             </button>
           </div>
         </div>
@@ -677,7 +685,7 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
             minHeightClassName="min-h-[140px]"
             shellClassName="overflow-hidden rounded-[24px] border border-border/70 bg-background/55"
             toolbarClassName="px-4 py-3 text-xs text-muted-foreground"
-            toolbarLeadingAddon={(insertAtCursor) => (
+            toolbarLeadingAddon={() => (
               <>
                 {state.priorityEnabled ? (
                   <PriorityPicker.Dot
@@ -695,9 +703,7 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
                     onChange={actions.updateEditorVisibility}
                   />
                 ) : null}
-                {state.isAdmin ? (
-                  <DueDateInserter insertAtCursor={insertAtCursor} />
-                ) : null}
+                {state.isAdmin ? <DueDateInserter /> : null}
               </>
             )}
             autoFocus={state.editorMode === 'edit' && (boardState.isMobileViewport || autoFocusOnEdit)}
@@ -706,6 +712,28 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
       ) : (
         <p className="mt-4 text-sm leading-7 text-muted-foreground">这里先开放浏览，Memo 暂时由 admin 维护与更新。</p>
       )}
+
+      {/* 创建模式下暂存的 reminders */}
+      {state.editorMode === 'create' && state.draftReminders.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {state.draftReminders.map((r) => (
+            <div key={r.tempId} className="flex items-center gap-1.5 rounded-full border border-amber-400/50 bg-amber-50/70 py-0.5 pl-2.5 pr-1.5 text-[11px] text-amber-700">
+              <AlarmClock size={10} strokeWidth={2} />
+              <span>{r.label}</span>
+              {r.repeat_mode !== 'once' ? (
+                <span className="opacity-60">· {r.repeat_mode === 'daily' ? '每天' : r.repeat_mode === 'weekdays' ? '周一至五' : '自定义'}</span>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => actions.removeDraftReminder(r.tempId)}
+                className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-amber-500 transition hover:bg-amber-200/60"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {state.error ? <p className="mt-3 text-sm text-rose-600">{state.error}</p> : null}
     </section>

@@ -126,29 +126,36 @@ State lives in `useNoteEditor` as `draftDueAt` / `editDueAt`, exposed through
 - red — overdue
 
 **Repeat modes** (`comments.repeat_mode`, migration `20260523000000_memo_repeat_mode.sql`):
-- Values: `once` (default) | `daily` | `weekdays` | `custom`
-- `custom` also stores `repeat_days integer[]` — UTC weekday indices (0 = Sun … 6 = Sat)
-- Repeat reminders never set `notified_at`; instead `due_at` is advanced to the next
-  occurrence after each fire. The `due_at ≤ now AND notified_at IS NULL` query naturally
-  re-triggers without any extra state.
-- Weekday calculations use **UTC** (`getUTCDay`), matching how `due_at` is stored.
+- The DB columns (`repeat_mode`, `repeat_days`, `due_at`) still exist and the
+  `check-reminders` API still handles the column-based advance path for legacy notes.
+- **New UI no longer writes these columns.** All reminders created via `DueDateInserter`
+  are now inline `@due` tags — including batch/repeat modes.
 
-**DueDateInserter modes** (inline component in `NoteBoardExperience.tsx`):
-- `once` → inserts `@due[label](iso)` tag at cursor (existing inline path)
-- any repeat mode → sets `editorDueAt` + `editorRepeatMode` + `editorRepeatDays` via
-  context; does NOT insert an inline tag. The repeat info travels through the POST/PATCH
-  body as `repeat_mode` / `repeat_days`.
-- Do not collapse these two paths — inline tags are intentionally one-time only;
-  repeating reminders must use the column path.
+**DueDateInserter** (inline component in `NoteBoardExperience.tsx`):
+- Reads context via `useNoteBoardEditorState()` / `useNoteBoardActions()` — no props needed.
+- **Create mode**: calls `boardActions.addDraftReminder(r)` to stage a `PendingReminder`
+  in `useNoteEditor`. After note save, `submitDraft` POSTs each pending reminder to
+  `/api/note-boards/memo/reminders` (with the now-known `memo_id`), then attaches them
+  to the message via `addReminderToMessage`.
+- **Edit mode**: directly POSTs to `/api/note-boards/memo/reminders`, then calls
+  `boardActions.addReminderToMessage` for optimistic update.
+- All modes: single reminder rule (no batch generation). Recurring reminders advance
+  their `due_at` on each fire in `check-reminders`.
+- Label input always visible; shown as `{label || '提醒'}` on the card badge.
+- `editorDueAt` / `editorRepeatMode` / `editorRepeatDays` in provider state are never
+  set by new notes — they remain for backwards compat when editing legacy column-based notes.
 
 **Notification pipeline**:
 ```
 VPS crontab (every minute)
   → POST localhost:3000/api/memo/check-reminders  (Bearer token auth)
-    → query Supabase: due_at ≤ now AND notified_at IS NULL AND archived = false
-    → POST http://1Panel-ntfy-5k3U/memo-reminder  (via lib/ntfy.ts)
-    → once:   UPDATE comments SET notified_at = now()
-    → repeat: UPDATE comments SET due_at = <next occurrence>   (notified_at stays NULL)
+    → Path 1 (primary): query memo_reminders WHERE due_at ≤ now AND notified_at IS NULL
+        join comments WHERE archived = false
+        → POST http://1Panel-ntfy-5k3U/memo-reminder  (via lib/ntfy.ts)
+        → once:   UPDATE memo_reminders SET notified_at = now()
+        → repeat: UPDATE memo_reminders SET due_at = <next occurrence>  (notified_at stays NULL)
+    → Path 2 (legacy): inline @due[label](iso) tags in content
+    → Path 3 (legacy): column due_at / repeat_mode on comments table
 ```
 
 The blog container is on `1panel-network` so it can reach ntfy by container name.

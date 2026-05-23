@@ -91,85 +91,120 @@ export async function POST(req: NextRequest) {
   const now = new Date()
   const nowIso = now.toISOString()
 
-  // Fetch all non-archived memos that have inline @due tags or a due_at column set
-  const { data: memos, error } = await supabaseAdmin
-    .from('comments')
-    .select('id, author, content, due_at, notified_at, notified_dues, repeat_mode, repeat_days')
-    .eq('target_type', 'memo')
-    .eq('archived', false)
-    .or(`content.like.%@due[%,and(due_at.lte.${nowIso},notified_at.is.null)`)
-    .limit(100)
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  if (!memos || memos.length === 0) {
-    return NextResponse.json({ sent: 0 })
-  }
-
   let sent = 0
   const errors: string[] = []
 
-  for (const memo of memos) {
-    const inlineTags = parseInlineDueTags(memo.content)
+  // ── Primary path: memo_reminders table ──────────────────────────────────
+  const { data: tableReminders, error: tableError } = await supabaseAdmin
+    .from('memo_reminders')
+    .select('id, label, due_at, repeat_mode, repeat_days, comments!inner(id, content, archived)')
+    .lte('due_at', nowIso)
+    .is('notified_at', null)
+    .eq('comments.archived', false)
+    .limit(100)
 
-    if (inlineTags.length > 0) {
-      // Inline @due tags are always one-time (they embed a specific ISO timestamp)
-      const notifiedDues: string[] = Array.isArray(memo.notified_dues) ? memo.notified_dues : []
-      const pending = inlineTags.filter(
-        (t) => new Date(t.iso) <= now && !notifiedDues.includes(t.iso),
+  if (tableError) {
+    return NextResponse.json({ error: tableError.message }, { status: 500 })
+  }
+
+  for (const row of tableReminders ?? []) {
+    const comment = Array.isArray(row.comments) ? row.comments[0] : row.comments as { content: string } | null
+    const content = (comment as { content: string } | null)?.content ?? ''
+    const repeatMode: string = (row.repeat_mode as string | null) ?? 'once'
+    const repeatDays: number[] | null = Array.isArray(row.repeat_days) ? row.repeat_days as number[] : null
+
+    try {
+      const { title, body } = buildNotification(
+        { label: row.label as string, iso: row.due_at as string },
+        content,
+        now,
+        repeatMode,
       )
+      await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
 
-      for (const due of pending) {
-        try {
-          const { title, body } = buildNotification(due, memo.content, now)
-          await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
-          notifiedDues.push(due.iso)
-          sent++
-        } catch (e) {
-          errors.push(e instanceof Error ? e.message : String(e))
-        }
+      if (repeatMode !== 'once') {
+        const nextDueAt = advanceDueAt(row.due_at as string, repeatMode, repeatDays)
+        await supabaseAdmin.from('memo_reminders').update({ due_at: nextDueAt }).eq('id', row.id)
+      } else {
+        await supabaseAdmin.from('memo_reminders').update({ notified_at: nowIso }).eq('id', row.id)
       }
+      sent++
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : String(e))
+    }
+  }
 
-      if (pending.length > 0) {
-        await supabaseAdmin
-          .from('comments')
-          .update({ notified_dues: notifiedDues, notified_at: nowIso })
-          .eq('id', memo.id)
-      }
-    } else if (memo.due_at && !memo.notified_at && new Date(memo.due_at) <= now) {
-      // Column-based due_at path — supports repeat modes
-      const repeatMode: string = (memo.repeat_mode as string | null) ?? 'once'
-      const repeatDays: number[] | null = Array.isArray(memo.repeat_days) ? memo.repeat_days as number[] : null
+  // ── Legacy path 1: inline @due tags in content ───────────────────────────
+  const { data: memos, error: memosError } = await supabaseAdmin
+    .from('comments')
+    .select('id, content, notified_dues')
+    .eq('target_type', 'memo')
+    .eq('archived', false)
+    .ilike('content', '%@due[%')
+    .limit(100)
 
+  if (memosError) {
+    return NextResponse.json({ error: memosError.message }, { status: 500 })
+  }
+
+  for (const memo of memos ?? []) {
+    const inlineTags = parseInlineDueTags(memo.content)
+    const notifiedDues: string[] = Array.isArray(memo.notified_dues) ? memo.notified_dues : []
+    const pending = inlineTags.filter((t) => new Date(t.iso) <= now && !notifiedDues.includes(t.iso))
+
+    for (const due of pending) {
       try {
-        const { title, body } = buildNotification(
-          { label: '', iso: memo.due_at as string },
-          memo.content,
-          now,
-          repeatMode,
-        )
+        const { title, body } = buildNotification(due, memo.content, now)
         await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
-
-        if (repeatMode !== 'once') {
-          // Advance due_at to the next occurrence; keep notified_at = null so it fires again
-          const nextDueAt = advanceDueAt(memo.due_at as string, repeatMode, repeatDays)
-          await supabaseAdmin
-            .from('comments')
-            .update({ due_at: nextDueAt })
-            .eq('id', memo.id)
-        } else {
-          await supabaseAdmin
-            .from('comments')
-            .update({ notified_at: nowIso })
-            .eq('id', memo.id)
-        }
-
+        notifiedDues.push(due.iso)
         sent++
       } catch (e) {
         errors.push(e instanceof Error ? e.message : String(e))
       }
+    }
+
+    if (pending.length > 0) {
+      await supabaseAdmin.from('comments').update({ notified_dues: notifiedDues, notified_at: nowIso }).eq('id', memo.id)
+    }
+  }
+
+  // ── Legacy path 2: column-based due_at / repeat_mode on comments ─────────
+  const { data: columnMemos, error: columnError } = await supabaseAdmin
+    .from('comments')
+    .select('id, content, due_at, notified_at, repeat_mode, repeat_days')
+    .eq('target_type', 'memo')
+    .eq('archived', false)
+    .not('due_at', 'is', null)
+    .is('notified_at', null)
+    .lte('due_at', nowIso)
+    .limit(100)
+
+  if (columnError) {
+    return NextResponse.json({ error: columnError.message }, { status: 500 })
+  }
+
+  for (const memo of columnMemos ?? []) {
+    const repeatMode: string = (memo.repeat_mode as string | null) ?? 'once'
+    const repeatDays: number[] | null = Array.isArray(memo.repeat_days) ? memo.repeat_days as number[] : null
+
+    try {
+      const { title, body } = buildNotification(
+        { label: '', iso: memo.due_at as string },
+        memo.content,
+        now,
+        repeatMode,
+      )
+      await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
+
+      if (repeatMode !== 'once') {
+        const nextDueAt = advanceDueAt(memo.due_at as string, repeatMode, repeatDays)
+        await supabaseAdmin.from('comments').update({ due_at: nextDueAt }).eq('id', memo.id)
+      } else {
+        await supabaseAdmin.from('comments').update({ notified_at: nowIso }).eq('id', memo.id)
+      }
+      sent++
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : String(e))
     }
   }
 
