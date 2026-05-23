@@ -154,6 +154,10 @@ export function extractMemoHabitChecklistItems(content: string): MemoHabitCheckl
     const label = dueMatch[1].trim() || checkboxText.replace(dueMatch[0], '').trim() || '截止'
     const lineText = checkboxText.replace(dueMatch[0], '').replace(/\s+/g, ' ').trim()
     const { repeatMode, repeatDays } = parseMemoHabitRepeatSpec(repeatSpec)
+    if (repeatMode === 'once') {
+      continue
+    }
+
     const signatureBase = [
       normalizeText(lineText),
       normalizeText(label),

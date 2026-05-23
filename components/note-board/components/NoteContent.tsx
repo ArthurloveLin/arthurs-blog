@@ -348,12 +348,12 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
                         <Check size={10} strokeWidth={2.4} />
                       </span>
                     </button>
-                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5">
                       <span className={item.checked ? 'line-through text-slate-700/65' : ''}>
                         {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`, notifiedDues)}
                       </span>
                       {habitState ? (
-                        <span className="flex flex-wrap items-center gap-1.5">
+                        <>
                           {detailButton ?? (
                             <span className={[
                               'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium',
@@ -367,7 +367,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
                               {streakLabel}
                             </span>
                           ) : null}
-                        </span>
+                        </>
                       ) : null}
                     </span>
                   </>
@@ -376,12 +376,12 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
                     <span className="mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-slate-700/35 text-[10px]">
                       {item.checked ? 'x' : ''}
                     </span>
-                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5">
                       <span className={item.checked ? 'line-through text-slate-700/65' : ''}>
                         {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`)}
                       </span>
                       {habitState ? (
-                        <span className="flex flex-wrap items-center gap-1.5">
+                        <>
                           <span className={[
                             'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium',
                             getHabitStatusClassName(habitState.status),
@@ -393,7 +393,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
                               {streakLabel}
                             </span>
                           ) : null}
-                        </span>
+                        </>
                       ) : null}
                     </span>
                   </>

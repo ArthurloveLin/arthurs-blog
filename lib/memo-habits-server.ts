@@ -405,7 +405,7 @@ export async function getMemoHabitItemDetail(noteId: string, itemKey: string, ow
     ? { itemKey: parsedItem.itemKey, label: parsedItem.label, lineText: parsedItem.lineText, dueAt: parsedItem.dueAt }
     : {
         itemKey,
-        label: typedRows[0]?.item_label ?? '习惯事项',
+        label: typedRows[0]?.item_label ?? '重复任务',
         lineText: typedRows[0]?.line_text ?? '',
         dueAt: typedRows[0]?.due_at ?? null,
       }

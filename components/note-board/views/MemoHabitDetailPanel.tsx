@@ -50,7 +50,7 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, onClose, onC
       ].join(' ')}>
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/50">习惯详情</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/50">重复任务详情</p>
             <h3 className="mt-1 truncate text-[20px] font-semibold leading-tight text-foreground/90">
               {detail?.label ?? '加载中…'}
             </h3>
