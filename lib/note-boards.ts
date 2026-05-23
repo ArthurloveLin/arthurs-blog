@@ -39,6 +39,8 @@ export interface NoteMessage {
   comment_count?: number
   due_at?: string | null
   notified_dues?: string[] | null
+  repeat_mode?: string | null
+  repeat_days?: number[] | null
 }
 
 function compareBoardMessageTime(
@@ -127,6 +129,8 @@ interface UpdateBoardMessageInput {
   priority?: NotePriority
   visibility?: NoteVisibility
   due_at?: string | null
+  repeat_mode?: string | null
+  repeat_days?: number[] | null
 }
 
 function toShanghaiDateKey(ts: string): string {
@@ -210,9 +214,21 @@ export type MemoAgendaItem = { memoId: string; dueAt: string; label: string; pri
 
 const INLINE_DUE_RE = /@due\[([^\]]*)\]\(([^)]*)\)/g
 
+function extractContentLabel(content: string): string {
+  const line = (content.split('\n').find((l) => l.trim().length > 0) ?? '').trim()
+  const cleaned = line
+    .replace(/@due\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/^#{1,6}\s*/, '')
+    .replace(/[*_`]/g, '')
+    .trim()
+  return cleaned.slice(0, 22) || '截止'
+}
+
 export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnly = false) => {
   const config = getNoteBoardConfig('memo')
-  let query = supabaseAdmin
+
+  // Inline @due[label](iso) tags
+  let inlineQuery = supabaseAdmin
     .from('comments')
     .select('id, content, priority')
     .eq('target_type', config.targetType)
@@ -221,16 +237,28 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
     .is('parent_id', null)
     .eq('user_id', ownerUserId)
     .ilike('content', '%@due[%')
+  if (!showAdminOnly) inlineQuery = inlineQuery.eq('visibility', 'public')
 
-  if (!showAdminOnly) {
-    query = query.eq('visibility', 'public')
-  }
+  // due_at column (one-time unnotified + all recurring)
+  let columnQuery = supabaseAdmin
+    .from('comments')
+    .select('id, content, priority, due_at, repeat_mode')
+    .eq('target_type', config.targetType)
+    .eq('target_id', config.targetId)
+    .eq('archived', false)
+    .is('parent_id', null)
+    .eq('user_id', ownerUserId)
+    .not('due_at', 'is', null)
+  if (!showAdminOnly) columnQuery = columnQuery.eq('visibility', 'public')
 
-  const { data, error } = await query
-  if (error) throw new Error(error.message)
+  const [{ data: inlineData, error: inlineError }, { data: columnData, error: columnError }] =
+    await Promise.all([inlineQuery, columnQuery])
+  if (inlineError) throw new Error(inlineError.message)
+  if (columnError) throw new Error(columnError.message)
 
   const items: MemoAgendaItem[] = []
-  for (const row of data ?? []) {
+
+  for (const row of inlineData ?? []) {
     INLINE_DUE_RE.lastIndex = 0
     let match: RegExpExecArray | null
     while ((match = INLINE_DUE_RE.exec(row.content as string)) !== null) {
@@ -241,6 +269,23 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
       }
     }
   }
+
+  const inlineIds = new Set(items.map((i) => i.memoId))
+  for (const row of columnData ?? []) {
+    // Skip memos already represented by inline tags to avoid duplicates
+    if (inlineIds.has(row.id as string)) continue
+    const repeatMode = (row.repeat_mode as string | null) ?? 'once'
+    // For one-time reminders, only show future ones (due_at > now)
+    const dueAt = row.due_at as string
+    if (repeatMode === 'once' && Date.parse(dueAt) <= Date.now()) continue
+    items.push({
+      memoId: row.id as string,
+      dueAt,
+      label: extractContentLabel(row.content as string),
+      priority: normalizeNotePriority(row.priority),
+    })
+  }
+
   return items
 })
 
@@ -297,7 +342,7 @@ export const getBoardMessages = cache(async (
 
   let query = supabaseAdmin
     .from('comments')
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues, repeat_mode, repeat_days')
     .eq('target_type', config.targetType)
     .eq('target_id', config.targetId)
     .eq('archived', archived)
@@ -360,7 +405,7 @@ export const getBoardMessages = cache(async (
   return messages.map((m) => ({ ...m, comment_count: commentCounts[m.id] ?? 0 }))
 })
 
-export async function createBoardMessage(board: NoteBoardSlug, author: string, content: string, priority?: NotePriority, visibility: NoteVisibility = 'public', dueAt?: string | null, userId?: string | null) {
+export async function createBoardMessage(board: NoteBoardSlug, author: string, content: string, priority?: NotePriority, visibility: NoteVisibility = 'public', dueAt?: string | null, userId?: string | null, repeatMode?: string | null, repeatDays?: number[] | null) {
   const config = getNoteBoardConfig(board)
   const role = await getUserRole()
 
@@ -403,8 +448,10 @@ export async function createBoardMessage(board: NoteBoardSlug, author: string, c
       visibility: safeVisibility,
       ...(userId ? { user_id: userId } : {}),
       ...(dueAt ? { due_at: dueAt } : {}),
+      ...(repeatMode && repeatMode !== 'once' ? { repeat_mode: repeatMode } : {}),
+      ...(repeatDays?.length ? { repeat_days: repeatDays } : {}),
     })
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues, repeat_mode, repeat_days')
     .single()
 
   if (error) {
@@ -452,7 +499,7 @@ export async function updateBoardMessage(
     throw new Error('FORBIDDEN')
   }
 
-  const patch: Record<string, string | boolean | number | null> = {}
+  const patch: Record<string, string | boolean | number | number[] | null> = {}
 
   if (typeof input.content === 'string') {
     const content = input.content.trim()
@@ -489,6 +536,14 @@ export async function updateBoardMessage(
     patch.notified_at = null
   }
 
+  if ('repeat_mode' in input) {
+    patch.repeat_mode = input.repeat_mode ?? 'once'
+  }
+
+  if ('repeat_days' in input) {
+    patch.repeat_days = input.repeat_days?.length ? input.repeat_days : null
+  }
+
   if (Object.keys(patch).length === 0) {
     throw new Error('MISSING_PATCH')
   }
@@ -497,7 +552,7 @@ export async function updateBoardMessage(
     .from('comments')
     .update(patch)
     .eq('id', id)
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues, repeat_mode, repeat_days')
     .single()
 
   if (error || !data) {

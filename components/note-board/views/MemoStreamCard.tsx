@@ -204,6 +204,12 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
       {/* 截止时间（仅无 inline @due 标签时显示全局 badge） */}
       {message.due_at && !hasInlineDueTags(message.content) ? (() => {
         const { label, variant } = formatDueLabel(message.due_at)
+        const isRepeat = message.repeat_mode && message.repeat_mode !== 'once'
+        const repeatLabel = isRepeat
+          ? message.repeat_mode === 'daily' ? '每天'
+          : message.repeat_mode === 'weekdays' ? '周一至周五'
+          : '自定义'
+          : null
         return (
           <div className={[
             'mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
@@ -215,6 +221,9 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
           ].join(' ')}>
             <AlarmClock size={10} strokeWidth={2} />
             {label}
+            {repeatLabel ? (
+              <span className="ml-0.5 opacity-70">· {repeatLabel}</span>
+            ) : null}
           </div>
         )
       })() : null}

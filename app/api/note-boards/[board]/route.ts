@@ -69,6 +69,10 @@ export async function POST(
   const priority = rawPriority === undefined ? undefined : Number(rawPriority)
   const visibility = body.visibility === 'admin_only' ? 'admin_only' as const : 'public' as const
   const dueAt = typeof body.due_at === 'string' && body.due_at ? body.due_at : null
+  const repeatMode = typeof body.repeat_mode === 'string' ? body.repeat_mode : null
+  const repeatDays = Array.isArray(body.repeat_days)
+    ? body.repeat_days.filter((v: unknown): v is number => typeof v === 'number')
+    : null
 
   if (!author.trim() || !content.trim()) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
@@ -81,7 +85,7 @@ export async function POST(
   const currentUser = await getCurrentUser()
 
   try {
-    const message = await createBoardMessage(board, author, content, priority, visibility, dueAt, currentUser?.id ?? null)
+    const message = await createBoardMessage(board, author, content, priority, visibility, dueAt, currentUser?.id ?? null, repeatMode, repeatDays)
     return NextResponse.json(message, { status: 201 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create note'
