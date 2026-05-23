@@ -449,7 +449,7 @@ export function useBoardData({
       return
     }
 
-    replaceMessages((current) => current)
+    replaceMessages((current) => current, { resetPositions: true })
     setCurrentPageIndex((current) => Math.max(current - 1, 0))
   }, [currentPageIndex, isDesktopViewport, isPending, isRefreshingBoard, replaceMessages])
 
@@ -461,7 +461,7 @@ export function useBoardData({
     const targetPageIndex = currentPageIndex + 1
 
     if (targetPageIndex < loadedDesktopPageCount) {
-      replaceMessages((current) => current)
+      replaceMessages((current) => current, { resetPositions: true })
       setCurrentPageIndex(targetPageIndex)
       return
     }
