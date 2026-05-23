@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight, LayoutGrid, Tag, X } from 'lucide-react'
 import { getHabitStatusClassName, getHabitStatusLabel, getHabitStreakLabel } from '@/components/note-board/utils/habit-ui'
 import type { MemoHabitHistoryEvent, MemoHabitOverview } from '@/lib/memo-habits'
@@ -274,6 +274,20 @@ function AgendaDayPanel({ dateKey, items, selectedDueDate, onBack, onFilterDay }
     return map
   }, [items])
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Scroll to the first hour that has items so the user doesn't have to manually scroll down
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container || byHour.size === 0) return
+    const firstHour = Math.min(...Array.from(byHour.keys()))
+    // Each empty hour row is exactly h-6 = 24px; hours before firstHour have no items, so
+    // the accumulated height is firstHour * 24px plus the container's top padding (py-0.5 = 2px).
+    const HOUR_ROW_HEIGHT = 24
+    const TOP_PADDING = 2
+    container.scrollTop = TOP_PADDING + firstHour * HOUR_ROW_HEIGHT
+  }, [byHour])
+
   const isFiltered = selectedDueDate === dateKey
 
   return (
@@ -304,7 +318,7 @@ function AgendaDayPanel({ dateKey, items, selectedDueDate, onBack, onFilterDay }
         {isFiltered ? <><X size={11} /><span>取消筛选</span></> : '筛选当日截止'}
       </button>
 
-      <div className="max-h-[min(58vh,380px)] overflow-y-auto overscroll-contain rounded-xl border border-border/30 bg-background/40">
+      <div ref={scrollContainerRef} className="max-h-[min(58vh,380px)] overflow-y-auto overscroll-contain rounded-xl border border-border/30 bg-background/40">
         <div className="px-2 py-0.5">
           {TIMELINE_HOURS.map((h) => {
             const hourItems = byHour.get(h)

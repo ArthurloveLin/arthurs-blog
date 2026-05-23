@@ -250,7 +250,7 @@ function NavMobileBar({
 }) {
   return (
     <div 
-      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 md:hidden"
+      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[1000] md:hidden"
       style={NAVBAR_BOTTOM_TRANSITION_STYLE}
     >
       <div className={
@@ -410,7 +410,7 @@ function NavbarContent() {
 
       <header
         className={
-          "sticky top-0 z-50 border-b transition-colors duration-300 " +
+          "sticky top-0 z-[1000] border-b transition-colors duration-300 " +
         // 浅色模式: 移动端减少 blur 合成，桌面保留磨砂效果
         "bg-white/92 backdrop-blur-none border-black/5 md:bg-white/80 md:backdrop-blur-md " +
         // 深色模式(独立逻辑): 替换为纯黑色，去除磨砂模糊
