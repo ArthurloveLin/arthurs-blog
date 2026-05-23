@@ -319,7 +319,7 @@ export function useNoteEditor({
           })
 
           if (!completionResponse.ok) {
-            throw new Error('已勾选，但习惯记录失败，请稍后再试。')
+            throw new Error('已勾选，但重复任务记录失败，请稍后再试。')
           }
 
           void mutateCache('/api/note-boards/memo/habits/overview')

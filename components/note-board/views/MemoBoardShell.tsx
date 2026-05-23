@@ -587,7 +587,7 @@ export function MemoBoardShell({
                     : resolvedCalendarMode === 'agenda'
                       ? '日程视图'
                       : resolvedCalendarMode === 'history'
-                        ? '习惯历史'
+                        ? '重复任务历史'
                         : '按日期筛选'}
               </span>
               {filters.effectiveSelectedDate ? (
