@@ -34,6 +34,7 @@ import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThe
 import { formatCommentTimeLabel, formatStableDate } from '@/lib/date-format'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { NOTE_PRIORITY_META } from '@/lib/note-priority'
+import type { MemoHabitCurrentState } from '@/lib/memo-habits'
 import type { NoteMessage } from '@/lib/note-boards'
 
 interface StickyNoteCardSharedProps {
@@ -61,6 +62,8 @@ interface StickyNoteBoardCardProps extends StickyNoteCardSharedProps {
   isOptimistic?: boolean
   isOptimisticEditing?: boolean
   isFresh?: boolean
+  habitStates?: Record<string, MemoHabitCurrentState>
+  onOpenHabitDetail?: (noteId: string, itemKey: string) => void
 }
 
 interface StickyNotePreviewCardProps extends StickyNoteCardSharedProps {
@@ -81,6 +84,8 @@ interface StickyNoteCardFrameProps extends StickyNoteCardSharedProps {
   isOptimistic?: boolean
   isOptimisticEditing?: boolean
   isFresh?: boolean
+  habitStates?: Record<string, MemoHabitCurrentState>
+  onOpenHabitDetail?: (noteId: string, itemKey: string) => void
 }
 
 function StickyDueBadge({ dueAt }: { dueAt: string }) {
@@ -139,6 +144,8 @@ function StickyNoteCardFrame({
   dragBoundsMode,
   isOptimistic = false,
   isFresh = false,
+  habitStates,
+  onOpenHabitDetail,
 }: StickyNoteCardFrameProps) {
   const articleRef = useRef<HTMLElement>(null)
   const visualRef = useRef<HTMLDivElement>(null)
@@ -674,6 +681,8 @@ function StickyNoteCardFrame({
               onToggleChecklistItem={checklistControl?.onToggle}
               checklistPending={checklistControl?.pending}
               notifiedDues={message.notified_dues}
+              habitStates={habitStates}
+              onOpenHabitDetail={onOpenHabitDetail ? (itemKey) => onOpenHabitDetail(message.id, itemKey) : undefined}
             />
           ) : (
             <div
@@ -687,6 +696,8 @@ function StickyNoteCardFrame({
                 onToggleChecklistItem={checklistControl?.onToggle}
                 checklistPending={checklistControl?.pending}
                 notifiedDues={message.notified_dues}
+                habitStates={habitStates}
+                onOpenHabitDetail={onOpenHabitDetail ? (itemKey) => onOpenHabitDetail(message.id, itemKey) : undefined}
               />
               {isOverflowing && !showExpanded ? (
                 <div

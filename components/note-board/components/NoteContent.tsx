@@ -4,9 +4,11 @@ import { AlarmClock, Check } from 'lucide-react'
 import { memo, useMemo, useState, type ReactNode } from 'react'
 import katex from 'katex'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
+import { getHabitStatusClassName, getHabitStatusLabel, getHabitStreakLabel } from '@/components/note-board/utils/habit-ui'
 import { parseNoteContent, parseRepeatSpec } from '@/components/note-board/utils/editor'
 import { NoteCodeBlock } from '@/components/note-board/components/NoteCodeBlock'
 import type { ChecklistItemDraft } from '@/components/note-board/types'
+import { extractMemoHabitChecklistItems, type MemoHabitCurrentState } from '@/lib/memo-habits'
 import 'katex/dist/katex.min.css'
 
 interface NoteContentProps {
@@ -15,6 +17,8 @@ interface NoteContentProps {
   onToggleChecklistItem?: (lineIndex: number) => void
   checklistPending?: boolean
   notifiedDues?: string[] | null
+  habitStates?: Record<string, MemoHabitCurrentState>
+  onOpenHabitDetail?: (itemKey: string) => void
 }
 
 const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==|`[^`\n]+`|~~[^~\n]+~~|@due\[[^\]]*\]\([^)]*\)|\[[^\]]+\]\([^)]+\)|#[\w一-龥]+|\$\$[^$\n]+\$\$|\$(?!\$)[^$\n]+\$)/g
@@ -221,8 +225,9 @@ function renderTableRows(rows: string[], keyPrefix: string, notifiedDues?: strin
   )
 }
 
-function NoteContentComponent({ content, variant, onToggleChecklistItem, checklistPending = false, notifiedDues }: NoteContentProps) {
+function NoteContentComponent({ content, variant, onToggleChecklistItem, checklistPending = false, notifiedDues, habitStates, onOpenHabitDetail }: NoteContentProps) {
   const parsed = useMemo(() => parseNoteContent(content), [content])
+  const habitItems = useMemo(() => extractMemoHabitChecklistItems(content), [content])
 
   const allElements = useMemo(() => {
     if (!content.trim()) return []
@@ -233,6 +238,10 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       if (typeof item.lineIndex === 'number') {
         checklistByLine.set(item.lineIndex, item)
       }
+    }
+    const habitItemByLine = new Map<number, (typeof habitItems)[number]>()
+    for (const item of habitItems) {
+      habitItemByLine.set(item.lineIndex, item)
     }
 
     const lines = content.split('\n')
@@ -285,6 +294,36 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
         <ul key={`${variant}-cl-${checklistStart}`} className={`space-y-1.5 leading-relaxed text-slate-800/90 ${clsSize}`}>
           {checklistBuffer.map((item) => {
             const lineIndex = typeof item.lineIndex === 'number' ? item.lineIndex : null
+            const habitItem = lineIndex !== null ? habitItemByLine.get(lineIndex) : undefined
+            const fallbackHabitState = habitItem
+              ? {
+                  noteId: '',
+                  itemKey: habitItem.itemKey,
+                  label: habitItem.label,
+                  lineText: habitItem.lineText,
+                  dueAt: habitItem.dueAt,
+                  status: Date.parse(habitItem.dueAt) <= Date.now() ? 'pending' : 'scheduled',
+                  streak: 0,
+                } satisfies MemoHabitCurrentState
+              : null
+            const habitState = habitItem ? (habitStates?.[habitItem.itemKey] ?? fallbackHabitState) : null
+            const streakLabel = habitState ? getHabitStreakLabel(habitState.streak) : null
+            const detailButton = habitItem && onOpenHabitDetail ? (
+              <button
+                type="button"
+                className={[
+                  'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition',
+                  getHabitStatusClassName(habitState!.status),
+                ].join(' ')}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onOpenHabitDetail(habitItem.itemKey)
+                }}
+              >
+                {getHabitStatusLabel(habitState!)}
+              </button>
+            ) : null
             return (
               <li key={item.id} className="flex items-start gap-2">
                 {onToggleChecklistItem && lineIndex !== null ? (
@@ -309,8 +348,27 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
                         <Check size={10} strokeWidth={2.4} />
                       </span>
                     </button>
-                    <span className={item.checked ? 'line-through text-slate-700/65' : ''}>
-                      {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`, notifiedDues)}
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className={item.checked ? 'line-through text-slate-700/65' : ''}>
+                        {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`, notifiedDues)}
+                      </span>
+                      {habitState ? (
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          {detailButton ?? (
+                            <span className={[
+                              'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium',
+                              getHabitStatusClassName(habitState.status),
+                            ].join(' ')}>
+                              {getHabitStatusLabel(habitState)}
+                            </span>
+                          )}
+                          {streakLabel ? (
+                            <span className="inline-flex items-center rounded-full border border-slate-300/70 bg-white/60 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                              {streakLabel}
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : null}
                     </span>
                   </>
                 ) : (
@@ -318,8 +376,25 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
                     <span className="mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-slate-700/35 text-[10px]">
                       {item.checked ? 'x' : ''}
                     </span>
-                    <span className={item.checked ? 'line-through text-slate-700/65' : ''}>
-                      {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`)}
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className={item.checked ? 'line-through text-slate-700/65' : ''}>
+                        {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`)}
+                      </span>
+                      {habitState ? (
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          <span className={[
+                            'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium',
+                            getHabitStatusClassName(habitState.status),
+                          ].join(' ')}>
+                            {getHabitStatusLabel(habitState)}
+                          </span>
+                          {streakLabel ? (
+                            <span className="inline-flex items-center rounded-full border border-slate-300/70 bg-white/60 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                              {streakLabel}
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : null}
                     </span>
                   </>
                 )}
@@ -515,7 +590,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
     }
 
     return result
-  }, [content, parsed.checklistItems, variant, notifiedDues, onToggleChecklistItem, checklistPending])
+  }, [content, parsed.checklistItems, habitItems, variant, notifiedDues, onToggleChecklistItem, checklistPending, habitStates, onOpenHabitDetail])
 
   const textClassName = variant === 'stream'
     ? styles.streamText

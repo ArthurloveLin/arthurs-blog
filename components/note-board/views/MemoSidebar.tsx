@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight, LayoutGrid, Tag, X } from 'lucide-react'
+import { getHabitStatusClassName, getHabitStatusLabel, getHabitStreakLabel } from '@/components/note-board/utils/habit-ui'
+import type { MemoHabitHistoryEvent, MemoHabitOverview } from '@/lib/memo-habits'
 import type { MemoAgendaItem } from '@/lib/note-boards'
 import { NOTE_PRIORITY_META } from '@/lib/note-priority'
 import {
@@ -337,7 +339,7 @@ function AgendaDayPanel({ dateKey, items, selectedDueDate, onBack, onFilterDay }
 
 export interface SidebarAgendaCalendarProps {
   agendaItems: MemoAgendaItem[]
-  onSwitchMode: () => void
+  onSwitchMode?: () => void
   onAfterSelect?: () => void
 }
 
@@ -418,15 +420,17 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
         </button>
         <span className="text-[14px] font-semibold text-foreground/80">{monthLabel}</span>
         <div className="flex items-center gap-0.5">
-          <button
-            type="button"
-            onClick={onSwitchMode}
-            className="rounded-full p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
-            aria-label="切换到热力日历"
-            title="热力日历"
-          >
-            <CalendarDays size={13} />
-          </button>
+          {onSwitchMode ? (
+            <button
+              type="button"
+              onClick={onSwitchMode}
+              className="rounded-full p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+              aria-label="切换到热力日历"
+              title="热力日历"
+            >
+              <CalendarDays size={13} />
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={nextMonth}
@@ -512,6 +516,281 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
           <X size={12} />
           清除截止日期筛选
         </button>
+      ) : null}
+    </div>
+  )
+}
+
+interface HistoryDayPanelProps {
+  dateKey: string
+  events: MemoHabitHistoryEvent[]
+  onBack: () => void
+  onOpenItemDetail: (noteId: string, itemKey: string) => void
+  onAfterSelect?: () => void
+}
+
+function HistoryDayPanel({ dateKey, events, onBack, onOpenItemDetail, onAfterSelect }: HistoryDayPanelProps) {
+  const [yearStr, monthStr, dayStr] = dateKey.split('-')
+  const dateLabel = formatStableDate(
+    new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr)),
+    { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' },
+  )
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onBack}
+          className="shrink-0 rounded-full p-1 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          aria-label="返回历史日历"
+        >
+          <ChevronLeft size={14} />
+        </button>
+        <p className="flex-1 truncate text-[13px] font-semibold text-foreground/80">{dateLabel}</p>
+        <span className="shrink-0 text-[11px] text-muted-foreground/45">{events.length}条</span>
+      </div>
+
+      <div className="max-h-[min(58vh,380px)] overflow-y-auto overscroll-contain rounded-xl border border-border/30 bg-background/40 px-2 py-2">
+        {events.length === 0 ? (
+          <div className="flex min-h-[120px] items-center justify-center text-[12px] text-muted-foreground/55">
+            当天还没有记录
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {events.map((event) => {
+              const state = {
+                noteId: event.noteId,
+                itemKey: event.itemKey,
+                label: event.label,
+                lineText: event.lineText,
+                dueAt: event.dueAt,
+                status: event.status,
+                streak: 0,
+                delayedTo: event.delayedTo,
+                completedAt: event.status === 'completed' ? event.occurredAt : null,
+                completionSource: event.completionSource,
+              } as const
+              return (
+                <button
+                  key={event.occurrenceId}
+                  type="button"
+                  onClick={() => {
+                    onOpenItemDetail(event.noteId, event.itemKey)
+                    onAfterSelect?.()
+                  }}
+                  className="flex w-full items-start justify-between gap-2 rounded-xl border border-border/40 bg-background/70 px-3 py-2 text-left transition hover:border-border/80 hover:bg-accent/40"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12.5px] font-medium text-foreground/85">{event.label}</p>
+                    <p className="mt-1 truncate text-[11px] text-muted-foreground/55">{event.lineText || '查看详情'}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span className={[
+                      'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium',
+                      getHabitStatusClassName(state.status),
+                    ].join(' ')}>
+                      {getHabitStatusLabel(state)}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/45">
+                      {new Intl.DateTimeFormat('zh-CN', {
+                        timeZone: 'Asia/Shanghai',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                      }).format(new Date(event.occurredAt))}
+                    </span>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export interface SidebarHabitHistoryProps {
+  overview: MemoHabitOverview
+  onOpenItemDetail: (noteId: string, itemKey: string) => void
+  onAfterSelect?: () => void
+}
+
+export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect }: SidebarHabitHistoryProps) {
+  const today = useMemo(() => {
+    const { year, month, day } = getShanghaDateParts(new Date())
+    return { year, month, day, key: toDateKey(year, month, day) }
+  }, [])
+
+  const [displayMonth, setDisplayMonth] = useState(() => {
+    const lastDate = overview.daySummaries.at(-1)?.date
+    if (lastDate) {
+      const [year, month] = lastDate.split('-').map(Number)
+      if (year && month) return { year, month }
+    }
+    return { year: today.year, month: today.month }
+  })
+  const [detailDay, setDetailDay] = useState<string | null>(null)
+
+  const monthLabel = formatStableDate(
+    new Date(displayMonth.year, displayMonth.month - 1, 1),
+    { year: 'numeric', month: 'long' },
+  )
+
+  function prevMonth() {
+    setDisplayMonth(({ year, month }) =>
+      month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 },
+    )
+  }
+
+  function nextMonth() {
+    setDisplayMonth(({ year, month }) =>
+      month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 },
+    )
+  }
+
+  const cells = useMemo(() => buildCalendarCells(displayMonth.year, displayMonth.month), [displayMonth])
+
+  const daySummaryMap = useMemo(() => {
+    return new Map(overview.daySummaries.map((summary) => [summary.date, summary]))
+  }, [overview.daySummaries])
+
+  const eventsByDate = useMemo(() => {
+    const map = new Map<string, MemoHabitHistoryEvent[]>()
+    for (const event of overview.recentEvents) {
+      const { year, month, day } = getShanghaDateParts(event.occurredAt)
+      const key = toDateKey(year, month, day)
+      const bucket = map.get(key) ?? []
+      bucket.push(event)
+      map.set(key, bucket)
+    }
+    return map
+  }, [overview.recentEvents])
+
+  const maxTotal = useMemo(() => {
+    let max = 0
+    for (const summary of overview.daySummaries) {
+      const total = summary.completed + summary.missed + summary.delayed
+      if (total > max) {
+        max = total
+      }
+    }
+    return max
+  }, [overview.daySummaries])
+
+  if (detailDay) {
+    return (
+      <HistoryDayPanel
+        dateKey={detailDay}
+        events={eventsByDate.get(detailDay) ?? []}
+        onBack={() => setDetailDay(null)}
+        onOpenItemDetail={onOpenItemDetail}
+        onAfterSelect={onAfterSelect}
+      />
+    )
+  }
+
+  return (
+    <div className="space-y-2.5">
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { label: '今日完成', value: overview.summary.completedToday },
+          { label: '当前连续', value: overview.summary.currentStreak },
+          { label: '7日完成率', value: `${overview.summary.completionRate7d}%` },
+          { label: '本周漏失/延后', value: `${overview.summary.missedThisWeek}/${overview.summary.delayedThisWeek}` },
+        ].map((item) => (
+          <div key={item.label} className="rounded-xl border border-border/40 bg-background/55 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/55">{item.label}</p>
+            <p className="mt-1 text-[18px] font-semibold leading-none text-foreground/85">{item.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={prevMonth}
+          className="rounded-full p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          aria-label="上个月"
+        >
+          <ChevronLeft size={15} />
+        </button>
+        <span className="text-[14px] font-semibold text-foreground/80">{monthLabel}</span>
+        <button
+          type="button"
+          onClick={nextMonth}
+          className="rounded-full p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          aria-label="下个月"
+        >
+          <ChevronRight size={15} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 text-center">
+        {WEEKDAY_LABELS.map((lbl) => (
+          <span key={lbl} className="text-[11px] text-muted-foreground/35">{lbl}</span>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-px">
+        {cells.map((cell, index) => {
+          if (cell.kind !== 'current') {
+            return (
+              <div key={index} className="flex h-[60px] flex-col rounded-sm p-1">
+                <span className="shrink-0 text-[10px] text-muted-foreground/10">{cell.day}</span>
+              </div>
+            )
+          }
+
+          const key = toDateKey(displayMonth.year, displayMonth.month, cell.day)
+          const summary = daySummaryMap.get(key)
+          const total = summary ? summary.completed + summary.missed + summary.delayed : 0
+          const isToday = key === today.key
+          const opacity = total > 0 && maxTotal > 0 ? 0.18 + 0.45 * (total / maxTotal) : 0
+
+          return (
+            <button
+              key={index}
+              type="button"
+              disabled={!summary}
+              onClick={() => {
+                setDetailDay(key)
+                onAfterSelect?.()
+              }}
+              className={[
+                'flex h-[60px] w-full flex-col rounded-sm p-1 text-left transition',
+                summary ? 'cursor-pointer hover:bg-accent' : 'cursor-default',
+              ].join(' ')}
+              style={summary ? { backgroundColor: `rgba(${hexToRgb('#c0644a')},${opacity})` } : undefined}
+              title={summary ? `完成 ${summary.completed} · 错过 ${summary.missed} · 延后 ${summary.delayed}` : undefined}
+            >
+              <span className={[
+                'shrink-0 text-[10px] font-medium leading-tight',
+                isToday
+                  ? 'font-bold text-foreground underline decoration-dotted underline-offset-2'
+                  : summary
+                    ? 'text-foreground/80'
+                    : 'text-muted-foreground/18',
+              ].join(' ')}>
+                {cell.day}
+              </span>
+              {summary ? (
+                <div className="mt-auto space-y-px text-[9px] leading-[11px] text-foreground/75">
+                  <span className="block truncate">完 {summary.completed}</span>
+                  {summary.missed > 0 ? <span className="block truncate text-red-700/80">错 {summary.missed}</span> : null}
+                  {summary.delayed > 0 ? <span className="block truncate text-blue-700/80">延 {summary.delayed}</span> : null}
+                </div>
+              ) : null}
+            </button>
+          )
+        })}
+      </div>
+
+      {overview.summary.currentStreak > 0 ? (
+        <div className="rounded-xl border border-border/40 bg-background/55 px-3 py-2 text-[12px] text-muted-foreground/70">
+          {getHabitStreakLabel(overview.summary.currentStreak) ?? '当前连续 0 次'}
+        </div>
       ) : null}
     </div>
   )

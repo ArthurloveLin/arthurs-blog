@@ -7,7 +7,8 @@ import {
   useNoteBoardBoardState,
 } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
-import { SidebarAgendaCalendar, SidebarCalendar, SidebarTagCloud, getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
+import { SidebarAgendaCalendar, SidebarCalendar, SidebarHabitHistory, SidebarTagCloud, getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
+import type { MemoHabitOverview } from '@/lib/memo-habits'
 import type { MemoAgendaItem } from '@/lib/note-boards'
 import { NOTE_COLOR_THEMES, useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import type { NoteSortMode } from '@/lib/note-priority'
@@ -402,6 +403,8 @@ interface MemoBoardShellProps {
   searchPlaceholder: string
   allowPrioritySort: boolean
   agendaItems?: MemoAgendaItem[] | null
+  habitOverview?: MemoHabitOverview | null
+  onOpenHabitDetail?: (noteId: string, itemKey: string) => void
   extraControls?: ReactNode
   children: ReactNode
 }
@@ -417,6 +420,8 @@ export function MemoBoardShell({
   searchPlaceholder,
   allowPrioritySort,
   agendaItems,
+  habitOverview,
+  onOpenHabitDetail,
   extraControls,
   children,
 }: MemoBoardShellProps) {
@@ -424,8 +429,14 @@ export function MemoBoardShell({
   const actions = useNoteBoardActions()
   const { theme } = useNoteColorTheme()
   const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false)
-  const [calendarMode, setCalendarMode] = useState<'heatmap' | 'agenda'>('agenda')
+  const [calendarMode, setCalendarMode] = useState<'heatmap' | 'agenda' | 'history'>('agenda')
   const isMobileCalendarOpen = state.isMobileViewport && mobileCalendarOpen
+  const resolvedCalendarMode = !habitOverview && calendarMode === 'history' ? 'agenda' : calendarMode
+  const sidebarModes = [
+    { key: 'agenda', label: '日程' },
+    { key: 'heatmap', label: '热力' },
+    ...(habitOverview ? [{ key: 'history', label: '历史' }] : []),
+  ] as const
 
   const shellBg = `radial-gradient(ellipse at top left, rgba(${hexToRgb(theme.shell[0])},0.32) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(${hexToRgb(theme.shell[1])},0.26) 0%, transparent 50%)`
 
@@ -448,6 +459,40 @@ export function MemoBoardShell({
 
   const ToggleIcon = toggleTarget === 'stream' ? LayoutList : Layers
   const toggleLabel = toggleTarget === 'stream' ? '流式视图' : '便签视图'
+
+  const renderSidebarPanel = useCallback((isMobilePanel: boolean) => {
+    if (resolvedCalendarMode === 'agenda' && agendaItems != null) {
+      return (
+        <SidebarAgendaCalendar
+          agendaItems={agendaItems}
+          onAfterSelect={isMobilePanel ? () => setMobileCalendarOpen(false) : undefined}
+        />
+      )
+    }
+
+    if (resolvedCalendarMode === 'history' && habitOverview && onOpenHabitDetail) {
+      return (
+        <SidebarHabitHistory
+          overview={habitOverview}
+          onOpenItemDetail={onOpenHabitDetail}
+          onAfterSelect={isMobilePanel ? () => setMobileCalendarOpen(false) : undefined}
+        />
+      )
+    }
+
+    return (
+      <SidebarCalendar
+        memoDateCounts={filters.memoDateCounts}
+        selectedDate={filters.selectedDate}
+        onSelectDate={(key) => {
+          filters.setSelectedDate(key)
+          if (isMobilePanel && key) {
+            setMobileCalendarOpen(false)
+          }
+        }}
+      />
+    )
+  }, [agendaItems, filters, habitOverview, onOpenHabitDetail, resolvedCalendarMode])
 
   return (
     <section className="rounded-[32px] border border-border/60 bg-card/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-6" style={{ backgroundImage: shellBg }}>
@@ -502,21 +547,24 @@ export function MemoBoardShell({
         {/* 桌面侧边栏 */}
         <aside className="hidden shrink-0 sm:block sm:w-[240px] lg:w-[280px]">
           <div className="sticky top-6 space-y-6">
-            {calendarMode === 'agenda' && agendaItems != null
-              ? (
-                  <SidebarAgendaCalendar
-                    agendaItems={agendaItems}
-                    onSwitchMode={() => setCalendarMode('heatmap')}
-                  />
-                )
-              : (
-                  <SidebarCalendar
-                    memoDateCounts={filters.memoDateCounts}
-                    selectedDate={filters.selectedDate}
-                    onSelectDate={filters.setSelectedDate}
-                    onSwitchMode={agendaItems != null ? () => setCalendarMode('agenda') : undefined}
-                  />
-                )}
+            <div className="inline-flex rounded-full border border-border/60 bg-background/70 p-1">
+              {sidebarModes.map((mode) => (
+                <button
+                  key={mode.key}
+                  type="button"
+                  onClick={() => setCalendarMode(mode.key as 'heatmap' | 'agenda' | 'history')}
+                  className={[
+                    'rounded-full px-3 py-1 text-[12px] font-medium transition',
+                    resolvedCalendarMode === mode.key
+                      ? 'bg-foreground text-background'
+                      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                  ].join(' ')}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+            {renderSidebarPanel(false)}
             <SidebarQuickFilters filters={filters} agendaItems={agendaItems} />
             <SidebarTagCloud />
           </div>
@@ -536,9 +584,11 @@ export function MemoBoardShell({
                   ? filters.effectiveSelectedDate
                   : state.activeDueDate
                     ? `截止 ${state.activeDueDate}`
-                    : calendarMode === 'agenda'
+                    : resolvedCalendarMode === 'agenda'
                       ? '日程视图'
-                      : '按日期筛选'}
+                      : resolvedCalendarMode === 'history'
+                        ? '习惯历史'
+                        : '按日期筛选'}
               </span>
               {filters.effectiveSelectedDate ? (
                 <X size={13} onClick={(e) => { e.stopPropagation(); filters.clearDateFilter() }} />
@@ -550,25 +600,24 @@ export function MemoBoardShell({
             </button>
             {isMobileCalendarOpen ? (
               <div className="mt-2 rounded-2xl border border-border/60 bg-background/80 p-3">
-                {calendarMode === 'agenda' && agendaItems != null
-                  ? (
-                      <SidebarAgendaCalendar
-                        agendaItems={agendaItems}
-                        onSwitchMode={() => setCalendarMode('heatmap')}
-                        onAfterSelect={() => setMobileCalendarOpen(false)}
-                      />
-                    )
-                  : (
-                      <SidebarCalendar
-                        memoDateCounts={filters.memoDateCounts}
-                        selectedDate={filters.selectedDate}
-                        onSelectDate={(key) => {
-                          filters.setSelectedDate(key)
-                          if (key) setMobileCalendarOpen(false)
-                        }}
-                        onSwitchMode={agendaItems != null ? () => setCalendarMode('agenda') : undefined}
-                      />
-                    )}
+                <div className="mb-3 inline-flex rounded-full border border-border/60 bg-background/70 p-1">
+                  {sidebarModes.map((mode) => (
+                    <button
+                      key={mode.key}
+                      type="button"
+                      onClick={() => setCalendarMode(mode.key as 'heatmap' | 'agenda' | 'history')}
+                      className={[
+                        'rounded-full px-3 py-1 text-[12px] font-medium transition',
+                        resolvedCalendarMode === mode.key
+                          ? 'bg-foreground text-background'
+                          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                      ].join(' ')}
+                    >
+                      {mode.label}
+                    </button>
+                  ))}
+                </div>
+                {renderSidebarPanel(true)}
               </div>
             ) : null}
           </div>

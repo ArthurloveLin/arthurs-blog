@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import useSWR from 'swr'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlarmClock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { MemoHabitDetailPanel } from '@/components/note-board/views/MemoHabitDetailPanel'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import { VisibilityPicker } from '@/components/note-board/components/VisibilityPicker'
@@ -27,6 +28,7 @@ import {
   getNoteBoardViewModeStorageKey,
   type NoteBoardViewMode,
 } from '@/lib/note-board-view-mode'
+import type { MemoHabitItemDetail, MemoHabitOverview } from '@/lib/memo-habits'
 import type { MemoAgendaItem, NoteMessage } from '@/lib/note-boards'
 import { getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
 export { StickyStackPreview } from '@/components/note-board/views/StickyStackPreview'
@@ -52,7 +54,7 @@ interface NoteBoardPageProps {
   initialViewMode?: NoteBoardViewMode
 }
 
-function BoardStickyView({ onToggleViewMode, filters, agendaItems }: { onToggleViewMode: () => void; filters: MemoBoardFilters; agendaItems?: import('@/lib/note-boards').MemoAgendaItem[] | null }) {
+function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail }: { onToggleViewMode: () => void; filters: MemoBoardFilters; agendaItems?: import('@/lib/note-boards').MemoAgendaItem[] | null; habitOverview?: MemoHabitOverview | null; onOpenHabitDetail?: (noteId: string, itemKey: string) => void }) {
   const state = useNoteBoardBoardState()
   const editorState = useNoteBoardEditorState()
   const actions = useNoteBoardActions()
@@ -99,6 +101,8 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems }: { onToggleV
       searchPlaceholder={meta.board.slug === 'guestbook' ? '搜索留言内容…' : '搜索 Memo…'}
       allowPrioritySort={meta.board.slug === 'memo'}
       agendaItems={agendaItems}
+      habitOverview={habitOverview}
+      onOpenHabitDetail={onOpenHabitDetail}
     >
       {!state.viewportReady ? (
         <div
@@ -113,7 +117,11 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems }: { onToggleV
         </div>
       ) : state.isMobileViewport ? (
         <div className="mb-12">
-          <MobileStickyStack items={filteredNoteItems} />
+          <MobileStickyStack
+            items={filteredNoteItems}
+            habitStatesByNote={habitOverview?.currentStates}
+            onOpenHabitDetail={onOpenHabitDetail}
+          />
         </div>
       ) : (
         <div>
@@ -155,6 +163,8 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems }: { onToggleV
                       priorityControl={priorityControl}
                       reactionControl={reactionControl}
                       checklistControl={checklistControl}
+                      habitStates={habitOverview?.currentStates[message.id]}
+                      onOpenHabitDetail={onOpenHabitDetail}
                       inlineEditor={inlineEditor}
                       isOptimistic={isOptimistic}
                       isOptimisticEditing={isOptimisticEditing}
@@ -709,6 +719,22 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
     { revalidateOnFocus: false, dedupingInterval: 60_000 },
   )
 
+  const { data: habitOverview, mutate: mutateHabitOverview } = useSWR<MemoHabitOverview>(
+    meta.board.slug === 'memo' ? '/api/note-boards/memo/habits/overview' : null,
+    (url: string) => fetch(url).then((r) => r.json()),
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+  )
+
+  const [selectedHabit, setSelectedHabit] = useState<{ noteId: string; itemKey: string } | null>(null)
+  const selectedHabitKey = selectedHabit
+    ? `/api/note-boards/memo/habits/item?note_id=${encodeURIComponent(selectedHabit.noteId)}&item_key=${encodeURIComponent(selectedHabit.itemKey)}`
+    : null
+  const { data: selectedHabitDetail, mutate: mutateSelectedHabitDetail, isLoading: isHabitDetailLoading } = useSWR<MemoHabitItemDetail>(
+    selectedHabitKey,
+    (url: string) => fetch(url).then((r) => r.json()),
+    { revalidateOnFocus: false },
+  )
+
   const [viewMode, setViewMode] = useState<NoteBoardViewMode>(initialViewMode)
 
   useEffect(() => {
@@ -721,13 +747,55 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
     [],
   )
 
+  const openHabitDetail = useCallback((noteId: string, itemKey: string) => {
+    setSelectedHabit({ noteId, itemKey })
+  }, [])
+
+  const closeHabitDetail = useCallback(() => {
+    setSelectedHabit(null)
+  }, [])
+
+  const handleCompleteHabit = useCallback(async () => {
+    if (!selectedHabit) return
+    const response = await fetch('/api/note-boards/memo/habits/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note_id: selectedHabit.noteId, item_key: selectedHabit.itemKey }),
+    })
+    if (!response.ok) return
+    const detail = await response.json() as MemoHabitItemDetail
+    await mutateSelectedHabitDetail(detail, { revalidate: false })
+    await mutateHabitOverview()
+  }, [mutateHabitOverview, mutateSelectedHabitDetail, selectedHabit])
+
+  const handleDelayHabit = useCallback(async (delayUntil: string) => {
+    if (!selectedHabit) return
+    const response = await fetch('/api/note-boards/memo/habits/delay', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note_id: selectedHabit.noteId, item_key: selectedHabit.itemKey, delay_until: delayUntil }),
+    })
+    if (!response.ok) return
+    const detail = await response.json() as MemoHabitItemDetail
+    await mutateSelectedHabitDetail(detail, { revalidate: false })
+    await mutateHabitOverview()
+  }, [mutateHabitOverview, mutateSelectedHabitDetail, selectedHabit])
+
   return (
     <div className="space-y-6">
       {viewMode === 'stream'
-        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} />
-        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} />}
+        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} />
+        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} />}
       <NoteBoardEditorSection autoFocusOnEdit={viewMode === 'stream'} />
       <NoteBoardToast />
+      <MemoHabitDetailPanel
+        detail={selectedHabitDetail}
+        isLoading={Boolean(selectedHabit) && isHabitDetailLoading}
+        isMobile={state.isMobileViewport}
+        onClose={closeHabitDetail}
+        onComplete={handleCompleteHabit}
+        onDelay={handleDelayHabit}
+      />
     </div>
   )
 }

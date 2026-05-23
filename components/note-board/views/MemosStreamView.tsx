@@ -7,6 +7,7 @@ import {
   useNoteBoardMeta,
 } from '@/components/note-board/NoteBoardProvider'
 import { MemoBoardShell, type MemoBoardFilters } from '@/components/note-board/views/MemoBoardShell'
+import type { MemoHabitOverview } from '@/lib/memo-habits'
 import type { MemoAgendaItem } from '@/lib/note-boards'
 import { MemoStreamCard } from '@/components/note-board/views/MemoStreamCard'
 import { getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
@@ -18,6 +19,8 @@ interface MemosStreamViewProps {
   onToggleViewMode: () => void
   filters: MemoBoardFilters
   agendaItems?: MemoAgendaItem[] | null
+  habitOverview?: MemoHabitOverview | null
+  onOpenHabitDetail?: (noteId: string, itemKey: string) => void
 }
 
 type FeedGroup = {
@@ -34,7 +37,7 @@ type FeedGroup = {
 
 const DATE_META_BLOCK_HEIGHT_CLASS = 'h-[2.15rem] sm:h-[2.6rem]'
 
-export function MemosStreamView({ onToggleViewMode, filters, agendaItems }: MemosStreamViewProps) {
+export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail }: MemosStreamViewProps) {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
   const meta = useNoteBoardMeta()
@@ -151,6 +154,8 @@ export function MemosStreamView({ onToggleViewMode, filters, agendaItems }: Memo
       searchPlaceholder={meta.board.slug === 'guestbook' ? '搜索留言内容…' : '搜索 Memo…'}
       allowPrioritySort={meta.board.slug === 'memo'}
       agendaItems={agendaItems}
+      habitOverview={habitOverview}
+      onOpenHabitDetail={onOpenHabitDetail}
     >
       {isLoading ? (
         <div className="space-y-3">
@@ -196,7 +201,12 @@ export function MemosStreamView({ onToggleViewMode, filters, agendaItems }: Memo
               </div>
               <div className="space-y-3">
                 {group.items.map((item) => (
-                  <MemoStreamCard key={item.message.id} item={item} />
+                  <MemoStreamCard
+                    key={item.message.id}
+                    item={item}
+                    habitStates={habitOverview?.currentStates[item.message.id]}
+                    onOpenHabitDetail={onOpenHabitDetail}
+                  />
                 ))}
               </div>
             </section>

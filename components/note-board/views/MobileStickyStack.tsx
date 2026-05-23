@@ -14,12 +14,15 @@ import {
   NOTE_CARD_WIDTH,
   PREVIEW_REVEAL_THRESHOLD,
 } from '@/components/note-board/utils/board'
+import type { MemoHabitCurrentState } from '@/lib/memo-habits'
 
 interface MobileStickyStackProps {
   items: NoteCardViewModel[]
+  habitStatesByNote?: Record<string, Record<string, MemoHabitCurrentState>>
+  onOpenHabitDetail?: (noteId: string, itemKey: string) => void
 }
 
-export function MobileStickyStack({ items }: MobileStickyStackProps) {
+export function MobileStickyStack({ items, habitStatesByNote, onOpenHabitDetail }: MobileStickyStackProps) {
   const [containerRef, size] = useElementSize<HTMLDivElement>()
   const [parkedIds, setParkedIds] = useState<string[]>([])
   const [placedPositions, setPlacedPositions] = useState<Record<string, NotePosition>>({})
@@ -181,6 +184,8 @@ export function MobileStickyStack({ items }: MobileStickyStackProps) {
                         ...priorityControl,
                         disabled: isPriorityUpdating || priorityControl.disabled || !canEdit,
                       } : undefined}
+                      habitStates={habitStatesByNote?.[message.id]}
+                      onOpenHabitDetail={onOpenHabitDetail}
                       isOptimistic={isOptimistic}
                       isOptimisticEditing={isOptimisticEditing}
                       isFresh={isFresh}

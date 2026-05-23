@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { extractMemoHabitChecklistItems, updateMemoHabitChecklistLine } from '@/lib/memo-habits'
+import {
+  markSupersededMemoHabitOccurrencesAsMissed,
+  upsertMemoHabitOccurrenceForReminder,
+} from '@/lib/memo-habits-server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendNtfyReminder } from '@/lib/ntfy'
 
@@ -116,9 +121,10 @@ export async function POST(req: NextRequest) {
   // ── Primary path: inline @due tags in content ────────────────────────────
   const { data: memos, error: memosError } = await supabaseAdmin
     .from('comments')
-    .select('id, content, notified_dues')
+    .select('id, content, notified_dues, user_id, visibility')
     .eq('target_type', 'memo')
     .eq('archived', false)
+    .not('user_id', 'is', null)
     .ilike('content', '%@due[%')
     .limit(100)
 
@@ -127,7 +133,9 @@ export async function POST(req: NextRequest) {
   }
 
   for (const memo of memos ?? []) {
-    const tags = parseInlineDueTags(memo.content)
+    const habitItems = extractMemoHabitChecklistItems(memo.content)
+    const habitTagSignatures = new Set(habitItems.map((item) => `${item.label}|${item.dueAt}`))
+    const tags = parseInlineDueTags(memo.content).filter((tag) => !habitTagSignatures.has(`${tag.label.trim() || '截止'}|${tag.iso}`))
     const notifiedDues: string[] = Array.isArray(memo.notified_dues) ? memo.notified_dues : []
 
     const pendingOnce: typeof tags = []
@@ -142,7 +150,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (pendingOnce.length === 0 && pendingRepeat.length === 0) continue
+    const pendingHabitOnce = habitItems.filter((item) => item.repeatMode === 'once' && new Date(item.dueAt) <= now && !notifiedDues.includes(item.dueAt))
+    const pendingHabitRepeat = habitItems.filter((item) => item.repeatMode !== 'once' && new Date(item.dueAt) <= now)
+
+    if (pendingOnce.length === 0 && pendingRepeat.length === 0 && pendingHabitOnce.length === 0 && pendingHabitRepeat.length === 0) continue
 
     let updatedContent = memo.content
 
@@ -164,7 +175,48 @@ export async function POST(req: NextRequest) {
         const nextIso = advanceDueAt(tag.iso, tag.repeatMode, tag.repeatDays)
         const newRawParens = nextIso + (tag.rawParens.includes(',') ? tag.rawParens.slice(tag.rawParens.indexOf(',')) : '')
         const newTag = `@due[${tag.label}](${newRawParens})`
-        updatedContent = updatedContent.replace(tag.fullMatch, newTag)
+        updatedContent = updatedContent.split(tag.fullMatch).join(newTag)
+        sent++
+      } catch (e) {
+        errors.push(e instanceof Error ? e.message : String(e))
+      }
+    }
+
+    for (const item of pendingHabitOnce) {
+      try {
+        await upsertMemoHabitOccurrenceForReminder({
+          id: memo.id as string,
+          content: memo.content as string,
+          visibility: memo.visibility as 'public' | 'admin_only',
+          user_id: memo.user_id as string,
+        }, item, nowIso)
+        const { title, body } = buildNotification({ label: item.label, iso: item.dueAt }, memo.content, now)
+        await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
+        notifiedDues.push(item.dueAt)
+        sent++
+      } catch (e) {
+        errors.push(e instanceof Error ? e.message : String(e))
+      }
+    }
+
+    for (const item of pendingHabitRepeat) {
+      try {
+        await markSupersededMemoHabitOccurrencesAsMissed(memo.id as string, item.itemKey, item.dueAt)
+        await upsertMemoHabitOccurrenceForReminder({
+          id: memo.id as string,
+          content: memo.content as string,
+          visibility: memo.visibility as 'public' | 'admin_only',
+          user_id: memo.user_id as string,
+        }, item, nowIso)
+        // Advance content before sending notification so that a ntfy failure
+        // does not leave due_at un-advanced, causing an infinite retry loop.
+        const nextIso = advanceDueAt(item.dueAt, item.repeatMode, item.repeatDays)
+        updatedContent = updateMemoHabitChecklistLine(updatedContent, item.lineIndex, {
+          checked: false,
+          dueAt: nextIso,
+        })
+        const { title, body } = buildNotification({ label: item.label, iso: item.dueAt }, memo.content, now, item.repeatMode)
+        await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
         sent++
       } catch (e) {
         errors.push(e instanceof Error ? e.message : String(e))
@@ -172,8 +224,8 @@ export async function POST(req: NextRequest) {
     }
 
     const patch: Record<string, unknown> = { notified_at: nowIso }
-    if (pendingOnce.length > 0) patch.notified_dues = notifiedDues
-    if (pendingRepeat.length > 0) patch.content = updatedContent
+    if (pendingOnce.length > 0 || pendingHabitOnce.length > 0) patch.notified_dues = notifiedDues
+    if (pendingRepeat.length > 0 || pendingHabitRepeat.length > 0) patch.content = updatedContent
     await supabaseAdmin.from('comments').update(patch).eq('id', memo.id)
   }
 

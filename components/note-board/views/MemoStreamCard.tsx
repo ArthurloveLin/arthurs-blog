@@ -14,6 +14,7 @@ import { hasInlineDueTags } from '@/components/note-board/utils/editor'
 import { NoteCommentPanel } from '@/components/note-board/components/NoteCommentPanel'
 import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { formatCommentTimeLabel, formatStableDate } from '@/lib/date-format'
+import type { MemoHabitCurrentState } from '@/lib/memo-habits'
 
 function formatDueLabel(dueAt: string): { label: string; variant: 'upcoming' | 'soon' | 'overdue' } {
   const diff = Date.parse(dueAt) - Date.now()
@@ -36,9 +37,11 @@ function formatDueLabel(dueAt: string): { label: string; variant: 'upcoming' | '
 
 interface MemoStreamCardProps {
   item: NoteCardViewModel
+  habitStates?: Record<string, MemoHabitCurrentState>
+  onOpenHabitDetail?: (noteId: string, itemKey: string) => void
 }
 
-export function MemoStreamCard({ item }: MemoStreamCardProps) {
+export function MemoStreamCard({ item, habitStates, onOpenHabitDetail }: MemoStreamCardProps) {
   const {
     message,
     actions,
@@ -197,6 +200,8 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
           onToggleChecklistItem={checklistControl?.onToggle}
           checklistPending={checklistControl?.pending}
           notifiedDues={message.notified_dues}
+          habitStates={habitStates}
+          onOpenHabitDetail={onOpenHabitDetail ? (itemKey) => onOpenHabitDetail(message.id, itemKey) : undefined}
         />
       </div>
 
