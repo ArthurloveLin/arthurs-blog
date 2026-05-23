@@ -37,6 +37,7 @@ env:
 # Job dependency graph (push to main):
 #
 #   check → docker → deploy → release
+#         ↘ ai-fix (on check failure — opens a fix PR)
 #                  ↘ notify (on failure)
 #
 # On PR: only check + docker build (no push, no deploy).
@@ -63,7 +64,155 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
 
-# ─── 2. Build & push Docker image ──────────────────────────────────────────────
+# ─── 2. AI Auto-Fix (on check failure) ────────────────────────────────────────
+#
+# Runs only when the `check` job fails.
+# Invokes agy to attempt automatic fixes, re-runs the check, and if it passes,
+# opens a PR with the fixes on the same branch. Non-blocking — a crash here
+# never affects the rest of the pipeline.
+  ai-fix:
+    name: AI Auto-Fix
+    needs: check
+    runs-on: [self-hosted, linux, vps]
+    if: failure() && needs.check.result == 'failure'
+    continue-on-error: true
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Idempotency check
+        id: idempotency
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          EXISTING=$(git ls-remote --heads origin "refs/heads/ai-fix/${SHORT_SHA}" | head -1)
+          if [ -n "$EXISTING" ]; then
+            echo "already_ran=true" >> "$GITHUB_OUTPUT"
+            echo "Fix branch already exists for ${SHORT_SHA} — skipping"
+          else
+            echo "already_ran=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Capture check errors
+        if: steps.idempotency.outputs.already_ran != 'true'
+        run: |
+          rm -f /tmp/ci-check-errors.md /tmp/ci-fix-prompt.md /tmp/ci-fix-result.md
+          npm run check 2>&1 | tee /tmp/ci-check-errors.md || true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+
+      - name: Assemble agy prompt
+        if: steps.idempotency.outputs.already_ran != 'true'
+        run: |
+          python3 - << 'PYEOF'
+          import pathlib
+          template = pathlib.Path("tests/ai_hooks/prompts/ci_fix.md").read_text()
+          errors = pathlib.Path("/tmp/ci-check-errors.md").read_text()
+          prompt = template.replace("{CHECK_OUTPUT}", errors)
+          pathlib.Path("/tmp/ci-fix-prompt.md").write_text(prompt)
+          print(f"Prompt assembled: {len(prompt)} chars")
+          PYEOF
+
+      - name: Invoke agy to fix errors
+        if: steps.idempotency.outputs.already_ran != 'true'
+        timeout-minutes: 10
+        run: |
+          rm -rf ~/.gemini/antigravity-cli/brain/ 2>/dev/null || true
+          /home/arthur/.local/bin/agy \
+            --dangerously-skip-permissions \
+            -p "$(cat /tmp/ci-fix-prompt.md)"
+
+      - name: Re-run check to verify fix
+        if: steps.idempotency.outputs.already_ran != 'true'
+        id: verify
+        continue-on-error: true
+        run: npm run check
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+
+      - name: Create branch and open PR
+        if: steps.idempotency.outputs.already_ran != 'true' && steps.verify.outcome == 'success'
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          BRANCH="ai-fix/${SHORT_SHA}"
+          BASE_BRANCH="${{ github.head_ref || github.ref_name }}"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+
+          if git diff --cached --quiet && git diff --quiet; then
+            echo "No changes produced by agy — skipping PR"
+            exit 0
+          fi
+
+          git add -A
+          COMMIT_MSG=$(printf 'fix(ai-auto): resolve type-check & lint errors for %s\n\nCo-Authored-By: agy <noreply@anthropic.com>' "${SHORT_SHA}")
+          git commit -m "$COMMIT_MSG"
+          git push origin "$BRANCH"
+
+          PR_URL=$(gh pr create \
+            --title "fix(ai-auto): resolve type-check & lint errors [${SHORT_SHA}]" \
+            --body-file tests/ai_hooks/pr_body_template_ci_fix.md \
+            --base "$BASE_BRANCH" \
+            --head "$BRANCH")
+          echo "PR_URL=$PR_URL" >> "$GITHUB_ENV"
+
+      - name: Notify via ntfy
+        if: steps.idempotency.outputs.already_ran != 'true'
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ -n "${PR_URL:-}" ]; then
+            TITLE="🤖 AI Auto-Fix PR Ready"
+            MSG="CI 静态检查失败已由 AI 自动修复，PR 待审核: ${PR_URL}"
+            TAG="white_check_mark"
+            PRI=3
+            CLICK="$PR_URL"
+          else
+            TITLE="🤖 AI Auto-Fix 失败"
+            MSG="AI 尝试修复 CI 静态检查失败但未成功 (${SHORT_SHA})"
+            TAG="x"
+            PRI=2
+            CLICK="$RUN_URL"
+          fi
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg title "$TITLE" \
+              --arg msg "$MSG" \
+              --arg tag "$TAG" \
+              --argjson pri "$PRI" \
+              --arg click "$CLICK" \
+              '{
+                topic: "watchtower-arthur71684",
+                title: $title,
+                message: $msg,
+                tags: [$tag],
+                priority: $pri,
+                click: $click
+              }')" \
+            https://arthurlovegrace.top/ntfy-push
+
+# ─── 3. Build & push Docker image ──────────────────────────────────────────────
   docker:
     name: Build & Push Image
     needs: check
@@ -144,7 +293,7 @@ jobs:
             "R2_CDN_BUCKET=${{ secrets.R2_CDN_BUCKET }}"
             "R2_CDN_PUBLIC_DOMAIN=${{ secrets.R2_CDN_PUBLIC_DOMAIN }}"
 
-# ─── 3. Deploy ────────────────────────────────────────────────────────────────
+# ─── 4. Deploy ────────────────────────────────────────────────────────────────
   deploy:
     name: Trigger Watchtower Deploy
     needs: docker
@@ -179,7 +328,7 @@ jobs:
               }')" \
             https://arthurlovegrace.top/ntfy-push
 
-# ─── 4. Version snapshot ──────────────────────────────────────────────────────
+# ─── 5. Version snapshot ──────────────────────────────────────────────────────
   release:
     name: Create Version Snapshot
     needs: deploy
@@ -240,7 +389,7 @@ jobs:
               --arg sha "${TAG_SHA}" \
               '{ref: $ref, sha: $sha}')"
 
-# ─── 5. Failure notification ──────────────────────────────────────────────────
+# ─── 6. Failure notification ──────────────────────────────────────────────────
   notify:
     name: Notify on Failure
     needs: [check, docker, deploy]
