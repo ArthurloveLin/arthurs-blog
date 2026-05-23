@@ -210,7 +210,7 @@ export const getMemoTagCounts = cache(async (ownerUserId: string, showAdminOnly 
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
 })
 
-export type MemoAgendaItem = { memoId: string; dueAt: string; label: string; priority: NotePriority; repeatMode?: string }
+export type MemoAgendaItem = { memoId: string; dueAt: string; label: string; priority: NotePriority; repeatMode?: string; isNotified?: boolean }
 
 const INLINE_DUE_RE = /@due\[([^\]]*)\]\(([^)]*)\)/g
 
@@ -276,10 +276,10 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
         : repeatSpec === 'weekdays' ? 'weekdays'
         : repeatSpec.startsWith('custom:') ? 'custom'
         : 'once'
-      // Single: show always (including overdue) until notified; Repeat: show current ISO (next occurrence)
-      if (repeatMode === 'once' && notifiedDues.includes(iso)) continue
+      // Single: show always (including overdue) until notified, then show as done; Repeat: show current ISO (next occurrence)
+      const isNotified = repeatMode === 'once' && notifiedDues.includes(iso)
       const label = match[1].trim() || '截止'
-      items.push({ memoId: row.id as string, dueAt: iso, label, priority: normalizeNotePriority(row.priority), repeatMode: repeatMode !== 'once' ? repeatMode : undefined })
+      items.push({ memoId: row.id as string, dueAt: iso, label, priority: normalizeNotePriority(row.priority), repeatMode: repeatMode !== 'once' ? repeatMode : undefined, isNotified: isNotified || undefined })
       seenMemoIds.add(row.id as string)
     }
   }
@@ -289,14 +289,15 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
     if (seenMemoIds.has(row.id as string)) continue
     const repeatMode = (row.repeat_mode as string | null) ?? 'once'
     const dueAt = row.due_at as string
-    // Single: show until notified; Repeat: show current due_at (next occurrence)
-    if (repeatMode === 'once' && row.notified_at != null) continue
+    // Single: show until notified, then show as done; Repeat: show current due_at (next occurrence)
+    const isNotified = repeatMode === 'once' && row.notified_at != null
     items.push({
       memoId: row.id as string,
       dueAt,
       label: extractContentLabel(row.content as string),
       priority: normalizeNotePriority(row.priority),
       repeatMode: repeatMode !== 'once' ? repeatMode : undefined,
+      isNotified: isNotified || undefined,
     })
   }
 

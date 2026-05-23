@@ -318,7 +318,7 @@ function AgendaDayPanel({ dateKey, items, selectedDueDate, onBack, onFilterDay }
                   <div key={idx} className="mb-1.5 flex items-start gap-1.5 pl-9">
                     <span className="shrink-0 text-[9px] tabular-nums leading-[18px] text-muted-foreground/50">{timeLabel}</span>
                     <span
-                      className="flex-1 truncate rounded-[4px] px-1.5 py-[3px] text-[11px] leading-[14px] text-white"
+                      className={['flex-1 truncate rounded-[4px] px-1.5 py-[3px] text-[11px] leading-[14px] text-white', item.isNotified ? 'opacity-45 line-through' : ''].filter(Boolean).join(' ')}
                       style={{ backgroundColor: NOTE_PRIORITY_META[item.priority].color }}
                       title={item.label}
                     >
@@ -485,7 +485,7 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
                 {items.slice(0, 2).map((item, li) => (
                   <span
                     key={li}
-                    className="block truncate rounded-[3px] px-0.5 text-[9px] leading-[13px] text-white"
+                    className={['block truncate rounded-[3px] px-0.5 text-[9px] leading-[13px] text-white', item.isNotified ? 'opacity-40 line-through' : ''].filter(Boolean).join(' ')}
                     style={{ backgroundColor: NOTE_PRIORITY_META[item.priority].color }}
                     title={item.label}
                   >
