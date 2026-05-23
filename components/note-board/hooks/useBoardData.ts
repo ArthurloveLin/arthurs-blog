@@ -449,8 +449,9 @@ export function useBoardData({
       return
     }
 
+    replaceMessages((current) => current)
     setCurrentPageIndex((current) => Math.max(current - 1, 0))
-  }, [currentPageIndex, isDesktopViewport, isPending, isRefreshingBoard])
+  }, [currentPageIndex, isDesktopViewport, isPending, isRefreshingBoard, replaceMessages])
 
   const handleNextPage = useCallback(async () => {
     if (!isDesktopViewport || isPending || isRefreshingBoard) {
@@ -460,6 +461,7 @@ export function useBoardData({
     const targetPageIndex = currentPageIndex + 1
 
     if (targetPageIndex < loadedDesktopPageCount) {
+      replaceMessages((current) => current)
       setCurrentPageIndex(targetPageIndex)
       return
     }

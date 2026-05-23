@@ -33,6 +33,7 @@ permissions:
 
 env:
   IMAGE_NAME: ghcr.io/arthurlovelin/arthurs-blog
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 # Job dependency graph (push to main):
 #

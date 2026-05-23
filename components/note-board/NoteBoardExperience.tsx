@@ -61,8 +61,12 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems }: { onToggleV
   const bindContainer = useCallback((node: HTMLDivElement | null) => {
     bindings.bindContainer(node)
   }, [bindings])
+  // When a date filter is active, pull from allNoteItems so items on page 2+
+  // are reachable. When no filter, keep the paginated noteItems.
+  const isFilterActive = !!(filters.effectiveSelectedDate || state.activeDueDate)
   const filteredNoteItems = useMemo(() => {
-    const byDate = filters.filterItemsByDate(state.noteItems)
+    const sourceItems = isFilterActive ? state.allNoteItems : state.noteItems
+    const byDate = filters.filterItemsByDate(sourceItems)
     if (!state.activeDueDate || !agendaItems?.length) return byDate
     const matchingIds = new Set(
       agendaItems
@@ -73,12 +77,8 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems }: { onToggleV
         .map((a: MemoAgendaItem) => a.memoId),
     )
     return byDate.filter((item) => matchingIds.has(item.message.id))
-  }, [filters, state.noteItems, state.activeDueDate, agendaItems])
-  const filteredItemIds = useMemo(
-    () => new Set(filteredNoteItems.map((item) => item.message.id)),
-    [filteredNoteItems],
-  )
-  const summary = state.viewportReady && !state.isMobileViewport && !filters.isFilterMode
+  }, [filters, isFilterActive, state.noteItems, state.allNoteItems, state.activeDueDate, agendaItems])
+  const summary = state.viewportReady && !state.isMobileViewport && !filters.isFilterMode && !state.activeDueDate
     ? `第 ${state.currentPage} 页 · ${state.visibleCount} 张`
     : `共 ${state.totalLoaded} 张`
   const emptyLabel = state.showArchived
@@ -124,12 +124,8 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems }: { onToggleV
           >
             {!meta.surface.hasMeasured ? null : (
               <div className="relative" style={{ minHeight: Math.max(meta.surface.height, 320) }}>
-                {state.noteItems.map((item, index) => {
+                {filteredNoteItems.map((item, index) => {
                   const { message, actions: cardActions, priorityControl, reactionControl, checklistControl, inlineEditor, isEditing, isOptimistic, isOptimisticEditing, isFresh } = item
-
-                  if ((filters.effectiveSelectedDate || state.activeDueDate) && !filteredItemIds.has(message.id)) {
-                    return null
-                  }
 
                   const layout = meta.surface.layouts[index]
                   const targetPosition = meta.surface.getTargetPosition(index)
@@ -138,7 +134,9 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems }: { onToggleV
                     y: 22 + Math.min(index, 4) * 4,
                     rotation: index % 2 === 0 ? -2 : 2,
                   }
-                  const custom = state.customPositions[message.id]
+                  // When a filter is active, ignore saved custom positions so
+                  // items re-layout from slot 0 instead of staying scattered.
+                  const custom = isFilterActive ? undefined : state.customPositions[message.id]
                   const position = custom ?? (meta.surface.isScattered ? targetPosition : collapsedPosition)
 
                   return (
