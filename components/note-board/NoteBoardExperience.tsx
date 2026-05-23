@@ -239,14 +239,6 @@ const REPEAT_MODE_OPTIONS: { value: RepeatMode; label: string }[] = [
 
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 
-const TIME_PRESETS = [
-  { h: 7, m: 0, label: '07:00' },
-  { h: 9, m: 0, label: '09:00' },
-  { h: 12, m: 0, label: '12:00' },
-  { h: 15, m: 0, label: '15:00' },
-  { h: 18, m: 0, label: '18:00' },
-  { h: 21, m: 0, label: '21:00' },
-]
 
 function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) => void }) {
   const [nowTs] = useState(Date.now)
@@ -487,65 +479,46 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
           <div className="mt-3 rounded-2xl bg-muted/30 p-3 space-y-3">
 
             {/* 时间 */}
-            <div>
-              <div className="flex items-center justify-center gap-1.5 mb-2.5">
-                {editingHour ? (
-                  <input
-                    autoFocus
-                    type="number"
-                    min="0" max="23"
-                    value={hourInput}
-                    onChange={(e) => setHourInput(e.target.value)}
-                    onBlur={commitHour}
-                    onKeyDown={(e) => { if (e.key === 'Enter') commitHour(); if (e.key === 'Escape') setEditingHour(false) }}
-                    onFocus={(e) => e.target.select()}
-                    className={timeInput}
-                  />
-                ) : (
-                  <button type="button" title="点击输入小时"
-                    onClick={() => { setHourInput(String(hour).padStart(2, '0')); setEditingHour(true) }}
-                    className="w-9 text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground transition-colors hover:text-primary">
-                    {String(hour).padStart(2, '0')}
-                  </button>
-                )}
-                <span className="pb-px font-mono text-[1.1rem] font-semibold text-muted-foreground/60">:</span>
-                {editingMinute ? (
-                  <input
-                    autoFocus
-                    type="number"
-                    min="0" max="59"
-                    value={minuteInput}
-                    onChange={(e) => setMinuteInput(e.target.value)}
-                    onBlur={commitMinute}
-                    onKeyDown={(e) => { if (e.key === 'Enter') commitMinute(); if (e.key === 'Escape') setEditingMinute(false) }}
-                    onFocus={(e) => e.target.select()}
-                    className={timeInput}
-                  />
-                ) : (
-                  <button type="button" title="点击输入分钟"
-                    onClick={() => { setMinuteInput(String(minute).padStart(2, '0')); setEditingMinute(true) }}
-                    className="w-9 text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground transition-colors hover:text-primary">
-                    {String(minute).padStart(2, '0')}
-                  </button>
-                )}
-              </div>
-              <div className="grid grid-cols-6 gap-1">
-                {TIME_PRESETS.map((p) => (
-                  <button
-                    key={p.h}
-                    type="button"
-                    onClick={() => { setHour(p.h); setMinute(p.m) }}
-                    className={[
-                      'rounded-lg py-1 text-[10px] font-mono font-medium transition-colors',
-                      hour === p.h && minute === p.m
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-background/70 text-muted-foreground hover:bg-muted/60 hover:text-foreground',
-                    ].join(' ')}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
+            <div className="flex items-center justify-center gap-1.5">
+              {editingHour ? (
+                <input
+                  autoFocus
+                  type="number"
+                  min="0" max="23"
+                  value={hourInput}
+                  onChange={(e) => setHourInput(e.target.value)}
+                  onBlur={commitHour}
+                  onKeyDown={(e) => { if (e.key === 'Enter') commitHour(); if (e.key === 'Escape') setEditingHour(false) }}
+                  onFocus={(e) => e.target.select()}
+                  className={timeInput}
+                />
+              ) : (
+                <button type="button" title="点击输入小时"
+                  onClick={() => { setHourInput(String(hour).padStart(2, '0')); setEditingHour(true) }}
+                  className="w-9 text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground transition-colors hover:text-primary">
+                  {String(hour).padStart(2, '0')}
+                </button>
+              )}
+              <span className="pb-px font-mono text-[1.1rem] font-semibold text-muted-foreground/60">:</span>
+              {editingMinute ? (
+                <input
+                  autoFocus
+                  type="number"
+                  min="0" max="59"
+                  value={minuteInput}
+                  onChange={(e) => setMinuteInput(e.target.value)}
+                  onBlur={commitMinute}
+                  onKeyDown={(e) => { if (e.key === 'Enter') commitMinute(); if (e.key === 'Escape') setEditingMinute(false) }}
+                  onFocus={(e) => e.target.select()}
+                  className={timeInput}
+                />
+              ) : (
+                <button type="button" title="点击输入分钟"
+                  onClick={() => { setMinuteInput(String(minute).padStart(2, '0')); setEditingMinute(true) }}
+                  className="w-9 text-center font-mono text-[1.1rem] font-semibold tabular-nums text-foreground transition-colors hover:text-primary">
+                  {String(minute).padStart(2, '0')}
+                </button>
+              )}
             </div>
 
             {/* 重复模式 */}

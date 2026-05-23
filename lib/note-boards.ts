@@ -230,7 +230,7 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
   // Inline @due[label](iso[,repeat]) tags
   let inlineQuery = supabaseAdmin
     .from('comments')
-    .select('id, content, priority')
+    .select('id, content, priority, notified_dues')
     .eq('target_type', config.targetType)
     .eq('target_id', config.targetId)
     .eq('archived', false)
@@ -242,7 +242,7 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
   // Legacy: column-based due_at / repeat_mode
   let columnQuery = supabaseAdmin
     .from('comments')
-    .select('id, content, priority, due_at, repeat_mode')
+    .select('id, content, priority, due_at, repeat_mode, notified_at')
     .eq('target_type', config.targetType)
     .eq('target_id', config.targetId)
     .eq('archived', false)
@@ -262,6 +262,7 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
 
   // Primary: inline @due tags in content
   for (const row of inlineData ?? []) {
+    const notifiedDues: string[] = Array.isArray(row.notified_dues) ? row.notified_dues as string[] : []
     INLINE_DUE_RE.lastIndex = 0
     let match: RegExpExecArray | null
     while ((match = INLINE_DUE_RE.exec(row.content as string)) !== null) {
@@ -275,7 +276,8 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
         : repeatSpec === 'weekdays' ? 'weekdays'
         : repeatSpec.startsWith('custom:') ? 'custom'
         : 'once'
-      if (repeatMode === 'once' && Date.parse(iso) <= Date.now()) continue
+      // Single: show always (including overdue) until notified; Repeat: show current ISO (next occurrence)
+      if (repeatMode === 'once' && notifiedDues.includes(iso)) continue
       const label = match[1].trim() || '截止'
       items.push({ memoId: row.id as string, dueAt: iso, label, priority: normalizeNotePriority(row.priority), repeatMode: repeatMode !== 'once' ? repeatMode : undefined })
       seenMemoIds.add(row.id as string)
@@ -287,7 +289,8 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
     if (seenMemoIds.has(row.id as string)) continue
     const repeatMode = (row.repeat_mode as string | null) ?? 'once'
     const dueAt = row.due_at as string
-    if (repeatMode === 'once' && Date.parse(dueAt) <= Date.now()) continue
+    // Single: show until notified; Repeat: show current due_at (next occurrence)
+    if (repeatMode === 'once' && row.notified_at != null) continue
     items.push({
       memoId: row.id as string,
       dueAt,
