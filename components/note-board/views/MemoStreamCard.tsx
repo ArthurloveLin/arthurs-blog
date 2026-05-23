@@ -13,7 +13,7 @@ import { getStickyColorIndex, getStickyColorSeed, STICKY_COLORS } from '@/compon
 import { hasInlineDueTags } from '@/components/note-board/utils/editor'
 import { NoteCommentPanel } from '@/components/note-board/components/NoteCommentPanel'
 import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
-import { formatCommentTimeLabel } from '@/lib/date-format'
+import { formatCommentTimeLabel, formatStableDate } from '@/lib/date-format'
 
 function formatDueLabel(dueAt: string): { label: string; variant: 'upcoming' | 'soon' | 'overdue' } {
   const diff = Date.parse(dueAt) - Date.now()
@@ -235,19 +235,23 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
         variant="bare"
         className="mt-4 gap-x-2 gap-y-1"
       />
-      {/* 点赞/踩 */}
-      <ReactionToggleBar
-        className="mt-3"
-        compact
-        variant="bare"
-        upvotes={reactionControl.upvotes}
-        downvotes={reactionControl.downvotes}
-        viewerReaction={reactionControl.viewerReaction}
-        pending={reactionControl.pending}
-        emojiPending={reactionControl.emojiPending}
-        onReact={reactionControl.onReact}
-        onEmojiReact={reactionControl.onEmojiReact}
-      />
+      {/* 点赞/踩 + 创建日期 */}
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <ReactionToggleBar
+          compact
+          variant="bare"
+          upvotes={reactionControl.upvotes}
+          downvotes={reactionControl.downvotes}
+          viewerReaction={reactionControl.viewerReaction}
+          pending={reactionControl.pending}
+          emojiPending={reactionControl.emojiPending}
+          onReact={reactionControl.onReact}
+          onEmojiReact={reactionControl.onEmojiReact}
+        />
+        <span className="shrink-0 text-[11px] leading-none text-muted-foreground/45">
+          {formatStableDate(message.created_at, { month: 'numeric', day: 'numeric' })}
+        </span>
+      </div>
 
       {/* 评论入口 */}
       <div className="mt-3 flex items-center border-t border-border/20 pt-3">

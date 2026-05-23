@@ -31,7 +31,7 @@ import {
   STICKY_COLORS,
 } from '@/components/note-board/utils/board'
 import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
-import { formatCommentTimeLabel } from '@/lib/date-format'
+import { formatCommentTimeLabel, formatStableDate } from '@/lib/date-format'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { NOTE_PRIORITY_META } from '@/lib/note-priority'
 import type { NoteMessage } from '@/lib/note-boards'
@@ -712,17 +712,22 @@ function StickyNoteCardFrame({
                 variant="bare"
                 className="mb-2 gap-x-2 gap-y-1"
               />
-              <ReactionToggleBar
-                compact
-                variant="bare"
-                upvotes={reactionControl.upvotes}
-                downvotes={reactionControl.downvotes}
-                viewerReaction={reactionControl.viewerReaction}
-                pending={reactionControl.pending}
-                emojiPending={reactionControl.emojiPending}
-                onReact={reactionControl.onReact}
-                onEmojiReact={reactionControl.onEmojiReact}
-              />
+              <div className="flex items-center justify-between gap-1">
+                <ReactionToggleBar
+                  compact
+                  variant="bare"
+                  upvotes={reactionControl.upvotes}
+                  downvotes={reactionControl.downvotes}
+                  viewerReaction={reactionControl.viewerReaction}
+                  pending={reactionControl.pending}
+                  emojiPending={reactionControl.emojiPending}
+                  onReact={reactionControl.onReact}
+                  onEmojiReact={reactionControl.onEmojiReact}
+                />
+                <span className="shrink-0 text-[9px] leading-none opacity-40">
+                  {formatStableDate(message.created_at, { month: 'numeric', day: 'numeric' })}
+                </span>
+              </div>
             </div>
           ) : null}
         </div>

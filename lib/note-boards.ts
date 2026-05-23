@@ -166,7 +166,7 @@ export const getMemoDateCounts = cache(async (ownerUserId: string, showAdminOnly
 
   const counts = new Map<string, number>()
   for (const row of data ?? []) {
-    const ts = (row.updated_at ?? row.created_at) as string
+    const ts = row.created_at as string
     const key = toShanghaiDateKey(ts)
     counts.set(key, (counts.get(key) ?? 0) + 1)
   }

@@ -13,8 +13,7 @@ import { NOTE_COLOR_THEMES, useNoteColorTheme } from '@/components/note-board/co
 import type { NoteSortMode } from '@/lib/note-priority'
 
 function getItemDateKey(item: NoteCardViewModel) {
-  const ts = item.message.updated_at ?? item.message.created_at
-  const { year, month, day } = getShanghaDateParts(ts)
+  const { year, month, day } = getShanghaDateParts(item.message.created_at)
   return toDateKey(year, month, day)
 }
 
