@@ -312,6 +312,7 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
 
   // Legacy: inline @due tags in content
   for (const row of inlineData ?? []) {
+    if (seenMemoIds.has(row.id as string)) continue
     INLINE_DUE_RE.lastIndex = 0
     let match: RegExpExecArray | null
     while ((match = INLINE_DUE_RE.exec(row.content as string)) !== null) {
@@ -319,6 +320,7 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
       const iso = match[2]
       if (iso && !isNaN(Date.parse(iso))) {
         items.push({ memoId: row.id as string, dueAt: iso, label, priority: normalizeNotePriority(row.priority) })
+        seenMemoIds.add(row.id as string)
       }
     }
   }
