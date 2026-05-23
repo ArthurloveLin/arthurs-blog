@@ -125,17 +125,40 @@ State lives in `useNoteEditor` as `draftDueAt` / `editDueAt`, exposed through
 - amber — within 24h
 - red — overdue
 
+**Repeat modes** (`comments.repeat_mode`, migration `20260523000000_memo_repeat_mode.sql`):
+- Values: `once` (default) | `daily` | `weekdays` | `custom`
+- `custom` also stores `repeat_days integer[]` — UTC weekday indices (0 = Sun … 6 = Sat)
+- Repeat reminders never set `notified_at`; instead `due_at` is advanced to the next
+  occurrence after each fire. The `due_at ≤ now AND notified_at IS NULL` query naturally
+  re-triggers without any extra state.
+- Weekday calculations use **UTC** (`getUTCDay`), matching how `due_at` is stored.
+
+**DueDateInserter modes** (inline component in `NoteBoardExperience.tsx`):
+- `once` → inserts `@due[label](iso)` tag at cursor (existing inline path)
+- any repeat mode → sets `editorDueAt` + `editorRepeatMode` + `editorRepeatDays` via
+  context; does NOT insert an inline tag. The repeat info travels through the POST/PATCH
+  body as `repeat_mode` / `repeat_days`.
+- Do not collapse these two paths — inline tags are intentionally one-time only;
+  repeating reminders must use the column path.
+
 **Notification pipeline**:
 ```
 VPS crontab (every minute)
   → POST localhost:3000/api/memo/check-reminders  (Bearer token auth)
     → query Supabase: due_at ≤ now AND notified_at IS NULL AND archived = false
     → POST http://1Panel-ntfy-5k3U/memo-reminder  (via lib/ntfy.ts)
-    → UPDATE comments SET notified_at = now()
+    → once:   UPDATE comments SET notified_at = now()
+    → repeat: UPDATE comments SET due_at = <next occurrence>   (notified_at stays NULL)
 ```
 
 The blog container is on `1panel-network` so it can reach ntfy by container name.
 `NTFY_INTERNAL_URL`, `NTFY_TOPIC`, `REMINDER_CHECK_TOKEN` are set in `.env.local`.
+
+**Agenda view** (`getMemoAgendaItems` in `lib/note-boards.ts`):
+- Runs two parallel queries: inline `@due` tags + `due_at` column memos
+- Column memos: recurring ones always shown (next occurrence); one-time only if
+  `due_at > now` (unfired)
+- Dedup by memo ID: if a memo has both inline tags and `due_at`, inline tags win
 
 **Hard constraints**:
 - `due_at` is only settable/visible for memo, not guestbook (admin-only in practice).
@@ -145,3 +168,4 @@ The blog container is on `1panel-network` so it can reach ntfy by container name
   so React invokes it as a lazy initializer internally (see `StickyDueBadge`).
 - `notified_at` must always be reset to NULL when `due_at` changes; the API layer
   (`updateBoardMessage`) handles this via `'due_at' in input` check.
+- `patch` object in `updateBoardMessage` is typed `Record<string, string | boolean | number | number[] | null>` — the `number[]` is required for `repeat_days`; do not narrow it back to scalar-only.
