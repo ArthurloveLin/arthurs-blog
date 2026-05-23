@@ -222,7 +222,7 @@ export function useBoardMutations({
         ...currentMessage,
         priority,
       }
-      : currentMessage))
+      : currentMessage), { resetPositions: false, sort: false })
 
     if (editingMessage?.id === message.id) {
       setEditPriority(priority)
@@ -251,12 +251,12 @@ export function useBoardMutations({
           viewer_emojis: currentMessage.viewer_emojis,
           comment_count: currentMessage.comment_count,
         }
-        : currentMessage))
+        : currentMessage), { resetPositions: false, sort: false })
       if (editingMessage?.id === updatedMessage.id) {
         setEditPriority(updatedMessage.priority)
       }
     } catch (updateError) {
-      replaceMessages((current) => current.map((currentMessage) => currentMessage.id === message.id ? snapshot : currentMessage))
+      replaceMessages((current) => current.map((currentMessage) => currentMessage.id === message.id ? snapshot : currentMessage), { resetPositions: false, sort: false })
       if (editingMessage?.id === message.id) {
         setEditPriority(snapshot.priority)
       }
