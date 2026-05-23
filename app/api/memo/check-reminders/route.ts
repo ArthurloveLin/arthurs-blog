@@ -7,13 +7,33 @@ const REMINDER_TOKEN = process.env.REMINDER_CHECK_TOKEN
 
 const INLINE_DUE_CAPTURE = /@due\[([^\]]*)\]\(([^)]*)\)/g
 
-function parseInlineDueTags(content: string): Array<{ label: string; iso: string }> {
-  const result: Array<{ label: string; iso: string }> = []
+// Tag format: @due[label](iso) or @due[label](iso,daily|weekdays|custom:0,1,2)
+function parseDueParens(raw: string): { iso: string; repeatSpec: string } {
+  const comma = raw.indexOf(',')
+  if (comma === -1) return { iso: raw, repeatSpec: '' }
+  return { iso: raw.slice(0, comma), repeatSpec: raw.slice(comma + 1) }
+}
+
+function parseRepeatSpec(spec: string): { repeatMode: string; repeatDays: number[] | null } {
+  if (!spec) return { repeatMode: 'once', repeatDays: null }
+  if (spec === 'daily') return { repeatMode: 'daily', repeatDays: null }
+  if (spec === 'weekdays') return { repeatMode: 'weekdays', repeatDays: null }
+  if (spec.startsWith('custom:')) {
+    const days = spec.slice(7).split(',').map(Number).filter((d) => !isNaN(d) && d >= 0 && d <= 6)
+    return { repeatMode: 'custom', repeatDays: days.length > 0 ? days : null }
+  }
+  return { repeatMode: 'once', repeatDays: null }
+}
+
+function parseInlineDueTags(content: string): Array<{ label: string; iso: string; repeatMode: string; repeatDays: number[] | null; fullMatch: string; rawParens: string }> {
+  const result: Array<{ label: string; iso: string; repeatMode: string; repeatDays: number[] | null; fullMatch: string; rawParens: string }> = []
   INLINE_DUE_CAPTURE.lastIndex = 0
   let match: RegExpExecArray | null
   while ((match = INLINE_DUE_CAPTURE.exec(content)) !== null) {
-    const iso = match[2]
-    if (iso && !isNaN(Date.parse(iso))) result.push({ label: match[1], iso })
+    const { iso, repeatSpec } = parseDueParens(match[2])
+    if (!iso || isNaN(Date.parse(iso))) continue
+    const { repeatMode, repeatDays } = parseRepeatSpec(repeatSpec)
+    result.push({ label: match[1], iso, repeatMode, repeatDays, fullMatch: match[0], rawParens: match[2] })
   }
   return result
 }
@@ -51,7 +71,7 @@ function buildNotification(
   return { title, body }
 }
 
-// Advance due_at to the next occurrence based on repeat mode (Shanghai time preserved)
+// Advance ISO to the next occurrence based on repeat mode (UTC preserved)
 function advanceDueAt(dueAt: string, repeatMode: string, repeatDays: number[] | null): string {
   const due = new Date(dueAt)
 
@@ -62,7 +82,6 @@ function advanceDueAt(dueAt: string, repeatMode: string, repeatDays: number[] | 
 
   if (repeatMode === 'weekdays') {
     due.setUTCDate(due.getUTCDate() + 1)
-    // day-of-week in UTC may differ from Shanghai by ±1; use UTC since due_at is stored in UTC
     while (due.getUTCDay() === 0 || due.getUTCDay() === 6) {
       due.setUTCDate(due.getUTCDate() + 1)
     }
@@ -94,47 +113,7 @@ export async function POST(req: NextRequest) {
   let sent = 0
   const errors: string[] = []
 
-  // ── Primary path: memo_reminders table ──────────────────────────────────
-  const { data: tableReminders, error: tableError } = await supabaseAdmin
-    .from('memo_reminders')
-    .select('id, label, due_at, repeat_mode, repeat_days, comments!inner(id, content, archived)')
-    .lte('due_at', nowIso)
-    .is('notified_at', null)
-    .eq('comments.archived', false)
-    .limit(100)
-
-  if (tableError) {
-    return NextResponse.json({ error: tableError.message }, { status: 500 })
-  }
-
-  for (const row of tableReminders ?? []) {
-    const comment = Array.isArray(row.comments) ? row.comments[0] : row.comments as { content: string } | null
-    const content = (comment as { content: string } | null)?.content ?? ''
-    const repeatMode: string = (row.repeat_mode as string | null) ?? 'once'
-    const repeatDays: number[] | null = Array.isArray(row.repeat_days) ? row.repeat_days as number[] : null
-
-    try {
-      const { title, body } = buildNotification(
-        { label: row.label as string, iso: row.due_at as string },
-        content,
-        now,
-        repeatMode,
-      )
-      await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
-
-      if (repeatMode !== 'once') {
-        const nextDueAt = advanceDueAt(row.due_at as string, repeatMode, repeatDays)
-        await supabaseAdmin.from('memo_reminders').update({ due_at: nextDueAt }).eq('id', row.id)
-      } else {
-        await supabaseAdmin.from('memo_reminders').update({ notified_at: nowIso }).eq('id', row.id)
-      }
-      sent++
-    } catch (e) {
-      errors.push(e instanceof Error ? e.message : String(e))
-    }
-  }
-
-  // ── Legacy path 1: inline @due tags in content ───────────────────────────
+  // ── Primary path: inline @due tags in content ────────────────────────────
   const { data: memos, error: memosError } = await supabaseAdmin
     .from('comments')
     .select('id, content, notified_dues')
@@ -148,27 +127,57 @@ export async function POST(req: NextRequest) {
   }
 
   for (const memo of memos ?? []) {
-    const inlineTags = parseInlineDueTags(memo.content)
+    const tags = parseInlineDueTags(memo.content)
     const notifiedDues: string[] = Array.isArray(memo.notified_dues) ? memo.notified_dues : []
-    const pending = inlineTags.filter((t) => new Date(t.iso) <= now && !notifiedDues.includes(t.iso))
 
-    for (const due of pending) {
+    const pendingOnce: typeof tags = []
+    const pendingRepeat: typeof tags = []
+
+    for (const tag of tags) {
+      if (new Date(tag.iso) > now) continue
+      if (tag.repeatMode === 'once') {
+        if (!notifiedDues.includes(tag.iso)) pendingOnce.push(tag)
+      } else {
+        pendingRepeat.push(tag)
+      }
+    }
+
+    if (pendingOnce.length === 0 && pendingRepeat.length === 0) continue
+
+    let updatedContent = memo.content
+
+    for (const tag of pendingOnce) {
       try {
-        const { title, body } = buildNotification(due, memo.content, now)
+        const { title, body } = buildNotification(tag, memo.content, now)
         await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
-        notifiedDues.push(due.iso)
+        notifiedDues.push(tag.iso)
         sent++
       } catch (e) {
         errors.push(e instanceof Error ? e.message : String(e))
       }
     }
 
-    if (pending.length > 0) {
-      await supabaseAdmin.from('comments').update({ notified_dues: notifiedDues, notified_at: nowIso }).eq('id', memo.id)
+    for (const tag of pendingRepeat) {
+      try {
+        const { title, body } = buildNotification(tag, memo.content, now, tag.repeatMode)
+        await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
+        const nextIso = advanceDueAt(tag.iso, tag.repeatMode, tag.repeatDays)
+        const newRawParens = nextIso + (tag.rawParens.includes(',') ? tag.rawParens.slice(tag.rawParens.indexOf(',')) : '')
+        const newTag = `@due[${tag.label}](${newRawParens})`
+        updatedContent = updatedContent.replace(tag.fullMatch, newTag)
+        sent++
+      } catch (e) {
+        errors.push(e instanceof Error ? e.message : String(e))
+      }
     }
+
+    const patch: Record<string, unknown> = { notified_at: nowIso }
+    if (pendingOnce.length > 0) patch.notified_dues = notifiedDues
+    if (pendingRepeat.length > 0) patch.content = updatedContent
+    await supabaseAdmin.from('comments').update(patch).eq('id', memo.id)
   }
 
-  // ── Legacy path 2: column-based due_at / repeat_mode on comments ─────────
+  // ── Legacy path: column-based due_at / repeat_mode on comments ───────────
   const { data: columnMemos, error: columnError } = await supabaseAdmin
     .from('comments')
     .select('id, content, due_at, notified_at, repeat_mode, repeat_days')

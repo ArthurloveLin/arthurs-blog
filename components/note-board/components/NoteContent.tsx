@@ -4,7 +4,7 @@ import { AlarmClock, Check } from 'lucide-react'
 import { memo, useMemo, useState, type ReactNode } from 'react'
 import katex from 'katex'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
-import { parseNoteContent } from '@/components/note-board/utils/editor'
+import { parseNoteContent, parseRepeatSpec } from '@/components/note-board/utils/editor'
 import { NoteCodeBlock } from '@/components/note-board/components/NoteCodeBlock'
 import type { ChecklistItemDraft } from '@/components/note-board/types'
 import 'katex/dist/katex.min.css'
@@ -19,12 +19,13 @@ interface NoteContentProps {
 
 const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==|`[^`\n]+`|~~[^~\n]+~~|@due\[[^\]]*\]\([^)]*\)|\[[^\]]+\]\([^)]+\)|#[\w一-龥]+|\$\$[^$\n]+\$\$|\$(?!\$)[^$\n]+\$)/g
 
-function InlineDueChip({ label, iso, notified }: { label: string; iso: string; notified?: boolean }) {
+function InlineDueChip({ label, iso, notified, repeatMode }: { label: string; iso: string; notified?: boolean; repeatMode?: string }) {
   const [now] = useState(Date.now)
   const diff = Date.parse(iso) - now
   const isOverdue = diff < 0
   const isSoon = !isOverdue && diff < 86400000
   const formatted = new Date(iso).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const repeatLabel = repeatMode === 'daily' ? '每天' : repeatMode === 'weekdays' ? '周一至五' : repeatMode === 'custom' ? '重复' : null
   if (notified) {
     return (
       <span
@@ -38,7 +39,7 @@ function InlineDueChip({ label, iso, notified }: { label: string; iso: string; n
   }
   return (
     <span
-      title={`${label || '截止'}：${formatted}`}
+      title={`${label || '截止'}：${formatted}${repeatLabel ? ` · ${repeatLabel}` : ''}`}
       className={[
         'inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0 text-[0.78em] font-medium align-baseline cursor-default select-none',
         isOverdue ? 'border-red-300/70 bg-red-100/70 text-red-600' :
@@ -48,6 +49,7 @@ function InlineDueChip({ label, iso, notified }: { label: string; iso: string; n
     >
       <AlarmClock size={9} strokeWidth={2} className="shrink-0" />
       <span>{label || '截止'}</span>
+      {repeatLabel ? <span className="opacity-60">· {repeatLabel}</span> : null}
     </span>
   )
 }
@@ -80,9 +82,12 @@ function renderInlineFormattedText(text: string, keyPrefix: string, notifiedDues
       const delDueMatch = delInner.match(/^@due\[([^\]]*)\]\(([^)]*)\)$/)
       nodes.push(
         <del key={`${keyPrefix}-s-${index}`} className="line-through opacity-60">
-          {delDueMatch
-            ? <InlineDueChip label={delDueMatch[1]} iso={delDueMatch[2]} notified={notifiedDues?.includes(delDueMatch[2]) ?? false} />
-            : delInner}
+          {delDueMatch ? (() => {
+            const comma = delDueMatch[2].indexOf(',')
+            const iso = comma === -1 ? delDueMatch[2] : delDueMatch[2].slice(0, comma)
+            const { repeatMode } = parseRepeatSpec(comma === -1 ? '' : delDueMatch[2].slice(comma + 1))
+            return <InlineDueChip label={delDueMatch[1]} iso={iso} notified={notifiedDues?.includes(iso) ?? false} repeatMode={repeatMode !== 'once' ? repeatMode : undefined} />
+          })() : delInner}
         </del>
       )
     } else if (token.startsWith('#')) {
@@ -94,8 +99,11 @@ function renderInlineFormattedText(text: string, keyPrefix: string, notifiedDues
     } else if (token.startsWith('@due[')) {
       const dueMatch = token.match(/^@due\[([^\]]*)\]\(([^)]*)\)$/)
       if (dueMatch) {
-        const notified = notifiedDues?.includes(dueMatch[2]) ?? false
-        nodes.push(<InlineDueChip key={`${keyPrefix}-due-${index}`} label={dueMatch[1]} iso={dueMatch[2]} notified={notified} />)
+        const comma = dueMatch[2].indexOf(',')
+        const iso = comma === -1 ? dueMatch[2] : dueMatch[2].slice(0, comma)
+        const { repeatMode } = parseRepeatSpec(comma === -1 ? '' : dueMatch[2].slice(comma + 1))
+        const notified = notifiedDues?.includes(iso) ?? false
+        nodes.push(<InlineDueChip key={`${keyPrefix}-due-${index}`} label={dueMatch[1]} iso={iso} notified={notified} repeatMode={repeatMode !== 'once' ? repeatMode : undefined} />)
       } else {
         nodes.push(token)
       }

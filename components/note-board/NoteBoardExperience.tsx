@@ -248,10 +248,7 @@ const TIME_PRESETS = [
   { h: 21, m: 0, label: '21:00' },
 ]
 
-function DueDateInserter() {
-  const editorState = useNoteBoardEditorState()
-  const boardActions = useNoteBoardActions()
-  const [saving, setSaving] = useState(false)
+function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) => void }) {
   const [nowTs] = useState(Date.now)
   const today = useMemo(() => {
     const d = new Date(nowTs)
@@ -356,37 +353,18 @@ function DueDateInserter() {
     setEditingMinute(false)
   }
 
-  async function handleInsert() {
-    if (!selectedDay || saving) return
+  function handleInsert() {
+    if (!selectedDay) return
     if (repeatMode === 'custom' && customDays.length === 0) return
     const pad = (n: number) => String(n).padStart(2, '0')
     const dateStr = `${selectedDay.year}-${pad(selectedDay.month)}-${pad(selectedDay.day)}`
-    const due_at = new Date(`${dateStr}T${pad(hour)}:${pad(minute)}`).toISOString()
-    const reminder = {
-      label: label.trim() || '提醒',
-      due_at,
-      repeat_mode: repeatMode,
-      repeat_days: repeatMode === 'custom' ? customDays : null,
-    }
-
-    setSaving(true)
-    try {
-      if (editorState.editorMode === 'edit' && editorState.editingMessage) {
-        const res = await fetch('/api/note-boards/memo/reminders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memo_id: editorState.editingMessage.id, ...reminder }),
-        })
-        if (res.ok) {
-          const created = await res.json()
-          boardActions.addReminderToMessage(editorState.editingMessage.id, created)
-        }
-      } else {
-        boardActions.addDraftReminder(reminder)
-      }
-    } finally {
-      setSaving(false)
-    }
+    const iso = new Date(`${dateStr}T${pad(hour)}:${pad(minute)}`).toISOString()
+    const repeatSpec = repeatMode === 'daily' ? ',daily'
+      : repeatMode === 'weekdays' ? ',weekdays'
+      : repeatMode === 'custom' ? `,custom:${customDays.sort((a, b) => a - b).join(',')}`
+      : ''
+    const tag = `@due[${label.trim() || '提醒'}](${iso}${repeatSpec})`
+    insertAtCursor(tag)
 
     setOpen(false)
     setLabel('')
@@ -620,7 +598,7 @@ function DueDateInserter() {
               placeholder="提醒标题（显示在通知中）"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && selectedDay) handleInsert() }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && selectedDay) { e.preventDefault(); handleInsert() } }}
               className="w-full rounded-xl border border-border/60 bg-background/70 px-3 py-2 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/40 focus:ring-1 focus:ring-primary/30"
             />
           </div>
@@ -633,11 +611,11 @@ function DueDateInserter() {
             </button>
             <button
               type="button"
-              disabled={!selectedDay || (repeatMode === 'custom' && customDays.length === 0) || saving}
-              onClick={() => void handleInsert()}
+              disabled={!selectedDay || (repeatMode === 'custom' && customDays.length === 0)}
+              onClick={handleInsert}
               className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-[11px] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
             >
-              {saving ? '保存中…' : '保存提醒'}
+              插入提醒
             </button>
           </div>
         </div>
@@ -685,7 +663,7 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
             minHeightClassName="min-h-[140px]"
             shellClassName="overflow-hidden rounded-[24px] border border-border/70 bg-background/55"
             toolbarClassName="px-4 py-3 text-xs text-muted-foreground"
-            toolbarLeadingAddon={() => (
+            toolbarLeadingAddon={(insertAtCursor) => (
               <>
                 {state.priorityEnabled ? (
                   <PriorityPicker.Dot
@@ -703,7 +681,7 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
                     onChange={actions.updateEditorVisibility}
                   />
                 ) : null}
-                {state.isAdmin ? <DueDateInserter /> : null}
+                {state.isAdmin ? <DueDateInserter insertAtCursor={insertAtCursor} /> : null}
               </>
             )}
             autoFocus={state.editorMode === 'edit' && (boardState.isMobileViewport || autoFocusOnEdit)}
@@ -712,28 +690,6 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
       ) : (
         <p className="mt-4 text-sm leading-7 text-muted-foreground">这里先开放浏览，Memo 暂时由 admin 维护与更新。</p>
       )}
-
-      {/* 创建模式下暂存的 reminders */}
-      {state.editorMode === 'create' && state.draftReminders.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {state.draftReminders.map((r) => (
-            <div key={r.tempId} className="flex items-center gap-1.5 rounded-full border border-amber-400/50 bg-amber-50/70 py-0.5 pl-2.5 pr-1.5 text-[11px] text-amber-700">
-              <AlarmClock size={10} strokeWidth={2} />
-              <span>{r.label}</span>
-              {r.repeat_mode !== 'once' ? (
-                <span className="opacity-60">· {r.repeat_mode === 'daily' ? '每天' : r.repeat_mode === 'weekdays' ? '周一至五' : '自定义'}</span>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => actions.removeDraftReminder(r.tempId)}
-                className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-amber-500 transition hover:bg-amber-200/60"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : null}
 
       {state.error ? <p className="mt-3 text-sm text-rose-600">{state.error}</p> : null}
     </section>

@@ -19,25 +19,6 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export type NoteVisibility = 'public' | 'admin_only'
 
-export interface MemoReminder {
-  id: string
-  memo_id: string
-  label: string
-  due_at: string
-  repeat_mode: string
-  repeat_days?: number[] | null
-  notified_at?: string | null
-  created_at: string
-}
-
-export interface PendingReminder {
-  tempId: string
-  label: string
-  due_at: string
-  repeat_mode: string
-  repeat_days?: number[] | null
-}
-
 export interface NoteMessage {
   id: string
   visual_seed?: string
@@ -60,7 +41,6 @@ export interface NoteMessage {
   notified_dues?: string[] | null
   repeat_mode?: string | null
   repeat_days?: number[] | null
-  reminders?: MemoReminder[]
 }
 
 function compareBoardMessageTime(
@@ -230,7 +210,7 @@ export const getMemoTagCounts = cache(async (ownerUserId: string, showAdminOnly 
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
 })
 
-export type MemoAgendaItem = { memoId: string; dueAt: string; label: string; priority: NotePriority }
+export type MemoAgendaItem = { memoId: string; dueAt: string; label: string; priority: NotePriority; repeatMode?: string }
 
 const INLINE_DUE_RE = /@due\[([^\]]*)\]\(([^)]*)\)/g
 
@@ -247,7 +227,7 @@ function extractContentLabel(content: string): string {
 export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnly = false) => {
   const config = getNoteBoardConfig('memo')
 
-  // Inline @due[label](iso) tags
+  // Inline @due[label](iso[,repeat]) tags
   let inlineQuery = supabaseAdmin
     .from('comments')
     .select('id, content, priority')
@@ -259,7 +239,7 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
     .ilike('content', '%@due[%')
   if (!showAdminOnly) inlineQuery = inlineQuery.eq('visibility', 'public')
 
-  // due_at column (one-time unnotified + all recurring)
+  // Legacy: column-based due_at / repeat_mode
   let columnQuery = supabaseAdmin
     .from('comments')
     .select('id, content, priority, due_at, repeat_mode')
@@ -271,57 +251,34 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
     .not('due_at', 'is', null)
   if (!showAdminOnly) columnQuery = columnQuery.eq('visibility', 'public')
 
-  // memo_reminders table (primary path)
-  let remindersQuery = supabaseAdmin
-    .from('memo_reminders')
-    .select('id, label, due_at, repeat_mode, comments!inner(id, priority, user_id, archived, visibility)')
-    .eq('comments.user_id', ownerUserId)
-    .eq('comments.archived', false)
-    .is('notified_at', null)
-  if (!showAdminOnly) remindersQuery = remindersQuery.eq('comments.visibility', 'public')
-
-  const [
-    { data: inlineData, error: inlineError },
-    { data: columnData, error: columnError },
-    { data: remindersData, error: remindersError },
-  ] = await Promise.all([inlineQuery, columnQuery, remindersQuery])
+  const [{ data: inlineData, error: inlineError }, { data: columnData, error: columnError }] =
+    await Promise.all([inlineQuery, columnQuery])
 
   if (inlineError) throw new Error(inlineError.message)
   if (columnError) throw new Error(columnError.message)
-  if (remindersError) throw new Error(remindersError.message)
 
   const items: MemoAgendaItem[] = []
   const seenMemoIds = new Set<string>()
 
-  // Primary: memo_reminders table entries
-  for (const row of remindersData ?? []) {
-    const comment = Array.isArray(row.comments) ? row.comments[0] : row.comments as { id: string; priority: unknown } | null
-    if (!comment) continue
-    const memoId = (comment as { id: string }).id
-    const dueAt = row.due_at as string
-    const repeatMode = (row.repeat_mode as string | null) ?? 'once'
-    if (repeatMode === 'once' && Date.parse(dueAt) <= Date.now()) continue
-    items.push({
-      memoId,
-      dueAt,
-      label: (row.label as string) || '提醒',
-      priority: normalizeNotePriority((comment as { priority: unknown }).priority),
-    })
-    seenMemoIds.add(memoId)
-  }
-
-  // Legacy: inline @due tags in content
+  // Primary: inline @due tags in content
   for (const row of inlineData ?? []) {
-    if (seenMemoIds.has(row.id as string)) continue
     INLINE_DUE_RE.lastIndex = 0
     let match: RegExpExecArray | null
     while ((match = INLINE_DUE_RE.exec(row.content as string)) !== null) {
+      const rawParens = match[2]
+      const comma = rawParens.indexOf(',')
+      const iso = comma === -1 ? rawParens : rawParens.slice(0, comma)
+      const repeatSpec = comma === -1 ? '' : rawParens.slice(comma + 1)
+      if (!iso || isNaN(Date.parse(iso))) continue
+      const repeatMode = !repeatSpec ? 'once'
+        : repeatSpec === 'daily' ? 'daily'
+        : repeatSpec === 'weekdays' ? 'weekdays'
+        : repeatSpec.startsWith('custom:') ? 'custom'
+        : 'once'
+      if (repeatMode === 'once' && Date.parse(iso) <= Date.now()) continue
       const label = match[1].trim() || '截止'
-      const iso = match[2]
-      if (iso && !isNaN(Date.parse(iso))) {
-        items.push({ memoId: row.id as string, dueAt: iso, label, priority: normalizeNotePriority(row.priority) })
-        seenMemoIds.add(row.id as string)
-      }
+      items.push({ memoId: row.id as string, dueAt: iso, label, priority: normalizeNotePriority(row.priority), repeatMode: repeatMode !== 'once' ? repeatMode : undefined })
+      seenMemoIds.add(row.id as string)
     }
   }
 
@@ -336,6 +293,7 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
       dueAt,
       label: extractContentLabel(row.content as string),
       priority: normalizeNotePriority(row.priority),
+      repeatMode: repeatMode !== 'once' ? repeatMode : undefined,
     })
   }
 
@@ -395,7 +353,7 @@ export const getBoardMessages = cache(async (
 
   let query = supabaseAdmin
     .from('comments')
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues, repeat_mode, repeat_days, memo_reminders(*)')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues, repeat_mode, repeat_days')
     .eq('target_type', config.targetType)
     .eq('target_id', config.targetId)
     .eq('archived', archived)
@@ -504,7 +462,7 @@ export async function createBoardMessage(board: NoteBoardSlug, author: string, c
       ...(repeatMode && repeatMode !== 'once' ? { repeat_mode: repeatMode } : {}),
       ...(repeatDays?.length ? { repeat_days: repeatDays } : {}),
     })
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues, repeat_mode, repeat_days, memo_reminders(*)')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues, repeat_mode, repeat_days')
     .single()
 
   if (error) {
@@ -605,7 +563,7 @@ export async function updateBoardMessage(
     .from('comments')
     .update(patch)
     .eq('id', id)
-    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues, repeat_mode, repeat_days, memo_reminders(*)')
+    .select('id, author, content, created_at, updated_at, priority, archived, parent_id, upvotes, downvotes, visibility, due_at, notified_dues, repeat_mode, repeat_days')
     .single()
 
   if (error || !data) {

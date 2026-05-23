@@ -228,38 +228,6 @@ export function MemoStreamCard({ item }: MemoStreamCardProps) {
         )
       })() : null}
 
-      {/* memo_reminders 提醒列表 */}
-      {message.reminders && message.reminders.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {message.reminders.map((r) => {
-            const repeatLabel = r.repeat_mode === 'daily' ? '每天' : r.repeat_mode === 'weekdays' ? '周一至五' : r.repeat_mode === 'custom' ? '自定义' : null
-            const dueDate = new Date(r.due_at)
-            const timeStr = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(dueDate)
-            return (
-              <div key={r.id} className="group flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-50/60 py-0.5 pl-2 pr-1.5 text-[11px] text-amber-700">
-                <AlarmClock size={10} strokeWidth={2} />
-                <span className="font-medium">{r.label || '提醒'}</span>
-                <span className="opacity-60">{timeStr}</span>
-                {repeatLabel ? <span className="opacity-50">· {repeatLabel}</span> : null}
-                {canDelete ? (
-                  <button
-                    type="button"
-                    title="删除提醒"
-                    onClick={async () => {
-                      await fetch(`/api/note-boards/memo/reminders/${r.id}`, { method: 'DELETE' })
-                      boardActions.removeReminderFromMessage(message.id, r.id)
-                    }}
-                    className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-amber-500 opacity-0 transition hover:bg-amber-200/60 group-hover:opacity-100"
-                  >
-                    ×
-                  </button>
-                ) : null}
-              </div>
-            )
-          })}
-        </div>
-      ) : null}
-
       {/* 表情反应 */}
       <EmojiReactionSummary
         entries={reactionControl.emojiReactions}

@@ -21,7 +21,7 @@ import type {
 import { computeBoardLayout } from '@/components/note-board/utils/board'
 import type { NotePriority, NoteSortDirection, NoteSortMode } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
-import type { MemoReminder, NoteMessage, NoteVisibility, PendingReminder } from '@/lib/note-boards'
+import type { NoteMessage, NoteVisibility } from '@/lib/note-boards'
 
 import { parseHashtags } from './utils/editor'
 import { useNotifications } from './hooks/useNotifications'
@@ -119,10 +119,6 @@ interface NoteBoardActions {
   updateEditorDueAt: (value: string | null) => void
   updateEditorRepeatMode: (value: string) => void
   updateEditorRepeatDays: (value: number[] | null) => void
-  addDraftReminder: (r: Omit<PendingReminder, 'tempId'>) => void
-  removeDraftReminder: (tempId: string) => void
-  addReminderToMessage: (messageId: string, reminder: MemoReminder) => void
-  removeReminderFromMessage: (messageId: string, reminderId: string) => void
   submitEditor: () => Promise<void>
   cancelEditingNote: () => void
   scrollToEditor: () => void
@@ -179,7 +175,6 @@ interface NoteBoardEditorState {
   editorDueAt: string | null
   editorRepeatMode: string
   editorRepeatDays: number[] | null
-  draftReminders: PendingReminder[]
   editorSectionLabel: string
   editorPlaceholder: string
   editorSaveLabel: string
@@ -358,11 +353,6 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', e
     toggleChecklistItem,
     submitDraft,
     scrollToEditor,
-    draftReminders,
-    addDraftReminder,
-    removeDraftReminder,
-    addReminderToMessage,
-    removeReminderFromMessage,
   } = useNoteEditor({
     board,
     messages,
@@ -541,7 +531,6 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', e
     editorDueAt: editingMessage ? editDueAt : draftDueAt,
     editorRepeatMode: editingMessage ? editRepeatMode : draftRepeatMode,
     editorRepeatDays: editingMessage ? editRepeatDays : draftRepeatDays,
-    draftReminders,
     editorSectionLabel: editingMessage ? '便签编辑区' : (board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'),
     editorPlaceholder: editingMessage
       ? '直接修改这张便签的原始文本，checklist 状态也在这里编辑。'
@@ -572,7 +561,6 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', e
     loading,
     priorityEnabled,
     viewerIdentity,
-    draftReminders,
   ])
 
   const actions = useMemo<NoteBoardActions>(() => ({
@@ -597,10 +585,6 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', e
     updateEditorDueAt: editingMessage ? setEditDueAt : setDraftDueAt,
     updateEditorRepeatMode: editingMessage ? setEditRepeatMode : setDraftRepeatMode,
     updateEditorRepeatDays: editingMessage ? setEditRepeatDays : setDraftRepeatDays,
-    addDraftReminder,
-    removeDraftReminder,
-    addReminderToMessage,
-    removeReminderFromMessage,
     submitEditor: editingMessage ? saveEditingNote : submitDraft,
     cancelEditingNote,
     scrollToEditor,
@@ -637,10 +621,6 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', e
     scrollToEditor,
     submitDraft,
     toggleMobileView,
-    addDraftReminder,
-    removeDraftReminder,
-    addReminderToMessage,
-    removeReminderFromMessage,
   ])
 
   const metaValue = useMemo<NoteBoardMeta>(() => ({

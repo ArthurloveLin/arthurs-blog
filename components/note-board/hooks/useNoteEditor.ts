@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createCommentRecord, type Comment } from '@/lib/comments'
 import { createEngagementRequestHeaders, fetchEngagementPublicApi } from '@/lib/engagement-public-api'
 import { createGuestbookNoteMessage, humanizeGuestbookMutationError } from '@/lib/guestbook-comments'
-import type { MemoReminder, NoteMessage, NoteVisibility, PendingReminder } from '@/lib/note-boards'
+import type { NoteMessage, NoteVisibility } from '@/lib/note-boards'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { DEFAULT_NOTE_PRIORITY, type NotePriority } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
@@ -69,8 +69,6 @@ export function useNoteEditor({
   const [isUpdatingNote, setIsUpdatingNote] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [updatingNoteIds, setUpdatingNoteIds] = useState<Record<string, boolean>>({})
-  const [draftReminders, setDraftReminders] = useState<PendingReminder[]>([])
-
   const editingMessage = useMemo(
     () => messages.find((message) => message.id === editingNoteId) ?? null,
     [messages, editingNoteId]
@@ -92,32 +90,6 @@ export function useNoteEditor({
     setEditRepeatDays(null)
     setError(null)
   }, [setError])
-
-  const addDraftReminder = useCallback((r: Omit<PendingReminder, 'tempId'>) => {
-    setDraftReminders((prev) => [...prev, { ...r, tempId: crypto.randomUUID() }])
-  }, [])
-
-  const removeDraftReminder = useCallback((tempId: string) => {
-    setDraftReminders((prev) => prev.filter((r) => r.tempId !== tempId))
-  }, [])
-
-  const addReminderToMessage = useCallback((messageId: string, reminder: MemoReminder) => {
-    replaceMessages(
-      (current) => current.map((m) =>
-        m.id === messageId ? { ...m, reminders: [...(m.reminders ?? []), reminder] } : m
-      ),
-      { resetPositions: false },
-    )
-  }, [replaceMessages])
-
-  const removeReminderFromMessage = useCallback((messageId: string, reminderId: string) => {
-    replaceMessages(
-      (current) => current.map((m) =>
-        m.id === messageId ? { ...m, reminders: (m.reminders ?? []).filter((r) => r.id !== reminderId) } : m
-      ),
-      { resetPositions: false },
-    )
-  }, [replaceMessages])
 
   const startEditingNote = useCallback((message: NoteMessage) => {
     setEditingNoteId(message.id)
@@ -455,30 +427,6 @@ export function useNoteEditor({
         hasMore,
       })
       markMessageFresh(message.id)
-
-      // Create any pending reminders now that the note ID is known
-      if (draftReminders.length > 0) {
-        const pendingSnapshot = draftReminders
-        setDraftReminders([])
-        const created = await Promise.all(
-          pendingSnapshot.map((r) =>
-            fetch('/api/note-boards/memo/reminders', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ memo_id: message.id, label: r.label, due_at: r.due_at, repeat_mode: r.repeat_mode, repeat_days: r.repeat_days ?? null }),
-            })
-              .then((res) => (res.ok ? (res.json() as Promise<MemoReminder>) : null))
-              .catch(() => null)
-          )
-        )
-        const validReminders = created.filter((r): r is MemoReminder => r !== null)
-        if (validReminders.length > 0) {
-          replaceMessages(
-            (current) => current.map((m) => m.id === message.id ? { ...m, reminders: validReminders } : m),
-            { resetPositions: false },
-          )
-        }
-      }
     } catch (submitError) {
       replaceMessages((current) => current.filter((message) => message.id !== optimisticId), {
         resetPositions: true,
@@ -495,7 +443,7 @@ export function useNoteEditor({
     } finally {
       setIsSubmitting(false)
     }
-  }, [board.slug, board.targetId, board.targetType, canWrite, draft, draftDueAt, draftPriority, draftReminders, draftRepeatDays, draftRepeatMode, draftVisibility, hasMore, identity, isSubmitting, markMessageFresh, nextOffset, publicIdentity, replaceMessages, setError, onDraftSubmitted])
+  }, [board.slug, board.targetId, board.targetType, canWrite, draft, draftDueAt, draftPriority, draftRepeatDays, draftRepeatMode, draftVisibility, hasMore, identity, isSubmitting, markMessageFresh, nextOffset, publicIdentity, replaceMessages, setError, onDraftSubmitted])
 
   useEffect(() => {
     if (!editingNoteId) return
@@ -547,10 +495,5 @@ export function useNoteEditor({
     toggleChecklistItem,
     submitDraft,
     scrollToEditor,
-    draftReminders,
-    addDraftReminder,
-    removeDraftReminder,
-    addReminderToMessage,
-    removeReminderFromMessage,
   }
 }
