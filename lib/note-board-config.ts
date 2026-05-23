@@ -41,8 +41,8 @@ const NOTE_BOARD_CONFIGS: Record<NoteBoardSlug, NoteBoardViewConfig> = {
     targetType: 'memo',
     targetId: 'a0000000-0000-0000-0000-000000000002',
     previewLimit: 12,
-    initialPageLimit: 48,
-    pageSize: 24,
+    initialPageLimit: 9999,
+    pageSize: 9999,
   },
 }
 

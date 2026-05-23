@@ -106,6 +106,15 @@ export function MemosStreamView({ onToggleViewMode, filters, agendaItems }: Memo
     return groups
   }, [filteredItems, meta.board.slug, state.sortDirection, state.sortMode])
 
+  // Scroll to top whenever the active due-date filter changes to a new date.
+  const prevDueDateRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (state.activeDueDate && state.activeDueDate !== prevDueDateRef.current) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    prevDueDateRef.current = state.activeDueDate
+  }, [state.activeDueDate])
+
   useEffect(() => {
     const sentinel = sentinelRef.current
     if (!sentinel || !state.hasMore) return

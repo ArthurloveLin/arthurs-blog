@@ -132,7 +132,7 @@ export function useNoteEditor({
           repeat_mode: repeatMode,
           repeat_days: repeatDays,
         }
-        : currentMessage), { resetPositions: false })
+        : currentMessage), { resetPositions: false, sort: false })
 
       try {
         let updatedMessage: NoteMessage
@@ -187,7 +187,7 @@ export function useNoteEditor({
             viewer_emojis: currentMessage.viewer_emojis,
             comment_count: currentMessage.comment_count,
           }
-          : currentMessage), { resetPositions: false })
+          : currentMessage), { resetPositions: false, sort: false })
       } catch (updateError) {
         replaceMessages((current) => current.map((currentMessage) => currentMessage.id === message.id
           ? {
@@ -302,7 +302,7 @@ export function useNoteEditor({
             viewer_emojis: currentMessage.viewer_emojis,
             comment_count: currentMessage.comment_count,
           }
-          : currentMessage), { resetPositions: false })
+          : currentMessage), { resetPositions: false, sort: false })
       } catch (updateError) {
         replaceMessages((current) => current.map((currentMessage) => currentMessage.id === message.id
           ? {
