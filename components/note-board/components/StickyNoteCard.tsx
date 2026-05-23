@@ -114,6 +114,7 @@ function StickyDueBadge({ dueAt }: { dueAt: string }) {
 
 const RESTING_NOTE_SHADOW = '0 12px 18px -14px rgba(15, 23, 42, 0.22), inset 0 24px 30px -12px rgba(0, 0, 0, 0.26)'
 const LIFTED_NOTE_SHADOW = '-1px 14px 40px -4px rgba(0, 0, 0, 0.12), inset 0 18px 24px -12px rgba(0, 0, 0, 0.22)'
+const RELEASE_NOTE_SHADOW = '-1px 10px 5px -4px rgba(0, 0, 0, 0.2), inset 0 24px 30px -12px rgba(0, 0, 0, 0.3)'
 
 function StickyNoteCardFrame({
   message,
@@ -358,6 +359,10 @@ function StickyNoteCardFrame({
         rotateX: 30,
         duration: 0.24,
       })
+      .to(paper, {
+        boxShadow: RELEASE_NOTE_SHADOW,
+        duration: 0.24,
+      }, 0)
       .to(visual, {
         rotation: targetRotation,
         rotateX: 5,
@@ -367,9 +372,9 @@ function StickyNoteCardFrame({
         duration: 0.65,
       }, 0.18)
       .to(paper, {
-        boxShadow: RESTING_NOTE_SHADOW,
-        ease: 'power3.out',
-        duration: 0.55,
+        boxShadow: RELEASE_NOTE_SHADOW,
+        ease: 'elastic.out(0.8, 0.5)',
+        duration: 0.65,
       }, 0.18)
   }
 
