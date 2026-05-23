@@ -266,6 +266,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', e
     board,
     initialMessages,
     initialQuery,
+    initialSortMode: board.slug === 'memo' ? 'priority' : 'time',
     reactionIdentity,
     isDesktopViewport,
     cancelEditingNoteRef,

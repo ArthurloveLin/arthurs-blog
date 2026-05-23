@@ -27,6 +27,7 @@ export interface UseBoardDataProps {
   board: NoteBoardViewConfig
   initialMessages: NoteMessage[]
   initialQuery?: string
+  initialSortMode?: NoteSortMode
   reactionIdentity: string | undefined
   isDesktopViewport: boolean
   cancelEditingNoteRef: React.MutableRefObject<() => void>
@@ -47,13 +48,14 @@ export function useBoardData({
   board,
   initialMessages,
   initialQuery = '',
+  initialSortMode = 'time',
   reactionIdentity,
   isDesktopViewport,
   cancelEditingNoteRef,
   surfaceRefs,
   setError,
 }: UseBoardDataProps) {
-  const initialSortedMessages = useMemo(() => sortBoardMessages(initialMessages, 'time', 'desc'), [initialMessages])
+  const initialSortedMessages = useMemo(() => sortBoardMessages(initialMessages, initialSortMode, 'desc'), [initialMessages, initialSortMode])
   const initialHasMore = initialMessages.length >= board.initialPageLimit
 
   const [messages, setMessages] = useState(initialSortedMessages)
@@ -61,7 +63,7 @@ export function useBoardData({
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
   const [showArchived, setShowArchived] = useState(false)
-  const [sortMode, setSortMode] = useState<NoteSortMode>('time')
+  const [sortMode, setSortMode] = useState<NoteSortMode>(initialSortMode)
   const [sortDirection, setSortDirection] = useState<NoteSortDirection>('desc')
   const [searchQuery, setSearchQuery] = useState(initialQuery)
   const [activeTags, setActiveTags] = useState<string[]>([])
@@ -97,8 +99,8 @@ export function useBoardData({
   }, [currentPageIndex, isDesktopViewport, messages])
 
   const initialBoardPayload = useMemo(
-    () => createBoardPayload(initialSortedMessages, false, 'time', 'desc', initialSortedMessages.length, initialHasMore),
-    [initialHasMore, initialSortedMessages],
+    () => createBoardPayload(initialSortedMessages, false, initialSortMode, 'desc', initialSortedMessages.length, initialHasMore),
+    [initialHasMore, initialSortedMessages, initialSortMode],
   )
 
   const fetchBoardMessages = useCallback(async (
