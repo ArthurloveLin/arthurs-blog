@@ -11,6 +11,7 @@ changelog entry for the new release and save it to `/tmp/ai-changelog.md`.
 4. Keep output between 30 and 60 lines.
 5. Do NOT fabricate entries — only document what is evident from the commit messages provided.
 6. If the commit log is empty or unclear, write a minimal entry noting the version with no details.
+7. **Write ALL content in Chinese (中文)**. Section headers, descriptions, and all prose must be in Chinese.
 
 ## Output format
 
@@ -20,26 +21,26 @@ Only include sections that have entries. Omit empty sections.
 ```markdown
 ## {NEW_TAG} — $(date +%Y-%m-%d)
 
-### ✨ Features
-- <feat commit description>
+### ✨ 新功能
+- <功能描述>
 
-### 🐛 Bug Fixes
-- <fix commit description>
+### 🐛 问题修复
+- <修复描述>
 
-### ♻️ Refactor
-- <refactor commit description>
+### ♻️ 代码重构
+- <重构描述>
 
-### 🧹 Chore
-- <chore/ci/docs/build commit description>
+### 🧹 工程维护
+- <chore/ci/docs/build 相关描述>
 ```
 
-**Classification rules:**
-- `feat:` / `feature:` → Features
-- `fix:` / `bugfix:` → Bug Fixes
-- `refactor:` → Refactor
-- `chore:` / `ci:` / `build:` / `docs:` / `test:` → Chore
-- Commits without a conventional prefix → use best judgment, default to Chore
-- Merge commits and `[skip ci]` commits → omit
+**分类规则（用中文描述每一项）：**
+- `feat:` / `feature:` → 新功能
+- `fix:` / `bugfix:` → 问题修复
+- `refactor:` → 代码重构
+- `chore:` / `ci:` / `build:` / `docs:` / `test:` → 工程维护
+- 无 conventional 前缀的 commit → 凭上下文判断，默认归入工程维护
+- Merge commit 和含 `[skip ci]` 的 commit → 忽略，不写入
 
 ---
 
