@@ -54,48 +54,57 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className={[
-        'group relative shrink-0 overflow-hidden border h-[34px] rounded-full transition-[width,background,box-shadow,border-color] duration-[600ms]',
-        isExpanded
-          ? 'border-primary/25 bg-background/95 ring-2 ring-primary/20'
-          : 'border-border/70 bg-background/70 hover:bg-accent/35 hover:ring-2 hover:ring-primary/20',
-      ].join(' ')}
-      style={{
-        width: isExpanded ? 'min(210px, 100%)' : '34px',
-        transitionTimingFunction: isExpanded ? 'cubic-bezier(0,1.22,.66,1.39)' : 'cubic-bezier(0.4,0,0.2,1)',
-      }}
+      className="group relative shrink-0 h-[34px] w-[34px]"
+      style={{ zIndex: isExpanded ? 10 : undefined }}
     >
-      <input
-        ref={inputRef}
-        type="text"
-        value={displayedQuery}
-        onChange={(event) => setLocalQuery(event.target.value)}
-        onFocus={() => {
-          if (expandTimerRef.current) { clearTimeout(expandTimerRef.current); expandTimerRef.current = null }
-          setIsExpanding(false)
-          setLocalQuery(state.searchQuery)
-          setIsFocused(true)
-        }}
-        onBlur={() => {
-          setIsFocused(false)
-          setLocalQuery(state.searchQuery)
-        }}
-        placeholder={placeholder}
+      {/* Expanding container anchored at the RIGHT edge — grows to the LEFT so it never
+          pushes neighbouring flex items rightward on mobile. */}
+      <div
         className={[
-          'h-full w-full border-0 bg-transparent pr-[36px] text-[13px] outline-none transition-[padding,color,text-indent] duration-[600ms]',
+          'absolute right-0 top-0 h-full rounded-full border overflow-hidden',
+          'transition-[width,background,box-shadow,border-color] duration-[600ms]',
           isExpanded
-            ? 'cursor-text pl-3.5 text-foreground placeholder:text-muted-foreground/60'
-            : 'cursor-pointer pl-0 text-transparent placeholder:text-transparent [text-indent:-9999px]',
+            ? 'border-primary/25 bg-background/95 ring-2 ring-primary/20'
+            : 'border-border/70 bg-background/70 group-hover:bg-accent/35 group-hover:ring-2 group-hover:ring-primary/20',
         ].join(' ')}
-        style={{ transitionTimingFunction: 'cubic-bezier(0,1.22,.66,1.39)' }}
-        autoComplete="off"
-        spellCheck={false}
-      />
+        style={{
+          width: isExpanded ? 'min(210px, 80vw)' : '34px',
+          transitionTimingFunction: isExpanded ? 'cubic-bezier(0,1.22,.66,1.39)' : 'cubic-bezier(0.4,0,0.2,1)',
+        }}
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          value={displayedQuery}
+          onChange={(event) => setLocalQuery(event.target.value)}
+          onFocus={() => {
+            if (expandTimerRef.current) { clearTimeout(expandTimerRef.current); expandTimerRef.current = null }
+            setIsExpanding(false)
+            setLocalQuery(state.searchQuery)
+            setIsFocused(true)
+          }}
+          onBlur={() => {
+            setIsFocused(false)
+            setLocalQuery(state.searchQuery)
+          }}
+          placeholder={placeholder}
+          className={[
+            'h-full w-full border-0 bg-transparent pr-[36px] text-[13px] outline-none transition-[padding,color,text-indent] duration-[600ms]',
+            isExpanded
+              ? 'cursor-text pl-3.5 text-foreground placeholder:text-muted-foreground/60'
+              : 'cursor-pointer pl-0 text-transparent placeholder:text-transparent [text-indent:-9999px]',
+          ].join(' ')}
+          style={{ transitionTimingFunction: 'cubic-bezier(0,1.22,.66,1.39)' }}
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </div>
+      {/* Button stays at a fixed position (right side of the 34px wrapper) */}
       <button
         type="button"
         onMouseDown={(event) => event.preventDefault()}
         onClick={hasQuery ? handleClear : handleExpandAndFocus}
-        className="absolute inset-y-0 right-0 flex h-[34px] w-[34px] items-center justify-center text-muted-foreground transition hover:text-foreground"
+        className="absolute inset-0 z-10 flex h-[34px] w-[34px] items-center justify-center text-muted-foreground transition hover:text-foreground"
         aria-label={hasQuery ? '清除搜索' : '搜索'}
       >
         <Search size={14} className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-200 ${hasQuery ? 'scale-75 opacity-0' : 'scale-100 opacity-100'}`} />
