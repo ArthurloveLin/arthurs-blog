@@ -561,54 +561,38 @@ jobs:
         continue-on-error: true
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_CDN_BUCKET: ${{ secrets.R2_CDN_BUCKET }}
         run: |
           if [ ! -f /tmp/ai-changelog.md ]; then
             echo "No changelog generated, skipping R2 upload."
             exit 0
           fi
-          python3 -m pip install boto3 -q --break-system-packages 2>/dev/null || python3 -m pip install boto3 -q
-          python3 - << 'PYEOF'
-          import boto3, os, pathlib, botocore.exceptions
 
-          account_id = os.environ['R2_ACCOUNT_ID']
-          bucket     = os.environ['R2_CDN_BUCKET']
-
-          s3 = boto3.client(
-            's3',
-            endpoint_url=f'https://{account_id}.r2.cloudflarestorage.com',
-            aws_access_key_id=os.environ['R2_ACCESS_KEY_ID'],
-            aws_secret_access_key=os.environ['R2_SECRET_ACCESS_KEY'],
-            region_name='auto',
-          )
-
-          new_entry = pathlib.Path('/tmp/ai-changelog.md').read_text()
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          NEW_ENTRY=$(cat /tmp/ai-changelog.md)
 
           # Upload latest.md — only the newest entry (for fast badge load)
-          s3.put_object(
-            Bucket=bucket, Key='changelog/latest.md',
-            Body=new_entry.encode('utf-8'),
-            ContentType='text/markdown; charset=utf-8',
-          )
-          print(f'Uploaded changelog/latest.md ({len(new_entry)} chars)')
+          aws s3 cp /tmp/ai-changelog.md "s3://${R2_CDN_BUCKET}/changelog/latest.md" \
+            --endpoint-url "$ENDPOINT" \
+            --content-type "text/markdown; charset=utf-8" \
+            --no-progress
+          echo "Uploaded changelog/latest.md ($(wc -c < /tmp/ai-changelog.md) bytes)"
 
           # Fetch existing all.md and prepend the new entry (cumulative history)
-          try:
-            obj      = s3.get_object(Bucket=bucket, Key='changelog/all.md')
-            existing = obj['Body'].read().decode('utf-8')
-          except botocore.exceptions.ClientError:
-            existing = '# Changelog\n\n本文件由 CI 自动维护。\n'
+          if aws s3 cp "s3://${R2_CDN_BUCKET}/changelog/all.md" /tmp/existing-changelog.md \
+            --endpoint-url "$ENDPOINT" --no-progress 2>/dev/null; then
+            { printf '%s\n\n' "${NEW_ENTRY}" | sed 's/[[:space:]]*$//'; echo; sed 's/[[:space:]]*$//' /tmp/existing-changelog.md; printf '\n'; } > /tmp/combined-changelog.md
+          else
+            printf '# Changelog\n\n本文件由 CI 自动维护。\n\n%s\n' "${NEW_ENTRY}" > /tmp/combined-changelog.md
+          fi
 
-          combined = new_entry.strip() + '\n\n' + existing.strip() + '\n'
-          s3.put_object(
-            Bucket=bucket, Key='changelog/all.md',
-            Body=combined.encode('utf-8'),
-            ContentType='text/markdown; charset=utf-8',
-          )
-          print(f'Uploaded changelog/all.md ({len(combined)} chars)')
-          PYEOF
+          aws s3 cp /tmp/combined-changelog.md "s3://${R2_CDN_BUCKET}/changelog/all.md" \
+            --endpoint-url "$ENDPOINT" \
+            --content-type "text/markdown; charset=utf-8" \
+            --no-progress
+          echo "Uploaded changelog/all.md ($(wc -c < /tmp/combined-changelog.md) bytes)"
 
       - name: Create GitHub Release
         env:
