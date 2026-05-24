@@ -468,7 +468,7 @@ jobs:
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           if [ -f /tmp/ai-audit-result.md ]; then
             CONTENT=$(head -c 1500 /tmp/ai-audit-result.md)
-            TITLE="📋 AI Main Audit — ${{ github.sha == '' && 'unknown' || github.sha[:7] }}"
+            TITLE="📋 AI Main Audit — ${SHORT_SHA}"
           else
             CONTENT="AI Audit 不可用（agy 未产生输出）"
             TITLE="📋 AI Main Audit — 不可用"
