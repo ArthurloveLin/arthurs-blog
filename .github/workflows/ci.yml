@@ -37,10 +37,12 @@ env:
 # Job dependency graph (push to main):
 #
 #   check → docker → deploy → release
-#         ↘ ai-fix (on check failure — opens a fix PR)
-#                  ↘ notify (on failure)
+#         ↘ ai-fix   (on check failure — opens a fix PR)
+#         ↘ ai-audit (on check success — non-blocking audit report)
+#                    ↘ notify (on failure)
 #
 # On PR: only check + docker build (no push, no deploy).
+# AI PR Review gate lives in ai-pr-review.yml (separate workflow).
 
 jobs:
 
@@ -388,6 +390,106 @@ jobs:
               --arg ref "refs/tags/${{ steps.version.outputs.tag }}" \
               --arg sha "${TAG_SHA}" \
               '{ref: $ref, sha: $sha}')"
+
+# ─── 5b. AI Main Audit (non-blocking) ────────────────────────────────────────
+#
+# Runs in parallel with docker build on every push to main.
+# Reads the pushed diff, invokes agy to produce an audit report, writes it to
+# GITHUB_STEP_SUMMARY and uploads it as an artifact. Never blocks the pipeline.
+  ai-audit:
+    name: AI Main Audit
+    needs: check
+    runs-on: [self-hosted, linux, vps]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    continue-on-error: true
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 2
+
+      - name: Extract commit diff (50 KB cap)
+        run: |
+          rm -f /tmp/main-diff.md /tmp/main-audit-prompt.md /tmp/ai-audit-result.md
+          # Use event.before so squash merges produce the full logical diff.
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+          # Fallback to HEAD~1 if before is the zero SHA (first push to branch).
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            BEFORE="HEAD~1"
+          fi
+          git diff "${BEFORE}" "${AFTER}" | head -c 51200 > /tmp/main-diff.md
+          echo "Diff size: $(wc -c < /tmp/main-diff.md) bytes"
+
+      - name: Assemble agy prompt
+        run: |
+          python3 - << 'PYEOF'
+          import pathlib
+          template = pathlib.Path("tests/ai_hooks/prompts/main_audit.md").read_text()
+          diff     = pathlib.Path("/tmp/main-diff.md").read_text(errors="replace")
+          sha      = "${{ github.sha }}"
+          prompt   = template.replace("{MAIN_DIFF}", diff).replace("{COMMIT_SHA}", sha[:7])
+          pathlib.Path("/tmp/main-audit-prompt.md").write_text(prompt)
+          print(f"Prompt assembled: {len(prompt)} chars")
+          PYEOF
+
+      - name: Invoke agy
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          rm -rf ~/.gemini/antigravity-cli/brain/ 2>/dev/null || true
+          /home/arthur/.local/bin/agy \
+            --dangerously-skip-permissions \
+            -p "$(cat /tmp/main-audit-prompt.md)"
+
+      - name: Publish to Step Summary
+        if: always()
+        run: |
+          if [ -f /tmp/ai-audit-result.md ]; then
+            cat /tmp/ai-audit-result.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '> ⚠️ AI Audit: agy 未产生输出，请检查 runner 日志。' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload audit report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report-${{ github.run_number }}
+          retention-days: 30
+          if-no-files-found: warn
+          path: /tmp/ai-audit-result.md
+
+      - name: Notify via ntfy
+        if: always()
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ -f /tmp/ai-audit-result.md ]; then
+            CONTENT=$(head -c 1500 /tmp/ai-audit-result.md)
+            TITLE="📋 AI Main Audit — ${{ github.sha == '' && 'unknown' || github.sha[:7] }}"
+          else
+            CONTENT="AI Audit 不可用（agy 未产生输出）"
+            TITLE="📋 AI Main Audit — 不可用"
+          fi
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg title "📋 AI Main Audit — ${SHORT_SHA}" \
+              --arg msg "$CONTENT" \
+              --arg click "$RUN_URL" \
+              '{
+                topic: "watchtower-arthur71684",
+                title: $title,
+                message: $msg,
+                tags: ["clipboard"],
+                priority: 2,
+                click: $click
+              }')" \
+            https://arthurlovegrace.top/ntfy-push
 
 # ─── 6. Failure notification ──────────────────────────────────────────────────
   notify:

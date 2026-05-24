@@ -1,0 +1,182 @@
+name: AI PR Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - 'MD/**'
+      - '**/*.md'
+      - 'workers/**'
+      - 'supabase/**'
+      - '.claude/**'
+      - '.agents/**'
+      - 'tmp/**'
+
+concurrency:
+  group: ai-pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# Job graph:
+#
+#   pr-review  (gate — required status check)
+#     ├─ extract diff → sanitize → assemble prompt
+#     ├─ invoke agy (continue-on-error — infra crash → exit 0, not a blocker)
+#     ├─ parse severity → CRITICAL exits 1 (blocks merge), else exits 0
+#     └─ post review comment + ntfy
+
+jobs:
+
+# ─── AI PR Review (gate) ───────────────────────────────────────────────────────
+  pr-review:
+    name: AI PR Review
+    runs-on: [self-hosted, linux, vps]
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Extract PR diff (50 KB cap)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          rm -f /tmp/pr-diff-raw.md /tmp/pr-diff.md \
+                /tmp/pr-review-prompt.md /tmp/ai-pr-review-result.md
+          gh pr diff ${{ github.event.pull_request.number }} \
+            | head -c 51200 > /tmp/pr-diff-raw.md
+          echo "Diff size: $(wc -c < /tmp/pr-diff-raw.md) bytes"
+
+      - name: Sanitize diff (anti prompt-injection)
+        # Removes lines that could be interpreted as injected instructions.
+        # Heuristic: lines starting with common injection keywords in a diff
+        # context (added lines beginning with +) are redacted.
+        run: |
+          python3 - << 'PYEOF'
+          import re, pathlib
+
+          raw = pathlib.Path("/tmp/pr-diff-raw.md").read_text(errors="replace")
+          INJECTION_PATTERNS = re.compile(
+              r"^(\+.{0,40})"
+              r"(ignore (previous|all) instructions?|"
+              r"you are (now |a )?|"
+              r"SYSTEM\s*:|"
+              r"# Task:|"
+              r"forget (everything|all)|"
+              r"---+\s*(SYSTEM|INST)|"
+              r"<\s*(system|inst|injection)\s*>)",
+              re.IGNORECASE | re.MULTILINE,
+          )
+          sanitized, count = INJECTION_PATTERNS.subn(
+              lambda m: m.group(1)[:3] + "[REDACTED-INJECTION-ATTEMPT]", raw
+          )
+          pathlib.Path("/tmp/pr-diff.md").write_text(sanitized)
+          if count:
+              print(f"⚠️  Sanitized {count} potential injection line(s)")
+          else:
+              print("✅ No injection patterns detected")
+          PYEOF
+
+      - name: Assemble agy prompt
+        run: |
+          python3 - << 'PYEOF'
+          import pathlib
+          template = pathlib.Path("tests/ai_hooks/prompts/pr_review.md").read_text()
+          diff     = pathlib.Path("/tmp/pr-diff.md").read_text(errors="replace")
+          prompt   = template.replace("{PR_DIFF}", diff)
+          pathlib.Path("/tmp/pr-review-prompt.md").write_text(prompt)
+          print(f"Prompt assembled: {len(prompt)} chars")
+          PYEOF
+
+      - name: Invoke agy
+        id: agy
+        continue-on-error: true
+        timeout-minutes: 8
+        run: |
+          rm -rf ~/.gemini/antigravity-cli/brain/ 2>/dev/null || true
+          /home/arthur/.local/bin/agy \
+            --dangerously-skip-permissions \
+            -p "$(cat /tmp/pr-review-prompt.md)"
+
+      - name: Parse severity and set exit code
+        id: severity
+        run: |
+          if [ ! -f /tmp/ai-pr-review-result.md ]; then
+            # agy crashed — write fallback comment, do not block PR
+            echo "agy did not produce output (step outcome: ${{ steps.agy.outcome }})"
+            {
+              echo "SEVERITY: INFO"
+              echo ""
+              echo "## AI PR Review"
+              echo ""
+              echo "> ⚠️ AI 审查不可用（agy 未产生输出）。请人工完成此次 Review。"
+            } > /tmp/ai-pr-review-result.md
+            echo "level=INFO" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          SEVERITY=$(grep "^SEVERITY:" /tmp/ai-pr-review-result.md | head -1 | awk '{print $2}')
+          echo "level=${SEVERITY}" >> "$GITHUB_OUTPUT"
+          echo "Detected severity: ${SEVERITY}"
+
+          if [ "$SEVERITY" = "CRITICAL" ]; then
+            echo "::error::AI PR Review found CRITICAL issues — merge blocked"
+            exit 1
+          fi
+          exit 0
+
+      - name: Post review comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f /tmp/ai-pr-review-result.md ]; then
+            gh pr comment ${{ github.event.pull_request.number }} \
+              --body-file /tmp/ai-pr-review-result.md
+          fi
+
+      - name: Notify via ntfy
+        if: always()
+        run: |
+          LEVEL="${{ steps.severity.outputs.level }}"
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          case "$LEVEL" in
+            CRITICAL)
+              TITLE="🔴 AI PR Review — BLOCK"
+              TAG="rotating_light"
+              PRI=4
+              ;;
+            WARNING)
+              TITLE="⚠️ AI PR Review — WARNING"
+              TAG="warning"
+              PRI=3
+              ;;
+            *)
+              TITLE="✅ AI PR Review — PASS"
+              TAG="white_check_mark"
+              PRI=2
+              ;;
+          esac
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg title "$TITLE" \
+              --arg pr "$PR_TITLE" \
+              --arg tag "$TAG" \
+              --argjson pri "$PRI" \
+              --arg click "$PR_URL" \
+              '{
+                topic: "watchtower-arthur71684",
+                title: $title,
+                message: $pr,
+                tags: [$tag],
+                priority: $pri,
+                click: $click
+              }')" \
+            https://arthurlovegrace.top/ntfy-push
