@@ -561,68 +561,38 @@ jobs:
         continue-on-error: true
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_CDN_BUCKET: ${{ secrets.R2_CDN_BUCKET }}
         run: |
-          python3 - << 'PYEOF'
-          import os, sys, pathlib, io
-          try:
-              import boto3
-              from botocore.config import Config
-          except ImportError:
-              print("boto3 not available, skipping R2 upload.")
-              sys.exit(0)
+          if [ ! -f /tmp/ai-changelog.md ]; then
+            echo "No changelog generated, skipping R2 upload."
+            exit 0
+          fi
 
-          changelog_path = pathlib.Path("/tmp/ai-changelog.md")
-          if not changelog_path.exists():
-              print("No changelog generated, skipping R2 upload.")
-              sys.exit(0)
-
-          account_id   = os.environ["R2_ACCOUNT_ID"]
-          access_key   = os.environ["R2_ACCESS_KEY_ID"]
-          secret_key   = os.environ["R2_SECRET_ACCESS_KEY"]
-          bucket       = os.environ["R2_CDN_BUCKET"]
-          endpoint_url = f"https://{account_id}.r2.cloudflarestorage.com"
-
-          s3 = boto3.client(
-              "s3",
-              endpoint_url=endpoint_url,
-              aws_access_key_id=access_key,
-              aws_secret_access_key=secret_key,
-              config=Config(signature_version="s3v4"),
-              region_name="auto",
-          )
-
-          new_entry = changelog_path.read_text()
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          NEW_ENTRY=$(cat /tmp/ai-changelog.md)
 
           # Upload latest.md — only the newest entry (for fast badge load)
-          s3.put_object(
-              Bucket=bucket,
-              Key="changelog/latest.md",
-              Body=new_entry.encode(),
-              ContentType="text/markdown; charset=utf-8",
-          )
-          print(f"Uploaded changelog/latest.md ({len(new_entry)} bytes)")
+          aws s3 cp /tmp/ai-changelog.md "s3://${R2_CDN_BUCKET}/changelog/latest.md" \
+            --endpoint-url "$ENDPOINT" \
+            --content-type "text/markdown; charset=utf-8" \
+            --no-progress
+          echo "Uploaded changelog/latest.md ($(wc -c < /tmp/ai-changelog.md) bytes)"
 
           # Fetch existing all.md and prepend the new entry (cumulative history)
-          try:
-              existing_obj = s3.get_object(Bucket=bucket, Key="changelog/all.md")
-              existing = existing_obj["Body"].read().decode()
-              combined = new_entry.rstrip() + "\n\n" + existing.strip() + "\n"
-          except s3.exceptions.NoSuchKey:
-              combined = "# Changelog\n\n本文件由 CI 自动维护。\n\n" + new_entry.rstrip() + "\n"
-          except Exception:
-              combined = "# Changelog\n\n本文件由 CI 自动维护。\n\n" + new_entry.rstrip() + "\n"
+          if aws s3 cp "s3://${R2_CDN_BUCKET}/changelog/all.md" /tmp/existing-changelog.md \
+            --endpoint-url "$ENDPOINT" --no-progress 2>/dev/null; then
+            { printf '%s\n\n' "${NEW_ENTRY}" | sed 's/[[:space:]]*$//'; echo; sed 's/[[:space:]]*$//' /tmp/existing-changelog.md; printf '\n'; } > /tmp/combined-changelog.md
+          else
+            printf '# Changelog\n\n本文件由 CI 自动维护。\n\n%s\n' "${NEW_ENTRY}" > /tmp/combined-changelog.md
+          fi
 
-          s3.put_object(
-              Bucket=bucket,
-              Key="changelog/all.md",
-              Body=combined.encode(),
-              ContentType="text/markdown; charset=utf-8",
-          )
-          print(f"Uploaded changelog/all.md ({len(combined)} bytes)")
-          PYEOF
+          aws s3 cp /tmp/combined-changelog.md "s3://${R2_CDN_BUCKET}/changelog/all.md" \
+            --endpoint-url "$ENDPOINT" \
+            --content-type "text/markdown; charset=utf-8" \
+            --no-progress
+          echo "Uploaded changelog/all.md ($(wc -c < /tmp/combined-changelog.md) bytes)"
 
       - name: Create GitHub Release
         env:
