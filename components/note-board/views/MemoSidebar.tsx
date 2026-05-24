@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarDays, ChevronLeft, ChevronRight, LayoutGrid, Tag, X } from 'lucide-react'
+import { Activity, CalendarDays, ChevronLeft, ChevronRight, History, Tag, X } from 'lucide-react'
 import { getHabitStatusClassName, getHabitStatusLabel, getHabitStreakLabel } from '@/components/note-board/utils/habit-ui'
 import type { MemoHabitHistoryEvent, MemoHabitOverview } from '@/lib/memo-habits'
 import type { MemoAgendaItem } from '@/lib/note-boards'
@@ -15,6 +15,48 @@ import { formatStableDate } from '@/lib/date-format'
 
 function hexToRgb(hex: string): string {
   return `${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)}`
+}
+
+type SidebarModeKey = 'agenda' | 'heatmap' | 'history'
+export const SIDEBAR_MODE_ICONS: Record<SidebarModeKey, React.ReactNode> = {
+  agenda: <CalendarDays size={13} />,
+  heatmap: <Activity size={13} />,
+  history: <History size={13} />,
+}
+
+export interface SidebarModeEntry {
+  key: SidebarModeKey
+  label: string
+}
+
+interface SidebarModeControlProps {
+  sidebarModes: readonly SidebarModeEntry[]
+  calendarMode: SidebarModeKey
+  onCalendarModeChange: (mode: SidebarModeKey) => void
+}
+
+function SidebarModeButtons({ sidebarModes, calendarMode, onCalendarModeChange }: SidebarModeControlProps) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {sidebarModes.map((mode) => (
+        <button
+          key={mode.key}
+          type="button"
+          onClick={() => onCalendarModeChange(mode.key)}
+          title={mode.label}
+          aria-label={mode.label}
+          className={[
+            'rounded-full p-1.5 transition',
+            calendarMode === mode.key
+              ? 'bg-foreground/10 text-foreground'
+              : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+          ].join(' ')}
+        >
+          {SIDEBAR_MODE_ICONS[mode.key]}
+        </button>
+      ))}
+    </div>
+  )
 }
 
 export const CHIP_COLORS = [
@@ -104,9 +146,12 @@ export interface SidebarCalendarProps {
   selectedDate: string | null
   onSelectDate: (key: string | null) => void
   onSwitchMode?: () => void
+  sidebarModes?: readonly SidebarModeEntry[]
+  calendarMode?: SidebarModeKey
+  onCalendarModeChange?: (mode: SidebarModeKey) => void
 }
 
-export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, onSwitchMode }: SidebarCalendarProps) {
+export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, sidebarModes, calendarMode, onCalendarModeChange }: SidebarCalendarProps) {
   const { theme } = useNoteColorTheme()
   const heatColor = theme.shell[1]
   const today = useMemo(() => {
@@ -162,16 +207,12 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, on
         </button>
         <span className="text-[14px] font-semibold text-foreground/80">{monthLabel}</span>
         <div className="flex items-center gap-0.5">
-          {onSwitchMode ? (
-            <button
-              type="button"
-              onClick={onSwitchMode}
-              className="rounded-full p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
-              aria-label="切换到日程视图"
-              title="日程视图"
-            >
-              <LayoutGrid size={13} />
-            </button>
+          {sidebarModes && calendarMode && onCalendarModeChange ? (
+            <SidebarModeButtons
+              sidebarModes={sidebarModes}
+              calendarMode={calendarMode}
+              onCalendarModeChange={onCalendarModeChange}
+            />
           ) : null}
           <button
             type="button"
@@ -355,9 +396,12 @@ export interface SidebarAgendaCalendarProps {
   agendaItems: MemoAgendaItem[]
   onSwitchMode?: () => void
   onAfterSelect?: () => void
+  sidebarModes?: readonly SidebarModeEntry[]
+  calendarMode?: SidebarModeKey
+  onCalendarModeChange?: (mode: SidebarModeKey) => void
 }
 
-export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect }: SidebarAgendaCalendarProps) {
+export function SidebarAgendaCalendar({ agendaItems, onAfterSelect, sidebarModes, calendarMode, onCalendarModeChange }: SidebarAgendaCalendarProps) {
   const actions = useNoteBoardActions()
   const state = useNoteBoardBoardState()
 
@@ -434,16 +478,12 @@ export function SidebarAgendaCalendar({ agendaItems, onSwitchMode, onAfterSelect
         </button>
         <span className="text-[14px] font-semibold text-foreground/80">{monthLabel}</span>
         <div className="flex items-center gap-0.5">
-          {onSwitchMode ? (
-            <button
-              type="button"
-              onClick={onSwitchMode}
-              className="rounded-full p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
-              aria-label="切换到热力日历"
-              title="热力日历"
-            >
-              <CalendarDays size={13} />
-            </button>
+          {sidebarModes && calendarMode && onCalendarModeChange ? (
+            <SidebarModeButtons
+              sidebarModes={sidebarModes}
+              calendarMode={calendarMode}
+              onCalendarModeChange={onCalendarModeChange}
+            />
           ) : null}
           <button
             type="button"
@@ -629,9 +669,12 @@ export interface SidebarHabitHistoryProps {
   overview: MemoHabitOverview
   onOpenItemDetail: (noteId: string, itemKey: string) => void
   onAfterSelect?: () => void
+  sidebarModes?: readonly SidebarModeEntry[]
+  calendarMode?: SidebarModeKey
+  onCalendarModeChange?: (mode: SidebarModeKey) => void
 }
 
-export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect }: SidebarHabitHistoryProps) {
+export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect, sidebarModes, calendarMode, onCalendarModeChange }: SidebarHabitHistoryProps) {
   const today = useMemo(() => {
     const { year, month, day } = getShanghaDateParts(new Date())
     return { year, month, day, key: toDateKey(year, month, day) }
@@ -731,14 +774,23 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect 
           <ChevronLeft size={15} />
         </button>
         <span className="text-[14px] font-semibold text-foreground/80">{monthLabel}</span>
-        <button
-          type="button"
-          onClick={nextMonth}
-          className="rounded-full p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
-          aria-label="下个月"
-        >
-          <ChevronRight size={15} />
-        </button>
+        <div className="flex items-center gap-0.5">
+          {sidebarModes && calendarMode && onCalendarModeChange ? (
+            <SidebarModeButtons
+              sidebarModes={sidebarModes}
+              calendarMode={calendarMode}
+              onCalendarModeChange={onCalendarModeChange}
+            />
+          ) : null}
+          <button
+            type="button"
+            onClick={nextMonth}
+            className="rounded-full p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+            aria-label="下个月"
+          >
+            <ChevronRight size={15} />
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-7 text-center">

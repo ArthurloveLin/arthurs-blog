@@ -15,6 +15,7 @@ import {
 import { getCurrentUser, getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
+import { extractMemoHabitChecklistItems } from '@/lib/memo-habits'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export type NoteVisibility = 'public' | 'admin_only'
@@ -492,7 +493,7 @@ export async function updateBoardMessage(
 
   const { data: note, error: fetchError } = await supabaseAdmin
     .from('comments')
-    .select('id, author, user_id, target_type, target_id')
+    .select('id, author, user_id, target_type, target_id, content')
     .eq('id', id)
     .single()
 
@@ -574,6 +575,24 @@ export async function updateBoardMessage(
     throw new Error(error?.message ?? 'UPDATE_FAILED')
   }
 
+  // When content changes on a memo, delete occurrences for habit items that no longer exist
+  if (board === 'memo' && typeof input.content === 'string') {
+    const oldKeys = new Set(
+      extractMemoHabitChecklistItems((note as { content?: string | null }).content ?? '').map((i) => i.itemKey),
+    )
+    const newKeys = new Set(
+      extractMemoHabitChecklistItems(data.content ?? '').map((i) => i.itemKey),
+    )
+    const removedKeys = [...oldKeys].filter((k) => !newKeys.has(k))
+    if (removedKeys.length > 0) {
+      await supabaseAdmin
+        .from('memo_habit_occurrences')
+        .delete()
+        .eq('note_id', id)
+        .in('item_key', removedKeys)
+    }
+  }
+
   const [message] = await attachViewerEmojiReactions([
     {
       ...(data as Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emojis'>),
@@ -620,6 +639,11 @@ export async function deleteBoardMessage(
 
   if (error) {
     throw new Error(error.message)
+  }
+
+  // Cascade delete habit occurrences for this note
+  if (board === 'memo') {
+    await supabaseAdmin.from('memo_habit_occurrences').delete().eq('note_id', id)
   }
 }
 

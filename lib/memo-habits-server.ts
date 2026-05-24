@@ -615,3 +615,31 @@ export async function upsertMemoHabitOccurrenceForReminder(note: MemoHabitNoteRo
     throw new Error(error?.message ?? 'UPSERT_FAILED')
   }
 }
+
+export async function deleteMemoHabitOccurrence(occurrenceId: string) {
+  const [role, currentUser] = await Promise.all([getUserRole(), getCurrentUser()])
+
+  const { data: row, error: fetchError } = await supabaseAdmin
+    .from('memo_habit_occurrences')
+    .select('id, note_id, owner_user_id')
+    .eq('id', occurrenceId)
+    .single()
+
+  if (fetchError || !row) {
+    throw new Error('NOT_FOUND')
+  }
+
+  const isOwner = currentUser?.id != null && currentUser.id === (row as { owner_user_id?: string | null }).owner_user_id
+  if (role !== 'admin' && !isOwner) {
+    throw new Error('FORBIDDEN')
+  }
+
+  const { error } = await supabaseAdmin
+    .from('memo_habit_occurrences')
+    .delete()
+    .eq('id', occurrenceId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}

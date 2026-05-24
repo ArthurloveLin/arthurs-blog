@@ -781,6 +781,15 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
     await mutateHabitOverview()
   }, [mutateHabitOverview, mutateSelectedHabitDetail, selectedHabit])
 
+  const handleDeleteOccurrence = useCallback(async (occurrenceId: string) => {
+    const response = await fetch(`/api/note-boards/memo/habits/occurrence/${encodeURIComponent(occurrenceId)}`, {
+      method: 'DELETE',
+    })
+    if (!response.ok) return
+    await mutateSelectedHabitDetail()
+    await mutateHabitOverview()
+  }, [mutateHabitOverview, mutateSelectedHabitDetail])
+
   return (
     <div className="space-y-6">
       {viewMode === 'stream'
@@ -795,6 +804,7 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
         onClose={closeHabitDetail}
         onComplete={handleCompleteHabit}
         onDelay={handleDelayHabit}
+        onDeleteOccurrence={handleDeleteOccurrence}
       />
     </div>
   )

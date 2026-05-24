@@ -441,11 +441,13 @@ export function MemoBoardShell({
   const [calendarMode, setCalendarMode] = useState<'heatmap' | 'agenda' | 'history'>('agenda')
   const isMobileCalendarOpen = state.isMobileViewport && mobileCalendarOpen
   const resolvedCalendarMode = !habitOverview && calendarMode === 'history' ? 'agenda' : calendarMode
-  const sidebarModes = [
-    { key: 'agenda', label: '日程' },
-    { key: 'heatmap', label: '热力' },
-    ...(habitOverview ? [{ key: 'history', label: '历史' }] : []),
-  ] as const
+  const sidebarModes = useMemo(() => {
+    return [
+      { key: 'agenda' as const, label: '日程' },
+      { key: 'heatmap' as const, label: '热力' },
+      ...(habitOverview ? [{ key: 'history' as const, label: '历史' }] : []),
+    ]
+  }, [habitOverview])
 
   const shellBg = `radial-gradient(ellipse at top left, rgba(${hexToRgb(theme.shell[0])},0.32) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(${hexToRgb(theme.shell[1])},0.26) 0%, transparent 50%)`
 
@@ -470,11 +472,17 @@ export function MemoBoardShell({
   const toggleLabel = toggleTarget === 'stream' ? '流式视图' : '便签视图'
 
   const renderSidebarPanel = useCallback((isMobilePanel: boolean) => {
+    const modeProps = {
+      sidebarModes,
+      calendarMode: resolvedCalendarMode,
+      onCalendarModeChange: (m: 'heatmap' | 'agenda' | 'history') => setCalendarMode(m),
+    }
     if (resolvedCalendarMode === 'agenda' && agendaItems != null) {
       return (
         <SidebarAgendaCalendar
           agendaItems={agendaItems}
           onAfterSelect={isMobilePanel ? () => setMobileCalendarOpen(false) : undefined}
+          {...modeProps}
         />
       )
     }
@@ -485,6 +493,7 @@ export function MemoBoardShell({
           overview={habitOverview}
           onOpenItemDetail={onOpenHabitDetail}
           onAfterSelect={isMobilePanel ? () => setMobileCalendarOpen(false) : undefined}
+          {...modeProps}
         />
       )
     }
@@ -499,9 +508,10 @@ export function MemoBoardShell({
             setMobileCalendarOpen(false)
           }
         }}
+        {...modeProps}
       />
     )
-  }, [agendaItems, filters, habitOverview, onOpenHabitDetail, resolvedCalendarMode])
+  }, [agendaItems, filters, habitOverview, onOpenHabitDetail, resolvedCalendarMode, sidebarModes, setCalendarMode])
 
   return (
     <section className="rounded-[32px] border border-border/60 bg-card/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-6" style={{ backgroundImage: shellBg }}>
@@ -556,23 +566,6 @@ export function MemoBoardShell({
         {/* 桌面侧边栏 */}
         <aside className="hidden shrink-0 sm:block sm:w-[240px] lg:w-[280px]">
           <div className="sticky top-6 space-y-6">
-            <div className="inline-flex rounded-full border border-border/60 bg-background/70 p-1">
-              {sidebarModes.map((mode) => (
-                <button
-                  key={mode.key}
-                  type="button"
-                  onClick={() => setCalendarMode(mode.key as 'heatmap' | 'agenda' | 'history')}
-                  className={[
-                    'rounded-full px-3 py-1 text-[12px] font-medium transition',
-                    resolvedCalendarMode === mode.key
-                      ? 'bg-foreground text-background'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                  ].join(' ')}
-                >
-                  {mode.label}
-                </button>
-              ))}
-            </div>
             {renderSidebarPanel(false)}
             <SidebarQuickFilters filters={filters} agendaItems={agendaItems} />
             <SidebarTagCloud />
