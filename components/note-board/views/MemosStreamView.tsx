@@ -20,7 +20,7 @@ interface MemosStreamViewProps {
   filters: MemoBoardFilters
   agendaItems?: MemoAgendaItem[] | null
   habitOverview?: MemoHabitOverview | null
-  onOpenHabitDetail?: (noteId: string, itemKey: string) => void
+  onOpenHabitDetail?: (noteId: string, itemKey: string, source?: 'sidebar' | 'note') => void
 }
 
 type FeedGroup = {

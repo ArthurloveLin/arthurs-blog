@@ -9,6 +9,7 @@ interface MemoHabitDetailPanelProps {
   detail: MemoHabitItemDetail | null | undefined
   isLoading: boolean
   isMobile: boolean
+  anchorSide?: 'left' | 'right'
   onClose: () => void
   onComplete: () => Promise<void>
   onDelay: (delayUntil: string) => Promise<void>
@@ -26,7 +27,7 @@ function formatDetailTimestamp(iso: string) {
   }).format(new Date(iso))
 }
 
-export function MemoHabitDetailPanel({ detail, isLoading, isMobile, onClose, onComplete, onDelay, onDeleteOccurrence }: MemoHabitDetailPanelProps) {
+export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorSide = 'right', onClose, onComplete, onDelay, onDeleteOccurrence }: MemoHabitDetailPanelProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [completing, setCompleting] = useState(false)
@@ -249,7 +250,10 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, onClose, onC
   return (
     <div
       ref={cardRef}
-      className="fixed right-6 top-[5rem] z-50 w-[360px] max-h-[calc(100vh-6rem)] overflow-y-auto rounded-[28px] border border-border/60 bg-card/98 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-sm"
+      className={[
+        'fixed z-50 w-[360px] max-h-[calc(100vh-6rem)] overflow-y-auto rounded-[28px] border border-border/60 bg-card/98 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-sm',
+        anchorSide === 'left' ? 'left-6 top-[5rem]' : 'right-6 top-[5rem]',
+      ].join(' ')}
       style={{ animation: 'memoHabitCardIn 0.18s ease-out' }}
     >
       <style>{`

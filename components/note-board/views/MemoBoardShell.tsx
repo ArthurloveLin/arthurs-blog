@@ -413,7 +413,7 @@ interface MemoBoardShellProps {
   allowPrioritySort: boolean
   agendaItems?: MemoAgendaItem[] | null
   habitOverview?: MemoHabitOverview | null
-  onOpenHabitDetail?: (noteId: string, itemKey: string) => void
+  onOpenHabitDetail?: (noteId: string, itemKey: string, source?: 'sidebar' | 'note') => void
   extraControls?: ReactNode
   children: ReactNode
 }
@@ -441,13 +441,11 @@ export function MemoBoardShell({
   const [calendarMode, setCalendarMode] = useState<'heatmap' | 'agenda' | 'history'>('agenda')
   const isMobileCalendarOpen = state.isMobileViewport && mobileCalendarOpen
   const resolvedCalendarMode = !habitOverview && calendarMode === 'history' ? 'agenda' : calendarMode
-  const sidebarModes = useMemo(() => {
-    return [
-      { key: 'agenda' as const, label: '日程' },
-      { key: 'heatmap' as const, label: '热力' },
-      ...(habitOverview ? [{ key: 'history' as const, label: '历史' }] : []),
-    ]
-  }, [habitOverview])
+  const sidebarModes = useMemo(() => [
+    { key: 'agenda' as const, label: '日程' },
+    { key: 'heatmap' as const, label: '热力' },
+    { key: 'history' as const, label: '历史' },
+  ], [])
 
   const shellBg = `radial-gradient(ellipse at top left, rgba(${hexToRgb(theme.shell[0])},0.32) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(${hexToRgb(theme.shell[1])},0.26) 0%, transparent 50%)`
 
@@ -491,7 +489,7 @@ export function MemoBoardShell({
       return (
         <SidebarHabitHistory
           overview={habitOverview}
-          onOpenItemDetail={onOpenHabitDetail}
+          onOpenItemDetail={(noteId, itemKey) => onOpenHabitDetail(noteId, itemKey, 'sidebar')}
           onAfterSelect={isMobilePanel ? () => setMobileCalendarOpen(false) : undefined}
           {...modeProps}
         />
@@ -511,7 +509,7 @@ export function MemoBoardShell({
         {...modeProps}
       />
     )
-  }, [agendaItems, filters, habitOverview, onOpenHabitDetail, resolvedCalendarMode, sidebarModes, setCalendarMode])
+  }, [agendaItems, filters, habitOverview, onOpenHabitDetail, resolvedCalendarMode, sidebarModes])
 
   return (
     <section className="rounded-[32px] border border-border/60 bg-card/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-6" style={{ backgroundImage: shellBg }}>

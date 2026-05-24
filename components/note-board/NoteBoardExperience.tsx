@@ -54,7 +54,7 @@ interface NoteBoardPageProps {
   initialViewMode?: NoteBoardViewMode
 }
 
-function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail }: { onToggleViewMode: () => void; filters: MemoBoardFilters; agendaItems?: import('@/lib/note-boards').MemoAgendaItem[] | null; habitOverview?: MemoHabitOverview | null; onOpenHabitDetail?: (noteId: string, itemKey: string) => void }) {
+function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail }: { onToggleViewMode: () => void; filters: MemoBoardFilters; agendaItems?: import('@/lib/note-boards').MemoAgendaItem[] | null; habitOverview?: MemoHabitOverview | null; onOpenHabitDetail?: (noteId: string, itemKey: string, source?: 'sidebar' | 'note') => void }) {
   const state = useNoteBoardBoardState()
   const editorState = useNoteBoardEditorState()
   const actions = useNoteBoardActions()
@@ -725,7 +725,7 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
   )
 
-  const [selectedHabit, setSelectedHabit] = useState<{ noteId: string; itemKey: string } | null>(null)
+  const [selectedHabit, setSelectedHabit] = useState<{ noteId: string; itemKey: string; source?: 'sidebar' | 'note' } | null>(null)
   const selectedHabitKey = selectedHabit
     ? `/api/note-boards/memo/habits/item?note_id=${encodeURIComponent(selectedHabit.noteId)}&item_key=${encodeURIComponent(selectedHabit.itemKey)}`
     : null
@@ -747,8 +747,8 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
     [],
   )
 
-  const openHabitDetail = useCallback((noteId: string, itemKey: string) => {
-    setSelectedHabit({ noteId, itemKey })
+  const openHabitDetail = useCallback((noteId: string, itemKey: string, source?: 'sidebar' | 'note') => {
+    setSelectedHabit({ noteId, itemKey, source })
   }, [])
 
   const closeHabitDetail = useCallback(() => {
@@ -801,6 +801,7 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
         detail={selectedHabitDetail}
         isLoading={Boolean(selectedHabit) && isHabitDetailLoading}
         isMobile={state.isMobileViewport}
+        anchorSide={selectedHabit?.source === 'sidebar' ? 'left' : 'right'}
         onClose={closeHabitDetail}
         onComplete={handleCompleteHabit}
         onDelay={handleDelayHabit}
