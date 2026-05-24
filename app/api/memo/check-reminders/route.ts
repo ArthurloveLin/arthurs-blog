@@ -68,7 +68,7 @@ function buildNotification(
   const title = `⏰ ${label}${repeatSuffix}`
   // 去掉 @due 标签后的完整内容；保留换行结构，折叠多余空行，上限 500 字
   const noteText = content
-    .replace(INLINE_DUE_CAPTURE, '')
+    .replace(INLINE_DUE_CAPTURE, (_match, label: string) => label.trim())
     .replace(/\n{3,}/g, '\n\n')
     .trim()
     .slice(0, 500)
