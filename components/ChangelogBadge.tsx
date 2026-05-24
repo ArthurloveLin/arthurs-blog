@@ -9,6 +9,24 @@ interface ChangelogEntry {
   body: string
 }
 
+function renderInline(text: string): React.ReactNode[] {
+  // Parse **bold**, *italic*, `code` inline patterns
+  const parts: React.ReactNode[] = []
+  const re = /(\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`)/g
+  let last = 0
+  let m: RegExpExecArray | null
+  let idx = 0
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index))
+    if (m[2] !== undefined) parts.push(<strong key={idx++} className="font-semibold text-foreground/90">{m[2]}</strong>)
+    else if (m[3] !== undefined) parts.push(<em key={idx++} className="italic">{m[3]}</em>)
+    else if (m[4] !== undefined) parts.push(<code key={idx++} className="rounded bg-foreground/8 px-1 py-px font-mono text-[11px]">{m[4]}</code>)
+    last = m.index + m[0].length
+  }
+  if (last < text.length) parts.push(text.slice(last))
+  return parts
+}
+
 function ChangelogMarkdown({ content }: { content: string }) {
   const lines = content.split('\n')
   const elements: React.ReactNode[] = []
@@ -20,7 +38,7 @@ function ChangelogMarkdown({ content }: { content: string }) {
       <ul key={`list-${elements.length}`} className="space-y-1 pl-4">
         {listItems.map((item, i) => (
           <li key={i} className="list-disc text-[13px] leading-relaxed text-foreground/75">
-            {item.replace(/^-\s+/, '')}
+            {renderInline(item.replace(/^-\s+/, ''))}
           </li>
         ))}
       </ul>,
@@ -36,6 +54,13 @@ function ChangelogMarkdown({ content }: { content: string }) {
           {line.slice(4).trim()}
         </p>,
       )
+    } else if (line.startsWith('## ')) {
+      flushList()
+      elements.push(
+        <p key={`h2-${elements.length}`} className="mt-2 mb-1 text-[12px] font-semibold text-foreground/80 first:mt-0">
+          {line.slice(3).trim()}
+        </p>,
+      )
     } else if (line.startsWith('- ')) {
       listItems.push(line)
     } else if (line.trim() === '') {
@@ -44,7 +69,7 @@ function ChangelogMarkdown({ content }: { content: string }) {
       flushList()
       elements.push(
         <p key={`p-${elements.length}`} className="text-[13px] leading-relaxed text-foreground/75">
-          {line}
+          {renderInline(line)}
         </p>,
       )
     }
@@ -179,8 +204,8 @@ export function ChangelogBadge() {
             ))}
           </div>
 
-          {/* Body — fixed height, scrollable */}
-          <div className="h-72 overflow-y-auto overscroll-contain px-4 py-3">
+          {/* Body — fixed height, scrollable; key forces remount on tab switch to avoid layout bleed from <details> */}
+          <div key={view} className="h-72 overflow-y-auto overscroll-contain px-4 py-3">
             {view === 'latest' ? (
               latestLoading ? (
                 <div className="flex h-full items-center justify-center">
