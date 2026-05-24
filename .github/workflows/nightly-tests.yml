@@ -638,6 +638,21 @@ jobs:
             --dangerously-skip-permissions \
             -p "$(cat /tmp/test-gen-prompt.md)"
 
+      - name: Collect agy output from real repo
+        if: steps.scan.outputs.gaps_found == 'true' && steps.idempotency.outputs.already_ran != 'true'
+        run: |
+          # agy writes to the real repo path on this VPS, not the CI checkout.
+          # Copy any newly-generated test files into the checkout so subsequent
+          # steps can find them.
+          REAL_DIR="/home/arthur/repositories/arthurs-blog/tests/ai_generated"
+          mkdir -p tests/ai_generated
+          if [ -d "$REAL_DIR" ]; then
+            find "$REAL_DIR" -maxdepth 1 -name "test_*.py" -newer /tmp/agy-gen-start \
+              -exec cp -v {} tests/ai_generated/ \; 2>/dev/null || true
+          fi
+          COUNT=$(find tests/ai_generated -maxdepth 1 -name "test_*.py" -newer /tmp/agy-gen-start 2>/dev/null | wc -l | tr -d ' ')
+          echo "Collected ${COUNT} new test file(s) from real repo into CI checkout"
+
       - name: Validate — syntax check
         if: steps.scan.outputs.gaps_found == 'true' && steps.idempotency.outputs.already_ran != 'true'
         id: validate_syntax
@@ -660,8 +675,11 @@ jobs:
         if: steps.validate_syntax.outputs.valid == 'true'
         id: validate_collect
         run: |
-          pytest tests/ai_generated/ --collect-only -q 2>&1
-          echo "collected=true" >> "$GITHUB_OUTPUT"
+          if pytest tests/ai_generated/ --collect-only -q 2>&1; then
+            echo "collected=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "collected=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Create branch and open PR
         if: steps.validate_syntax.outputs.valid == 'true' && steps.validate_collect.outputs.collected == 'true'

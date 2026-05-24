@@ -822,7 +822,6 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
               disabled={!summary}
               onClick={() => {
                 setDetailDay(key)
-                onAfterSelect?.()
               }}
               className={[
                 'flex h-[60px] w-full flex-col rounded-sm p-1 text-left transition',

@@ -725,7 +725,16 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
   )
 
-  const [selectedHabit, setSelectedHabit] = useState<{ noteId: string; itemKey: string; source?: 'sidebar' | 'note' } | null>(null)
+  const lastClickPos = useRef<{ x: number; y: number } | null>(null)
+  useEffect(() => {
+    function onPointerDown(e: PointerEvent) {
+      lastClickPos.current = { x: e.clientX, y: e.clientY }
+    }
+    window.addEventListener('pointerdown', onPointerDown, true)
+    return () => window.removeEventListener('pointerdown', onPointerDown, true)
+  }, [])
+
+  const [selectedHabit, setSelectedHabit] = useState<{ noteId: string; itemKey: string; source?: 'sidebar' | 'note'; anchorPos?: { x: number; y: number } } | null>(null)
   const selectedHabitKey = selectedHabit
     ? `/api/note-boards/memo/habits/item?note_id=${encodeURIComponent(selectedHabit.noteId)}&item_key=${encodeURIComponent(selectedHabit.itemKey)}`
     : null
@@ -748,7 +757,7 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
   )
 
   const openHabitDetail = useCallback((noteId: string, itemKey: string, source?: 'sidebar' | 'note') => {
-    setSelectedHabit({ noteId, itemKey, source })
+    setSelectedHabit({ noteId, itemKey, source, anchorPos: lastClickPos.current ?? undefined })
   }, [])
 
   const closeHabitDetail = useCallback(() => {
@@ -801,7 +810,7 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
         detail={selectedHabitDetail}
         isLoading={Boolean(selectedHabit) && isHabitDetailLoading}
         isMobile={state.isMobileViewport}
-        anchorSide={selectedHabit?.source === 'sidebar' ? 'left' : 'right'}
+        anchorPos={selectedHabit?.anchorPos}
         onClose={closeHabitDetail}
         onComplete={handleCompleteHabit}
         onDelay={handleDelayHabit}

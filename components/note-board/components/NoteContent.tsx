@@ -332,10 +332,10 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
                       type="button"
                       aria-label={item.checked ? `取消勾选：${item.text}` : `勾选清单项：${item.text}`}
                       className={[
-                        'mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+                        'mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-60',
                         item.checked
                           ? 'border-slate-400/60 bg-slate-400/30 text-slate-500'
-                          : 'border-foreground/45 text-transparent',
+                          : 'border-foreground/65 text-transparent',
                       ].join(' ')}
                       disabled={checklistPending}
                       onPointerDown={(event) => event.stopPropagation()}
