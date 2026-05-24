@@ -65,6 +65,15 @@ export function ChangelogBadge() {
   const [historyLoading, setHistoryLoading] = useState(false)
 
   const ref = useRef<HTMLDivElement>(null)
+  const popupRef = useRef<HTMLDivElement>(null)
+
+  // Keep popup within viewport horizontally
+  useEffect(() => {
+    if (!open || !popupRef.current) return
+    const rect = popupRef.current.getBoundingClientRect()
+    const overflow = rect.right - (window.innerWidth - 8)
+    popupRef.current.style.transform = overflow > 0 ? `translateX(-${overflow}px)` : ''
+  }, [open])
 
   const fetchLatest = () => {
     if (latest !== undefined || latestLoading) return
@@ -123,7 +132,7 @@ export function ChangelogBadge() {
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-full z-50 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_24px_60px_rgba(15,23,42,0.12)]">
+        <div ref={popupRef} className="absolute left-0 top-full z-50 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_24px_60px_rgba(15,23,42,0.12)]">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
             <span className="text-[13px] font-semibold text-foreground">更新日志</span>
