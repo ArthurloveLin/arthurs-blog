@@ -65,14 +65,17 @@ export function ChangelogBadge() {
   const [historyLoading, setHistoryLoading] = useState(false)
 
   const ref = useRef<HTMLDivElement>(null)
-  const popupRef = useRef<HTMLDivElement>(null)
+  const popupDivRef = useRef<HTMLDivElement>(null)
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number; width: number } | null>(null)
 
-  // Keep popup within viewport horizontally
+  // Position popup as fixed so it never overflows the viewport
   useEffect(() => {
-    if (!open || !popupRef.current) return
-    const rect = popupRef.current.getBoundingClientRect()
-    const overflow = rect.right - (window.innerWidth - 8)
-    popupRef.current.style.transform = overflow > 0 ? `translateX(-${overflow}px)` : ''
+    if (!open || !ref.current) return
+    const badge = ref.current.getBoundingClientRect()
+    const vw = document.documentElement.clientWidth
+    const width = Math.min(320, vw - 16)
+    const left = Math.min(badge.left, vw - width - 8)
+    setPopupPos({ top: badge.bottom + 8, left: Math.max(8, left), width })
   }, [open])
 
   const fetchLatest = () => {
@@ -98,7 +101,11 @@ export function ChangelogBadge() {
   useEffect(() => {
     if (!open) return
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (
+        ref.current && !ref.current.contains(target) &&
+        popupDivRef.current && !popupDivRef.current.contains(target)
+      ) setOpen(false)
     }
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false)
@@ -131,8 +138,12 @@ export function ChangelogBadge() {
         <Tag size={11} strokeWidth={2.5} />
       </button>
 
-      {open ? (
-        <div ref={popupRef} className="absolute left-0 top-full z-50 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_24px_60px_rgba(15,23,42,0.12)]">
+      {open && popupPos ? (
+        <div
+          ref={popupDivRef}
+          style={{ position: 'fixed', top: popupPos.top, left: popupPos.left, width: popupPos.width }}
+          className="z-[2000] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_24px_60px_rgba(15,23,42,0.12)]"
+        >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
             <span className="text-[13px] font-semibold text-foreground">更新日志</span>
