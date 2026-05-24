@@ -21,6 +21,7 @@ interface MemosStreamViewProps {
   agendaItems?: MemoAgendaItem[] | null
   habitOverview?: MemoHabitOverview | null
   onOpenHabitDetail?: (noteId: string, itemKey: string, source?: 'sidebar' | 'note') => void
+  showSidebar?: boolean
 }
 
 type FeedGroup = {
@@ -37,7 +38,7 @@ type FeedGroup = {
 
 const DATE_META_BLOCK_HEIGHT_CLASS = 'h-[2.15rem] sm:h-[2.6rem]'
 
-export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail }: MemosStreamViewProps) {
+export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail, showSidebar }: MemosStreamViewProps) {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
   const meta = useNoteBoardMeta()
@@ -153,6 +154,7 @@ export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitO
       filters={filters}
       searchPlaceholder={meta.board.slug === 'guestbook' ? '搜索留言内容…' : '搜索 Memo…'}
       allowPrioritySort={meta.board.slug === 'memo'}
+      showSidebar={showSidebar}
       agendaItems={agendaItems}
       habitOverview={habitOverview}
       onOpenHabitDetail={onOpenHabitDetail}

@@ -13,13 +13,14 @@ concurrency:
 #
 # Job graph:
 #
-#   setup → api-tests ──┐
-#         → infra-tests ─┼→ teardown (always)
-#         → e2e-tests ───┘
-#                        ├→ report (always)   → notify (always)
-#                        └→ perf-tests ───────┘
+#   setup → api-tests ─────────────────────────────┐
+#         → infra-tests ──────────────────────────  ┼ → teardown (always)
+#         → ai-generated-tests (continue-on-error) ─┤
+#         → api-tests → e2e-tests ─────────────────┘
+#                           ├→ report (always)   → notify (always)
+#                           └→ perf-tests ───────┘
 #
-#   ai-analysis (on failure)
+#   ai-analysis (on failure/success)
 
 jobs:
 
@@ -141,6 +142,46 @@ jobs:
           name: nightly-junit-${{ github.run_number }}
           path: tests/ai_hooks/report.xml
 
+# ─── AI-Generated Tests ──────────────────────────────────────────────────────
+  ai-generated-tests:
+    name: AI-Generated Tests
+    needs: setup
+    runs-on: [self-hosted, linux, vps]
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: tests/requirements.txt
+      - run: pip install -r tests/requirements.txt
+
+      - name: Run AI-generated tests
+        env:
+          TEST_BASE_URL: http://localhost:3020
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+        run: |
+          if ! find tests/ai_generated -maxdepth 1 -name "test_*.py" | grep -q .; then
+            echo "No AI-generated test files found — skipping"
+            exit 0
+          fi
+          pytest tests/ai_generated/ -v \
+            --alluredir=allure-results/ai-generated \
+            --junit-xml=allure-results/ai-generated-junit.xml \
+            --timeout=30
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-ai-generated-${{ github.run_number }}
+          path: allure-results/ai-generated/
+          if-no-files-found: ignore
+
 # ─── 3. Docker Infrastructure Tests ───────────────────────────────────────────
   infra-tests:
     name: Docker Infra Tests
@@ -236,7 +277,7 @@ jobs:
 # ─── 5. Teardown ──────────────────────────────────────────────────────────────
   teardown:
     name: Stop Test Container
-    needs: [api-tests, infra-tests, e2e-tests]
+    needs: [api-tests, infra-tests, e2e-tests, ai-generated-tests]
     runs-on: [self-hosted, linux, vps]
     if: always()
     steps:
@@ -246,7 +287,7 @@ jobs:
 # ─── 6. Generate Allure Report ────────────────────────────────────────────────
   report:
     name: Generate Allure Report
-    needs: [api-tests, infra-tests, e2e-tests]
+    needs: [api-tests, infra-tests, e2e-tests, ai-generated-tests]
     runs-on: ubuntu-latest
     if: always()
     permissions:
@@ -271,6 +312,13 @@ jobs:
         continue-on-error: true
         with:
           name: allure-e2e-${{ github.run_number }}
+          path: allure-results/
+
+      - name: Download AI-generated test allure results
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: allure-ai-generated-${{ github.run_number }}
           path: allure-results/
 
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -392,7 +440,7 @@ jobs:
 # ─── 8. Notify Result ─────────────────────────────────────────────────────────
   notify:
     name: Notify Result
-    needs: [api-tests, infra-tests, e2e-tests, report, perf-tests]
+    needs: [api-tests, infra-tests, e2e-tests, ai-generated-tests, report, perf-tests]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -401,6 +449,7 @@ jobs:
           API_RESULT: ${{ needs.api-tests.result }}
           INFRA_RESULT: ${{ needs.infra-tests.result }}
           E2E_RESULT: ${{ needs.e2e-tests.result }}
+          AI_GEN_RESULT: ${{ needs.ai-generated-tests.result }}
           PERF_RESULT: ${{ needs.perf-tests.result }}
           PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/allure/
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -408,7 +457,7 @@ jobs:
           fmt() { [ "$1" = "success" ] && echo "✅" || echo "❌"; }
           ALL_PASS=$([[ "$API_RESULT" == "success" && "$INFRA_RESULT" == "success" && "$E2E_RESULT" == "success" ]] && echo true || echo false)
           TITLE=$([ "$ALL_PASS" = "true" ] && echo "✅ Nightly Tests Passed" || echo "❌ Nightly Tests Failed")
-          SUMMARY="API $(fmt $API_RESULT)  Infra $(fmt $INFRA_RESULT)  E2E $(fmt $E2E_RESULT)  Perf $(fmt $PERF_RESULT)"
+          SUMMARY="API $(fmt $API_RESULT)  Infra $(fmt $INFRA_RESULT)  E2E $(fmt $E2E_RESULT)  AI-Gen $(fmt $AI_GEN_RESULT)  Perf $(fmt $PERF_RESULT)"
           curl -fsS -X POST \
             -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
             -H "Content-Type: application/json" \

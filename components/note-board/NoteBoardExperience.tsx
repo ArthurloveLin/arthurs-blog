@@ -54,7 +54,7 @@ interface NoteBoardPageProps {
   initialViewMode?: NoteBoardViewMode
 }
 
-function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail }: { onToggleViewMode: () => void; filters: MemoBoardFilters; agendaItems?: import('@/lib/note-boards').MemoAgendaItem[] | null; habitOverview?: MemoHabitOverview | null; onOpenHabitDetail?: (noteId: string, itemKey: string, source?: 'sidebar' | 'note') => void }) {
+function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail, showSidebar }: { onToggleViewMode: () => void; filters: MemoBoardFilters; agendaItems?: import('@/lib/note-boards').MemoAgendaItem[] | null; habitOverview?: MemoHabitOverview | null; onOpenHabitDetail?: (noteId: string, itemKey: string, source?: 'sidebar' | 'note') => void; showSidebar: boolean }) {
   const state = useNoteBoardBoardState()
   const editorState = useNoteBoardEditorState()
   const actions = useNoteBoardActions()
@@ -100,6 +100,7 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
       filters={filters}
       searchPlaceholder={meta.board.slug === 'guestbook' ? '搜索留言内容…' : '搜索 Memo…'}
       allowPrioritySort={meta.board.slug === 'memo'}
+      showSidebar={showSidebar}
       agendaItems={agendaItems}
       habitOverview={habitOverview}
       onOpenHabitDetail={onOpenHabitDetail}
@@ -609,6 +610,7 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
   const state = useNoteBoardEditorState()
   const boardState = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
+  const meta = useNoteBoardMeta()
   const bindings = useNoteBoardBindings()
   const bindEditorSection = useCallback((node: HTMLElement | null) => {
     bindings.bindEditorSection(node)
@@ -625,7 +627,7 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
 
       {state.editorMode === 'edit' ? (
         <div className="mt-4 rounded-[24px] border border-dashed border-border/70 bg-background/55 px-4 py-3 text-sm text-muted-foreground">
-          正在编辑 {state.editingMessage?.author} 的便签。保存后卡片时间会自动刷新。
+          正在编辑 {state.editingMessage?.author} 的{meta.board.slug === 'guestbook' ? '留言' : '便签'}。保存后内容时间会自动刷新。
         </div>
       ) : null}
 
@@ -662,14 +664,14 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
                     onChange={actions.updateEditorVisibility}
                   />
                 ) : null}
-                {state.isAdmin ? <DueDateInserter insertAtCursor={insertAtCursor} /> : null}
+                {state.isAdmin && meta.board.slug === 'memo' ? <DueDateInserter insertAtCursor={insertAtCursor} /> : null}
               </>
             )}
             autoFocus={state.editorMode === 'edit' && (boardState.isMobileViewport || autoFocusOnEdit)}
           />
         </form>
       ) : (
-        <p className="mt-4 text-sm leading-7 text-muted-foreground">这里先开放浏览，Memo 暂时由 admin 维护与更新。</p>
+        <p className="mt-4 text-sm leading-7 text-muted-foreground">这里先开放浏览，暂时由 admin 维护与更新。</p>
       )}
 
       {state.error ? <p className="mt-3 text-sm text-rose-600">{state.error}</p> : null}
@@ -802,8 +804,8 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
   return (
     <div className="space-y-6">
       {viewMode === 'stream'
-        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} />
-        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} />}
+        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} showSidebar={meta.board.slug === 'memo'} />
+        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} showSidebar={meta.board.slug === 'memo'} />}
       <NoteBoardEditorSection autoFocusOnEdit={viewMode === 'stream'} />
       <NoteBoardToast />
       <MemoHabitDetailPanel

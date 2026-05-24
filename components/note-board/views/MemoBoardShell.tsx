@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, Filt
 import {
   useNoteBoardActions,
   useNoteBoardBoardState,
+  useNoteBoardMeta,
 } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
 import { SidebarAgendaCalendar, SidebarCalendar, SidebarHabitHistory, SidebarTagCloud, getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
@@ -268,6 +269,8 @@ function NoteThemeButton() {
 function SidebarQuickFilters({ filters, agendaItems }: { filters: MemoBoardFilters; agendaItems?: MemoAgendaItem[] | null }) {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
+  const meta = useNoteBoardMeta()
+  const isGuestboard = meta.board.slug === 'guestbook'
   const today = useMemo(() => {
     const { year, month, day } = getShanghaDateParts(new Date())
     return toDateKey(year, month, day)
@@ -311,12 +314,13 @@ function SidebarQuickFilters({ filters, agendaItems }: { filters: MemoBoardFilte
     actions.handleDueDateFilter(isTodayDue ? null : today)
   }
 
-  const quickFilters = [
-    { key: 'all', label: '全部便签', active: isAll, count: state.totalLoaded, onClick: handleAll },
+  type QuickFilter = { key: string; label: string; active: boolean; count: number | null; onClick: () => void }
+  const quickFilters: QuickFilter[] = [
+    { key: 'all', label: isGuestboard ? '全部留言' : '全部便签', active: isAll, count: state.totalLoaded, onClick: handleAll },
     { key: 'today-created', label: '今日创建', active: isTodayCreated, count: todayCreatedCount, onClick: handleTodayCreated },
-    { key: 'today-due', label: '今日截止', active: isTodayDue, count: todayDueCount, onClick: handleTodayDue },
+    ...(!isGuestboard ? [{ key: 'today-due', label: '今日截止', active: isTodayDue, count: todayDueCount, onClick: handleTodayDue }] : []),
     { key: 'archive', label: '已归档', active: state.showArchived, count: null, onClick: () => actions.handleSwitchArchiveView(!state.showArchived) },
-  ] as const
+  ]
 
   return (
     <div className="space-y-2">
@@ -414,6 +418,7 @@ interface MemoBoardShellProps {
   agendaItems?: MemoAgendaItem[] | null
   habitOverview?: MemoHabitOverview | null
   onOpenHabitDetail?: (noteId: string, itemKey: string, source?: 'sidebar' | 'note') => void
+  showSidebar?: boolean
   extraControls?: ReactNode
   children: ReactNode
 }
@@ -431,11 +436,14 @@ export function MemoBoardShell({
   agendaItems,
   habitOverview,
   onOpenHabitDetail,
+  showSidebar = true,
   extraControls,
   children,
 }: MemoBoardShellProps) {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
+  const meta = useNoteBoardMeta()
+  const isGuestboard = meta.board.slug === 'guestbook'
   const { theme } = useNoteColorTheme()
   const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false)
   const [calendarMode, setCalendarMode] = useState<'heatmap' | 'agenda' | 'history'>('agenda')
@@ -467,7 +475,7 @@ export function MemoBoardShell({
   }, [actions, filters, state.activeDueDate, state.activeTags, state.searchQuery])
 
   const ToggleIcon = toggleTarget === 'stream' ? LayoutList : Layers
-  const toggleLabel = toggleTarget === 'stream' ? '流式视图' : '便签视图'
+  const toggleLabel = toggleTarget === 'stream' ? '流式视图' : isGuestboard ? '留言视图' : '便签视图'
 
   const renderSidebarPanel = useCallback((isMobilePanel: boolean) => {
     const modeProps = {
@@ -554,7 +562,7 @@ export function MemoBoardShell({
           <button
             type="button"
             onClick={() => actions.scrollToEditor()}
-            title="新便签"
+            title={isGuestboard ? '新留言' : '新便签'}
             className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-foreground text-background transition hover:opacity-85"
           >
             <Plus size={14} />
@@ -564,17 +572,20 @@ export function MemoBoardShell({
 
       <div className="flex gap-6">
         {/* 桌面侧边栏 */}
-        <aside className="hidden shrink-0 sm:block sm:w-[240px] lg:w-[280px]">
-          <div className="sticky top-6 space-y-6">
-            {renderSidebarPanel(false)}
-            <SidebarQuickFilters filters={filters} agendaItems={agendaItems} />
-            <SidebarTagCloud />
-          </div>
-        </aside>
+        {showSidebar && (
+          <aside className="hidden shrink-0 sm:block sm:w-[240px] lg:w-[280px]">
+            <div className="sticky top-6 space-y-6">
+              {renderSidebarPanel(false)}
+              <SidebarQuickFilters filters={filters} agendaItems={agendaItems} />
+              <SidebarTagCloud />
+            </div>
+          </aside>
+        )}
 
         <div className="min-w-0 flex-1">
           {/* 移动端日历展开 */}
-          <div className="mb-3 sm:hidden">
+          {showSidebar && (
+            <div className="mb-3 sm:hidden">
             <button
               type="button"
               onClick={() => setMobileCalendarOpen((v) => !v)}
@@ -623,6 +634,7 @@ export function MemoBoardShell({
               </div>
             ) : null}
           </div>
+          )}
 
           {/* 移动端标签 */}
           {state.allTags.length > 0 ? (
