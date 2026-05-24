@@ -36,9 +36,10 @@ env:
 
 # Job dependency graph (push to main):
 #
-#   check → docker → deploy → release
+#   check → docker → deploy → release → ai-changelog
 #         ↘ ai-fix   (on check failure — opens a fix PR)
 #         ↘ ai-audit (on check success — non-blocking audit report)
+#                     deploy → post-deploy-check (health + agy, non-blocking)
 #                    ↘ notify (on failure)
 #
 # On PR: only check + docker build (no push, no deploy).
@@ -339,6 +340,8 @@ jobs:
     permissions:
       contents: write
       packages: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
     steps:
       - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
 
@@ -391,7 +394,218 @@ jobs:
               --arg sha "${TAG_SHA}" \
               '{ref: $ref, sha: $sha}')"
 
-# ─── 5b. AI Main Audit (non-blocking) ────────────────────────────────────────
+# ─── 5a. Post-Deploy Health Check (non-blocking) ─────────────────────────────
+#
+# Waits 2 min for Watchtower to apply the new image, then collects docker logs
+# and /api/health response, asks agy to detect anomalies, and pushes ntfy.
+# ANOMALY: YES triggers a priority-4 warning; NO sends a quiet confirmation.
+  post-deploy-check:
+    name: Post-Deploy Health Check
+    needs: deploy
+    runs-on: [self-hosted, linux, vps]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      - name: Wait for container restart
+        run: sleep 120
+
+      - name: Collect docker logs
+        run: |
+          docker logs arthurs-blog --tail 200 2>&1 > /tmp/deploy-logs.txt \
+            || echo "docker logs 不可用" > /tmp/deploy-logs.txt
+
+      - name: Probe /api/health
+        run: |
+          curl -fsS -w "\nHTTP_STATUS:%{http_code}" \
+            https://arthurlovegrace.top/api/health \
+            -o /tmp/health-response.txt 2>&1 \
+            || echo "CURL_FAILED:$?" >> /tmp/health-response.txt
+
+      - name: Assemble agy prompt
+        run: |
+          python3 - << 'PYEOF'
+          import pathlib
+          template = pathlib.Path("tests/ai_hooks/prompts/post_deploy_health.md").read_text()
+          logs     = pathlib.Path("/tmp/deploy-logs.txt").read_text(errors="replace")[:15000]
+          health   = pathlib.Path("/tmp/health-response.txt").read_text(errors="replace")[:2000]
+          sha      = "${{ github.sha }}"
+          prompt   = (template
+                      .replace("{DOCKER_LOGS}", logs)
+                      .replace("{HEALTH_RESPONSE}", health)
+                      .replace("{COMMIT_SHA}", sha[:7]))
+          pathlib.Path("/tmp/ai-health-prompt.md").write_text(prompt)
+          print(f"Prompt assembled: {len(prompt)} chars")
+          PYEOF
+
+      - name: Invoke agy
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          rm -rf ~/.gemini/antigravity-cli/brain/ 2>/dev/null || true
+          /home/arthur/.local/bin/agy \
+            --dangerously-skip-permissions \
+            -p "$(cat /tmp/ai-health-prompt.md)"
+
+      - name: Parse anomaly result and notify
+        if: always()
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          if [ -f /tmp/ai-health-result.md ]; then
+            ANOMALY=$(grep "^ANOMALY:" /tmp/ai-health-result.md | head -1 | awk '{print $2}')
+            SUMMARY=$(tail -n +2 /tmp/ai-health-result.md | head -c 1200)
+          else
+            ANOMALY="UNKNOWN"
+            SUMMARY="agy 未产生输出，请手动检查 docker logs 和 /api/health"
+          fi
+
+          if [ "$ANOMALY" = "YES" ]; then
+            TITLE="⚠️ 部署健康异常 — ${SHORT_SHA}"
+            TAGS='["warning"]'
+            PRI=4
+            MSG="${SUMMARY}\n\n🔧 建议人工检查并通过 Watchtower Webhook 手动触发回滚"
+          else
+            TITLE="✅ 部署健康正常 — ${SHORT_SHA}"
+            TAGS='["white_check_mark"]'
+            PRI=2
+            MSG="${SUMMARY:-容器日志无异常，/api/health 响应正常}"
+          fi
+
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg title "$TITLE" \
+              --arg msg "$MSG" \
+              --argjson tags "$TAGS" \
+              --argjson pri "$PRI" \
+              --arg click "$RUN_URL" \
+              '{
+                topic: "watchtower-arthur71684",
+                title: $title,
+                message: $msg,
+                tags: $tags,
+                priority: $pri,
+                click: $click
+              }')" \
+            https://arthurlovegrace.top/ntfy-push
+
+# ─── 5b. AI Changelog & GitHub Release (non-blocking) ────────────────────────
+#
+# Runs after release job. Generates a Keep a Changelog entry via agy,
+# prepends it to CHANGELOG.md, commits [skip ci] to main, then
+# creates an auto-published GitHub Release with the AI-generated notes.
+  ai-changelog:
+    name: AI Changelog & GitHub Release
+    needs: release
+    runs-on: [self-hosted, linux, vps]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    continue-on-error: true
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Configure git bot identity
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Collect git log since previous tag
+        run: |
+          NEW_TAG="${{ needs.release.outputs.tag }}"
+          PREV_TAG=$(git describe --tags --abbrev=0 "${NEW_TAG}^" 2>/dev/null || echo "")
+          echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
+          echo "PREV_TAG=${PREV_TAG}" >> $GITHUB_ENV
+          if [ -n "$PREV_TAG" ]; then
+            git log "${PREV_TAG}..${NEW_TAG}" --format="* %s (%h)" | head -c 20000 > /tmp/git-log.txt
+          else
+            git log "${NEW_TAG}" --format="* %s (%h)" | head -c 20000 > /tmp/git-log.txt
+          fi
+          echo "Log lines: $(wc -l < /tmp/git-log.txt)"
+
+      - name: Assemble agy prompt
+        run: |
+          python3 - << 'PYEOF'
+          import pathlib, os
+          template = pathlib.Path("tests/ai_hooks/prompts/ai_changelog.md").read_text()
+          git_log  = pathlib.Path("/tmp/git-log.txt").read_text(errors="replace")
+          prompt   = (template
+                      .replace("{GIT_LOG}", git_log)
+                      .replace("{NEW_TAG}", os.environ.get("NEW_TAG", ""))
+                      .replace("{PREV_TAG}", os.environ.get("PREV_TAG", "(首个版本)")))
+          pathlib.Path("/tmp/ai-changelog-prompt.md").write_text(prompt)
+          print(f"Prompt assembled: {len(prompt)} chars")
+          PYEOF
+
+      - name: Invoke agy
+        continue-on-error: true
+        timeout-minutes: 8
+        run: |
+          rm -rf ~/.gemini/antigravity-cli/brain/ 2>/dev/null || true
+          /home/arthur/.local/bin/agy \
+            --dangerously-skip-permissions \
+            -p "$(cat /tmp/ai-changelog-prompt.md)"
+
+      - name: Prepend to CHANGELOG.md and push
+        continue-on-error: true
+        run: |
+          if [ ! -f /tmp/ai-changelog.md ]; then
+            echo "agy 未生成 changelog，跳过 CHANGELOG.md 更新"
+            exit 0
+          fi
+          touch CHANGELOG.md
+          cat /tmp/ai-changelog.md <(echo) CHANGELOG.md > /tmp/CHANGELOG.tmp
+          mv /tmp/CHANGELOG.tmp CHANGELOG.md
+          git pull --rebase origin main
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG for ${NEW_TAG} [skip ci]"
+          git push origin main
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f /tmp/ai-changelog.md ]; then
+            gh release create "${NEW_TAG}" \
+              --title "${NEW_TAG}" \
+              --notes-file /tmp/ai-changelog.md
+          else
+            gh release create "${NEW_TAG}" \
+              --title "${NEW_TAG}" \
+              --notes "Changelog 生成失败，请手动补充。"
+          fi
+
+      - name: Notify via ntfy
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          RELEASE_URL=$(gh release view "${NEW_TAG}" --json url -q .url 2>/dev/null || echo "$RUN_URL")
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg tag "${NEW_TAG}" \
+              --arg click "$RELEASE_URL" \
+              '{
+                topic: "watchtower-arthur71684",
+                title: ("📦 新版本发布 — " + $tag),
+                message: "CHANGELOG 已更新，GitHub Release 已创建。",
+                tags: ["package"],
+                priority: 3,
+                click: $click
+              }')" \
+            https://arthurlovegrace.top/ntfy-push
+
+# ─── 5c. AI Main Audit (non-blocking) ────────────────────────────────────────
 #
 # Runs in parallel with docker build on every push to main.
 # Reads the pushed diff, invokes agy to produce an audit report, writes it to
