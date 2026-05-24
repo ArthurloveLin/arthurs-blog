@@ -25,6 +25,7 @@ const ThemeToggle = dynamic(() => import('./ThemeToggle'), { ssr: false })
 const MarkdownThemePicker = dynamic(() => import('./MarkdownThemePicker'), { ssr: false })
 import MobileDrawers, { preloadMobileDrawerModules } from './MobileDrawers'
 import { NavbarUiStateProvider, useNavbarUiState, type DrawerType } from './NavbarUiState'
+import { ChangelogBadge } from './ChangelogBadge'
 
 interface DrawerToggleItem {
   key: Exclude<DrawerType, null>
@@ -421,6 +422,7 @@ function NavbarContent() {
         <div className="h-16 flex items-center justify-between gap-4">
 
           {/* ── Left: Logo / Title ─────────────────────────────────── */}
+          <div className="flex items-center gap-2 flex-shrink-0">
           <Link 
             href={homeHref}
             onClick={handleHomeClick}
@@ -450,6 +452,8 @@ function NavbarContent() {
               {isMemoStandalone ? 'Memo' : 'Arthur & Grace'}
             </span>
           </Link>
+          <ChangelogBadge />
+          </div>
 
           {/* ── Center: Navigation Links ───────────────────────────── */}
           <nav

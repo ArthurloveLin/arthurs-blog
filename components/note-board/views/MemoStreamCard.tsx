@@ -254,7 +254,7 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail }: MemoStr
           onEmojiReact={reactionControl.onEmojiReact}
         />
         <span className="shrink-0 text-[11px] leading-none text-muted-foreground/45">
-          {formatStableDate(message.created_at, { month: 'numeric', day: 'numeric' })}
+          {formatStableDate(message.created_at, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
 

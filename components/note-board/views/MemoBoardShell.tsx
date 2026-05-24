@@ -491,6 +491,8 @@ export function MemoBoardShell({
           overview={habitOverview}
           onOpenItemDetail={(noteId, itemKey) => onOpenHabitDetail(noteId, itemKey, 'sidebar')}
           onAfterSelect={isMobilePanel ? () => setMobileCalendarOpen(false) : undefined}
+          onFilterDay={filters.setSelectedDate}
+          selectedDate={filters.effectiveSelectedDate}
           {...modeProps}
         />
       )

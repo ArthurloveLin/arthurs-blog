@@ -66,13 +66,15 @@ function buildNotification(
     ? repeatMode === 'daily' ? ' · 每天' : repeatMode === 'weekdays' ? ' · 周一至周五' : ' · 自定义重复'
     : ''
   const title = `⏰ ${label}${repeatSuffix}`
-  const snippet = content
+  // 去掉 @due 标签后的完整内容；保留换行结构，折叠多余空行，上限 500 字
+  const noteText = content
     .replace(INLINE_DUE_CAPTURE, '')
-    .replace(/\n+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
     .trim()
-    .slice(0, 60)
+    .slice(0, 500)
   const timeStr = formatDueTime(due.iso, now)
-  const body = `${snippet ? `${snippet}\n` : ''}截止 ${timeStr}`
+  // 时间放首行，方便扫视；完整便签内容附后
+  const body = noteText ? `截止：${timeStr}\n\n${noteText}` : `截止：${timeStr}`
   return { title, body }
 }
 

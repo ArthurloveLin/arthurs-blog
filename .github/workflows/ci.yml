@@ -461,12 +461,12 @@ jobs:
           fi
 
           if [ "$ANOMALY" = "YES" ]; then
-            TITLE="⚠️ 部署健康异常 — ${SHORT_SHA}"
+            TITLE="部署健康异常 — ${SHORT_SHA}"
             TAGS='["warning"]'
             PRI=4
             MSG="${SUMMARY}\n\n🔧 建议人工检查并通过 Watchtower Webhook 手动触发回滚"
           else
-            TITLE="✅ 部署健康正常 — ${SHORT_SHA}"
+            TITLE="部署健康正常 — ${SHORT_SHA}"
             TAGS='["white_check_mark"]'
             PRI=2
             MSG="${SUMMARY:-容器日志无异常，/api/health 响应正常}"
@@ -517,21 +517,33 @@ jobs:
           echo "PREV_TAG=${PREV_TAG}" >> $GITHUB_ENV
           if [ -n "$PREV_TAG" ]; then
             git log "${PREV_TAG}..${NEW_TAG}" --format="* %s (%h)" | head -c 20000 > /tmp/git-log.txt
+            git diff "${PREV_TAG}..${NEW_TAG}" --stat | head -c 8000 > /tmp/git-diff-stat.txt
+            git diff "${PREV_TAG}..${NEW_TAG}" -- \
+              '*.ts' '*.tsx' '*.js' '*.jsx' '*.css' \
+              ':!*.min.*' ':!.next/**' ':!**/node_modules/**' \
+              | head -c 8000 > /tmp/git-diff-patch.txt
           else
             git log "${NEW_TAG}" --format="* %s (%h)" | head -c 20000 > /tmp/git-log.txt
+            echo "(首个版本，无 diff)" > /tmp/git-diff-stat.txt
+            echo "" > /tmp/git-diff-patch.txt
           fi
           echo "Log lines: $(wc -l < /tmp/git-log.txt)"
+          echo "Diff stat lines: $(wc -l < /tmp/git-diff-stat.txt)"
 
       - name: Assemble agy prompt
         run: |
           python3 - << 'PYEOF'
           import pathlib, os
-          template = pathlib.Path("tests/ai_hooks/prompts/ai_changelog.md").read_text()
-          git_log  = pathlib.Path("/tmp/git-log.txt").read_text(errors="replace")
-          prompt   = (template
-                      .replace("{GIT_LOG}", git_log)
-                      .replace("{NEW_TAG}", os.environ.get("NEW_TAG", ""))
-                      .replace("{PREV_TAG}", os.environ.get("PREV_TAG", "(首个版本)")))
+          template  = pathlib.Path("tests/ai_hooks/prompts/ai_changelog.md").read_text()
+          git_log   = pathlib.Path("/tmp/git-log.txt").read_text(errors="replace")
+          diff_stat = pathlib.Path("/tmp/git-diff-stat.txt").read_text(errors="replace")
+          diff_patch= pathlib.Path("/tmp/git-diff-patch.txt").read_text(errors="replace")
+          prompt    = (template
+                       .replace("{GIT_LOG}",    git_log)
+                       .replace("{DIFF_STAT}",  diff_stat)
+                       .replace("{DIFF_PATCH}", diff_patch)
+                       .replace("{NEW_TAG}",    os.environ.get("NEW_TAG", ""))
+                       .replace("{PREV_TAG}",   os.environ.get("PREV_TAG", "(首个版本)")))
           pathlib.Path("/tmp/ai-changelog-prompt.md").write_text(prompt)
           print(f"Prompt assembled: {len(prompt)} chars")
           PYEOF
@@ -544,6 +556,52 @@ jobs:
           /home/arthur/.local/bin/agy \
             --dangerously-skip-permissions \
             -p "$(cat /tmp/ai-changelog-prompt.md)"
+
+      - name: Upload changelog to R2 CDN
+        continue-on-error: true
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_CDN_BUCKET: ${{ secrets.R2_CDN_BUCKET }}
+        run: |
+          if [ ! -f /tmp/ai-changelog.md ]; then
+            echo "No changelog generated, skipping R2 upload."
+            exit 0
+          fi
+          pip3 install boto3 -q --break-system-packages 2>/dev/null || pip3 install boto3 -q
+          python3 - << 'PYEOF'
+          import boto3, os, pathlib, botocore.exceptions
+
+          account_id = os.environ['R2_ACCOUNT_ID']
+          bucket     = os.environ['R2_CDN_BUCKET']
+          key        = 'changelog/all.md'
+
+          s3 = boto3.client(
+            's3',
+            endpoint_url=f'https://{account_id}.r2.cloudflarestorage.com',
+            aws_access_key_id=os.environ['R2_ACCESS_KEY_ID'],
+            aws_secret_access_key=os.environ['R2_SECRET_ACCESS_KEY'],
+            region_name='auto',
+          )
+
+          new_entry = pathlib.Path('/tmp/ai-changelog.md').read_text()
+
+          # Fetch existing all.md to prepend the new entry
+          try:
+            obj      = s3.get_object(Bucket=bucket, Key=key)
+            existing = obj['Body'].read().decode('utf-8')
+          except botocore.exceptions.ClientError:
+            existing = '# Changelog\n\n本文件由 CI 自动维护。\n'
+
+          combined = new_entry.strip() + '\n\n' + existing.strip() + '\n'
+          s3.put_object(
+            Bucket=bucket, Key=key,
+            Body=combined.encode('utf-8'),
+            ContentType='text/markdown; charset=utf-8',
+          )
+          print(f'Uploaded {key} ({len(combined)} chars) to R2 bucket {bucket}')
+          PYEOF
 
       - name: Create GitHub Release
         env:
@@ -574,7 +632,7 @@ jobs:
               --arg click "$RELEASE_URL" \
               '{
                 topic: "watchtower-arthur71684",
-                title: ("📦 新版本发布 — " + $tag),
+                title: ("新版本发布 — " + $tag),
                 message: "GitHub Release 已创建，AI Changelog 见 Release 页面。",
                 tags: ["package"],
                 priority: 3,
@@ -657,19 +715,19 @@ jobs:
         if: always()
         run: |
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           if [ -f /tmp/ai-audit-result.md ]; then
             CONTENT=$(head -c 1500 /tmp/ai-audit-result.md)
-            TITLE="📋 AI Main Audit — ${SHORT_SHA}"
+            TITLE="AI Main Audit — ${SHORT_SHA}"
           else
             CONTENT="AI Audit 不可用（agy 未产生输出）"
-            TITLE="📋 AI Main Audit — 不可用"
+            TITLE="AI Main Audit — 不可用"
           fi
-          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           curl -fsS -X POST \
             -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "$(jq -n \
-              --arg title "📋 AI Main Audit — ${SHORT_SHA}" \
+              --arg title "$TITLE" \
               --arg msg "$CONTENT" \
               --arg click "$RUN_URL" \
               '{

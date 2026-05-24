@@ -741,7 +741,7 @@ function StickyNoteCardFrame({
                   onEmojiReact={reactionControl.onEmojiReact}
                 />
                 <span className="shrink-0 text-[9px] leading-none opacity-40">
-                  {formatStableDate(message.created_at, { month: 'numeric', day: 'numeric' })}
+                  {formatStableDate(message.created_at, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
             </div>

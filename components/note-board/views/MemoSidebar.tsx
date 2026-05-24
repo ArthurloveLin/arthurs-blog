@@ -581,14 +581,18 @@ interface HistoryDayPanelProps {
   onBack: () => void
   onOpenItemDetail: (noteId: string, itemKey: string) => void
   onAfterSelect?: () => void
+  selectedDate?: string | null
+  onFilterDay?: (key: string | null) => void
 }
 
-function HistoryDayPanel({ dateKey, events, onBack, onOpenItemDetail, onAfterSelect }: HistoryDayPanelProps) {
+function HistoryDayPanel({ dateKey, events, onBack, onOpenItemDetail, onAfterSelect, selectedDate, onFilterDay }: HistoryDayPanelProps) {
   const [yearStr, monthStr, dayStr] = dateKey.split('-')
   const dateLabel = formatStableDate(
     new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr)),
     { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' },
   )
+
+  const isFiltered = selectedDate === dateKey
 
   return (
     <div className="flex flex-col gap-2">
@@ -604,6 +608,21 @@ function HistoryDayPanel({ dateKey, events, onBack, onOpenItemDetail, onAfterSel
         <p className="flex-1 truncate text-[13px] font-semibold text-foreground/80">{dateLabel}</p>
         <span className="shrink-0 text-[11px] text-muted-foreground/45">{events.length}条</span>
       </div>
+
+      {onFilterDay ? (
+        <button
+          type="button"
+          onClick={() => onFilterDay(isFiltered ? null : dateKey)}
+          className={[
+            'flex w-full items-center justify-center gap-1 rounded-full py-1.5 text-[12px] font-medium transition',
+            isFiltered
+              ? 'bg-foreground/10 text-foreground ring-1 ring-inset ring-foreground/20'
+              : 'border border-border/60 text-muted-foreground hover:bg-accent hover:text-foreground',
+          ].join(' ')}
+        >
+          {isFiltered ? <><X size={11} /><span>取消筛选便签</span></> : '筛选当日便签'}
+        </button>
+      ) : null}
 
       <div className="max-h-[min(58vh,380px)] overflow-y-auto overscroll-contain rounded-xl border border-border/30 bg-background/40 px-2 py-2">
         {events.length === 0 ? (
@@ -672,9 +691,11 @@ export interface SidebarHabitHistoryProps {
   sidebarModes?: readonly SidebarModeEntry[]
   calendarMode?: SidebarModeKey
   onCalendarModeChange?: (mode: SidebarModeKey) => void
+  onFilterDay?: (key: string | null) => void
+  selectedDate?: string | null
 }
 
-export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect, sidebarModes, calendarMode, onCalendarModeChange }: SidebarHabitHistoryProps) {
+export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect, sidebarModes, calendarMode, onCalendarModeChange, onFilterDay, selectedDate }: SidebarHabitHistoryProps) {
   const today = useMemo(() => {
     const { year, month, day } = getShanghaDateParts(new Date())
     return { year, month, day, key: toDateKey(year, month, day) }
@@ -741,9 +762,11 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
       <HistoryDayPanel
         dateKey={detailDay}
         events={eventsByDate.get(detailDay) ?? []}
-        onBack={() => setDetailDay(null)}
+        onBack={() => { setDetailDay(null); onFilterDay?.(null) }}
         onOpenItemDetail={onOpenItemDetail}
         onAfterSelect={onAfterSelect}
+        selectedDate={selectedDate}
+        onFilterDay={onFilterDay}
       />
     )
   }
@@ -822,6 +845,7 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
               disabled={!summary}
               onClick={() => {
                 setDetailDay(key)
+                onFilterDay?.(key)
               }}
               className={[
                 'flex h-[60px] w-full flex-col rounded-sm p-1 text-left transition',

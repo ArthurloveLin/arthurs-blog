@@ -1,6 +1,6 @@
 # Task: Generate AI Changelog Entry
 
-You are a changelog generation agent. Based on the git commit log below, write a
+You are a changelog generation agent. Based on the git commit log and diff stat below, write a
 changelog entry for the new release and save it to `/tmp/ai-changelog.md`.
 
 ## Output rules (no exceptions)
@@ -9,9 +9,10 @@ changelog entry for the new release and save it to `/tmp/ai-changelog.md`.
 2. Do NOT modify any other file.
 3. Do NOT execute: git operations, docker commands, network requests, file writes to other paths.
 4. Keep output between 30 and 60 lines.
-5. Do NOT fabricate entries — only document what is evident from the commit messages provided.
-6. If the commit log is empty or unclear, write a minimal entry noting the version with no details.
-7. **Write ALL content in Chinese (中文)**. Section headers, descriptions, and all prose must be in Chinese.
+5. Do NOT fabricate entries — only document what is evident from the commit messages AND the diff provided.
+6. Use the diff stat and patch to understand **what actually changed** in the code; do NOT describe "modified file X" — describe the functional impact instead.
+7. If the commit log is empty or unclear, write a minimal entry noting the version with no details.
+8. **Write ALL content in Chinese (中文)**. Section headers, descriptions, and all prose must be in Chinese.
 
 ## Output format
 
@@ -49,8 +50,20 @@ Only include sections that have entries. Omit empty sections.
 - New version tag: `{NEW_TAG}`
 - Previous version tag: `{PREV_TAG}`
 
-## Git Log
+## Git Log (commit subjects)
 
 ```
 {GIT_LOG}
+```
+
+## Changed Files (diff --stat)
+
+```
+{DIFF_STAT}
+```
+
+## Code Diff (first 8000 chars)
+
+```
+{DIFF_PATCH}
 ```

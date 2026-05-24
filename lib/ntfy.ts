@@ -39,7 +39,7 @@ export async function sendNtfyReminder(title: string, body: string, clickUrl?: s
     topic: NTFY_TOPIC,
     title,
     message: body,
-    tags: ['alarm_clock'],
+    // 不加 alarm_clock tag：title 里已有 ⏰，重复的 tag 会导致推送标题出现两个闹钟图标
     priority: 4,
   }
 
