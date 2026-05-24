@@ -8,7 +8,7 @@ function parseChangelog(content: string) {
   let current: { version: string; date: string; lines: string[] } | null = null
 
   for (const line of lines) {
-    const match = line.match(/^##\s+(\[?v[\d.]+\]?)\s*[\u2014-]?\s*(.*)/)
+    const match = line.match(/^##\s+(\[?v[\d.]+\]?)\s*[—-]?\s*(.*)/)
     if (match) {
       if (current) {
         entries.push({ version: current.version, date: current.date, body: current.lines.join('\n').trim() })
@@ -24,24 +24,38 @@ function parseChangelog(content: string) {
   return entries
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const view = searchParams.get('view')
     const cdnBase = process.env.R2_CDN_PUBLIC_DOMAIN ?? 'cdn.arthurlovegrace.top'
-    const url = `https://${cdnBase}/changelog/all.md`
 
-    const resp = await fetch(url, { next: { revalidate: 3600 } })
-    if (!resp.ok) {
-      return NextResponse.json({ entries: [], latest: null })
+    if (view === 'all') {
+      const resp = await fetch(`https://${cdnBase}/changelog/all.md`, { next: { revalidate: 3600 } })
+      if (!resp.ok) return NextResponse.json({ entries: [] })
+      const entries = parseChangelog(await resp.text())
+      return NextResponse.json({ entries }, {
+        headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
+      })
     }
 
-    const content = await resp.text()
-    const entries = parseChangelog(content)
-    const latest = entries[0] ?? null
+    // Default: latest only — try latest.md first, fall back to all.md
+    const latestResp = await fetch(`https://${cdnBase}/changelog/latest.md`, { next: { revalidate: 3600 } })
+    if (latestResp.ok) {
+      const entries = parseChangelog(await latestResp.text())
+      return NextResponse.json({ latest: entries[0] ?? null }, {
+        headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
+      })
+    }
 
-    return NextResponse.json({ entries, latest }, {
+    // Fallback: parse all.md and return only the first entry
+    const allResp = await fetch(`https://${cdnBase}/changelog/all.md`, { next: { revalidate: 3600 } })
+    if (!allResp.ok) return NextResponse.json({ latest: null })
+    const entries = parseChangelog(await allResp.text())
+    return NextResponse.json({ latest: entries[0] ?? null }, {
       headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
     })
   } catch {
-    return NextResponse.json({ entries: [], latest: null })
+    return NextResponse.json({ latest: null })
   }
 }

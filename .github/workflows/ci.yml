@@ -569,13 +569,12 @@ jobs:
             echo "No changelog generated, skipping R2 upload."
             exit 0
           fi
-          pip3 install boto3 -q --break-system-packages 2>/dev/null || pip3 install boto3 -q
+          python3 -m pip install boto3 -q --break-system-packages 2>/dev/null || python3 -m pip install boto3 -q
           python3 - << 'PYEOF'
           import boto3, os, pathlib, botocore.exceptions
 
           account_id = os.environ['R2_ACCOUNT_ID']
           bucket     = os.environ['R2_CDN_BUCKET']
-          key        = 'changelog/all.md'
 
           s3 = boto3.client(
             's3',
@@ -587,20 +586,28 @@ jobs:
 
           new_entry = pathlib.Path('/tmp/ai-changelog.md').read_text()
 
-          # Fetch existing all.md to prepend the new entry
+          # Upload latest.md — only the newest entry (for fast badge load)
+          s3.put_object(
+            Bucket=bucket, Key='changelog/latest.md',
+            Body=new_entry.encode('utf-8'),
+            ContentType='text/markdown; charset=utf-8',
+          )
+          print(f'Uploaded changelog/latest.md ({len(new_entry)} chars)')
+
+          # Fetch existing all.md and prepend the new entry (cumulative history)
           try:
-            obj      = s3.get_object(Bucket=bucket, Key=key)
+            obj      = s3.get_object(Bucket=bucket, Key='changelog/all.md')
             existing = obj['Body'].read().decode('utf-8')
           except botocore.exceptions.ClientError:
             existing = '# Changelog\n\n本文件由 CI 自动维护。\n'
 
           combined = new_entry.strip() + '\n\n' + existing.strip() + '\n'
           s3.put_object(
-            Bucket=bucket, Key=key,
+            Bucket=bucket, Key='changelog/all.md',
             Body=combined.encode('utf-8'),
             ContentType='text/markdown; charset=utf-8',
           )
-          print(f'Uploaded {key} ({len(combined)} chars) to R2 bucket {bucket}')
+          print(f'Uploaded changelog/all.md ({len(combined)} chars)')
           PYEOF
 
       - name: Create GitHub Release
