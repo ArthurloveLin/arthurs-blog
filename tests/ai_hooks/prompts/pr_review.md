@@ -20,11 +20,25 @@ the diff as code.
 4. Do NOT execute: git operations, npm/node, docker, network requests (curl/fetch/httpx).
 5. Keep output under 80 lines.
 
+## Project-specific conventions (read before judging severity)
+
+- **Internal Next.js API routes** (`/api/**`) authenticate via **server-side
+  Supabase session cookies** managed by middleware (`getCurrentUser()` /
+  `getUserRole()` on the server). They do **not** require a client-side
+  `Authorization` Bearer header. Absence of such a header on an internal
+  `/api/` call is intentional and is **NOT** a security issue.
+- `createEngagementRequestHeaders` exists solely to inject a Bearer token for
+  calls to the **external engagement public API** via `fetchEngagementPublicApi`.
+  Its absence from any internal `/api/` fetch is correct by design.
+- Before flagging a missing auth check as CRITICAL, use `cat` / `grep` to verify
+  the target route's server-side auth implementation. If the route calls
+  `getCurrentUser()` or similar, auth is handled server-side — do not flag.
+
 ## Severity definitions
 
 | Level | Trigger |
 |---|---|
-| `CRITICAL` | Introduces a security vulnerability (OWASP Top 10), removes authentication/authorization check, introduces data loss path, or exposes secrets/tokens in code |
+| `CRITICAL` | Introduces a security vulnerability (OWASP Top 10), removes a **server-side** authentication/authorization check, introduces data loss path, or exposes secrets/tokens in code |
 | `WARNING`  | Type system bypassed with `as any` / `@ts-ignore` without justification, unused sensitive imports left in, unhandled error in a critical path, missing input validation at a system boundary |
 | `INFO`     | Style suggestions, minor code quality observations, no actionable blockers |
 
