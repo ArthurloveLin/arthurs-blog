@@ -15,7 +15,7 @@ import {
 import { getCurrentUser, getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
-import { extractMemoHabitChecklistItems } from '@/lib/memo-habits'
+import { extractMemoHabitChecklistItems, updateMemoHabitChecklistLine } from '@/lib/memo-habits'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export type NoteVisibility = 'public' | 'admin_only'
@@ -575,27 +575,136 @@ export async function updateBoardMessage(
     throw new Error(error?.message ?? 'UPDATE_FAILED')
   }
 
-  // When content changes on a memo, delete occurrences for habit items that no longer exist
+  // When content changes on a memo, reconcile habit occurrence records.
+  //
+  // Matching strategy (both applied in order, first match wins):
+  //   PRIMARY   — lineText + label identical: only the schedule (repeatDays/time) changed.
+  //   SECONDARY — label + scheduleSig identical: only the task text (lineText) was renamed.
+  //
+  // For each matched pair:
+  //   • completed/missed occurrences are migrated to the new key (history preserved).
+  //   • pending/delayed occurrences are deleted (stale for the old pattern).
+  //   • if the new item's dueAt falls on a day no longer in the repeat pattern,
+  //     the ISO date is advanced to the next valid day and persisted.
+  // For unmatched old keys (habit fully removed): all occurrences are deleted.
+  let overriddenContent: string | undefined
   if (board === 'memo' && typeof input.content === 'string') {
-    const oldKeys = new Set(
-      extractMemoHabitChecklistItems((note as { content?: string | null }).content ?? '').map((i) => i.itemKey),
-    )
-    const newKeys = new Set(
-      extractMemoHabitChecklistItems(data.content ?? '').map((i) => i.itemKey),
-    )
-    const removedKeys = [...oldKeys].filter((k) => !newKeys.has(k))
-    if (removedKeys.length > 0) {
+    const oldItems = extractMemoHabitChecklistItems((note as { content?: string | null }).content ?? '')
+    let workingContent = data.content ?? ''
+    const newItems = extractMemoHabitChecklistItems(workingContent)
+
+    const newKeySet = new Set(newItems.map((i) => i.itemKey))
+    const oldKeySet = new Set(oldItems.map((i) => i.itemKey))
+
+    // Schedule signature mirrors getScheduleSignature() in memo-habits.ts (time-only for repeats).
+    const scheduleSig = (item: { repeatMode: string; repeatDays: number[] | null; dueAt: string }) => {
+      const time = item.dueAt.length > 10 ? item.dueAt.slice(11, 16) : '00:00'
+      return `${item.repeatMode}|${item.repeatDays?.join(',') ?? ''}|${time}`
+    }
+
+    // Advance dueAt to the next day that is valid under the repeat pattern.
+    const advanceToValidDay = (dueAt: string, repeatMode: string, repeatDays: number[] | null): string => {
+      if (repeatMode === 'once' || repeatMode === 'daily') return dueAt
+      const due = new Date(dueAt)
+      const dow = due.getUTCDay()
+      const valid = repeatMode === 'weekdays'
+        ? (dow >= 1 && dow <= 5)
+        : (repeatMode === 'custom' && repeatDays?.length ? repeatDays.includes(dow) : true)
+      if (valid) return dueAt
+      if (repeatMode === 'weekdays') {
+        for (let i = 0; i < 7; i++) {
+          due.setUTCDate(due.getUTCDate() + 1)
+          if (due.getUTCDay() >= 1 && due.getUTCDay() <= 5) break
+        }
+      } else if (repeatMode === 'custom' && repeatDays?.length) {
+        const sorted = [...repeatDays].sort((a, b) => a - b)
+        for (let i = 0; i < 7; i++) {
+          due.setUTCDate(due.getUTCDate() + 1)
+          if (sorted.includes(due.getUTCDay())) break
+        }
+      }
+      return due.toISOString()
+    }
+
+    // Build lookups for genuinely-new items (key didn't exist before) by two signatures.
+    const newItemByLineTextLabel = new Map<string, (typeof newItems)[number]>()
+    const newItemByLabelSchedule = new Map<string, (typeof newItems)[number]>()
+    for (const item of newItems) {
+      if (!oldKeySet.has(item.itemKey)) {
+        const s1 = `${item.lineText}|${item.label}`
+        if (!newItemByLineTextLabel.has(s1)) newItemByLineTextLabel.set(s1, item)
+        const s2 = `${item.label}|${scheduleSig(item)}`
+        if (!newItemByLabelSchedule.has(s2)) newItemByLabelSchedule.set(s2, item)
+      }
+    }
+
+    const deletedKeys: string[] = []
+    let contentAdvanced = false
+
+    for (const oldItem of oldItems) {
+      if (newKeySet.has(oldItem.itemKey)) continue // key unchanged, nothing to do
+
+      // Primary match: lineText + label (schedule changed).
+      const s1 = `${oldItem.lineText}|${oldItem.label}`
+      let matchedNew = newItemByLineTextLabel.get(s1)
+      if (matchedNew) {
+        newItemByLineTextLabel.delete(s1)
+        newItemByLabelSchedule.delete(`${matchedNew.label}|${scheduleSig(matchedNew)}`)
+      } else {
+        // Secondary match: label + scheduleSig (lineText renamed, schedule unchanged).
+        const s2 = `${oldItem.label}|${scheduleSig(oldItem)}`
+        matchedNew = newItemByLabelSchedule.get(s2)
+        if (matchedNew) {
+          newItemByLabelSchedule.delete(s2)
+          newItemByLineTextLabel.delete(`${matchedNew.lineText}|${matchedNew.label}`)
+        }
+      }
+
+      if (matchedNew) {
+        // Advance dueAt if it now falls on a day not in the new repeat pattern.
+        const advanced = advanceToValidDay(matchedNew.dueAt, matchedNew.repeatMode, matchedNew.repeatDays)
+        if (advanced !== matchedNew.dueAt) {
+          workingContent = updateMemoHabitChecklistLine(workingContent, matchedNew.lineIndex, { dueAt: advanced })
+          contentAdvanced = true
+        }
+
+        // Migrate history to new key; drop stale scheduled rows.
+        await supabaseAdmin
+          .from('memo_habit_occurrences')
+          .update({ item_key: matchedNew.itemKey })
+          .eq('note_id', id)
+          .eq('item_key', oldItem.itemKey)
+          .in('status', ['completed', 'missed'])
+        await supabaseAdmin
+          .from('memo_habit_occurrences')
+          .delete()
+          .eq('note_id', id)
+          .eq('item_key', oldItem.itemKey)
+          .in('status', ['pending', 'delayed'])
+      } else {
+        // Habit was fully removed from the note.
+        deletedKeys.push(oldItem.itemKey)
+      }
+    }
+
+    if (contentAdvanced) {
+      await supabaseAdmin.from('comments').update({ content: workingContent }).eq('id', id)
+      overriddenContent = workingContent
+    }
+
+    if (deletedKeys.length > 0) {
       await supabaseAdmin
         .from('memo_habit_occurrences')
         .delete()
         .eq('note_id', id)
-        .in('item_key', removedKeys)
+        .in('item_key', deletedKeys)
     }
   }
 
   const [message] = await attachViewerEmojiReactions([
     {
       ...(data as Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emojis'>),
+      ...(overriddenContent !== undefined ? { content: overriddenContent } : {}),
       viewer_reaction: 0,
     },
   ])
