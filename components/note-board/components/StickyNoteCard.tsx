@@ -64,6 +64,7 @@ interface StickyNoteBoardCardProps extends StickyNoteCardSharedProps {
   isFresh?: boolean
   habitStates?: Record<string, MemoHabitCurrentState>
   onOpenHabitDetail?: (noteId: string, itemKey: string) => void
+  onCompleteHabitItem?: (noteId: string, itemKey: string) => void
 }
 
 interface StickyNotePreviewCardProps extends StickyNoteCardSharedProps {
@@ -86,6 +87,7 @@ interface StickyNoteCardFrameProps extends StickyNoteCardSharedProps {
   isFresh?: boolean
   habitStates?: Record<string, MemoHabitCurrentState>
   onOpenHabitDetail?: (noteId: string, itemKey: string) => void
+  onCompleteHabitItem?: (noteId: string, itemKey: string) => void
 }
 
 function StickyDueBadge({ dueAt }: { dueAt: string }) {
@@ -146,6 +148,7 @@ function StickyNoteCardFrame({
   isFresh = false,
   habitStates,
   onOpenHabitDetail,
+  onCompleteHabitItem,
 }: StickyNoteCardFrameProps) {
   const articleRef = useRef<HTMLElement>(null)
   const visualRef = useRef<HTMLDivElement>(null)
@@ -683,6 +686,7 @@ function StickyNoteCardFrame({
               notifiedDues={message.notified_dues}
               habitStates={habitStates}
               onOpenHabitDetail={onOpenHabitDetail ? (itemKey) => onOpenHabitDetail(message.id, itemKey) : undefined}
+              onCompleteHabitItem={onCompleteHabitItem ? (itemKey) => onCompleteHabitItem(message.id, itemKey) : undefined}
             />
           ) : (
             <div
@@ -698,6 +702,7 @@ function StickyNoteCardFrame({
                 notifiedDues={message.notified_dues}
                 habitStates={habitStates}
                 onOpenHabitDetail={onOpenHabitDetail ? (itemKey) => onOpenHabitDetail(message.id, itemKey) : undefined}
+                onCompleteHabitItem={onCompleteHabitItem ? (itemKey) => onCompleteHabitItem(message.id, itemKey) : undefined}
               />
               {isOverflowing && !showExpanded ? (
                 <div

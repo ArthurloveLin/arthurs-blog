@@ -19,6 +19,7 @@ interface NoteContentProps {
   notifiedDues?: string[] | null
   habitStates?: Record<string, MemoHabitCurrentState>
   onOpenHabitDetail?: (itemKey: string) => void
+  onCompleteHabitItem?: (itemKey: string) => void
 }
 
 const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*\n]+\*|==[^=\n]+==|`[^`\n]+`|~~[^~\n]+~~|@due\[[^\]]*\]\([^)]*\)|\[[^\]]+\]\([^)]+\)|#[\w一-龥]+|\$\$[^$\n]+\$\$|\$(?!\$)[^$\n]+\$)/g
@@ -225,7 +226,7 @@ function renderTableRows(rows: string[], keyPrefix: string, notifiedDues?: strin
   )
 }
 
-function NoteContentComponent({ content, variant, onToggleChecklistItem, checklistPending = false, notifiedDues, habitStates, onOpenHabitDetail }: NoteContentProps) {
+function NoteContentComponent({ content, variant, onToggleChecklistItem, checklistPending = false, notifiedDues, habitStates, onOpenHabitDetail, onCompleteHabitItem }: NoteContentProps) {
   const parsed = useMemo(() => parseNoteContent(content), [content])
   const habitItems = useMemo(() => extractMemoHabitChecklistItems(content), [content])
 
@@ -324,30 +325,47 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
                 {getHabitStatusLabel(habitState!)}
               </button>
             ) : null
+            // For habit items: visual state and click handler come from the habit system.
+            // `onCompleteHabitItem` is the preferred path; fall back to `onToggleChecklistItem`
+            // for non-habit lines or when the habit callback is not wired.
+            const useHabitControl = !!(habitItem && onCompleteHabitItem)
+            const isHabitCompleted = useHabitControl && habitState?.status === 'completed'
+            const isVisuallyChecked = useHabitControl ? isHabitCompleted : item.checked
+
             return (
               <li key={item.id} className="flex items-start gap-2">
-                {onToggleChecklistItem && lineIndex !== null ? (
+                {(onToggleChecklistItem || useHabitControl) && lineIndex !== null ? (
                   <>
                     <button
                       type="button"
-                      aria-label={item.checked ? `取消勾选：${item.text}` : `勾选清单项：${item.text}`}
+                      aria-label={isVisuallyChecked ? `已完成：${item.text}` : `勾选清单项：${item.text}`}
                       className={[
                         'mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-60',
-                        item.checked
-                          ? 'border-slate-400/60 bg-slate-400/30 text-slate-500'
+                        isVisuallyChecked
+                          ? useHabitControl
+                            ? 'border-green-400/60 bg-green-400/30 text-green-600'
+                            : 'border-slate-400/60 bg-slate-400/30 text-slate-500'
                           : 'border-foreground/65 text-transparent',
                       ].join(' ')}
                       disabled={checklistPending}
                       onPointerDown={(event) => event.stopPropagation()}
                       onClick={(event) => {
                         event.stopPropagation()
-                        onToggleChecklistItem(lineIndex)
+                        if (useHabitControl) {
+                          // Completing an already-completed habit is a no-op; the detail panel
+                          // (opened via the status badge) is the way to review / undo.
+                          if (!isHabitCompleted) {
+                            onCompleteHabitItem!(habitItem!.itemKey)
+                          }
+                        } else if (onToggleChecklistItem) {
+                          onToggleChecklistItem(lineIndex)
+                        }
                       }}
                     >
                       <Check size={10} strokeWidth={2.4} />
                     </button>
                     <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                      <span className={item.checked ? 'line-through text-slate-700/65' : ''}>
+                      <span className={isVisuallyChecked ? 'line-through text-slate-700/65' : ''}>
                         {renderInlineFormattedText(item.text, `${variant}-check-${item.id}`, notifiedDues)}
                       </span>
                       {habitState ? (
@@ -588,7 +606,7 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
     }
 
     return result
-  }, [content, parsed.checklistItems, habitItems, variant, notifiedDues, onToggleChecklistItem, checklistPending, habitStates, onOpenHabitDetail])
+  }, [content, parsed.checklistItems, habitItems, variant, notifiedDues, onToggleChecklistItem, checklistPending, habitStates, onOpenHabitDetail, onCompleteHabitItem])
 
   const textClassName = variant === 'stream'
     ? styles.streamText
