@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, CalendarDays, ChevronLeft, ChevronRight, History, Tag, X } from 'lucide-react'
-import { getHabitStatusClassName, getHabitStatusLabel, getHabitStreakLabel } from '@/components/note-board/utils/habit-ui'
+import { getHabitStatusClassName, getHabitStatusLabel } from '@/components/note-board/utils/habit-ui'
 import type { MemoHabitHistoryEvent, MemoHabitOverview } from '@/lib/memo-habits'
 import type { MemoAgendaItem } from '@/lib/note-boards'
 import { NOTE_PRIORITY_META } from '@/lib/note-priority'
@@ -582,7 +582,7 @@ interface HistoryDayPanelProps {
   onOpenItemDetail: (noteId: string, itemKey: string) => void
   onAfterSelect?: () => void
   selectedDate?: string | null
-  onFilterDay?: (key: string | null) => void
+  onFilterDay?: (key: string | null, noteIds?: string[]) => void
 }
 
 function HistoryDayPanel({ dateKey, events, onBack, onOpenItemDetail, onAfterSelect, selectedDate, onFilterDay }: HistoryDayPanelProps) {
@@ -612,7 +612,10 @@ function HistoryDayPanel({ dateKey, events, onBack, onOpenItemDetail, onAfterSel
       {onFilterDay ? (
         <button
           type="button"
-          onClick={() => onFilterDay(isFiltered ? null : dateKey)}
+          onClick={() => onFilterDay(
+            isFiltered ? null : dateKey,
+            isFiltered ? undefined : [...new Set(events.map((e) => e.noteId))],
+          )}
           className={[
             'flex w-full items-center justify-center gap-1 rounded-full py-1.5 text-[12px] font-medium transition',
             isFiltered
@@ -691,7 +694,7 @@ export interface SidebarHabitHistoryProps {
   sidebarModes?: readonly SidebarModeEntry[]
   calendarMode?: SidebarModeKey
   onCalendarModeChange?: (mode: SidebarModeKey) => void
-  onFilterDay?: (key: string | null) => void
+  onFilterDay?: (key: string | null, noteIds?: string[]) => void
   selectedDate?: string | null
 }
 
@@ -876,11 +879,6 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
         })}
       </div>
 
-      {overview.summary.currentStreak > 0 ? (
-        <div className="rounded-xl border border-border/40 bg-background/55 px-3 py-2 text-[12px] text-muted-foreground/70">
-          {getHabitStreakLabel(overview.summary.currentStreak) ?? '当前连续 0 次'}
-        </div>
-      ) : null}
     </div>
   )
 }
