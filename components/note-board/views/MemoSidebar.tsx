@@ -848,7 +848,8 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
               disabled={!summary}
               onClick={() => {
                 setDetailDay(key)
-                onFilterDay?.(key)
+                const dayEvents = eventsByDate.get(key) ?? []
+                onFilterDay?.(key, dayEvents.length > 0 ? [...new Set(dayEvents.map((e) => e.noteId))] : undefined)
               }}
               className={[
                 'flex h-[60px] w-full flex-col rounded-sm p-1 text-left transition',
