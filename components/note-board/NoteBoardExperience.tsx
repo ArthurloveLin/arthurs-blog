@@ -54,7 +54,7 @@ interface NoteBoardPageProps {
   initialViewMode?: NoteBoardViewMode
 }
 
-function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail, showSidebar }: { onToggleViewMode: () => void; filters: MemoBoardFilters; agendaItems?: import('@/lib/note-boards').MemoAgendaItem[] | null; habitOverview?: MemoHabitOverview | null; onOpenHabitDetail?: (noteId: string, itemKey: string, source?: 'sidebar' | 'note') => void; showSidebar: boolean }) {
+function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail, onCompleteHabitItem, showSidebar }: { onToggleViewMode: () => void; filters: MemoBoardFilters; agendaItems?: import('@/lib/note-boards').MemoAgendaItem[] | null; habitOverview?: MemoHabitOverview | null; onOpenHabitDetail?: (noteId: string, itemKey: string, source?: 'sidebar' | 'note') => void; onCompleteHabitItem?: (noteId: string, itemKey: string) => void; showSidebar: boolean }) {
   const state = useNoteBoardBoardState()
   const editorState = useNoteBoardEditorState()
   const actions = useNoteBoardActions()
@@ -122,6 +122,7 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
             items={filteredNoteItems}
             habitStatesByNote={habitOverview?.currentStates}
             onOpenHabitDetail={onOpenHabitDetail}
+            onCompleteHabitItem={onCompleteHabitItem}
           />
         </div>
       ) : (
@@ -166,6 +167,7 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
                       checklistControl={checklistControl}
                       habitStates={habitOverview?.currentStates[message.id]}
                       onOpenHabitDetail={onOpenHabitDetail}
+                      onCompleteHabitItem={onCompleteHabitItem}
                       inlineEditor={inlineEditor}
                       isOptimistic={isOptimistic}
                       isOptimisticEditing={isOptimisticEditing}
@@ -779,6 +781,23 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
     await mutateHabitOverview()
   }, [mutateHabitOverview, mutateSelectedHabitDetail, selectedHabit])
 
+  // Completes a habit occurrence directly from the checklist checkbox, without
+  // opening the detail panel.  The detail panel's "记为完成" button uses
+  // handleCompleteHabit above (which also refreshes the panel state).
+  const handleCompleteHabitItem = useCallback(async (noteId: string, itemKey: string) => {
+    const response = await fetch('/api/note-boards/memo/habits/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note_id: noteId, item_key: itemKey }),
+    })
+    if (!response.ok) return
+    await mutateHabitOverview()
+    // If the detail panel for this item is open, refresh it too.
+    if (selectedHabit?.noteId === noteId && selectedHabit?.itemKey === itemKey) {
+      await mutateSelectedHabitDetail()
+    }
+  }, [mutateHabitOverview, mutateSelectedHabitDetail, selectedHabit])
+
   const handleDelayHabit = useCallback(async (delayUntil: string) => {
     if (!selectedHabit) return
     const response = await fetch('/api/note-boards/memo/habits/delay', {
@@ -804,8 +823,8 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
   return (
     <div className="space-y-6">
       {viewMode === 'stream'
-        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} showSidebar={meta.board.slug === 'memo'} />
-        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} showSidebar={meta.board.slug === 'memo'} />}
+        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} onCompleteHabitItem={handleCompleteHabitItem} showSidebar={meta.board.slug === 'memo'} />
+        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} onCompleteHabitItem={handleCompleteHabitItem} showSidebar={meta.board.slug === 'memo'} />}
       <NoteBoardEditorSection autoFocusOnEdit={viewMode === 'stream'} />
       <NoteBoardToast />
       <MemoHabitDetailPanel

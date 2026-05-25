@@ -39,9 +39,10 @@ interface MemoStreamCardProps {
   item: NoteCardViewModel
   habitStates?: Record<string, MemoHabitCurrentState>
   onOpenHabitDetail?: (noteId: string, itemKey: string) => void
+  onCompleteHabitItem?: (noteId: string, itemKey: string) => void
 }
 
-export function MemoStreamCard({ item, habitStates, onOpenHabitDetail }: MemoStreamCardProps) {
+export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onCompleteHabitItem }: MemoStreamCardProps) {
   const {
     message,
     actions,
@@ -202,6 +203,7 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail }: MemoStr
           notifiedDues={message.notified_dues}
           habitStates={habitStates}
           onOpenHabitDetail={onOpenHabitDetail ? (itemKey) => onOpenHabitDetail(message.id, itemKey) : undefined}
+          onCompleteHabitItem={onCompleteHabitItem ? (itemKey) => onCompleteHabitItem(message.id, itemKey) : undefined}
         />
       </div>
 

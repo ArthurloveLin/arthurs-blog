@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { mutate as mutateCache } from 'swr'
 import { createCommentRecord, type Comment } from '@/lib/comments'
 import { createEngagementRequestHeaders, fetchEngagementPublicApi } from '@/lib/engagement-public-api'
 import { createGuestbookNoteMessage, humanizeGuestbookMutationError } from '@/lib/guestbook-comments'
@@ -7,7 +6,6 @@ import type { NoteMessage, NoteVisibility } from '@/lib/note-boards'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { DEFAULT_NOTE_PRIORITY, type NotePriority } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
-import { extractMemoHabitChecklistItems } from '@/lib/memo-habits'
 import { extractEarliestDueAt, toggleChecklistLine } from '@/components/note-board/utils/editor'
 
 function getResponseErrorMessage(payload: unknown) {
@@ -233,15 +231,13 @@ export function useNoteEditor({
       return
     }
 
+    // Habit items (repeat-mode checklist lines) are now handled exclusively through
+    // the habit completion API via onCompleteHabitItem in NoteContent.  Those clicks
+    // no longer reach this function, so we only need to handle plain checklist lines.
     const nextContent = toggleChecklistLine(message.content, lineIndex)
     if (nextContent === message.content) {
       return
     }
-
-    const habitItem = board.slug === 'memo'
-      ? extractMemoHabitChecklistItems(message.content).find((item) => item.lineIndex === lineIndex)
-      : undefined
-    const shouldRecordCompletion = Boolean(habitItem && !habitItem.checked)
 
     void (async () => {
       const originalContent = message.content
@@ -310,24 +306,6 @@ export function useNoteEditor({
             comment_count: currentMessage.comment_count,
           }
           : currentMessage), { resetPositions: false, sort: false })
-
-        if (shouldRecordCompletion && habitItem) {
-          const completionResponse = await fetch('/api/note-boards/memo/habits/complete', {
-            method: 'POST',
-            headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({ note_id: message.id, item_key: habitItem.itemKey }),
-          })
-
-          if (!completionResponse.ok) {
-            throw new Error('已勾选，但重复任务记录失败，请稍后再试。')
-          }
-
-          void mutateCache('/api/note-boards/memo/habits/overview')
-          void mutateCache((key) => typeof key === 'string'
-            && key.startsWith('/api/note-boards/memo/habits/item?')
-            && key.includes(`note_id=${encodeURIComponent(message.id)}`)
-            && key.includes(`item_key=${encodeURIComponent(habitItem.itemKey)}`))
-        }
       } catch (updateError) {
         replaceMessages((current) => current.map((currentMessage) => currentMessage.id === message.id
           ? {

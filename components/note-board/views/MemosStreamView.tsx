@@ -21,6 +21,7 @@ interface MemosStreamViewProps {
   agendaItems?: MemoAgendaItem[] | null
   habitOverview?: MemoHabitOverview | null
   onOpenHabitDetail?: (noteId: string, itemKey: string, source?: 'sidebar' | 'note') => void
+  onCompleteHabitItem?: (noteId: string, itemKey: string) => void
   showSidebar?: boolean
 }
 
@@ -38,7 +39,7 @@ type FeedGroup = {
 
 const DATE_META_BLOCK_HEIGHT_CLASS = 'h-[2.15rem] sm:h-[2.6rem]'
 
-export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail, showSidebar }: MemosStreamViewProps) {
+export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail, onCompleteHabitItem, showSidebar }: MemosStreamViewProps) {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
   const meta = useNoteBoardMeta()
@@ -208,6 +209,7 @@ export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitO
                     item={item}
                     habitStates={habitOverview?.currentStates[item.message.id]}
                     onOpenHabitDetail={onOpenHabitDetail}
+                    onCompleteHabitItem={onCompleteHabitItem}
                   />
                 ))}
               </div>

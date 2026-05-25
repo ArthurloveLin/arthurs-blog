@@ -20,9 +20,10 @@ interface MobileStickyStackProps {
   items: NoteCardViewModel[]
   habitStatesByNote?: Record<string, Record<string, MemoHabitCurrentState>>
   onOpenHabitDetail?: (noteId: string, itemKey: string) => void
+  onCompleteHabitItem?: (noteId: string, itemKey: string) => void
 }
 
-export function MobileStickyStack({ items, habitStatesByNote, onOpenHabitDetail }: MobileStickyStackProps) {
+export function MobileStickyStack({ items, habitStatesByNote, onOpenHabitDetail, onCompleteHabitItem }: MobileStickyStackProps) {
   const [containerRef, size] = useElementSize<HTMLDivElement>()
   const [parkedIds, setParkedIds] = useState<string[]>([])
   const [placedPositions, setPlacedPositions] = useState<Record<string, NotePosition>>({})
@@ -186,11 +187,12 @@ export function MobileStickyStack({ items, habitStatesByNote, onOpenHabitDetail 
                       } : undefined}
                       habitStates={habitStatesByNote?.[message.id]}
                       onOpenHabitDetail={onOpenHabitDetail}
-                      isOptimistic={isOptimistic}
-                      isOptimisticEditing={isOptimisticEditing}
-                      isFresh={isFresh}
-                      onLift={() => {}}
-                      onCommit={(nextPosition, metrics) => handleCommit(message.id, isDraggable, nextPosition, metrics.distance)}
+                     onCompleteHabitItem={onCompleteHabitItem}
+                     isOptimistic={isOptimistic}
+                     isOptimisticEditing={isOptimisticEditing}
+                     isFresh={isFresh}
+                     onLift={() => {}}
+                     onCommit={(nextPosition, metrics) => handleCommit(message.id, isDraggable, nextPosition, metrics.distance)}
                     />
                   </div>
                 )
