@@ -361,7 +361,7 @@ export interface MemoBoardFilters {
   effectiveSelectedDate: string | null
   isFilterMode: boolean
   setSelectedDate: (key: string | null) => void
-  setHistoryNoteIds: (ids: string[] | null) => void
+  setHistoryFilter: (date: string | null, ids: string[] | null) => void
   clearDateFilter: () => void
   filterItemsByDate: (items: NoteCardViewModel[]) => NoteCardViewModel[]
 }
@@ -372,9 +372,17 @@ export function useMemoBoardFilters(
 ): MemoBoardFilters {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
-  const effectiveSelectedDate = state.searchQuery || state.activeTags.length > 0 ? null : state.activeDate
+  const baseDateFilter = state.searchQuery || state.activeTags.length > 0 ? null : state.activeDate
 
+  // historySelectedDate tracks the date selected in the history view for UI purposes
+  // (filter badge display, HistoryDayPanel "isFiltered" check) without triggering
+  // an API re-fetch by date. historyNoteIds holds the IDs to filter client-side.
   const [historyNoteIds, setHistoryNoteIds] = useState<string[] | null>(null)
+  const [historySelectedDate, setHistorySelectedDate] = useState<string | null>(null)
+
+  // When in history mode, show historySelectedDate in the filter badge instead of
+  // the API-backed baseDateFilter, which is not set in that mode.
+  const effectiveSelectedDate = historySelectedDate ?? baseDateFilter
 
   const computedDateCounts = useMemo(() => {
     if (externalDateCounts) return externalDateCounts
@@ -387,22 +395,31 @@ export function useMemoBoardFilters(
   }, [allItems, externalDateCounts])
 
   const filterItemsByDate = useCallback((items: NoteCardViewModel[]) => {
-    if (!effectiveSelectedDate) return items
-    if (historyNoteIds) {
+    // History filter: filter by note IDs client-side without touching the API query.
+    // Must be checked before effectiveSelectedDate so that switching dates in the
+    // history view does not trigger an API re-fetch (which would return notes filtered
+    // by creation date, losing habit-event notes that were created on other dates).
+    if (historyNoteIds !== null) {
       const idSet = new Set(historyNoteIds)
       return items.filter((item) => idSet.has(item.message.id))
     }
+    if (!effectiveSelectedDate) return items
     return items.filter((item) => getItemDateKey(item) === effectiveSelectedDate)
   }, [effectiveSelectedDate, historyNoteIds])
+
+  const setHistoryFilter = useCallback((date: string | null, ids: string[] | null) => {
+    setHistorySelectedDate(date)
+    setHistoryNoteIds(ids)
+  }, [])
 
   return {
     memoDateCounts: computedDateCounts,
     selectedDate: state.activeDate,
     effectiveSelectedDate,
-    isFilterMode: Boolean(state.searchQuery || state.activeTags.length > 0 || effectiveSelectedDate || state.activeDueDate),
+    isFilterMode: Boolean(state.searchQuery || state.activeTags.length > 0 || effectiveSelectedDate || state.activeDueDate || historyNoteIds !== null),
     setSelectedDate: actions.handleDateFilter,
-    setHistoryNoteIds,
-    clearDateFilter: () => { actions.handleDateFilter(null); setHistoryNoteIds(null) },
+    setHistoryFilter,
+    clearDateFilter: () => { actions.handleDateFilter(null); setHistoryNoteIds(null); setHistorySelectedDate(null) },
     filterItemsByDate,
   }
 }
@@ -508,8 +525,11 @@ export function MemoBoardShell({
           onOpenItemDetail={(noteId, itemKey) => onOpenHabitDetail(noteId, itemKey, 'sidebar')}
           onAfterSelect={isMobilePanel ? () => setMobileCalendarOpen(false) : undefined}
           onFilterDay={(key, noteIds) => {
-            filters.setSelectedDate(key)
-            filters.setHistoryNoteIds(noteIds ?? null)
+            // Do NOT call setSelectedDate here: that would change activeDate and
+            // trigger an SWR re-fetch filtered by creation date, which would
+            // discard habit-event notes created on other dates. Instead, use
+            // setHistoryFilter which only does client-side filtering by note ID.
+            filters.setHistoryFilter(key, noteIds ?? null)
           }}
           selectedDate={filters.effectiveSelectedDate}
           {...modeProps}
