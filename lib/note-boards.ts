@@ -577,9 +577,11 @@ export async function updateBoardMessage(
 
   // When content changes on a memo, reconcile habit occurrence records.
   //
-  // Matching strategy (both applied in order, first match wins):
+  // Matching strategy (applied in order, first match wins):
   //   PRIMARY   — lineText + label identical: only the schedule (repeatDays/time) changed.
   //   SECONDARY — label + scheduleSig identical: only the task text (lineText) was renamed.
+  //   TERTIARY  — lineText identical (unique among unmatched new items):
+  //               label + schedule changed together, but task body stayed the same.
   //
   // For each matched pair:
   //   • completed/missed occurrences are migrated to the new key (history preserved).
@@ -601,6 +603,11 @@ export async function updateBoardMessage(
       const time = item.dueAt.length > 10 ? item.dueAt.slice(11, 16) : '00:00'
       return `${item.repeatMode}|${item.repeatDays?.join(',') ?? ''}|${time}`
     }
+
+    const normalizeSigText = (value: string) => value.trim().toLocaleLowerCase().replace(/\s+/g, ' ')
+    const lineTextLabelSig = (item: { lineText: string; label: string }) => `${normalizeSigText(item.lineText)}|${normalizeSigText(item.label)}`
+    const labelScheduleSig = (item: { label: string; repeatMode: string; repeatDays: number[] | null; dueAt: string }) => `${normalizeSigText(item.label)}|${scheduleSig(item)}`
+    const lineTextSig = (item: { lineText: string }) => normalizeSigText(item.lineText)
 
     // Advance dueAt to the next day that is valid under the repeat pattern.
     const advanceToValidDay = (dueAt: string, repeatMode: string, repeatDays: number[] | null): string => {
@@ -626,16 +633,34 @@ export async function updateBoardMessage(
       return due.toISOString()
     }
 
-    // Build lookups for genuinely-new items (key didn't exist before) by two signatures.
+    // Build lookups for genuinely-new items (key didn't exist before).
+    const unmatchedNewItems = newItems.filter((item) => !oldKeySet.has(item.itemKey))
+    const unmatchedNewLineTextCounts = unmatchedNewItems.reduce<Map<string, number>>((map, item) => {
+      const sig = lineTextSig(item)
+      map.set(sig, (map.get(sig) ?? 0) + 1)
+      return map
+    }, new Map())
+
     const newItemByLineTextLabel = new Map<string, (typeof newItems)[number]>()
     const newItemByLabelSchedule = new Map<string, (typeof newItems)[number]>()
-    for (const item of newItems) {
-      if (!oldKeySet.has(item.itemKey)) {
-        const s1 = `${item.lineText}|${item.label}`
-        if (!newItemByLineTextLabel.has(s1)) newItemByLineTextLabel.set(s1, item)
-        const s2 = `${item.label}|${scheduleSig(item)}`
-        if (!newItemByLabelSchedule.has(s2)) newItemByLabelSchedule.set(s2, item)
+    const newItemByUniqueLineText = new Map<string, (typeof newItems)[number]>()
+    for (const item of unmatchedNewItems) {
+      const s1 = lineTextLabelSig(item)
+      if (!newItemByLineTextLabel.has(s1)) newItemByLineTextLabel.set(s1, item)
+
+      const s2 = labelScheduleSig(item)
+      if (!newItemByLabelSchedule.has(s2)) newItemByLabelSchedule.set(s2, item)
+
+      const s3 = lineTextSig(item)
+      if ((unmatchedNewLineTextCounts.get(s3) ?? 0) === 1 && !newItemByUniqueLineText.has(s3)) {
+        newItemByUniqueLineText.set(s3, item)
       }
+    }
+
+    const consumeMatchedNewItem = (item: (typeof newItems)[number]) => {
+      newItemByLineTextLabel.delete(lineTextLabelSig(item))
+      newItemByLabelSchedule.delete(labelScheduleSig(item))
+      newItemByUniqueLineText.delete(lineTextSig(item))
     }
 
     const deletedKeys: string[] = []
@@ -645,18 +670,23 @@ export async function updateBoardMessage(
       if (newKeySet.has(oldItem.itemKey)) continue // key unchanged, nothing to do
 
       // Primary match: lineText + label (schedule changed).
-      const s1 = `${oldItem.lineText}|${oldItem.label}`
+      const s1 = lineTextLabelSig(oldItem)
       let matchedNew = newItemByLineTextLabel.get(s1)
       if (matchedNew) {
-        newItemByLineTextLabel.delete(s1)
-        newItemByLabelSchedule.delete(`${matchedNew.label}|${scheduleSig(matchedNew)}`)
+        consumeMatchedNewItem(matchedNew)
       } else {
         // Secondary match: label + scheduleSig (lineText renamed, schedule unchanged).
-        const s2 = `${oldItem.label}|${scheduleSig(oldItem)}`
+        const s2 = labelScheduleSig(oldItem)
         matchedNew = newItemByLabelSchedule.get(s2)
         if (matchedNew) {
-          newItemByLabelSchedule.delete(s2)
-          newItemByLineTextLabel.delete(`${matchedNew.lineText}|${matchedNew.label}`)
+          consumeMatchedNewItem(matchedNew)
+        } else {
+          // Tertiary match: unique lineText (label/schedule changed together).
+          const s3 = lineTextSig(oldItem)
+          matchedNew = newItemByUniqueLineText.get(s3)
+          if (matchedNew) {
+            consumeMatchedNewItem(matchedNew)
+          }
         }
       }
 
@@ -669,18 +699,25 @@ export async function updateBoardMessage(
         }
 
         // Migrate history to new key; drop stale scheduled rows.
-        await supabaseAdmin
+        const { error: migrateHistoryError } = await supabaseAdmin
           .from('memo_habit_occurrences')
           .update({ item_key: matchedNew.itemKey })
           .eq('note_id', id)
           .eq('item_key', oldItem.itemKey)
           .in('status', ['completed', 'missed'])
-        await supabaseAdmin
+        if (migrateHistoryError) {
+          throw new Error(migrateHistoryError.message)
+        }
+
+        const { error: deleteStaleError } = await supabaseAdmin
           .from('memo_habit_occurrences')
           .delete()
           .eq('note_id', id)
           .eq('item_key', oldItem.itemKey)
           .in('status', ['pending', 'delayed'])
+        if (deleteStaleError) {
+          throw new Error(deleteStaleError.message)
+        }
       } else {
         // Habit was fully removed from the note.
         deletedKeys.push(oldItem.itemKey)
@@ -688,16 +725,22 @@ export async function updateBoardMessage(
     }
 
     if (contentAdvanced) {
-      await supabaseAdmin.from('comments').update({ content: workingContent }).eq('id', id)
+      const { error: syncContentError } = await supabaseAdmin.from('comments').update({ content: workingContent }).eq('id', id)
+      if (syncContentError) {
+        throw new Error(syncContentError.message)
+      }
       overriddenContent = workingContent
     }
 
     if (deletedKeys.length > 0) {
-      await supabaseAdmin
+      const { error: deleteRemovedError } = await supabaseAdmin
         .from('memo_habit_occurrences')
         .delete()
         .eq('note_id', id)
         .in('item_key', deletedKeys)
+      if (deleteRemovedError) {
+        throw new Error(deleteRemovedError.message)
+      }
     }
   }
 

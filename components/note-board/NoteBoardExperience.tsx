@@ -54,6 +54,29 @@ interface NoteBoardPageProps {
   initialViewMode?: NoteBoardViewMode
 }
 
+function getShanghaiDateKey(value: string | Date): string {
+  const { year, month, day } = getShanghaDateParts(value)
+  return toDateKey(year, month, day)
+}
+
+function getShanghaiTimeKey(iso: string): string {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Shanghai',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(iso))
+  const hour = parts.find((part) => part.type === 'hour')?.value ?? '00'
+  const minute = parts.find((part) => part.type === 'minute')?.value ?? '00'
+  return `${hour}:${minute}`
+}
+
+function getMsUntilNextShanghaiMidnight(now = new Date()): number {
+  const { year, month, day } = getShanghaDateParts(now)
+  const nextMidnight = new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00+08:00`).getTime() + 24 * 60 * 60 * 1000
+  return Math.max(1_000, nextMidnight - now.getTime() + 1_000)
+}
+
 function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail, onCompleteHabitItem, showSidebar }: { onToggleViewMode: () => void; filters: MemoBoardFilters; agendaItems?: import('@/lib/note-boards').MemoAgendaItem[] | null; habitOverview?: MemoHabitOverview | null; onOpenHabitDetail?: (noteId: string, itemKey: string, source?: 'sidebar' | 'note') => void; onCompleteHabitItem?: (noteId: string, itemKey: string) => void; showSidebar: boolean }) {
   const state = useNoteBoardBoardState()
   const editorState = useNoteBoardEditorState()
@@ -731,7 +754,7 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
 
   const filters = useMemoBoardFilters(state.allNoteItems, externalDateCounts)
 
-  const { data: agendaItems } = useSWR<import('@/lib/note-boards').MemoAgendaItem[]>(
+  const { data: agendaItems, mutate: mutateAgendaItems } = useSWR<import('@/lib/note-boards').MemoAgendaItem[]>(
     meta.board.slug === 'memo' ? '/api/note-boards/memo/agenda' : null,
     (url: string) => fetch(url).then((r) => r.json()),
     { revalidateOnFocus: false, dedupingInterval: 60_000 },
@@ -743,23 +766,64 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
   )
 
-  // Enrich agendaItems with live completion state from habitOverview so that
-  // repeating habit tasks show as strikethrough (isNotified=true) in the agenda
-  // when completed today, and revert at Shanghai midnight when the state resets.
+  // Enrich agenda items from live habit state: when a repeating task is completed
+  // today, keep the completion visual pinned to today's slot until Shanghai midnight
+  // (instead of immediately striking through tomorrow's next occurrence slot).
   const enrichedAgendaItems = useMemo(() => {
     if (!agendaItems) return agendaItems
     const states = habitOverview?.currentStates
     if (!states) return agendaItems
+    const todayKey = getShanghaiDateKey(new Date())
+
     return agendaItems.map((item) => {
       if (!item.repeatMode) return item
       const noteStates = states[item.memoId]
       if (!noteStates) return item
-      const isCompletedNow = Object.values(noteStates).some(
-        (s) => s.label === item.label && s.status === 'completed',
-      )
-      return isCompletedNow ? { ...item, isNotified: true } : item
+
+      const completedStates = Object.values(noteStates).filter((state) => state.status === 'completed')
+      const itemTimeKey = getShanghaiTimeKey(item.dueAt)
+      const matchedCompleted = completedStates.find(
+        (state) => state.label === item.label && getShanghaiTimeKey(state.dueAt) === itemTimeKey,
+      ) ?? completedStates.find((state) => state.label === item.label)
+
+      if (!matchedCompleted) {
+        return item
+      }
+
+      if (getShanghaiDateKey(matchedCompleted.dueAt) !== todayKey) {
+        return item
+      }
+
+      return {
+        ...item,
+        dueAt: matchedCompleted.dueAt,
+        isNotified: true,
+      }
     })
   }, [agendaItems, habitOverview])
+
+  useEffect(() => {
+    if (meta.board.slug !== 'memo') {
+      return
+    }
+
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    const scheduleMidnightRefresh = () => {
+      timer = setTimeout(() => {
+        void Promise.all([mutateHabitOverview(), mutateAgendaItems()])
+        scheduleMidnightRefresh()
+      }, getMsUntilNextShanghaiMidnight())
+    }
+
+    scheduleMidnightRefresh()
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer)
+      }
+    }
+  }, [meta.board.slug, mutateAgendaItems, mutateHabitOverview])
 
   const lastClickPos = useRef<{ x: number; y: number } | null>(null)
   useEffect(() => {

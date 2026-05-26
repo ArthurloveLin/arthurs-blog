@@ -233,7 +233,7 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, si
       </div>
 
       {/* 日期格子 */}
-      <div className="grid grid-cols-7 gap-y-0.5 text-center">
+      <div className="grid grid-cols-7 gap-y-1 text-center">
         {cells.map((cell, i) => {
           if (cell.kind !== 'current') {
             return <span key={i} className="py-1 text-[13px] text-muted-foreground/18">{cell.day}</span>

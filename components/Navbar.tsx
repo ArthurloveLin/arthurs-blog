@@ -283,7 +283,6 @@ function NavbarContent() {
   const logoUrl = config?.author_avatar_url
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
-  const router = useRouter()
   const {
     activeDrawer,
     closeDrawer,
@@ -354,12 +353,14 @@ function NavbarContent() {
   const handleBrandClick = useCallback((event: MouseEvent<HTMLAnchorElement>) => {
     if (isMemoStandalone) {
       event.preventDefault()
-      router.refresh()
+      // In memo standalone mode, force a real page reload so the click has
+      // immediate, visible feedback while staying on /memo.
+      window.location.reload()
       return
     }
 
     handleHomeClick()
-  }, [handleHomeClick, isMemoStandalone, router])
+  }, [handleHomeClick, isMemoStandalone])
 
   useEffect(() => {
     if (typeof window === 'undefined') return

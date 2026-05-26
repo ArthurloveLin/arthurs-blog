@@ -288,6 +288,18 @@ function SidebarQuickFilters({ filters, agendaItems }: { filters: MemoBoardFilte
     }).length
   }, [agendaItems, today])
 
+  const allCount = useMemo(() => {
+    if (isGuestboard) {
+      return state.totalLoaded
+    }
+
+    let total = 0
+    filters.memoDateCounts.forEach((count) => {
+      total += count
+    })
+    return total
+  }, [filters.memoDateCounts, isGuestboard, state.totalLoaded])
+
   const todayCreatedCount = filters.memoDateCounts.get(today) ?? 0
 
   function handleAll() {
@@ -316,7 +328,7 @@ function SidebarQuickFilters({ filters, agendaItems }: { filters: MemoBoardFilte
 
   type QuickFilter = { key: string; label: string; active: boolean; count: number | null; onClick: () => void }
   const quickFilters: QuickFilter[] = [
-    { key: 'all', label: isGuestboard ? '全部留言' : '全部便签', active: isAll, count: isAll ? state.totalLoaded : null, onClick: handleAll },
+    { key: 'all', label: isGuestboard ? '全部留言' : '全部便签', active: isAll, count: allCount, onClick: handleAll },
     { key: 'today-created', label: '今日创建', active: isTodayCreated, count: todayCreatedCount, onClick: handleTodayCreated },
     ...(!isGuestboard ? [{ key: 'today-due', label: '今日截止', active: isTodayDue, count: todayDueCount, onClick: handleTodayDue }] : []),
     { key: 'archive', label: '已归档', active: state.showArchived, count: null, onClick: () => actions.handleSwitchArchiveView(!state.showArchived) },
