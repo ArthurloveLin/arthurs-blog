@@ -108,6 +108,96 @@
   min-height: 184px;
 }
 
+.knowledgePaper {
+  position: relative;
+  min-height: 268px;
+  gap: 10px;
+  padding: 18px 18px 20px;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 38%),
+    radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.28), transparent 38%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -14px 26px -22px rgba(36, 44, 72, 0.22);
+}
+
+.knowledgePaper::before {
+  content: '';
+  position: absolute;
+  inset: 12px 10px 10px;
+  border: 1px solid rgba(34, 46, 72, 0.08);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.knowledgeMeta {
+  align-items: center;
+  gap: 8px;
+}
+
+.knowledgeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.knowledgePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 49, 74, 0.18);
+  background: rgba(255, 255, 255, 0.42);
+  padding: 3px 9px;
+  color: rgba(24, 33, 53, 0.86);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+}
+
+.knowledgeHint {
+  color: rgba(44, 58, 86, 0.68);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.knowledgeContentViewport {
+  --md-h1: #1f3154;
+  --md-h2: #253e66;
+  --md-h3: #2f4a76;
+  --md-h4: #355586;
+  --md-h5: #2f4b78;
+  --md-h6: #48628f;
+  --md-bq-border: rgba(47, 78, 122, 0.34);
+  --md-bq-text: rgba(35, 52, 80, 0.86);
+  color: #1b2740;
+  font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'LXGW WenKai Screen', serif;
+  font-size: 1.08rem;
+  line-height: 1.78;
+}
+
+.knowledgeContentViewport p {
+  margin: 0.22em 0;
+}
+
+.knowledgeContentViewport ul,
+.knowledgeContentViewport ol {
+  margin-top: 0.32em;
+  margin-bottom: 0.42em;
+}
+
+.knowledgeContentViewport code {
+  font-size: 0.86em;
+}
+
+.knowledgeContentViewport img {
+  border-radius: 10px;
+  box-shadow: 0 8px 26px rgba(25, 35, 62, 0.12);
+}
+
 .meta {
   display: flex;
   align-items: flex-start;

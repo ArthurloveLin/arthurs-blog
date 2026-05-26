@@ -104,7 +104,7 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
     return byDate.filter((item) => matchingIds.has(item.message.id))
   }, [filters, isFilterActive, state.noteItems, state.allNoteItems, state.activeDueDate, agendaItems])
   const summary = state.viewportReady && !state.isMobileViewport && !filters.isFilterMode && !state.activeDueDate
-    ? `第 ${state.currentPage} 页 · ${state.visibleCount} 张`
+    ? `第 ${state.currentPage} 页 · ${filteredNoteItems.length} 张`
     : `共 ${state.totalLoaded} 张`
   const emptyLabel = state.showArchived
     ? '还没有已归档便签。'

@@ -59,6 +59,21 @@ function safeDecodeURIComponent(value: string) {
   }
 }
 
+function escapeMarkdownImageTitle(value: string) {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
+function normalizeObsidianImageAlias(alias: string | undefined) {
+  if (!alias) return null
+  const trimmed = alias.trim()
+  if (!trimmed) return null
+
+  // Obsidian aliases may be width hints like "300" or "300x200".
+  if (/^\d+(?:x\d+)?$/i.test(trimmed)) return null
+
+  return trimmed
+}
+
 function normalizeCacheTagSegment(value: string) {
   return encodeURIComponent(safeDecodeURIComponent(value))
 }
@@ -237,9 +252,13 @@ export const getPostContent = cache(async function getPostContent(post: Post): P
 
       return BLOG_PUBLIC_DOMAIN
         ? processed.replace(
-            /!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g,
-            (_, filename: string) =>
-              `![](https://${BLOG_PUBLIC_DOMAIN}/${noteDir}images/${encodeURIComponent(filename.trim())})`
+            /!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
+            (_, filename: string, rawAlias: string | undefined) => {
+              const imageUrl = `https://${BLOG_PUBLIC_DOMAIN}/${noteDir}images/${encodeURIComponent(filename.trim())}`
+              const alias = normalizeObsidianImageAlias(rawAlias)
+              const caption = alias ? ` \"${escapeMarkdownImageTitle(alias)}\"` : ''
+              return `![](${imageUrl}${caption})`
+            }
           )
         : processed
     },

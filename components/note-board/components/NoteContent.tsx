@@ -273,8 +273,8 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
     function flushList() {
       if (listBuffer.length === 0 || !listType) return
       const Tag = listType
-      const ulCls = isStream ? 'my-2 ml-5 list-disc space-y-1' : 'my-1 ml-4 list-disc space-y-0.5'
-      const olCls = isStream ? 'my-2 ml-5 list-decimal space-y-1' : 'my-1 ml-4 list-decimal space-y-0.5'
+      const ulCls = isStream ? 'my-2 list-inside list-disc space-y-1 pl-2' : 'my-1 list-inside list-disc space-y-0.5 pl-1.5'
+      const olCls = isStream ? 'my-2 list-inside list-decimal space-y-1 pl-2' : 'my-1 list-inside list-decimal space-y-0.5 pl-1.5'
       result.push(
         <Tag key={`${variant}-${listType}-${listStart}`} className={listType === 'ul' ? ulCls : olCls}>
           {listBuffer.map((text, idx) => (

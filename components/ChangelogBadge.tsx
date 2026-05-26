@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { X, Tag } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 
 interface ChangelogEntry {
   version: string
@@ -9,74 +14,55 @@ interface ChangelogEntry {
   body: string
 }
 
-function renderInline(text: string): React.ReactNode[] {
-  // Parse **bold**, *italic*, `code` inline patterns
-  const parts: React.ReactNode[] = []
-  const re = /(\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`)/g
-  let last = 0
-  let m: RegExpExecArray | null
-  let idx = 0
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > last) parts.push(text.slice(last, m.index))
-    if (m[2] !== undefined) parts.push(<strong key={idx++} className="font-semibold text-foreground/90">{m[2]}</strong>)
-    else if (m[3] !== undefined) parts.push(<em key={idx++} className="italic">{m[3]}</em>)
-    else if (m[4] !== undefined) parts.push(<code key={idx++} className="rounded bg-foreground/8 px-1 py-px font-mono text-[11px]">{m[4]}</code>)
-    last = m.index + m[0].length
-  }
-  if (last < text.length) parts.push(text.slice(last))
-  return parts
-}
-
 function ChangelogMarkdown({ content }: { content: string }) {
-  const lines = content.split('\n')
-  const elements: React.ReactNode[] = []
-  let listItems: string[] = []
-
-  function flushList() {
-    if (listItems.length === 0) return
-    elements.push(
-      <ul key={`list-${elements.length}`} className="space-y-1 pl-4">
-        {listItems.map((item, i) => (
-          <li key={i} className="list-disc text-[13px] leading-relaxed text-foreground/75">
-            {renderInline(item.replace(/^-\s+/, ''))}
-          </li>
-        ))}
-      </ul>,
-    )
-    listItems = []
-  }
-
-  for (const line of lines) {
-    if (line.startsWith('### ')) {
-      flushList()
-      elements.push(
-        <p key={`h3-${elements.length}`} className="mt-3 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70 first:mt-0">
-          {line.slice(4).trim()}
-        </p>,
-      )
-    } else if (line.startsWith('## ')) {
-      flushList()
-      elements.push(
-        <p key={`h2-${elements.length}`} className="mt-2 mb-1 text-[12px] font-semibold text-foreground/80 first:mt-0">
-          {line.slice(3).trim()}
-        </p>,
-      )
-    } else if (line.startsWith('- ')) {
-      listItems.push(line)
-    } else if (line.trim() === '') {
-      flushList()
-    } else if (line.trim()) {
-      flushList()
-      elements.push(
-        <p key={`p-${elements.length}`} className="text-[13px] leading-relaxed text-foreground/75">
-          {renderInline(line)}
-        </p>,
-      )
-    }
-  }
-  flushList()
-
-  return <div className="space-y-0.5">{elements}</div>
+  return (
+    <div className="space-y-0.5 text-[13px] leading-relaxed text-foreground/75">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+          h1: ({ children }) => <h1 className="mt-3 mb-1.5 text-[13px] font-semibold text-foreground/85 first:mt-0">{children}</h1>,
+          h2: ({ children }) => <h2 className="mt-3 mb-1.5 text-[12px] font-semibold text-foreground/82 first:mt-0">{children}</h2>,
+          h3: ({ children }) => <h3 className="mt-3 mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70 first:mt-0">{children}</h3>,
+          p: ({ children }) => <p className="my-1.5 text-[13px] leading-relaxed text-foreground/75">{children}</p>,
+          ul: ({ children }) => <ul className="my-2 list-inside list-disc space-y-1 pl-1">{children}</ul>,
+          ol: ({ children }) => <ol className="my-2 list-inside list-decimal space-y-1 pl-1">{children}</ol>,
+          li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+          a: ({ href, children }) => {
+            const safeHref = href && /^(https?:\/\/|mailto:|tel:|#|\/)/.test(href) ? href : '#'
+            const isExternal = /^(https?:)?\/\//.test(safeHref)
+            return (
+              <a
+                href={safeHref}
+                className="text-primary underline decoration-primary/35 underline-offset-2 hover:decoration-primary"
+                target={isExternal ? '_blank' : undefined}
+                rel={isExternal ? 'noopener noreferrer' : undefined}
+              >
+                {children}
+              </a>
+            )
+          },
+          blockquote: ({ children }) => <blockquote className="my-2 border-l-2 border-border/70 pl-3 text-muted-foreground">{children}</blockquote>,
+          code: ({ className, children }) => {
+            const isBlock = Boolean(className)
+            if (isBlock) {
+              return <code className="font-mono text-[12px] text-foreground/85">{children}</code>
+            }
+            return <code className="rounded bg-foreground/8 px-1 py-px font-mono text-[11px] text-foreground/85">{children}</code>
+          },
+          pre: ({ children }) => <pre className="my-2 overflow-x-auto rounded-lg bg-foreground/8 p-2.5">{children}</pre>,
+          hr: () => <hr className="my-3 border-border/60" />,
+          table: ({ children }) => <div className="my-2 overflow-x-auto"><table className="w-full border-collapse text-[12px]">{children}</table></div>,
+          thead: ({ children }) => <thead className="bg-foreground/5">{children}</thead>,
+          th: ({ children }) => <th className="border border-border/60 px-2 py-1 text-left font-semibold text-foreground/80">{children}</th>,
+          td: ({ children }) => <td className="border border-border/60 px-2 py-1 align-top">{children}</td>,
+          input: ({ checked }) => <input type="checkbox" checked={Boolean(checked)} readOnly className="mr-1.5 translate-y-[1px]" />,
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  )
 }
 
 export function ChangelogBadge() {
