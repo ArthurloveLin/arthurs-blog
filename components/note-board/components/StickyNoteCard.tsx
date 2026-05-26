@@ -10,7 +10,7 @@ import { NoteActionButton } from '@/components/note-board/components/NoteActionB
 import { NoteContent } from '@/components/note-board/components/NoteContent'
 import { hasInlineDueTags } from '@/components/note-board/utils/editor'
 import { hasKnowledgeCardTag } from '@/components/note-board/utils/knowledge-card'
-import { NoteEditor } from '@/components/note-board/components/NoteEditor'
+import { NoteInlineEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
 import type {
@@ -666,27 +666,14 @@ function StickyNoteCardFrame({
           ) : null}
           {inlineEditor ? (
             <div className="w-full min-w-0 max-w-full" onPointerDown={(event) => event.stopPropagation()}>
-              <NoteEditor
+              <NoteInlineEditor
                 value={inlineEditor.value}
                 onChange={inlineEditor.onChange}
-                placeholder="直接修改这张便签的原始文本，checklist 状态也在这里编辑。"
-                saveLabel="保存"
                 isSaving={inlineEditor.isSaving}
                 onSave={inlineEditor.onSave}
                 onCancel={inlineEditor.onCancel}
                 saveDisabled={!inlineEditor.value.trim()}
                 maxLength={NOTE_MAX_LENGTH}
-                minHeightClassName="min-h-0"
-                shellClassName="w-full max-w-full overflow-hidden rounded-[14px] border border-black/10 bg-white/30"
-                toolbarClassName="px-2 py-1.5 text-[10px] text-slate-700"
-                buttonSize="sm"
-                toolbarButtonVariant="bare"
-                emojiTriggerVariant="bare"
-                showCancelButton={false}
-                counterVariant="compact"
-                compactToolbar
-                splitToolbar
-                autoFocus
               />
             </div>
           ) : isPreview ? (

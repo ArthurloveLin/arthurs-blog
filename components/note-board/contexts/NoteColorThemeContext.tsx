@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useSyncExternalStore, type ReactNode } from 'react'
+import { createContext, use, useSyncExternalStore, type ReactNode } from 'react'
 
 export type NoteColorThemeId = 'vivid' | 'cream' | 'mono' | 'dusk' | 'linen'
 
@@ -157,12 +157,12 @@ export function NoteColorThemeProvider({ children }: { children: ReactNode }) {
   const theme = NOTE_COLOR_THEMES.find((t) => t.id === themeId) ?? DEFAULT_THEME
 
   return (
-    <NoteColorThemeContext.Provider value={{ theme, setThemeId: handleSetThemeId }}>
+    <NoteColorThemeContext value={{ theme, setThemeId: handleSetThemeId }}>
       {children}
-    </NoteColorThemeContext.Provider>
+    </NoteColorThemeContext>
   )
 }
 
 export function useNoteColorTheme(): NoteColorThemeContextValue {
-  return useContext(NoteColorThemeContext)
+  return use(NoteColorThemeContext)
 }
