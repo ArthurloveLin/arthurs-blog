@@ -88,6 +88,14 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
     : filters.isFilterMode
       ? '没有匹配的内容。'
       : meta.board.emptyLabel
+  const filteredSurfaceLayout = useMemo(() => {
+    if (!isFilterActive) {
+      return null
+    }
+
+    return meta.surface.computeLayoutForMessages(filteredNoteItems.map((item) => item.message))
+  }, [filteredNoteItems, isFilterActive, meta.surface])
+  const activeSurfaceHeight = filteredSurfaceLayout?.height ?? meta.surface.height
 
   return (
     <MemoBoardShell
@@ -130,20 +138,26 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
           <div
             ref={bindContainer}
             className={['note-board-canvas relative rounded-[28px] p-5 sm:p-6', editorState.editingMessage ? 'overflow-visible' : 'overflow-hidden'].join(' ')}
-            style={{ minHeight: Math.max(meta.surface.height, 420) }}
+            style={{ minHeight: Math.max(activeSurfaceHeight, 420) }}
           >
             {!meta.surface.hasMeasured ? null : (
-              <div className="relative" style={{ minHeight: Math.max(meta.surface.height, 320) }}>
+              <div className="relative" style={{ minHeight: Math.max(activeSurfaceHeight, 320) }}>
                 {filteredNoteItems.map((item, index) => {
                   const { message, actions: cardActions, priorityControl, reactionControl, checklistControl, inlineEditor, isEditing, isOptimistic, isOptimisticEditing, isFresh } = item
 
-                  const layout = meta.surface.layouts[index]
-                  const targetPosition = meta.surface.getTargetPosition(index)
+                  const layout = filteredSurfaceLayout?.layouts[index] ?? meta.surface.layouts[index]
                   const collapsedPosition = {
                     x: Math.max((meta.surface.size.width - meta.surface.cardWidth) / 2, 0) + Math.min(index, 4) * 2,
                     y: 22 + Math.min(index, 4) * 4,
                     rotation: index % 2 === 0 ? -2 : 2,
                   }
+                  const targetPosition = filteredSurfaceLayout
+                    ? {
+                        x: layout?.x ?? collapsedPosition.x,
+                        y: layout?.y ?? collapsedPosition.y,
+                        rotation: layout?.rotation ?? collapsedPosition.rotation,
+                      }
+                    : meta.surface.getTargetPosition(index)
                   // When a filter is active, ignore saved custom positions so
                   // items re-layout from slot 0 instead of staying scattered.
                   const custom = isFilterActive ? undefined : state.customPositions[message.id]
@@ -156,9 +170,9 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
                       x={position.x}
                       y={position.y}
                       rotation={position.rotation}
-                      zIndex={state.cardZIndices[message.id] ?? layout?.zIndex ?? state.messages.length - index}
+                      zIndex={state.cardZIndices[message.id] ?? layout?.zIndex ?? filteredNoteItems.length - index}
                       width={meta.surface.cardWidth}
-                      bounds={{ width: meta.surface.size.width, height: Math.max(meta.surface.height, 420) }}
+                      bounds={{ width: meta.surface.size.width, height: Math.max(activeSurfaceHeight, 420) }}
                       colorIndex={layout?.colorIndex ?? getStickyColorIndex(getStickyColorSeed(message))}
                       draggable={meta.surface.isScattered && !isEditing}
                       actions={cardActions}
@@ -300,7 +314,6 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
 
   useEffect(() => {
     if (!open) return
-    setTimeout(() => labelInputRef.current?.focus(), 30)
     function onPointerDown(e: PointerEvent) {
       if (
         panelRef.current?.contains(e.target as Node) ||
@@ -578,6 +591,7 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
             {/* 提醒标题 */}
             <input
               ref={labelInputRef}
+              autoFocus
               type="text"
               placeholder="提醒标题（显示在通知中）"
               value={label}
@@ -729,6 +743,24 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
   )
 
+  // Enrich agendaItems with live completion state from habitOverview so that
+  // repeating habit tasks show as strikethrough (isNotified=true) in the agenda
+  // when completed today, and revert at Shanghai midnight when the state resets.
+  const enrichedAgendaItems = useMemo(() => {
+    if (!agendaItems) return agendaItems
+    const states = habitOverview?.currentStates
+    if (!states) return agendaItems
+    return agendaItems.map((item) => {
+      if (!item.repeatMode) return item
+      const noteStates = states[item.memoId]
+      if (!noteStates) return item
+      const isCompletedNow = Object.values(noteStates).some(
+        (s) => s.label === item.label && s.status === 'completed',
+      )
+      return isCompletedNow ? { ...item, isNotified: true } : item
+    })
+  }, [agendaItems, habitOverview])
+
   const lastClickPos = useRef<{ x: number; y: number } | null>(null)
   useEffect(() => {
     function onPointerDown(e: PointerEvent) {
@@ -777,25 +809,56 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
     })
     if (!response.ok) return
     const detail = await response.json() as MemoHabitItemDetail
-    await mutateSelectedHabitDetail(detail, { revalidate: false })
-    await mutateHabitOverview()
+    await Promise.all([
+      mutateSelectedHabitDetail(detail, { revalidate: false }),
+      mutateHabitOverview(),
+    ])
   }, [mutateHabitOverview, mutateSelectedHabitDetail, selectedHabit])
 
   // Completes a habit occurrence directly from the checklist checkbox, without
   // opening the detail panel.  The detail panel's "记为完成" button uses
   // handleCompleteHabit above (which also refreshes the panel state).
   const handleCompleteHabitItem = useCallback(async (noteId: string, itemKey: string) => {
+    const nowIso = new Date().toISOString()
+    // Optimistic update: immediately show the item as completed in the UI so
+    // the checkbox animates right away without waiting for the round-trip.
+    await mutateHabitOverview((current) => {
+      if (!current) return current
+      const noteStates = current.currentStates[noteId]
+      if (!noteStates?.[itemKey]) return current
+      return {
+        ...current,
+        currentStates: {
+          ...current.currentStates,
+          [noteId]: {
+            ...noteStates,
+            [itemKey]: {
+              ...noteStates[itemKey],
+              status: 'completed' as const,
+              completedAt: nowIso,
+              completionSource: 'manual_check' as const,
+            },
+          },
+        },
+      }
+    }, { revalidate: false })
+
     const response = await fetch('/api/note-boards/memo/habits/complete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ note_id: noteId, item_key: itemKey }),
     })
-    if (!response.ok) return
-    await mutateHabitOverview()
+    if (!response.ok) {
+      // Revert the optimistic update by re-fetching the real state.
+      await mutateHabitOverview()
+      return
+    }
+    const mutations: Promise<unknown>[] = [mutateHabitOverview()]
     // If the detail panel for this item is open, refresh it too.
     if (selectedHabit?.noteId === noteId && selectedHabit?.itemKey === itemKey) {
-      await mutateSelectedHabitDetail()
+      mutations.push(mutateSelectedHabitDetail())
     }
+    await Promise.all(mutations)
   }, [mutateHabitOverview, mutateSelectedHabitDetail, selectedHabit])
 
   const handleDelayHabit = useCallback(async (delayUntil: string) => {
@@ -807,8 +870,10 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
     })
     if (!response.ok) return
     const detail = await response.json() as MemoHabitItemDetail
-    await mutateSelectedHabitDetail(detail, { revalidate: false })
-    await mutateHabitOverview()
+    await Promise.all([
+      mutateSelectedHabitDetail(detail, { revalidate: false }),
+      mutateHabitOverview(),
+    ])
   }, [mutateHabitOverview, mutateSelectedHabitDetail, selectedHabit])
 
   const handleDeleteOccurrence = useCallback(async (occurrenceId: string) => {
@@ -816,15 +881,14 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
       method: 'DELETE',
     })
     if (!response.ok) return
-    await mutateSelectedHabitDetail()
-    await mutateHabitOverview()
+    await Promise.all([mutateSelectedHabitDetail(), mutateHabitOverview()])
   }, [mutateHabitOverview, mutateSelectedHabitDetail])
 
   return (
     <div className="space-y-6">
       {viewMode === 'stream'
-        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} onCompleteHabitItem={handleCompleteHabitItem} showSidebar={meta.board.slug === 'memo'} />
-        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={agendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} onCompleteHabitItem={handleCompleteHabitItem} showSidebar={meta.board.slug === 'memo'} />}
+        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={enrichedAgendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} onCompleteHabitItem={handleCompleteHabitItem} showSidebar={meta.board.slug === 'memo'} />
+        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={enrichedAgendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} onCompleteHabitItem={handleCompleteHabitItem} showSidebar={meta.board.slug === 'memo'} />}
       <NoteBoardEditorSection autoFocusOnEdit={viewMode === 'stream'} />
       <NoteBoardToast />
       <MemoHabitDetailPanel

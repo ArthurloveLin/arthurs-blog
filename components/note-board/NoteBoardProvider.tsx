@@ -82,6 +82,7 @@ interface NoteBoardSurfaceMeta {
   cardWidth: number
   height: number
   layouts: ReturnType<typeof computeBoardLayout>['layouts']
+  computeLayoutForMessages: (messages: NoteMessage[]) => ReturnType<typeof computeBoardLayout>
   hasMeasured: boolean
   isScattered: boolean
   getTargetPosition: (index: number) => NotePosition
@@ -285,6 +286,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', e
     cardWidth,
     height,
     layouts,
+    computeLayoutForMessages,
     hasMeasured,
     getTargetPosition,
     bindContainer,
@@ -631,11 +633,12 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', e
       cardWidth,
       height,
       layouts,
+      computeLayoutForMessages,
       hasMeasured,
       isScattered,
       getTargetPosition,
     },
-  }), [board, cardWidth, getTargetPosition, hasMeasured, height, isScattered, layouts, size])
+  }), [board, cardWidth, computeLayoutForMessages, getTargetPosition, hasMeasured, height, isScattered, layouts, size])
 
   const bindings = useMemo<NoteBoardBindings>(() => ({
     bindContainer,

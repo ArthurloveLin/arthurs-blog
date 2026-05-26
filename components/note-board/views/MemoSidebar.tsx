@@ -321,7 +321,10 @@ function AgendaDayPanel({ dateKey, items, selectedDueDate, onBack, onFilterDay }
   useEffect(() => {
     const container = scrollContainerRef.current
     if (!container || byHour.size === 0) return
-    const firstHour = Math.min(...Array.from(byHour.keys()))
+    let firstHour = 23
+    for (const h of byHour.keys()) {
+      if (h < firstHour) firstHour = h
+    }
     // Each empty hour row is exactly h-6 = 24px; hours before firstHour have no items, so
     // the accumulated height is firstHour * 24px plus the container's top padding (py-0.5 = 2px).
     const HOUR_ROW_HEIGHT = 24

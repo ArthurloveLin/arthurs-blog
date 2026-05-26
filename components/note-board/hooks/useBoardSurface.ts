@@ -40,6 +40,10 @@ export function useBoardSurface({
     [visibleMessages, size.width, measuredHeights],
   )
 
+  const computeLayoutForMessages = useCallback((nextMessages: NoteMessage[]) => {
+    return computeBoardLayout(nextMessages, size.width, measuredHeights)
+  }, [measuredHeights, size.width])
+
   const hasMeasured = size.width > 0 && size.height > 0
   const canInitializeSurface = hasMeasured && (visibleMessages.length === 0 || visibleMessages.every((message) => measuredHeights[message.id] > 0))
 
@@ -199,6 +203,7 @@ export function useBoardSurface({
     cardWidth,
     height,
     layouts,
+    computeLayoutForMessages,
     hasMeasured,
     getTargetPosition,
     bindContainer,

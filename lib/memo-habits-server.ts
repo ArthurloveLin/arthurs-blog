@@ -50,11 +50,46 @@ interface CurrentStateSeed {
   label: string
   lineText: string
   dueAt?: string | null
+  repeatMode?: string | null
+  repeatDays?: number[] | null
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const HISTORY_WINDOW_DAYS = 90
 const STALE_PENDING_MS = DAY_MS
+
+/**
+ * For a repeating habit whose original due_at encodes a specific time-of-day
+ * in Shanghai timezone, compute the ISO timestamp that represents that same
+ * time on *today's* Shanghai date.  This is used as the canonical due_at for
+ * the current day's occurrence so that occurrences are per-Shanghai-day rather
+ * than pinned to the static ISO value stored in the note content.
+ */
+function computeTodayDueAt(originalDueAt: string, now: number): string {
+  const origParts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Shanghai',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(originalDueAt))
+  const hh = origParts.find((p) => p.type === 'hour')?.value ?? '00'
+  const mm = origParts.find((p) => p.type === 'minute')?.value ?? '00'
+  const ss = origParts.find((p) => p.type === 'second')?.value ?? '00'
+
+  const todayParts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(now))
+  const year = todayParts.find((p) => p.type === 'year')?.value ?? ''
+  const month = todayParts.find((p) => p.type === 'month')?.value ?? ''
+  const day = todayParts.find((p) => p.type === 'day')?.value ?? ''
+
+  // Construct the datetime in Shanghai (+08:00) then convert to UTC ISO
+  return new Date(`${year}-${month}-${day}T${hh}:${mm}:${ss}+08:00`).toISOString()
+}
 
 function toShanghaiDateKey(ts: string) {
   const parts = new Intl.DateTimeFormat('en', {
@@ -111,6 +146,7 @@ function computeCurrentStreak(rows: MemoHabitOccurrenceRow[]) {
 function buildCurrentState(noteId: string, item: CurrentStateSeed, rows: MemoHabitOccurrenceRow[], now: number): MemoHabitCurrentState {
   const latest = rows[0] ?? null
   const streak = computeCurrentStreak(rows)
+  const isRepeating = item.repeatMode && item.repeatMode !== 'once'
 
   if (latest && latest.status !== 'completed') {
     return {
@@ -128,23 +164,37 @@ function buildCurrentState(noteId: string, item: CurrentStateSeed, rows: MemoHab
     }
   }
 
-  if (latest && latest.status === 'completed' && latest.due_at === item.dueAt) {
-    return {
-      noteId,
-      itemKey: item.itemKey,
-      label: latest.item_label,
-      lineText: latest.line_text,
-      dueAt: latest.due_at,
-      status: 'completed',
-      streak,
-      reminderSentAt: latest.reminder_sent_at,
-      completedAt: latest.completed_at,
-      delayedTo: latest.delayed_to,
-      completionSource: latest.completion_source,
+  if (latest && latest.status === 'completed') {
+    // For repeating habits compare Shanghai dates: if the latest completion is
+    // from today (Shanghai), show completed; otherwise it's a new day → pending.
+    // For one-off habits retain the legacy exact due_at match.
+    const nowKey = toShanghaiDateKey(new Date(now).toISOString())
+    const completionKey = toShanghaiDateKey(latest.due_at)
+    const isCurrentPeriod = isRepeating ? completionKey === nowKey : latest.due_at === item.dueAt
+
+    if (isCurrentPeriod) {
+      return {
+        noteId,
+        itemKey: item.itemKey,
+        label: latest.item_label,
+        lineText: latest.line_text,
+        dueAt: latest.due_at,
+        status: 'completed',
+        streak,
+        reminderSentAt: latest.reminder_sent_at,
+        completedAt: latest.completed_at,
+        delayedTo: latest.delayed_to,
+        completionSource: latest.completion_source,
+      }
     }
   }
 
-  const dueAt = item.dueAt ?? latest?.due_at ?? new Date(now).toISOString()
+  // No current-period completion: compute today's expected due_at for repeating
+  // habits (preserves the original Shanghai time-of-day on today's date), or
+  // fall back to the content's static dueAt for one-off habits.
+  const dueAt = isRepeating && item.dueAt
+    ? computeTodayDueAt(item.dueAt, now)
+    : (item.dueAt ?? latest?.due_at ?? new Date(now).toISOString())
   return {
     noteId,
     itemKey: item.itemKey,
@@ -269,7 +319,7 @@ function buildCurrentStateIndex(notes: MemoHabitNoteRow[], rows: MemoHabitOccurr
     currentStates[note.id] = items.reduce<Record<string, MemoHabitCurrentState>>((record, item) => {
       const state = buildCurrentState(
         note.id,
-        { itemKey: item.itemKey, label: item.label, lineText: item.lineText, dueAt: item.dueAt },
+        { itemKey: item.itemKey, label: item.label, lineText: item.lineText, dueAt: item.dueAt, repeatMode: item.repeatMode, repeatDays: item.repeatDays },
         rowsByKey.get(getOccurrenceKey(note.id, item.itemKey)) ?? [],
         now,
       )
@@ -402,7 +452,7 @@ export async function getMemoHabitItemDetail(noteId: string, itemKey: string, ow
 
   const typedRows = (rows ?? []) as MemoHabitOccurrenceRow[]
   const seed: CurrentStateSeed = parsedItem
-    ? { itemKey: parsedItem.itemKey, label: parsedItem.label, lineText: parsedItem.lineText, dueAt: parsedItem.dueAt }
+    ? { itemKey: parsedItem.itemKey, label: parsedItem.label, lineText: parsedItem.lineText, dueAt: parsedItem.dueAt, repeatMode: parsedItem.repeatMode, repeatDays: parsedItem.repeatDays }
     : {
         itemKey,
         label: typedRows[0]?.item_label ?? '重复任务',
@@ -454,13 +504,29 @@ async function fetchLatestOccurrences(noteId: string, itemKey: string) {
 }
 
 async function resolveOrCreateOccurrence(note: MemoHabitNoteRow, item: MemoHabitChecklistItem, nowIso: string) {
+  const now = Date.parse(nowIso)
+  const isRepeating = item.repeatMode !== 'once'
+  // For repeating habits use today's Shanghai-day occurrence timestamp so that
+  // each calendar day gets its own row independently of the static ISO value
+  // stored in the note content.
+  const effectiveDueAt = isRepeating && item.dueAt
+    ? computeTodayDueAt(item.dueAt, now)
+    : item.dueAt
+
   const rows = await fetchLatestOccurrences(note.id, item.itemKey)
   const latest = rows.find((row) => row.status === 'pending' || row.status === 'delayed')
   if (latest) {
     return latest
   }
 
-  if (rows[0]?.due_at === item.dueAt) {
+  if (isRepeating) {
+    // For repeating habits, look for an existing occurrence on today's Shanghai date
+    const todayKey = toShanghaiDateKey(nowIso)
+    const todayRow = rows.find((row) => toShanghaiDateKey(row.due_at) === todayKey)
+    if (todayRow) {
+      return todayRow
+    }
+  } else if (rows[0]?.due_at === item.dueAt) {
     return rows[0]
   }
 
@@ -473,7 +539,7 @@ async function resolveOrCreateOccurrence(note: MemoHabitNoteRow, item: MemoHabit
       item_key: item.itemKey,
       item_label: item.label,
       line_text: item.lineText,
-      due_at: item.dueAt,
+      due_at: effectiveDueAt,
       status: 'pending',
       updated_at: nowIso,
     }, { onConflict: 'note_id,item_key,due_at' })

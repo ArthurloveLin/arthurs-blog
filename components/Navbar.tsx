@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useCallback, startTransition, useSyncExternalStore, useTransition, type CSSProperties } from 'react'
+import { useEffect, useCallback, startTransition, useSyncExternalStore, useTransition, type CSSProperties, type MouseEvent } from 'react'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -283,6 +283,7 @@ function NavbarContent() {
   const logoUrl = config?.author_avatar_url
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
+  const router = useRouter()
   const {
     activeDrawer,
     closeDrawer,
@@ -349,6 +350,16 @@ function NavbarContent() {
       sessionStorage.setItem(BLOG_RETURN_POST_SLUG_KEY, currentPostSlug)
     }
   }, [isOnArticle])
+
+  const handleBrandClick = useCallback((event: MouseEvent<HTMLAnchorElement>) => {
+    if (isMemoStandalone) {
+      event.preventDefault()
+      router.refresh()
+      return
+    }
+
+    handleHomeClick()
+  }, [handleHomeClick, isMemoStandalone, router])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -424,8 +435,8 @@ function NavbarContent() {
           {/* ── Left: Logo / Title ─────────────────────────────────── */}
           <div className="flex items-center gap-2 flex-shrink-0">
           <Link 
-            href={homeHref}
-            onClick={handleHomeClick}
+            href={isMemoStandalone ? '/memo' : homeHref}
+            onClick={handleBrandClick}
             transitionTypes={isOnArticle ? ['nav-back'] : undefined}
             className={`flex items-center gap-2.5 flex-shrink-0 group`}
           >
