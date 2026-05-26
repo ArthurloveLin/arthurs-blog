@@ -52,7 +52,6 @@ next-env.d.ts
 
 # agents
 .agents
-.claude
 
 # codegraph local index (rebuilt with `codegraph init -i`)
 .codegraph/
