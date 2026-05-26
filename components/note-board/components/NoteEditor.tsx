@@ -33,6 +33,30 @@ export interface NoteEditorProps {
   splitToolbar?: boolean
 }
 
+/**
+ * Props for NoteInlineEditor — the compact variant used for inline note editing
+ * on sticky cards. Eliminates 7 boolean/variant props from the call site by
+ * hardcoding the inline-specific configuration.
+ *
+ * @see architecture-avoid-boolean-props (vercel-composition-patterns)
+ * @see patterns-explicit-variants (vercel-composition-patterns)
+ */
+export interface NoteInlineEditorProps {
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+  saveLabel?: string
+  isSaving: boolean
+  onSave: () => void
+  onCancel?: () => void
+  saveDisabled?: boolean
+  maxLength?: number
+  autoFocus?: boolean
+  minHeightClassName?: string
+  shellClassName?: string
+  toolbarClassName?: string
+}
+
 function ToolbarIconButton({
   onClick,
   label,
@@ -378,5 +402,56 @@ export function NoteEditor({
         )}
       </div>
     </div>
+  )
+}
+
+/**
+ * Explicit variant of NoteEditor for inline editing on sticky note cards.
+ *
+ * Hardcodes the 7 variant-specific props (buttonSize, toolbarButtonVariant,
+ * emojiTriggerVariant, showCancelButton, counterVariant, compactToolbar,
+ * splitToolbar) so callers never need to pass them.
+ *
+ * @see architecture-avoid-boolean-props (vercel-composition-patterns)
+ * @see patterns-explicit-variants (vercel-composition-patterns)
+ */
+export function NoteInlineEditor({
+  value,
+  onChange,
+  placeholder = '直接修改这张便签的原始文本，checklist 状态也在这里编辑。',
+  saveLabel = '保存',
+  isSaving,
+  onSave,
+  onCancel,
+  saveDisabled = false,
+  maxLength,
+  autoFocus = true,
+  minHeightClassName = 'min-h-0',
+  shellClassName = 'w-full max-w-full overflow-hidden rounded-[14px] border border-black/10 bg-white/30',
+  toolbarClassName = 'px-2 py-1.5 text-[10px] text-slate-700',
+}: NoteInlineEditorProps) {
+  return (
+    <NoteEditor
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      saveLabel={saveLabel}
+      isSaving={isSaving}
+      onSave={onSave}
+      onCancel={onCancel}
+      saveDisabled={saveDisabled}
+      maxLength={maxLength}
+      minHeightClassName={minHeightClassName}
+      shellClassName={shellClassName}
+      toolbarClassName={toolbarClassName}
+      buttonSize="sm"
+      toolbarButtonVariant="bare"
+      emojiTriggerVariant="bare"
+      showCancelButton={false}
+      counterVariant="compact"
+      compactToolbar
+      splitToolbar
+      autoFocus={autoFocus}
+    />
   )
 }
