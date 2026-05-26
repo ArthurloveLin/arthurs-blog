@@ -59,6 +59,58 @@ export interface StandaloneData {
   rss_feeds?: StandalonePlatform[];
 }
 
+export interface TrendRadarAICitation {
+  citation_id: string;
+  citation_no: number;
+  anchor_id: string;
+  channel?: string;
+  source?: string;
+  title?: string;
+  url?: string;
+  time_display?: string;
+}
+
+export interface TrendRadarAIParagraph {
+  paragraph_id: string;
+  anchor_id: string;
+  text: string;
+  citation_nos?: number[];
+  citation_ids?: string[];
+}
+
+export interface TrendRadarAISection {
+  section_id: string;
+  title?: string;
+  content?: string;
+  paragraphs?: TrendRadarAIParagraph[];
+  citations?: TrendRadarAICitation[];
+}
+
+export interface TrendRadarAISections {
+  core_trends?: string | TrendRadarAISection;
+  sentiment_controversy?: string | TrendRadarAISection;
+  signals?: string | TrendRadarAISection;
+  rss_insights?: string | TrendRadarAISection;
+  outlook_strategy?: string | TrendRadarAISection;
+}
+
+export interface TrendRadarAIReport {
+  source?: string;
+  success?: boolean;
+  skipped?: boolean;
+  error?: string;
+  mode?: string;
+  total_news?: number;
+  analyzed_news?: number;
+  max_news_limit?: number;
+  hotlist_count?: number;
+  rss_count?: number;
+  sections?: TrendRadarAISections;
+  sections_text?: Record<string, string>;
+  standalone_summaries?: Record<string, string>;
+  has_content?: boolean;
+}
+
 // 保留旧别名，避免其他文件报错
 export type RssItem = RssGroup;
 
@@ -67,6 +119,7 @@ export interface TrendRadarData {
   new_titles: NewSource[];
   rss_items: RssGroup[];
   standalone_data?: StandaloneData | null;
+  ai_report?: TrendRadarAIReport | null;
   total_new_count: number;
   failed_ids: string[];
   generated_at?: string;
