@@ -114,9 +114,9 @@ export function computeBoardLayout(
   messages: NoteMessage[],
   width: number,
   measuredHeights: Record<string, number> = {},
+  cardWidth = NOTE_CARD_WIDTH,
 ) {
   const columns = getBoardColumnCount(width)
-  const cardWidth = NOTE_CARD_WIDTH // Fixed 200px — same as hero preview
   const gapY = 34
 
   // Distribute columns with space-evenly: equal gaps between columns and on both sides

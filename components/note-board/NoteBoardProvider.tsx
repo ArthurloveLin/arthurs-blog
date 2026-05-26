@@ -82,7 +82,7 @@ interface NoteBoardSurfaceMeta {
   cardWidth: number
   height: number
   layouts: ReturnType<typeof computeBoardLayout>['layouts']
-  computeLayoutForMessages: (messages: NoteMessage[]) => ReturnType<typeof computeBoardLayout>
+  computeLayoutForMessages: (messages: NoteMessage[], cardWidth?: number) => ReturnType<typeof computeBoardLayout>
   hasMeasured: boolean
   isScattered: boolean
   getTargetPosition: (index: number) => NotePosition

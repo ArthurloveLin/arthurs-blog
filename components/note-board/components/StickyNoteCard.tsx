@@ -515,6 +515,7 @@ function StickyNoteCardFrame({
         'absolute touch-none select-none',
         styles.sticky,
         styles.paperFrame,
+        isKnowledgeCard ? styles.knowledgeFrame : '',
         isPreview ? styles.previewCard : '',
         isDragging ? styles.dragging : '',
         (isOptimistic || isFresh) ? 'animate-in fade-in slide-in-from-bottom-3 duration-300' : '',
@@ -558,7 +559,7 @@ function StickyNoteCardFrame({
           ref={paperRef}
           className={[styles.paper, isPreview ? styles.previewPaper : styles.boardPaper, isKnowledgeCard ? styles.knowledgePaper : ''].filter(Boolean).join(' ')}
           style={{
-            backgroundColor: noteColor,
+            backgroundColor: isKnowledgeCard ? '#f6f8fc' : noteColor,
             minHeight: isInlineEditing && inlineEditor?.surfaceMinHeight
               ? `${inlineEditor.surfaceMinHeight}px`
               : undefined,
@@ -632,7 +633,7 @@ function StickyNoteCardFrame({
                 <BookOpenText size={11} strokeWidth={2.1} className="shrink-0" />
                 知识卡
               </span>
-              <span className={styles.knowledgeHint}>便于复盘 · 重点优先</span>
+              <span className={styles.knowledgeHint}>概念沉淀 · 结论先行</span>
             </div>
           ) : null}
           {showConfirmActions ? (
@@ -721,7 +722,11 @@ function StickyNoteCardFrame({
                     'pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center justify-end',
                     isKnowledgeCard ? 'pb-3 pt-16' : 'pb-2 pt-12',
                   ].join(' ')}
-                  style={{ background: `linear-gradient(to top, ${noteColor} 35%, transparent)` }}
+                  style={{
+                    background: isKnowledgeCard
+                      ? 'linear-gradient(to top, rgba(246,248,252,0.98) 30%, rgba(246,248,252,0) 100%)'
+                      : `linear-gradient(to top, ${noteColor} 35%, transparent)`,
+                  }}
                 >
                   <button
                     type="button"
