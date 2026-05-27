@@ -82,6 +82,7 @@ export async function executeAgyPrompt(input: AgyExecutionInput): Promise<AgyExe
           ...process.env,
           HOME: homeDirectory,
         },
+        stdio: ['ignore', 'pipe', 'pipe'],
       })
 
       let stdout = ''
