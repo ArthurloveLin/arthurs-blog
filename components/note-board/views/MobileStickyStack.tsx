@@ -14,27 +14,23 @@ import {
   NOTE_CARD_WIDTH,
   PREVIEW_REVEAL_THRESHOLD,
 } from '@/components/note-board/utils/board'
-import { KNOWLEDGE_CARD_MOBILE_GUTTER, KNOWLEDGE_CARD_MOBILE_MAX_WIDTH } from '@/components/note-board/utils/knowledge-card'
 import type { MemoHabitCurrentState } from '@/lib/memo-habits'
 
 interface MobileStickyStackProps {
   items: NoteCardViewModel[]
-  knowledgeMode?: boolean
   habitStatesByNote?: Record<string, Record<string, MemoHabitCurrentState>>
   onOpenHabitDetail?: (noteId: string, itemKey: string) => void
   onCompleteHabitItem?: (noteId: string, itemKey: string) => void
 }
 
-export function MobileStickyStack({ items, knowledgeMode = false, habitStatesByNote, onOpenHabitDetail, onCompleteHabitItem }: MobileStickyStackProps) {
+export function MobileStickyStack({ items, habitStatesByNote, onOpenHabitDetail, onCompleteHabitItem }: MobileStickyStackProps) {
   const [containerRef, size] = useElementSize<HTMLDivElement>()
   const [parkedIds, setParkedIds] = useState<string[]>([])
   const [placedPositions, setPlacedPositions] = useState<Record<string, NotePosition>>({})
   const [isCollecting, setIsCollecting] = useState(false)
   const collectTimersRef = useRef<number[]>([])
 
-  const cardWidth = knowledgeMode
-    ? Math.min(KNOWLEDGE_CARD_MOBILE_MAX_WIDTH, Math.max(0, size.width - KNOWLEDGE_CARD_MOBILE_GUTTER))
-    : Math.min(NOTE_CARD_WIDTH, Math.max(0, size.width - 32))
+  const cardWidth = Math.min(NOTE_CARD_WIDTH, Math.max(0, size.width - 32))
   const hasMeasured = size.width > 0 && size.height > 0
   const visibleItems = items
   const validParkedIds = useMemo(() => {

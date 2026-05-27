@@ -31,9 +31,6 @@ export function useBoardSurface({
   const cardZIndicesRef = useRef<Record<string, number>>(
     Object.fromEntries(initialMessages.map((message, index) => [message.id, initialMessages.length - index + 1])),
   )
-  const getTargetPositionRef = useRef<(index: number) => NotePosition>(() => ({ x: 0, y: 0, rotation: 0 }))
-
-  const messageIdsSignature = useMemo(() => visibleMessages.map((message) => message.id).join('|'), [visibleMessages])
 
   const { cardWidth, height, layouts } = useMemo(
     () => computeBoardLayout(visibleMessages, size.width, measuredHeights),
@@ -106,10 +103,6 @@ export function useBoardSurface({
   }, [customPositions])
 
   useEffect(() => {
-    getTargetPositionRef.current = getTargetPosition
-  }, [getTargetPosition])
-
-  useEffect(() => {
     cardZIndicesRef.current = cardZIndices
   }, [cardZIndices])
 
@@ -153,30 +146,6 @@ export function useBoardSurface({
     const frame = window.requestAnimationFrame(() => setIsScattered(true))
     return () => window.cancelAnimationFrame(frame)
   }, [canInitializeSurface])
-
-  useEffect(() => {
-    if (!canInitializeSurface) return
-
-    setCustomPositions((current) => {
-      let changed = false
-      const next = { ...current }
-
-      visibleMessages.forEach((message, index) => {
-        if (next[message.id]) {
-          return
-        }
-
-        next[message.id] = getTargetPositionRef.current(index)
-        changed = true
-      })
-
-      if (changed) {
-        customPositionsRef.current = next
-      }
-
-      return changed ? next : current
-    })
-  }, [canInitializeSurface, messageIdsSignature, visibleMessages])
 
   useEffect(() => {
     setCardZIndices((current) => {

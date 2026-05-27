@@ -9,12 +9,6 @@ import {
 } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
 import { SidebarAgendaCalendar, SidebarCalendar, SidebarHabitHistory, SidebarTagCloud, getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
-import {
-  KNOWLEDGE_CARD_TAG,
-  hasKnowledgeCardTag,
-  isKnowledgeCardFilterActive,
-  isKnowledgeCardItem,
-} from '@/components/note-board/utils/knowledge-card'
 import type { MemoHabitOverview } from '@/lib/memo-habits'
 import type { MemoAgendaItem } from '@/lib/note-boards'
 import { NOTE_COLOR_THEMES, useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
@@ -27,6 +21,7 @@ function getItemDateKey(item: NoteCardViewModel) {
 
 // ── 搜索框 ──────────────────────────────────────────────────────────────────
 function MemoSearchField({ placeholder }: { placeholder: string }) {
+  const EXPAND_DURATION_MS = 600
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
   const [localQuery, setLocalQuery] = useState(state.searchQuery)
@@ -37,6 +32,15 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
   const displayedQuery = isFocused ? localQuery : state.searchQuery
   const hasQuery = displayedQuery.length > 0
   const isExpanded = isFocused || isExpanding || state.searchQuery.length > 0
+  const showInputContent = isFocused || state.searchQuery.length > 0
+
+  useEffect(() => {
+    return () => {
+      if (expandTimerRef.current) {
+        clearTimeout(expandTimerRef.current)
+      }
+    }
+  }, [])
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -52,10 +56,14 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
   }
 
   function handleExpandAndFocus() {
+    if (expandTimerRef.current) {
+      clearTimeout(expandTimerRef.current)
+    }
+
     setIsExpanding(true)
     expandTimerRef.current = setTimeout(() => {
       inputRef.current?.focus()
-    }, 400)
+    }, EXPAND_DURATION_MS)
   }
 
   return (
@@ -97,9 +105,9 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
           placeholder={placeholder}
           className={[
             'h-full w-full border-0 bg-transparent pr-[36px] text-[13px] outline-none transition-[padding,color,text-indent] duration-[600ms]',
-            isExpanded
-              ? 'cursor-text pl-3.5 text-foreground placeholder:text-muted-foreground/60'
-              : 'cursor-pointer pl-0 text-transparent placeholder:text-transparent [text-indent:-9999px]',
+            showInputContent
+              ? 'pointer-events-auto cursor-text pl-3.5 text-foreground placeholder:text-muted-foreground/60'
+              : 'pointer-events-none cursor-pointer pl-0 text-transparent caret-transparent placeholder:text-transparent [text-indent:-9999px]',
           ].join(' ')}
           style={{ transitionTimingFunction: 'cubic-bezier(0,1.22,.66,1.39)' }}
           autoComplete="off"
@@ -285,14 +293,6 @@ function SidebarQuickFilters({ filters, agendaItems }: { filters: MemoBoardFilte
   const isAll = !state.searchQuery && state.activeTags.length === 0 && !filters.effectiveSelectedDate && !state.activeDueDate && !state.showArchived
   const isTodayCreated = filters.effectiveSelectedDate === today && !state.searchQuery && state.activeTags.length === 0 && !state.activeDueDate
   const isTodayDue = state.activeDueDate === today && !state.searchQuery && state.activeTags.length === 0 && !filters.effectiveSelectedDate
-  const isKnowledgeCards = isKnowledgeCardFilterActive(state.activeTags) && !state.searchQuery && !filters.effectiveSelectedDate && !state.activeDueDate && !state.showArchived
-
-  const knowledgeCardCount = useMemo(() => {
-    if (isGuestboard) return 0
-    const fromTags = state.allTags.find((tag) => tag.name === KNOWLEDGE_CARD_TAG)?.count
-    if (typeof fromTags === 'number') return fromTags
-    return state.allNoteItems.reduce((count, item) => count + (isKnowledgeCardItem(item) ? 1 : 0), 0)
-  }, [isGuestboard, state.allNoteItems, state.allTags])
 
   const todayDueCount = useMemo(() => {
     if (!agendaItems) return 0
@@ -311,8 +311,8 @@ function SidebarQuickFilters({ filters, agendaItems }: { filters: MemoBoardFilte
     filters.memoDateCounts.forEach((count) => {
       total += count
     })
-    return Math.max(0, total - knowledgeCardCount)
-  }, [filters.memoDateCounts, isGuestboard, knowledgeCardCount, state.totalLoaded])
+    return total
+  }, [filters.memoDateCounts, isGuestboard, state.totalLoaded])
 
   const todayCreatedCount = filters.memoDateCounts.get(today) ?? 0
 
@@ -340,31 +340,12 @@ function SidebarQuickFilters({ filters, agendaItems }: { filters: MemoBoardFilte
     actions.handleDueDateFilter(isTodayDue ? null : today)
   }
 
-  function handleKnowledgeCards() {
-    if (state.searchQuery) actions.handleSearch('')
-    if (state.showArchived) actions.handleSwitchArchiveView(false)
-    if (state.activeDueDate) actions.handleDueDateFilter(null)
-    filters.clearDateFilter()
-
-    const onlyKnowledgeCardActive = state.activeTags.length === 1 && state.activeTags[0] === KNOWLEDGE_CARD_TAG
-    if (onlyKnowledgeCardActive) {
-      actions.handleTagFilter('')
-      return
-    }
-
-    if (state.activeTags.length > 0) {
-      actions.handleTagFilter('')
-    }
-    actions.handleTagFilter(KNOWLEDGE_CARD_TAG)
-  }
-
   type QuickFilter = { key: string; label: string; active: boolean; count: number | null; onClick: () => void }
   const quickFilters: QuickFilter[] = [
     { key: 'all', label: isGuestboard ? '全部留言' : '全部便签', active: isAll, count: allCount, onClick: handleAll },
     { key: 'today-created', label: '今日创建', active: isTodayCreated, count: todayCreatedCount, onClick: handleTodayCreated },
     ...(!isGuestboard ? [
       { key: 'today-due', label: '今日截止', active: isTodayDue, count: todayDueCount, onClick: handleTodayDue },
-      { key: 'knowledge-cards', label: '知识卡', active: isKnowledgeCards, count: knowledgeCardCount, onClick: handleKnowledgeCards },
     ] : []),
     { key: 'archive', label: '已归档', active: state.showArchived, count: null, onClick: () => actions.handleSwitchArchiveView(!state.showArchived) },
   ]
@@ -407,7 +388,6 @@ export interface MemoBoardFilters {
   selectedDate: string | null
   effectiveSelectedDate: string | null
   isFilterMode: boolean
-  filterItemsByKnowledgeCard: (items: NoteCardViewModel[]) => NoteCardViewModel[]
   setSelectedDate: (key: string | null) => void
   setHistoryFilter: (date: string | null, ids: string[] | null) => void
   clearDateFilter: () => void
@@ -431,14 +411,6 @@ export function useMemoBoardFilters(
   // When in history mode, show historySelectedDate in the filter badge instead of
   // the API-backed baseDateFilter, which is not set in that mode.
   const effectiveSelectedDate = historySelectedDate ?? baseDateFilter
-  const knowledgeCardFilterEnabled = isKnowledgeCardFilterActive(state.activeTags)
-
-  const filterItemsByKnowledgeCard = useCallback((items: NoteCardViewModel[]) => {
-    return items.filter((item) => {
-      const isKnowledgeCard = hasKnowledgeCardTag(item.message.content)
-      return knowledgeCardFilterEnabled ? isKnowledgeCard : !isKnowledgeCard
-    })
-  }, [knowledgeCardFilterEnabled])
 
   const computedDateCounts = useMemo(() => {
     if (externalDateCounts) return externalDateCounts
@@ -451,19 +423,17 @@ export function useMemoBoardFilters(
   }, [allItems, externalDateCounts])
 
   const filterItemsByDate = useCallback((items: NoteCardViewModel[]) => {
-    const knowledgeScopedItems = filterItemsByKnowledgeCard(items)
-
     // History filter: filter by note IDs client-side without touching the API query.
     // Must be checked before effectiveSelectedDate so that switching dates in the
     // history view does not trigger an API re-fetch (which would return notes filtered
     // by creation date, losing habit-event notes that were created on other dates).
     if (historyNoteIds !== null) {
       const idSet = new Set(historyNoteIds)
-      return knowledgeScopedItems.filter((item) => idSet.has(item.message.id))
+      return items.filter((item) => idSet.has(item.message.id))
     }
-    if (!effectiveSelectedDate) return knowledgeScopedItems
-    return knowledgeScopedItems.filter((item) => getItemDateKey(item) === effectiveSelectedDate)
-  }, [effectiveSelectedDate, filterItemsByKnowledgeCard, historyNoteIds])
+    if (!effectiveSelectedDate) return items
+    return items.filter((item) => getItemDateKey(item) === effectiveSelectedDate)
+  }, [effectiveSelectedDate, historyNoteIds])
 
   const setHistoryFilter = useCallback((date: string | null, ids: string[] | null) => {
     setHistorySelectedDate(date)
@@ -475,7 +445,6 @@ export function useMemoBoardFilters(
     selectedDate: state.activeDate,
     effectiveSelectedDate,
     isFilterMode: Boolean(state.searchQuery || state.activeTags.length > 0 || effectiveSelectedDate || state.activeDueDate || historyNoteIds !== null),
-    filterItemsByKnowledgeCard,
     setSelectedDate: actions.handleDateFilter,
     setHistoryFilter,
     clearDateFilter: () => { actions.handleDateFilter(null); setHistoryNoteIds(null); setHistorySelectedDate(null) },

@@ -1,7 +1,7 @@
 'use client'
 
 import gsap from 'gsap'
-import { AlarmClock, Archive, ArchiveRestore, ArrowRight, BookOpenText, Check, ChevronsDown, Copy, PencilLine, Trash2, X } from 'lucide-react'
+import { AlarmClock, Archive, ArchiveRestore, ArrowRight, Check, ChevronsDown, Copy, PencilLine, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
@@ -9,7 +9,6 @@ import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
 import { NoteContent } from '@/components/note-board/components/NoteContent'
 import { hasInlineDueTags } from '@/components/note-board/utils/editor'
-import { hasKnowledgeCardTag } from '@/components/note-board/utils/knowledge-card'
 import { NoteInlineEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
@@ -174,7 +173,6 @@ function StickyNoteCardFrame({
   const isPreview = variant === 'preview'
   const isInlineEditing = Boolean(inlineEditor)
   const { theme } = useNoteColorTheme()
-  const isKnowledgeCard = !isPreview && hasKnowledgeCardTag(message.content)
   const noteColor = theme.colors[colorIndex % theme.colors.length] ?? STICKY_COLORS[0]
   // Collapses automatically while inline-editing (derived — no separate reset effect needed)
   const showExpanded = isExpanded && !isInlineEditing
@@ -515,7 +513,6 @@ function StickyNoteCardFrame({
         'absolute touch-none select-none',
         styles.sticky,
         styles.paperFrame,
-        isKnowledgeCard ? styles.knowledgeFrame : '',
         isPreview ? styles.previewCard : '',
         isDragging ? styles.dragging : '',
         (isOptimistic || isFresh) ? 'animate-in fade-in slide-in-from-bottom-3 duration-300' : '',
@@ -557,15 +554,15 @@ function StickyNoteCardFrame({
         ) : null}
         <div
           ref={paperRef}
-          className={[styles.paper, isPreview ? styles.previewPaper : styles.boardPaper, isKnowledgeCard ? styles.knowledgePaper : ''].filter(Boolean).join(' ')}
+          className={[styles.paper, isPreview ? styles.previewPaper : styles.boardPaper].join(' ')}
           style={{
-            backgroundColor: isKnowledgeCard ? '#f6f8fc' : noteColor,
+            backgroundColor: noteColor,
             minHeight: isInlineEditing && inlineEditor?.surfaceMinHeight
               ? `${inlineEditor.surfaceMinHeight}px`
               : undefined,
           }}
         >
-          <div className={[styles.meta, isKnowledgeCard ? styles.knowledgeMeta : ''].filter(Boolean).join(' ')}>
+          <div className={styles.meta}>
             <div className={styles.metaCopy}>
               <p className={styles.author}>{message.author}</p>
               <p className={[styles.time, styles.metaTime, isPreview ? styles.timePreview : styles.timeBoard].join(' ')}>
@@ -627,15 +624,6 @@ function StickyNoteCardFrame({
               ) : null}
             </div>
           </div>
-          {isKnowledgeCard ? (
-            <div className={styles.knowledgeHeader}>
-              <span className={styles.knowledgePill}>
-                <BookOpenText size={11} strokeWidth={2.1} className="shrink-0" />
-                知识卡
-              </span>
-              <span className={styles.knowledgeHint}>概念沉淀 · 结论先行</span>
-            </div>
-          ) : null}
           {showConfirmActions ? (
             <div className="mb-2 flex items-center justify-end gap-2" onPointerDown={(event) => event.stopPropagation()}>
               <button
@@ -690,8 +678,8 @@ function StickyNoteCardFrame({
           ) : (
             <div
               ref={contentRef}
-              className={['relative', isKnowledgeCard ? styles.knowledgeContentViewport : ''].filter(Boolean).join(' ')}
-              style={!showExpanded ? { maxHeight: isKnowledgeCard ? 430 : 260, overflow: 'hidden' } : undefined}
+              className="relative"
+              style={!showExpanded ? { maxHeight: 260, overflow: 'hidden' } : undefined}
             >
               <NoteContent
                 content={message.content}
@@ -707,28 +695,21 @@ function StickyNoteCardFrame({
                 <div
                   className={[
                     'pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center justify-end',
-                    isKnowledgeCard ? 'pb-3 pt-16' : 'pb-2 pt-12',
+                    'pb-2 pt-12',
                   ].join(' ')}
                   style={{
-                    background: isKnowledgeCard
-                      ? 'linear-gradient(to top, rgba(246,248,252,0.98) 30%, rgba(246,248,252,0) 100%)'
-                      : `linear-gradient(to top, ${noteColor} 35%, transparent)`,
+                    background: `linear-gradient(to top, ${noteColor} 35%, transparent)`,
                   }}
                 >
                   <button
                     type="button"
-                    aria-label={isKnowledgeCard ? '展开知识卡' : '展开查看全部'}
+                    aria-label="展开查看全部"
                     className="pointer-events-auto inline-flex h-7 w-7 items-center justify-center text-slate-400 transition-all hover:text-slate-700 active:scale-95"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); setIsExpanded(true) }}
                   >
                     <ChevronsDown size={15} strokeWidth={1.6} />
                   </button>
-                  {isKnowledgeCard ? (
-                    <span className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-slate-500/75">
-                      展开知识卡
-                    </span>
-                  ) : null}
                 </div>
               ) : null}
             </div>

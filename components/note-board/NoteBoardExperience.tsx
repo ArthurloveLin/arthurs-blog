@@ -20,7 +20,6 @@ import {
 } from '@/components/note-board/NoteBoardProvider'
 import { MemoBoardShell, useMemoBoardFilters, type MemoBoardFilters } from '@/components/note-board/views/MemoBoardShell'
 import { getStickyColorIndex, getStickyColorSeed } from '@/components/note-board/utils/board'
-import { isKnowledgeCardFilterActive, KNOWLEDGE_CARD_DESKTOP_WIDTH } from '@/components/note-board/utils/knowledge-card'
 import { NoteColorThemeProvider } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
@@ -90,8 +89,7 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
   // When a date filter is active, pull from allNoteItems so items on page 2+
   // are reachable. When no filter, keep the paginated noteItems.
   const isFilterActive = !!(filters.effectiveSelectedDate || state.activeDueDate)
-  const knowledgeCardMode = isKnowledgeCardFilterActive(state.activeTags)
-  const shouldReflowLayout = isFilterActive || knowledgeCardMode
+  const shouldReflowLayout = isFilterActive
   const filteredNoteItems = useMemo(() => {
     const sourceItems = isFilterActive ? state.allNoteItems : state.noteItems
     const byDate = filters.filterItemsByDate(sourceItems)
@@ -114,7 +112,7 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
     : filters.isFilterMode
       ? '没有匹配的内容。'
       : meta.board.emptyLabel
-  const boardCardWidth = knowledgeCardMode ? KNOWLEDGE_CARD_DESKTOP_WIDTH : meta.surface.cardWidth
+  const boardCardWidth = meta.surface.cardWidth
   const filteredSurfaceLayout = useMemo(() => {
     if (!shouldReflowLayout) {
       return null
@@ -155,7 +153,6 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
         <div className="mb-12">
           <MobileStickyStack
             items={filteredNoteItems}
-            knowledgeMode={knowledgeCardMode}
             habitStatesByNote={habitOverview?.currentStates}
             onOpenHabitDetail={onOpenHabitDetail}
             onCompleteHabitItem={onCompleteHabitItem}
@@ -186,8 +183,7 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
                         rotation: layout?.rotation ?? collapsedPosition.rotation,
                       }
                     : meta.surface.getTargetPosition(index)
-                  // When filtering or in knowledge-card mode, ignore saved custom positions
-                  // so cards can reflow from slot 0 with the active width profile.
+                  // When filtering, ignore saved custom positions so cards can reflow from slot 0.
                   const custom = shouldReflowLayout ? undefined : state.customPositions[message.id]
                   const position = custom ?? (meta.surface.isScattered ? targetPosition : collapsedPosition)
 
