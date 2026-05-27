@@ -1,0 +1,7653 @@
+{
+  "version": "v2.3",
+  "lastUpdated": "2026-04-14",
+  "updateNote": "**v2.3 更新内容（Day31–40）**：新增紫燕百味鸡系列、凉拌配菜（海带丝/笋/木耳）、卤鸭爪、阿尔卑斯棒棒糖、全麦面包、奥尔良鸡排三明治、蜜汁对翅、蒜味蘸酱；游离糖关注项补充3条。",
+  "sourceMarkdownPath": "/home/arthur/repositories/arthurs-blog/ClaudeDesign/calorie/calorie-db.md",
+  "sourceMarkdownSha256": "40dfefcf49b90a4604dfccc154b9b4bc050802bde107751f8746e5681981cf87",
+  "exportedAt": "2026-05-27T02:48:00.180Z",
+  "itemCount": 187,
+  "foodItemCount": 179,
+  "referenceItemCount": 8,
+  "tables": [
+    {
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 18
+    },
+    {
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 13
+    },
+    {
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 20
+    },
+    {
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "columns": [
+        "食物",
+        "重量 (g)",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "糖 (g)",
+        "单位",
+        "来源"
+      ],
+      "rowCount": 19
+    },
+    {
+      "headingPath": [
+        "赛百味（Subway）6寸三明治",
+        "赛百味酱料（每份/常用量）"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 4
+    },
+    {
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "超轻量沙拉"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 9
+    },
+    {
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "轻盈面食 / 三明治"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 9
+    },
+    {
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "饱腹糙米饭 / 咖喱"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 8
+    },
+    {
+      "headingPath": [
+        "紫燕百味鸡系列 🆕 v2.3"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 4
+    },
+    {
+      "headingPath": [
+        "紫燕百味鸡系列 🆕 v2.3",
+        "紫燕烤鸡克重速查"
+      ],
+      "columns": [
+        "常见克重",
+        "带皮版热量",
+        "蛋白质估算"
+      ],
+      "rowCount": 5
+    },
+    {
+      "headingPath": [
+        "麻辣烫"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 6
+    },
+    {
+      "headingPath": [
+        "零食",
+        "巧克力 / 乳制品 / 糖果"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 10
+    },
+    {
+      "headingPath": [
+        "零食",
+        "水果（每100g，去皮可食部分）"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 12
+    },
+    {
+      "headingPath": [
+        "日常食品"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 18
+    },
+    {
+      "headingPath": [
+        "日常食品",
+        "凉拌配菜 🆕 v2.3"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 3
+    },
+    {
+      "headingPath": [
+        "日常食品",
+        "凉菜混合参考"
+      ],
+      "columns": [
+        "组合",
+        "重量",
+        "热量估算",
+        "钠估算"
+      ],
+      "rowCount": 3
+    },
+    {
+      "headingPath": [
+        "卤味 / 熟食"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 1
+    },
+    {
+      "headingPath": [
+        "外餐估算"
+      ],
+      "columns": [
+        "食物",
+        "热量 (kcal)",
+        "蛋白质 (g)",
+        "脂肪 (g)",
+        "碳水 (g)",
+        "钠 (mg)",
+        "单位",
+        "来源",
+        "备注"
+      ],
+      "rowCount": 25
+    }
+  ],
+  "items": [
+    {
+      "id": "e55b2101e68f221a",
+      "kind": "food",
+      "canonicalName": "火腿扒麦满分",
+      "aliases": [
+        "火腿扒麦满分"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 261,
+        "protein_g": 14,
+        "fat_g": 12,
+        "carbs_g": 24,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 608,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "火腿扒麦满分",
+        "热量 (kcal)": "261",
+        "蛋白质 (g)": "14",
+        "脂肪 (g)": "12",
+        "碳水 (g)": "24",
+        "钠 (mg)": "608",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "a9928033003ce8bd",
+      "kind": "food",
+      "canonicalName": "烟肉蛋麦满分",
+      "aliases": [
+        "烟肉蛋麦满分"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 260,
+        "protein_g": 16,
+        "fat_g": 10,
+        "carbs_g": 24,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 483,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "烟肉蛋麦满分",
+        "热量 (kcal)": "260",
+        "蛋白质 (g)": "16",
+        "脂肪 (g)": "10",
+        "碳水 (g)": "24",
+        "钠 (mg)": "483",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "b568e5cf05520c53",
+      "kind": "food",
+      "canonicalName": "原味板烧鸡腿麦满分",
+      "aliases": [
+        "原味板烧鸡腿麦满分"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 246,
+        "protein_g": 15,
+        "fat_g": 9,
+        "carbs_g": 25,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 611,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "原味板烧鸡腿麦满分",
+        "热量 (kcal)": "246",
+        "蛋白质 (g)": "15",
+        "脂肪 (g)": "9",
+        "碳水 (g)": "25",
+        "钠 (mg)": "611",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "330f1a5da0b79bb5",
+      "kind": "food",
+      "canonicalName": "原味板烧鸡腿炒双蛋堡（含酱）",
+      "aliases": [
+        "原味板烧鸡腿炒双蛋堡（含酱）",
+        "原味板烧鸡腿炒双蛋堡"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 419,
+        "protein_g": 27,
+        "fat_g": 21,
+        "carbs_g": 30,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 715,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "原味板烧鸡腿炒双蛋堡（含酱）",
+        "热量 (kcal)": "419",
+        "蛋白质 (g)": "27",
+        "脂肪 (g)": "21",
+        "碳水 (g)": "30",
+        "钠 (mg)": "715",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "83591b5e00d3425c",
+      "kind": "food",
+      "canonicalName": "原味板烧鸡腿炒双蛋堡（去酱）",
+      "aliases": [
+        "原味板烧鸡腿炒双蛋堡（去酱）",
+        "原味板烧鸡腿炒双蛋堡"
+      ],
+      "unit": "份",
+      "source": "✓确认",
+      "notes": "含酱419，去酱约-75kcal",
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 344,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "原味板烧鸡腿炒双蛋堡（去酱）",
+        "热量 (kcal)": "344",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "✓确认",
+        "备注": "含酱419，去酱约-75kcal"
+      }
+    },
+    {
+      "id": "eca9a5c870e71d34",
+      "kind": "food",
+      "canonicalName": "双层原味板烧鸡腿麦满分",
+      "aliases": [
+        "双层原味板烧鸡腿麦满分"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 355,
+        "protein_g": 23,
+        "fat_g": 17,
+        "carbs_g": 27,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 984,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "双层原味板烧鸡腿麦满分",
+        "热量 (kcal)": "355",
+        "蛋白质 (g)": "23",
+        "脂肪 (g)": "17",
+        "碳水 (g)": "27",
+        "钠 (mg)": "984",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "b43da5d8fb07aeac",
+      "kind": "food",
+      "canonicalName": "猪柳麦满分",
+      "aliases": [
+        "猪柳麦满分"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 308,
+        "protein_g": 16,
+        "fat_g": 16,
+        "carbs_g": 24,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 781,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "猪柳麦满分",
+        "热量 (kcal)": "308",
+        "蛋白质 (g)": "16",
+        "脂肪 (g)": "16",
+        "碳水 (g)": "24",
+        "钠 (mg)": "781",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "a388831dbe0ea6d0",
+      "kind": "food",
+      "canonicalName": "吉士蛋麦满分",
+      "aliases": [
+        "吉士蛋麦满分"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 315,
+        "protein_g": 16,
+        "fat_g": 14,
+        "carbs_g": 30,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 714,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "吉士蛋麦满分",
+        "热量 (kcal)": "315",
+        "蛋白质 (g)": "16",
+        "脂肪 (g)": "14",
+        "碳水 (g)": "30",
+        "钠 (mg)": "714",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "70e42d8189788784",
+      "kind": "food",
+      "canonicalName": "猪柳蛋麦满分",
+      "aliases": [
+        "猪柳蛋麦满分"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 394,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "猪柳蛋麦满分",
+        "热量 (kcal)": "394",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": ""
+      }
+    },
+    {
+      "id": "113a0dbbee58ada9",
+      "kind": "food",
+      "canonicalName": "大脆鸡扒麦满分",
+      "aliases": [
+        "大脆鸡扒麦满分"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 361,
+        "protein_g": 16,
+        "fat_g": 17,
+        "carbs_g": 35,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 804,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "大脆鸡扒麦满分",
+        "热量 (kcal)": "361",
+        "蛋白质 (g)": "16",
+        "脂肪 (g)": "17",
+        "碳水 (g)": "35",
+        "钠 (mg)": "804",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "8895d5059384e84a",
+      "kind": "food",
+      "canonicalName": "双层猪柳蛋麦满分",
+      "aliases": [
+        "双层猪柳蛋麦满分"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 513,
+        "protein_g": 29,
+        "fat_g": 32,
+        "carbs_g": 26,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 1210,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "双层猪柳蛋麦满分",
+        "热量 (kcal)": "513",
+        "蛋白质 (g)": "29",
+        "脂肪 (g)": "32",
+        "碳水 (g)": "26",
+        "钠 (mg)": "1210",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "510355a2eb8f7f01",
+      "kind": "food",
+      "canonicalName": "脆薯饼",
+      "aliases": [
+        "脆薯饼"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 160,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "脆薯饼",
+        "热量 (kcal)": "160",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": ""
+      }
+    },
+    {
+      "id": "fb1640c136a7d048",
+      "kind": "food",
+      "canonicalName": "玉米杯（小）",
+      "aliases": [
+        "玉米杯（小）",
+        "玉米杯"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 53,
+        "protein_g": 2,
+        "fat_g": 1,
+        "carbs_g": 7,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 1,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "玉米杯（小）",
+        "热量 (kcal)": "53",
+        "蛋白质 (g)": "2",
+        "脂肪 (g)": "1",
+        "碳水 (g)": "7",
+        "钠 (mg)": "1",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "6f1a26805b1067e8",
+      "kind": "food",
+      "canonicalName": "黑咖啡/美式",
+      "aliases": [
+        "黑咖啡/美式",
+        "黑咖啡",
+        "美式"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 10,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "黑咖啡/美式",
+        "热量 (kcal)": "10",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": ""
+      }
+    },
+    {
+      "id": "bdfb5ac8cded885c",
+      "kind": "food",
+      "canonicalName": "锡兰红茶（无糖）",
+      "aliases": [
+        "锡兰红茶（无糖）",
+        "锡兰红茶"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 2,
+        "protein_g": 0,
+        "fat_g": 0,
+        "carbs_g": 0,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 0,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "锡兰红茶（无糖）",
+        "热量 (kcal)": "2",
+        "蛋白质 (g)": "0",
+        "脂肪 (g)": "0",
+        "碳水 (g)": "0",
+        "钠 (mg)": "0",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "559ce3d10ba14806",
+      "kind": "food",
+      "canonicalName": "豆浆",
+      "aliases": [
+        "豆浆"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 156,
+        "protein_g": 7,
+        "fat_g": 3,
+        "carbs_g": 25,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "豆浆",
+        "热量 (kcal)": "156",
+        "蛋白质 (g)": "7",
+        "脂肪 (g)": "3",
+        "碳水 (g)": "25",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "c875d01271b25422",
+      "kind": "food",
+      "canonicalName": "热奶铁/拿铁",
+      "aliases": [
+        "热奶铁/拿铁",
+        "热奶铁",
+        "拿铁"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 150,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "热奶铁/拿铁",
+        "热量 (kcal)": "150",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": ""
+      }
+    },
+    {
+      "id": "2dc8e4540971b7f0",
+      "kind": "food",
+      "canonicalName": "鲜萃咖啡（小杯，无糖无奶）",
+      "aliases": [
+        "鲜萃咖啡（小杯，无糖无奶）",
+        "鲜萃咖啡"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": "等同黑咖啡",
+      "section": "麦当劳早餐（早餐卡单品）",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳早餐（早餐卡单品）"
+      ],
+      "nutrition": {
+        "calories": 10,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "鲜萃咖啡（小杯，无糖无奶）",
+        "热量 (kcal)": "10",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "等同黑咖啡"
+      }
+    },
+    {
+      "id": "d973b71e378c77c7",
+      "kind": "food",
+      "canonicalName": "汉堡包",
+      "aliases": [
+        "汉堡包"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳午餐/晚餐主餐",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "nutrition": {
+        "calories": 248,
+        "protein_g": 13,
+        "fat_g": 8,
+        "carbs_g": 29,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 492,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "汉堡包",
+        "热量 (kcal)": "248",
+        "蛋白质 (g)": "13",
+        "脂肪 (g)": "8",
+        "碳水 (g)": "29",
+        "钠 (mg)": "492",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "0e013ba385ae989d",
+      "kind": "food",
+      "canonicalName": "吉士汉堡（含酱）",
+      "aliases": [
+        "吉士汉堡（含酱）",
+        "吉士汉堡"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳午餐/晚餐主餐",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "nutrition": {
+        "calories": 294,
+        "protein_g": 16,
+        "fat_g": 12,
+        "carbs_g": 30,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 673,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "吉士汉堡（含酱）",
+        "热量 (kcal)": "294",
+        "蛋白质 (g)": "16",
+        "脂肪 (g)": "12",
+        "碳水 (g)": "30",
+        "钠 (mg)": "673",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "43492da107c81743",
+      "kind": "food",
+      "canonicalName": "吉士汉堡（去酱）",
+      "aliases": [
+        "吉士汉堡（去酱）",
+        "吉士汉堡"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "去番茄酱/芥末酱约-30kcal",
+      "section": "麦当劳午餐/晚餐主餐",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "nutrition": {
+        "calories": 270,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "吉士汉堡（去酱）",
+        "热量 (kcal)": "270",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "去番茄酱/芥末酱约-30kcal"
+      }
+    },
+    {
+      "id": "f479c3a64cffd809",
+      "kind": "food",
+      "canonicalName": "麦香鱼",
+      "aliases": [
+        "麦香鱼"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "麦当劳午餐/晚餐主餐",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "nutrition": {
+        "calories": 340,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "麦香鱼",
+        "热量 (kcal)": "340",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": ""
+      }
+    },
+    {
+      "id": "a8002f6c7bc5fa3a",
+      "kind": "food",
+      "canonicalName": "板烧鸡腿堡（含酱）",
+      "aliases": [
+        "板烧鸡腿堡（含酱）",
+        "板烧鸡腿堡"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳午餐/晚餐主餐",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "nutrition": {
+        "calories": 391,
+        "protein_g": 23,
+        "fat_g": 17,
+        "carbs_g": 35,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 1041,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "板烧鸡腿堡（含酱）",
+        "热量 (kcal)": "391",
+        "蛋白质 (g)": "23",
+        "脂肪 (g)": "17",
+        "碳水 (g)": "35",
+        "钠 (mg)": "1041",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "c5b5266f29d310a3",
+      "kind": "food",
+      "canonicalName": "板烧鸡腿堡（去酱）",
+      "aliases": [
+        "板烧鸡腿堡（去酱）",
+        "板烧鸡腿堡"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "麦当劳午餐/晚餐主餐",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "nutrition": {
+        "calories": 330,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "板烧鸡腿堡（去酱）",
+        "热量 (kcal)": "330",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": ""
+      }
+    },
+    {
+      "id": "3b46f54e440b6bc8",
+      "kind": "food",
+      "canonicalName": "双层吉士汉堡/双吉（含酱）",
+      "aliases": [
+        "双层吉士汉堡/双吉（含酱）",
+        "双层吉士汉堡/双吉",
+        "双层吉士汉堡",
+        "双吉（含酱）"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳午餐/晚餐主餐",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "nutrition": {
+        "calories": 429,
+        "protein_g": 27,
+        "fat_g": 22,
+        "carbs_g": 31,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 1017,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "双层吉士汉堡/双吉（含酱）",
+        "热量 (kcal)": "429",
+        "蛋白质 (g)": "27",
+        "脂肪 (g)": "22",
+        "碳水 (g)": "31",
+        "钠 (mg)": "1017",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "80ee2cd7d5ba743c",
+      "kind": "food",
+      "canonicalName": "双层吉士汉堡/双吉（去酱）",
+      "aliases": [
+        "双层吉士汉堡/双吉（去酱）",
+        "双层吉士汉堡/双吉",
+        "双层吉士汉堡",
+        "双吉（去酱）"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "麦当劳午餐/晚餐主餐",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "nutrition": {
+        "calories": 360,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "双层吉士汉堡/双吉（去酱）",
+        "热量 (kcal)": "360",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": ""
+      }
+    },
+    {
+      "id": "5e1ce7764155d59d",
+      "kind": "food",
+      "canonicalName": "巨无霸",
+      "aliases": [
+        "巨无霸"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳午餐/晚餐主餐",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "nutrition": {
+        "calories": 513,
+        "protein_g": 27,
+        "fat_g": 26,
+        "carbs_g": 42,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 961,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "巨无霸",
+        "热量 (kcal)": "513",
+        "蛋白质 (g)": "27",
+        "脂肪 (g)": "26",
+        "碳水 (g)": "42",
+        "钠 (mg)": "961",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "825c5fae9badb1c8",
+      "kind": "food",
+      "canonicalName": "麦辣鸡腿堡",
+      "aliases": [
+        "麦辣鸡腿堡"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳午餐/晚餐主餐",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "nutrition": {
+        "calories": 485,
+        "protein_g": 24,
+        "fat_g": 24,
+        "carbs_g": 42,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 1208,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "麦辣鸡腿堡",
+        "热量 (kcal)": "485",
+        "蛋白质 (g)": "24",
+        "脂肪 (g)": "24",
+        "碳水 (g)": "42",
+        "钠 (mg)": "1208",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "f8d3068422de1822",
+      "kind": "food",
+      "canonicalName": "麦辣芝魂鸡腿汉堡",
+      "aliases": [
+        "麦辣芝魂鸡腿汉堡"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day25；麦辣鸡腿堡+芝士约+50kcal；误差±50",
+      "section": "麦当劳午餐/晚餐主餐",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "nutrition": {
+        "calories": 570,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "麦辣芝魂鸡腿汉堡",
+        "热量 (kcal)": "570",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day25；麦辣鸡腿堡+芝士约+50kcal；误差±50"
+      }
+    },
+    {
+      "id": "a2ad42e7f5a76057",
+      "kind": "food",
+      "canonicalName": "泰能打打抛猪猪堡",
+      "aliases": [
+        "泰能打打抛猪猪堡"
+      ],
+      "unit": "份",
+      "source": "✓确认",
+      "notes": "Day6用户提供数据",
+      "section": "麦当劳午餐/晚餐主餐",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "nutrition": {
+        "calories": 470,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "泰能打打抛猪猪堡",
+        "热量 (kcal)": "470",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "✓确认",
+        "备注": "Day6用户提供数据"
+      }
+    },
+    {
+      "id": "fbdda7be701213e2",
+      "kind": "food",
+      "canonicalName": "芝士安格斯厚牛堡",
+      "aliases": [
+        "芝士安格斯厚牛堡"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳午餐/晚餐主餐",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳午餐/晚餐主餐"
+      ],
+      "nutrition": {
+        "calories": 696,
+        "protein_g": 32,
+        "fat_g": 44,
+        "carbs_g": 43,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 897,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "芝士安格斯厚牛堡",
+        "热量 (kcal)": "696",
+        "蛋白质 (g)": "32",
+        "脂肪 (g)": "44",
+        "碳水 (g)": "43",
+        "钠 (mg)": "897",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "2a3154c18f400df3",
+      "kind": "food",
+      "canonicalName": "玉米杯（小）",
+      "aliases": [
+        "玉米杯（小）",
+        "玉米杯"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 53,
+        "protein_g": 2,
+        "fat_g": 1,
+        "carbs_g": 7,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 1,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "玉米杯（小）",
+        "热量 (kcal)": "53",
+        "蛋白质 (g)": "2",
+        "脂肪 (g)": "1",
+        "碳水 (g)": "7",
+        "钠 (mg)": "1",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "c5a83269aba2328d",
+      "kind": "food",
+      "canonicalName": "玉米杯（大）",
+      "aliases": [
+        "玉米杯（大）",
+        "玉米杯"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "按小杯推算，Day5出现",
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 100,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "玉米杯（大）",
+        "热量 (kcal)": "100",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "按小杯推算，Day5出现"
+      }
+    },
+    {
+      "id": "aa6358327fde2fef",
+      "kind": "food",
+      "canonicalName": "苹果片",
+      "aliases": [
+        "苹果片"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 30,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "苹果片",
+        "热量 (kcal)": "30",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": ""
+      }
+    },
+    {
+      "id": "a8b98658c36544a1",
+      "kind": "food",
+      "canonicalName": "薯条（小）",
+      "aliases": [
+        "薯条（小）",
+        "薯条"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 210,
+        "protein_g": 3,
+        "fat_g": 9,
+        "carbs_g": 28,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 120,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "薯条（小）",
+        "热量 (kcal)": "210",
+        "蛋白质 (g)": "3",
+        "脂肪 (g)": "9",
+        "碳水 (g)": "28",
+        "钠 (mg)": "120",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "6ca2618d48b431f5",
+      "kind": "food",
+      "canonicalName": "薯条（中）",
+      "aliases": [
+        "薯条（中）",
+        "薯条"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 289,
+        "protein_g": 4,
+        "fat_g": 12,
+        "carbs_g": 38,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 165,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "薯条（中）",
+        "热量 (kcal)": "289",
+        "蛋白质 (g)": "4",
+        "脂肪 (g)": "12",
+        "碳水 (g)": "38",
+        "钠 (mg)": "165",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "336f0660aa52cb7f",
+      "kind": "food",
+      "canonicalName": "锡兰红茶（无糖）",
+      "aliases": [
+        "锡兰红茶（无糖）",
+        "锡兰红茶"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 2,
+        "protein_g": 0,
+        "fat_g": 0,
+        "carbs_g": 0,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 0,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "锡兰红茶（无糖）",
+        "热量 (kcal)": "2",
+        "蛋白质 (g)": "0",
+        "脂肪 (g)": "0",
+        "碳水 (g)": "0",
+        "钠 (mg)": "0",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "998f194ec54d145f",
+      "kind": "food",
+      "canonicalName": "零度可乐",
+      "aliases": [
+        "零度可乐"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 0,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "零度可乐",
+        "热量 (kcal)": "0",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": ""
+      }
+    },
+    {
+      "id": "9d0d6c6fe028cd9d",
+      "kind": "food",
+      "canonicalName": "黑咖啡/美式",
+      "aliases": [
+        "黑咖啡/美式",
+        "黑咖啡",
+        "美式"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 10,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "黑咖啡/美式",
+        "热量 (kcal)": "10",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": ""
+      }
+    },
+    {
+      "id": "ff5487d54d074a47",
+      "kind": "food",
+      "canonicalName": "阳光柠檬红茶",
+      "aliases": [
+        "阳光柠檬红茶"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": "含糖，游离糖约15g",
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 117,
+        "protein_g": 0,
+        "fat_g": 0,
+        "carbs_g": 29,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 17,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "阳光柠檬红茶",
+        "热量 (kcal)": "117",
+        "蛋白质 (g)": "0",
+        "脂肪 (g)": "0",
+        "碳水 (g)": "29",
+        "钠 (mg)": "17",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": "含糖，游离糖约15g"
+      }
+    },
+    {
+      "id": "efd062193cf3d796",
+      "kind": "food",
+      "canonicalName": "甜筒",
+      "aliases": [
+        "甜筒"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": "游离糖约14g",
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 123,
+        "protein_g": 3,
+        "fat_g": 3,
+        "carbs_g": 20,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 55,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "甜筒",
+        "热量 (kcal)": "123",
+        "蛋白质 (g)": "3",
+        "脂肪 (g)": "3",
+        "碳水 (g)": "20",
+        "钠 (mg)": "55",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": "游离糖约14g"
+      }
+    },
+    {
+      "id": "a7f50add79a14851",
+      "kind": "food",
+      "canonicalName": "菠萝派",
+      "aliases": [
+        "菠萝派"
+      ],
+      "unit": "份",
+      "source": "✓确认",
+      "notes": "Day12用户校准；游离糖约17g/个",
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 220,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "菠萝派",
+        "热量 (kcal)": "220",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "✓确认",
+        "备注": "Day12用户校准；游离糖约17g/个"
+      }
+    },
+    {
+      "id": "1bfba4b0c65d78a3",
+      "kind": "food",
+      "canonicalName": "苹果迷你派（mini π，3.14活动）",
+      "aliases": [
+        "苹果迷你派（mini π，3.14活动）",
+        "苹果迷你派",
+        "mini π，3.14活动"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "约正常苹果派1/3，Day11出现",
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 83,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "苹果迷你派（mini π，3.14活动）",
+        "热量 (kcal)": "83",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "约正常苹果派1/3，Day11出现"
+      }
+    },
+    {
+      "id": "3e8bae9c58405fff",
+      "kind": "food",
+      "canonicalName": "苹果香蕉双拼迷你派",
+      "aliases": [
+        "苹果香蕉双拼迷你派"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day16出现",
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 220,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "苹果香蕉双拼迷你派",
+        "热量 (kcal)": "220",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day16出现"
+      }
+    },
+    {
+      "id": "dfa03babc77bd4e3",
+      "kind": "food",
+      "canonicalName": "麦乐鸡（单块）",
+      "aliases": [
+        "麦乐鸡（单块）",
+        "麦乐鸡"
+      ],
+      "unit": "块",
+      "source": "估算",
+      "notes": "4块≈190kcal推算",
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 48,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "麦乐鸡（单块）",
+        "热量 (kcal)": "48",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "块",
+        "来源": "估算",
+        "备注": "4块≈190kcal推算"
+      }
+    },
+    {
+      "id": "dcd89e069f6fb93d",
+      "kind": "food",
+      "canonicalName": "麦乐鸡（4块）",
+      "aliases": [
+        "麦乐鸡（4块）",
+        "麦乐鸡"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": "Day8/17出现",
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 170,
+        "protein_g": 10,
+        "fat_g": 10,
+        "carbs_g": 11,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 337,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "麦乐鸡（4块）",
+        "热量 (kcal)": "170",
+        "蛋白质 (g)": "10",
+        "脂肪 (g)": "10",
+        "碳水 (g)": "11",
+        "钠 (mg)": "337",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": "Day8/17出现"
+      }
+    },
+    {
+      "id": "e4dc1220df0ddd96",
+      "kind": "food",
+      "canonicalName": "麦辣鸡翅（单块）",
+      "aliases": [
+        "麦辣鸡翅（单块）",
+        "麦辣鸡翅"
+      ],
+      "unit": "块",
+      "source": "估算",
+      "notes": "Day12出现",
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 80,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "麦辣鸡翅（单块）",
+        "热量 (kcal)": "80",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "块",
+        "来源": "估算",
+        "备注": "Day12出现"
+      }
+    },
+    {
+      "id": "64badf65fbd1a729",
+      "kind": "food",
+      "canonicalName": "薄皮焦香鸡翅",
+      "aliases": [
+        "薄皮焦香鸡翅"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": "Day5用户提供数据",
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 192,
+        "protein_g": 17,
+        "fat_g": 11,
+        "carbs_g": 6,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 594,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "薄皮焦香鸡翅",
+        "热量 (kcal)": "192",
+        "蛋白质 (g)": "17",
+        "脂肪 (g)": "11",
+        "碳水 (g)": "6",
+        "钠 (mg)": "594",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": "Day5用户提供数据"
+      }
+    },
+    {
+      "id": "de7e2f4bff37bb3b",
+      "kind": "food",
+      "canonicalName": "麦麦脆汁鸡-琵琶腿",
+      "aliases": [
+        "麦麦脆汁鸡-琵琶腿"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": "Day16出现",
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 328,
+        "protein_g": 21,
+        "fat_g": 20,
+        "carbs_g": 16,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 905,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "麦麦脆汁鸡-琵琶腿",
+        "热量 (kcal)": "328",
+        "蛋白质 (g)": "21",
+        "脂肪 (g)": "20",
+        "碳水 (g)": "16",
+        "钠 (mg)": "905",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": "Day16出现"
+      }
+    },
+    {
+      "id": "2099c8a17201cd95",
+      "kind": "food",
+      "canonicalName": "奥利奥麦旋风",
+      "aliases": [
+        "奥利奥麦旋风"
+      ],
+      "unit": "份",
+      "source": "fatsecret",
+      "notes": "Day17用户校准；游离糖约28g",
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 266,
+        "protein_g": 5,
+        "fat_g": 9,
+        "carbs_g": 40,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 116,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "奥利奥麦旋风",
+        "热量 (kcal)": "266",
+        "蛋白质 (g)": "5",
+        "脂肪 (g)": "9",
+        "碳水 (g)": "40",
+        "钠 (mg)": "116",
+        "单位": "份",
+        "来源": "fatsecret",
+        "备注": "Day17用户校准；游离糖约28g"
+      }
+    },
+    {
+      "id": "b6216eea7b901fe1",
+      "kind": "food",
+      "canonicalName": "蜜汁对翅",
+      "aliases": [
+        "蜜汁对翅"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day37出现；含蜜汁糖衣；游离糖约8g；误差±30",
+      "section": "麦当劳配餐 / 饮品 / 甜点",
+      "subsection": null,
+      "headingPath": [
+        "麦当劳配餐 / 饮品 / 甜点"
+      ],
+      "nutrition": {
+        "calories": 210,
+        "protein_g": 18,
+        "fat_g": 10,
+        "carbs_g": 15,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 600,
+        "weight_g": null
+      },
+      "approximateFields": [
+        "sodium_mg"
+      ],
+      "raw": {
+        "食物": "蜜汁对翅",
+        "热量 (kcal)": "210",
+        "蛋白质 (g)": "18",
+        "脂肪 (g)": "10",
+        "碳水 (g)": "15",
+        "钠 (mg)": "~600",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day37出现；含蜜汁糖衣；游离糖约8g；误差±30"
+      }
+    },
+    {
+      "id": "9962e95058bf5dee",
+      "kind": "food",
+      "canonicalName": "嫩切鸡肉（Sliced Chicken）",
+      "aliases": [
+        "嫩切鸡肉（Sliced Chicken）",
+        "嫩切鸡肉",
+        "Sliced Chicken"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 300,
+        "protein_g": 20,
+        "fat_g": 6.3,
+        "carbs_g": 41,
+        "fiber_g": null,
+        "sugar_g": 5,
+        "sodium_mg": null,
+        "weight_g": 207
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "嫩切鸡肉（Sliced Chicken）",
+        "重量 (g)": "207",
+        "热量 (kcal)": "300",
+        "蛋白质 (g)": "20",
+        "脂肪 (g)": "6.3",
+        "碳水 (g)": "41",
+        "糖 (g)": "5",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "8ed650784402a7ca",
+      "kind": "food",
+      "canonicalName": "照烧鸡肉（Chicken Teriyaki）",
+      "aliases": [
+        "照烧鸡肉（Chicken Teriyaki）",
+        "照烧鸡肉",
+        "Chicken Teriyaki"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 362,
+        "protein_g": 27,
+        "fat_g": 7.3,
+        "carbs_g": 46,
+        "fiber_g": null,
+        "sugar_g": 11,
+        "sodium_mg": null,
+        "weight_g": 257
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "照烧鸡肉（Chicken Teriyaki）",
+        "重量 (g)": "257",
+        "热量 (kcal)": "362",
+        "蛋白质 (g)": "27",
+        "脂肪 (g)": "7.3",
+        "碳水 (g)": "46",
+        "糖 (g)": "11",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "672e485b56f3aa6f",
+      "kind": "food",
+      "canonicalName": "鲜嫩鸡柳（Chicken Strips）",
+      "aliases": [
+        "鲜嫩鸡柳（Chicken Strips）",
+        "鲜嫩鸡柳",
+        "Chicken Strips"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 324,
+        "protein_g": 25,
+        "fat_g": 7.1,
+        "carbs_g": 39,
+        "fiber_g": null,
+        "sugar_g": 5,
+        "sodium_mg": null,
+        "weight_g": 229
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "鲜嫩鸡柳（Chicken Strips）",
+        "重量 (g)": "229",
+        "热量 (kcal)": "324",
+        "蛋白质 (g)": "25",
+        "脂肪 (g)": "7.1",
+        "碳水 (g)": "39",
+        "糖 (g)": "5",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "88a34df4708f0726",
+      "kind": "food",
+      "canonicalName": "香烤鸡肉（Roasted Chicken Breast）",
+      "aliases": [
+        "香烤鸡肉（Roasted Chicken Breast）",
+        "香烤鸡肉",
+        "Roasted Chicken Breast"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 331,
+        "protein_g": 23,
+        "fat_g": 8,
+        "carbs_g": 41,
+        "fiber_g": null,
+        "sugar_g": 6,
+        "sodium_mg": null,
+        "weight_g": 232
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "香烤鸡肉（Roasted Chicken Breast）",
+        "重量 (g)": "232",
+        "热量 (kcal)": "331",
+        "蛋白质 (g)": "23",
+        "脂肪 (g)": "8.0",
+        "碳水 (g)": "41",
+        "糖 (g)": "6",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "ae2d5beba4310076",
+      "kind": "food",
+      "canonicalName": "火腿（Ham）",
+      "aliases": [
+        "火腿（Ham）",
+        "火腿",
+        "Ham"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 317,
+        "protein_g": 19,
+        "fat_g": 7.3,
+        "carbs_g": 44,
+        "fiber_g": null,
+        "sugar_g": 6,
+        "sodium_mg": null,
+        "weight_g": 221
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "火腿（Ham）",
+        "重量 (g)": "221",
+        "热量 (kcal)": "317",
+        "蛋白质 (g)": "19",
+        "脂肪 (g)": "7.3",
+        "碳水 (g)": "44",
+        "糖 (g)": "6",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "cd109a1b77c9c196",
+      "kind": "food",
+      "canonicalName": "意大利牛肉丸（Italian Meatballs）",
+      "aliases": [
+        "意大利牛肉丸（Italian Meatballs）",
+        "意大利牛肉丸",
+        "Italian Meatballs"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 383,
+        "protein_g": 20,
+        "fat_g": 11.7,
+        "carbs_g": 47,
+        "fiber_g": null,
+        "sugar_g": 8,
+        "sodium_mg": null,
+        "weight_g": 255
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "意大利牛肉丸（Italian Meatballs）",
+        "重量 (g)": "255",
+        "热量 (kcal)": "383",
+        "蛋白质 (g)": "20",
+        "脂肪 (g)": "11.7",
+        "碳水 (g)": "47",
+        "糖 (g)": "8",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "0041e95f6f767bf9",
+      "kind": "food",
+      "canonicalName": "烧烤牛肉（Roast Beef）",
+      "aliases": [
+        "烧烤牛肉（Roast Beef）",
+        "烧烤牛肉",
+        "Roast Beef"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 346,
+        "protein_g": 21,
+        "fat_g": 7.1,
+        "carbs_g": 40,
+        "fiber_g": null,
+        "sugar_g": 6,
+        "sodium_mg": null,
+        "weight_g": 224
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "烧烤牛肉（Roast Beef）",
+        "重量 (g)": "224",
+        "热量 (kcal)": "346",
+        "蛋白质 (g)": "21",
+        "脂肪 (g)": "7.1",
+        "碳水 (g)": "40",
+        "糖 (g)": "6",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "4e96462ab350ed1e",
+      "kind": "food",
+      "canonicalName": "墨西哥辣牛（Taco Beef）",
+      "aliases": [
+        "墨西哥辣牛（Taco Beef）",
+        "墨西哥辣牛",
+        "Taco Beef"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 320,
+        "protein_g": 17,
+        "fat_g": 8.9,
+        "carbs_g": 42,
+        "fiber_g": null,
+        "sugar_g": 6,
+        "sodium_mg": null,
+        "weight_g": 211
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "墨西哥辣牛（Taco Beef）",
+        "重量 (g)": "211",
+        "热量 (kcal)": "320",
+        "蛋白质 (g)": "17",
+        "脂肪 (g)": "8.9",
+        "碳水 (g)": "42",
+        "糖 (g)": "6",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "b922437f6da293d2",
+      "kind": "food",
+      "canonicalName": "意大利经典 BMT（Italian B.M.T.）",
+      "aliases": [
+        "意大利经典 BMT（Italian B.M.T.）",
+        "意大利经典 BMT",
+        "Italian B.M.T."
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 409,
+        "protein_g": 22,
+        "fat_g": 16.7,
+        "carbs_g": 42,
+        "fiber_g": null,
+        "sugar_g": 5,
+        "sodium_mg": null,
+        "weight_g": 229
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "意大利经典 BMT（Italian B.M.T.）",
+        "重量 (g)": "229",
+        "热量 (kcal)": "409",
+        "蛋白质 (g)": "22",
+        "脂肪 (g)": "16.7",
+        "碳水 (g)": "42",
+        "糖 (g)": "5",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "b1be6c54aa000a10",
+      "kind": "food",
+      "canonicalName": "百味俱乐部（Subway Club）",
+      "aliases": [
+        "百味俱乐部（Subway Club）",
+        "百味俱乐部",
+        "Subway Club"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 325,
+        "protein_g": 21,
+        "fat_g": 7.1,
+        "carbs_g": 41,
+        "fiber_g": null,
+        "sugar_g": 6,
+        "sodium_mg": null,
+        "weight_g": 226
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "百味俱乐部（Subway Club）",
+        "重量 (g)": "226",
+        "热量 (kcal)": "325",
+        "蛋白质 (g)": "21",
+        "脂肪 (g)": "7.1",
+        "碳水 (g)": "41",
+        "糖 (g)": "6",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "1980041e538269e5",
+      "kind": "food",
+      "canonicalName": "哈烧起司总汇（Subway Melt）",
+      "aliases": [
+        "哈烧起司总汇（Subway Melt）",
+        "哈烧起司总汇",
+        "Subway Melt"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 321,
+        "protein_g": 18,
+        "fat_g": 8.6,
+        "carbs_g": 42,
+        "fiber_g": null,
+        "sugar_g": 5,
+        "sodium_mg": null,
+        "weight_g": 211
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "哈烧起司总汇（Subway Melt）",
+        "重量 (g)": "211",
+        "热量 (kcal)": "321",
+        "蛋白质 (g)": "18",
+        "脂肪 (g)": "8.6",
+        "碳水 (g)": "42",
+        "糖 (g)": "5",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "598200ecf0c9ef62",
+      "kind": "food",
+      "canonicalName": "金枪鱼（Tuna）",
+      "aliases": [
+        "金枪鱼（Tuna）",
+        "金枪鱼",
+        "Tuna"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 507,
+        "protein_g": 22,
+        "fat_g": 29.1,
+        "carbs_g": 39,
+        "fiber_g": null,
+        "sugar_g": 5,
+        "sodium_mg": null,
+        "weight_g": 239
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "金枪鱼（Tuna）",
+        "重量 (g)": "239",
+        "热量 (kcal)": "507",
+        "蛋白质 (g)": "22",
+        "脂肪 (g)": "29.1",
+        "碳水 (g)": "39",
+        "糖 (g)": "5",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "627e3ace15a97d98",
+      "kind": "food",
+      "canonicalName": "蛋沙拉（Egg Mayo）",
+      "aliases": [
+        "蛋沙拉（Egg Mayo）",
+        "蛋沙拉",
+        "Egg Mayo"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 421,
+        "protein_g": 17,
+        "fat_g": 20.7,
+        "carbs_g": 41,
+        "fiber_g": null,
+        "sugar_g": 6,
+        "sodium_mg": null,
+        "weight_g": 225
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "蛋沙拉（Egg Mayo）",
+        "重量 (g)": "225",
+        "热量 (kcal)": "421",
+        "蛋白质 (g)": "17",
+        "脂肪 (g)": "20.7",
+        "碳水 (g)": "41",
+        "糖 (g)": "6",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "51b330d74733af16",
+      "kind": "food",
+      "canonicalName": "素食蔬菜（Veggie Delight）",
+      "aliases": [
+        "素食蔬菜（Veggie Delight）",
+        "素食蔬菜",
+        "Veggie Delight"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 250,
+        "protein_g": 10,
+        "fat_g": 5.7,
+        "carbs_g": 39,
+        "fiber_g": null,
+        "sugar_g": 5,
+        "sodium_mg": null,
+        "weight_g": 165
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "素食蔬菜（Veggie Delight）",
+        "重量 (g)": "165",
+        "热量 (kcal)": "250",
+        "蛋白质 (g)": "10",
+        "脂肪 (g)": "5.7",
+        "碳水 (g)": "39",
+        "糖 (g)": "5",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "c057407e85b39c37",
+      "kind": "food",
+      "canonicalName": "厚切嫩牛（Diced Beef）",
+      "aliases": [
+        "厚切嫩牛（Diced Beef）",
+        "厚切嫩牛",
+        "Diced Beef"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 366,
+        "protein_g": 26,
+        "fat_g": 10.6,
+        "carbs_g": 40,
+        "fiber_g": null,
+        "sugar_g": 6,
+        "sodium_mg": null,
+        "weight_g": 236
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "厚切嫩牛（Diced Beef）",
+        "重量 (g)": "236",
+        "热量 (kcal)": "366",
+        "蛋白质 (g)": "26",
+        "脂肪 (g)": "10.6",
+        "碳水 (g)": "40",
+        "糖 (g)": "6",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "eb532ec2b742ff9f",
+      "kind": "food",
+      "canonicalName": "鹰嘴豆泥饼（Falafel）",
+      "aliases": [
+        "鹰嘴豆泥饼（Falafel）",
+        "鹰嘴豆泥饼",
+        "Falafel"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 425,
+        "protein_g": 16,
+        "fat_g": 13.2,
+        "carbs_g": 58,
+        "fiber_g": null,
+        "sugar_g": 9,
+        "sodium_mg": null,
+        "weight_g": 240
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "鹰嘴豆泥饼（Falafel）",
+        "重量 (g)": "240",
+        "热量 (kcal)": "425",
+        "蛋白质 (g)": "16",
+        "脂肪 (g)": "13.2",
+        "碳水 (g)": "58",
+        "糖 (g)": "9",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "7de3f21b32c95085",
+      "kind": "food",
+      "canonicalName": "辣豆瓣嫩牛（Mala Beef）",
+      "aliases": [
+        "辣豆瓣嫩牛（Mala Beef）",
+        "辣豆瓣嫩牛",
+        "Mala Beef"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 460,
+        "protein_g": 29,
+        "fat_g": 15.2,
+        "carbs_g": 49,
+        "fiber_g": null,
+        "sugar_g": 11.2,
+        "sodium_mg": null,
+        "weight_g": 270
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "辣豆瓣嫩牛（Mala Beef）",
+        "重量 (g)": "270",
+        "热量 (kcal)": "460",
+        "蛋白质 (g)": "29",
+        "脂肪 (g)": "15.2",
+        "碳水 (g)": "49",
+        "糖 (g)": "11.2",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "8f7b4f029981e5f7",
+      "kind": "food",
+      "canonicalName": "双重起司厚牛（Double Cheese Steak）",
+      "aliases": [
+        "双重起司厚牛（Double Cheese Steak）",
+        "双重起司厚牛",
+        "Double Cheese Steak"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 347,
+        "protein_g": 25,
+        "fat_g": 10.1,
+        "carbs_g": 39,
+        "fiber_g": null,
+        "sugar_g": 5.3,
+        "sodium_mg": null,
+        "weight_g": 205
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "双重起司厚牛（Double Cheese Steak）",
+        "重量 (g)": "205",
+        "热量 (kcal)": "347",
+        "蛋白质 (g)": "25",
+        "脂肪 (g)": "10.1",
+        "碳水 (g)": "39",
+        "糖 (g)": "5.3",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "91a4c172ac299034",
+      "kind": "food",
+      "canonicalName": "墨西哥手撕猪（Mexican Pulled Pork）",
+      "aliases": [
+        "墨西哥手撕猪（Mexican Pulled Pork）",
+        "墨西哥手撕猪",
+        "Mexican Pulled Pork"
+      ],
+      "unit": "份",
+      "source": "✓官方",
+      "notes": null,
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": null,
+      "headingPath": [
+        "赛百味（Subway）6寸三明治"
+      ],
+      "nutrition": {
+        "calories": 321,
+        "protein_g": 16,
+        "fat_g": 10,
+        "carbs_g": 39,
+        "fiber_g": null,
+        "sugar_g": 6.5,
+        "sodium_mg": null,
+        "weight_g": 205
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "墨西哥手撕猪（Mexican Pulled Pork）",
+        "重量 (g)": "205",
+        "热量 (kcal)": "321",
+        "蛋白质 (g)": "16",
+        "脂肪 (g)": "10",
+        "碳水 (g)": "39",
+        "糖 (g)": "6.5",
+        "单位": "份",
+        "来源": "✓官方"
+      }
+    },
+    {
+      "id": "8fb5a763f4fdeb77",
+      "kind": "food",
+      "canonicalName": "蜂蜜芥末酱（Honey Mustard，约15g）",
+      "aliases": [
+        "蜂蜜芥末酱（Honey Mustard，约15g）",
+        "蜂蜜芥末酱",
+        "Honey Mustard，约15g"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "含游离糖约4g；Day28出现",
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": "赛百味酱料（每份/常用量）",
+      "headingPath": [
+        "赛百味（Subway）6寸三明治",
+        "赛百味酱料（每份/常用量）"
+      ],
+      "nutrition": {
+        "calories": 35,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "蜂蜜芥末酱（Honey Mustard，约15g）",
+        "热量 (kcal)": "35",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "含游离糖约4g；Day28出现"
+      }
+    },
+    {
+      "id": "e79ce69239e16114",
+      "kind": "food",
+      "canonicalName": "油醋汁（Vinaigrette，约15g）",
+      "aliases": [
+        "油醋汁（Vinaigrette，约15g）",
+        "油醋汁",
+        "Vinaigrette，约15g"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "低糖选项",
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": "赛百味酱料（每份/常用量）",
+      "headingPath": [
+        "赛百味（Subway）6寸三明治",
+        "赛百味酱料（每份/常用量）"
+      ],
+      "nutrition": {
+        "calories": 30,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "油醋汁（Vinaigrette，约15g）",
+        "热量 (kcal)": "30",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "低糖选项"
+      }
+    },
+    {
+      "id": "0bba181fff7741e9",
+      "kind": "food",
+      "canonicalName": "蛋黄酱（约15g）",
+      "aliases": [
+        "蛋黄酱（约15g）",
+        "蛋黄酱",
+        "约15g"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "高脂，慎用",
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": "赛百味酱料（每份/常用量）",
+      "headingPath": [
+        "赛百味（Subway）6寸三明治",
+        "赛百味酱料（每份/常用量）"
+      ],
+      "nutrition": {
+        "calories": 100,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "蛋黄酱（约15g）",
+        "热量 (kcal)": "100",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "高脂，慎用"
+      }
+    },
+    {
+      "id": "a33e7308ec584c44",
+      "kind": "food",
+      "canonicalName": "芥末酱（约10g）",
+      "aliases": [
+        "芥末酱（约10g）",
+        "芥末酱",
+        "约10g"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "低热量选项",
+      "section": "赛百味（Subway）6寸三明治",
+      "subsection": "赛百味酱料（每份/常用量）",
+      "headingPath": [
+        "赛百味（Subway）6寸三明治",
+        "赛百味酱料（每份/常用量）"
+      ],
+      "nutrition": {
+        "calories": 10,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "芥末酱（约10g）",
+        "热量 (kcal)": "10",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "低热量选项"
+      }
+    },
+    {
+      "id": "63fa10e858b5777d",
+      "kind": "food",
+      "canonicalName": "素食维C沙拉",
+      "aliases": [
+        "素食维C沙拉"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "超轻量沙拉",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "超轻量沙拉"
+      ],
+      "nutrition": {
+        "calories": 123,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "素食维C沙拉",
+        "热量 (kcal)": "123",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "f8149e59d802983c",
+      "kind": "food",
+      "canonicalName": "鲜虾牛油果沙拉",
+      "aliases": [
+        "鲜虾牛油果沙拉"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "超轻量沙拉",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "超轻量沙拉"
+      ],
+      "nutrition": {
+        "calories": 195,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "鲜虾牛油果沙拉",
+        "热量 (kcal)": "195",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "ba36f7dd7b4e7f5f",
+      "kind": "food",
+      "canonicalName": "鸡胸肉沙拉",
+      "aliases": [
+        "鸡胸肉沙拉"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "超轻量沙拉",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "超轻量沙拉"
+      ],
+      "nutrition": {
+        "calories": 195,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "鸡胸肉沙拉",
+        "热量 (kcal)": "195",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "50862501e68516ad",
+      "kind": "food",
+      "canonicalName": "牛排+鸡胸肉双拼沙拉",
+      "aliases": [
+        "牛排+鸡胸肉双拼沙拉"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "超轻量沙拉",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "超轻量沙拉"
+      ],
+      "nutrition": {
+        "calories": 228,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "牛排+鸡胸肉双拼沙拉",
+        "热量 (kcal)": "228",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "97e20465f6af0ab5",
+      "kind": "food",
+      "canonicalName": "菠菜丸子沙拉",
+      "aliases": [
+        "菠菜丸子沙拉"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "超轻量沙拉",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "超轻量沙拉"
+      ],
+      "nutrition": {
+        "calories": 238,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "菠菜丸子沙拉",
+        "热量 (kcal)": "238",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "238c5ff3aea290e7",
+      "kind": "food",
+      "canonicalName": "巴沙鱼沙拉",
+      "aliases": [
+        "巴沙鱼沙拉"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "超轻量沙拉",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "超轻量沙拉"
+      ],
+      "nutrition": {
+        "calories": 274,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "巴沙鱼沙拉",
+        "热量 (kcal)": "274",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "6453eeb1a05af224",
+      "kind": "food",
+      "canonicalName": "牛油果鸡胸肉沙拉",
+      "aliases": [
+        "牛油果鸡胸肉沙拉"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "超轻量沙拉",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "超轻量沙拉"
+      ],
+      "nutrition": {
+        "calories": 276,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "牛油果鸡胸肉沙拉",
+        "热量 (kcal)": "276",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "04a6f20c292c77ba",
+      "kind": "food",
+      "canonicalName": "牛排沙拉",
+      "aliases": [
+        "牛排沙拉"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "超轻量沙拉",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "超轻量沙拉"
+      ],
+      "nutrition": {
+        "calories": 276,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "牛排沙拉",
+        "热量 (kcal)": "276",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "64dc0a4228383178",
+      "kind": "food",
+      "canonicalName": "椒麻鸡胸沙拉",
+      "aliases": [
+        "椒麻鸡胸沙拉"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "超轻量沙拉",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "超轻量沙拉"
+      ],
+      "nutrition": {
+        "calories": 276,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "椒麻鸡胸沙拉",
+        "热量 (kcal)": "276",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "7329364810c9aaa7",
+      "kind": "food",
+      "canonicalName": "芒果三明治",
+      "aliases": [
+        "芒果三明治"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "轻盈面食 / 三明治",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "轻盈面食 / 三明治"
+      ],
+      "nutrition": {
+        "calories": 246,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "芒果三明治",
+        "热量 (kcal)": "246",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "d6dbdff393bf8a4a",
+      "kind": "food",
+      "canonicalName": "香煎鸡胸荞麦面",
+      "aliases": [
+        "香煎鸡胸荞麦面"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "轻盈面食 / 三明治",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "轻盈面食 / 三明治"
+      ],
+      "nutrition": {
+        "calories": 339,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "香煎鸡胸荞麦面",
+        "热量 (kcal)": "339",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "aab3ba5143d59c64",
+      "kind": "food",
+      "canonicalName": "番茄虾仁荞麦面",
+      "aliases": [
+        "番茄虾仁荞麦面"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "轻盈面食 / 三明治",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "轻盈面食 / 三明治"
+      ],
+      "nutrition": {
+        "calories": 347,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "番茄虾仁荞麦面",
+        "热量 (kcal)": "347",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "d347646c4625d4bc",
+      "kind": "food",
+      "canonicalName": "黑椒牛肉粒荞麦面",
+      "aliases": [
+        "黑椒牛肉粒荞麦面"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "轻盈面食 / 三明治",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "轻盈面食 / 三明治"
+      ],
+      "nutrition": {
+        "calories": 348,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "黑椒牛肉粒荞麦面",
+        "热量 (kcal)": "348",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "d880084de812c271",
+      "kind": "food",
+      "canonicalName": "番茄虾仁意面",
+      "aliases": [
+        "番茄虾仁意面"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "轻盈面食 / 三明治",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "轻盈面食 / 三明治"
+      ],
+      "nutrition": {
+        "calories": 388,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "番茄虾仁意面",
+        "热量 (kcal)": "388",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "0daeaf34fb54f360",
+      "kind": "food",
+      "canonicalName": "紫薯三明治",
+      "aliases": [
+        "紫薯三明治"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "轻盈面食 / 三明治",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "轻盈面食 / 三明治"
+      ],
+      "nutrition": {
+        "calories": 389,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "紫薯三明治",
+        "热量 (kcal)": "389",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "049ec9df348ded67",
+      "kind": "food",
+      "canonicalName": "全麦香煎鸡胸三明治",
+      "aliases": [
+        "全麦香煎鸡胸三明治"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "轻盈面食 / 三明治",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "轻盈面食 / 三明治"
+      ],
+      "nutrition": {
+        "calories": 389,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "全麦香煎鸡胸三明治",
+        "热量 (kcal)": "389",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "5ba110d901e49db9",
+      "kind": "food",
+      "canonicalName": "火龙果全麦贝果",
+      "aliases": [
+        "火龙果全麦贝果"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "轻盈面食 / 三明治",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "轻盈面食 / 三明治"
+      ],
+      "nutrition": {
+        "calories": 392,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "火龙果全麦贝果",
+        "热量 (kcal)": "392",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "ab872f59ad9f5293",
+      "kind": "food",
+      "canonicalName": "茄汁牛肉意面",
+      "aliases": [
+        "茄汁牛肉意面"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "轻盈面食 / 三明治",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "轻盈面食 / 三明治"
+      ],
+      "nutrition": {
+        "calories": 429,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "茄汁牛肉意面",
+        "热量 (kcal)": "429",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "fdad8fdddad9c303",
+      "kind": "food",
+      "canonicalName": "菠菜鸡肉丸糙米饭",
+      "aliases": [
+        "菠菜鸡肉丸糙米饭"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "饱腹糙米饭 / 咖喱",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "饱腹糙米饭 / 咖喱"
+      ],
+      "nutrition": {
+        "calories": 436,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "菠菜鸡肉丸糙米饭",
+        "热量 (kcal)": "436",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "b1fbd3f80c069704",
+      "kind": "food",
+      "canonicalName": "巴沙鱼糙米饭",
+      "aliases": [
+        "巴沙鱼糙米饭"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "饱腹糙米饭 / 咖喱",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "饱腹糙米饭 / 咖喱"
+      ],
+      "nutrition": {
+        "calories": 471,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "巴沙鱼糙米饭",
+        "热量 (kcal)": "471",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "26a2c068311e384a",
+      "kind": "food",
+      "canonicalName": "双击热烤照烧鸡腿糙米饭",
+      "aliases": [
+        "双击热烤照烧鸡腿糙米饭"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "饱腹糙米饭 / 咖喱",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "饱腹糙米饭 / 咖喱"
+      ],
+      "nutrition": {
+        "calories": 476,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "双击热烤照烧鸡腿糙米饭",
+        "热量 (kcal)": "476",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "05c4c967d40e556f",
+      "kind": "food",
+      "canonicalName": "香煎鸡胸杂粮饭",
+      "aliases": [
+        "香煎鸡胸杂粮饭"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "饱腹糙米饭 / 咖喱",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "饱腹糙米饭 / 咖喱"
+      ],
+      "nutrition": {
+        "calories": 476,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "香煎鸡胸杂粮饭",
+        "热量 (kcal)": "476",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "d1f2fd91c64dc57c",
+      "kind": "food",
+      "canonicalName": "奥尔良鸡腿杂粮饭",
+      "aliases": [
+        "奥尔良鸡腿杂粮饭"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "饱腹糙米饭 / 咖喱",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "饱腹糙米饭 / 咖喱"
+      ],
+      "nutrition": {
+        "calories": 488,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "奥尔良鸡腿杂粮饭",
+        "热量 (kcal)": "488",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "b9142032c9a4d7cf",
+      "kind": "food",
+      "canonicalName": "热咖喱鸡胸杂粮饭",
+      "aliases": [
+        "热咖喱鸡胸杂粮饭"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "饱腹糙米饭 / 咖喱",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "饱腹糙米饭 / 咖喱"
+      ],
+      "nutrition": {
+        "calories": 526,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "热咖喱鸡胸杂粮饭",
+        "热量 (kcal)": "526",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "4c599fb63002809c",
+      "kind": "food",
+      "canonicalName": "热咖喱照烧鸡杂粮饭",
+      "aliases": [
+        "热咖喱照烧鸡杂粮饭"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "饱腹糙米饭 / 咖喱",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "饱腹糙米饭 / 咖喱"
+      ],
+      "nutrition": {
+        "calories": 526,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "热咖喱照烧鸡杂粮饭",
+        "热量 (kcal)": "526",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "5079449d0ca51650",
+      "kind": "food",
+      "canonicalName": "热咖喱牛肉粒杂粮饭",
+      "aliases": [
+        "热咖喱牛肉粒杂粮饭"
+      ],
+      "unit": "份",
+      "source": "官方",
+      "notes": null,
+      "section": "轻食（午餐菜单）",
+      "subsection": "饱腹糙米饭 / 咖喱",
+      "headingPath": [
+        "轻食（午餐菜单）",
+        "饱腹糙米饭 / 咖喱"
+      ],
+      "nutrition": {
+        "calories": 536,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "热咖喱牛肉粒杂粮饭",
+        "热量 (kcal)": "536",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "官方",
+        "备注": "—"
+      }
+    },
+    {
+      "id": "684d0998156c1c07",
+      "kind": "food",
+      "canonicalName": "紫燕百味鸡·带皮烤鸡（通用）",
+      "aliases": [
+        "紫燕百味鸡·带皮烤鸡（通用）",
+        "紫燕百味鸡·带皮烤鸡"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day34/35/37/38/40高频；锡纸焗带汁同此；去皮版约160kcal/100g；误差±20",
+      "section": "紫燕百味鸡系列 🆕 v2.3",
+      "subsection": null,
+      "headingPath": [
+        "紫燕百味鸡系列 🆕 v2.3"
+      ],
+      "nutrition": {
+        "calories": 220,
+        "protein_g": 23,
+        "fat_g": 13,
+        "carbs_g": 2,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 280,
+        "weight_g": null
+      },
+      "approximateFields": [
+        "sodium_mg"
+      ],
+      "raw": {
+        "食物": "紫燕百味鸡·带皮烤鸡（通用）",
+        "热量 (kcal)": "220",
+        "蛋白质 (g)": "23",
+        "脂肪 (g)": "13",
+        "碳水 (g)": "2",
+        "钠 (mg)": "~280",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day34/35/37/38/40高频；锡纸焗带汁同此；**去皮版约160kcal/100g**；误差±20"
+      }
+    },
+    {
+      "id": "f7cf958a998fa0a7",
+      "kind": "food",
+      "canonicalName": "紫燕百味鸡·川香烤鸡（带皮纯肉）",
+      "aliases": [
+        "紫燕百味鸡·川香烤鸡（带皮纯肉）",
+        "紫燕百味鸡·川香烤鸡"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day35出现；川香酱腌制，与标准带皮版数值相近；误差±25",
+      "section": "紫燕百味鸡系列 🆕 v2.3",
+      "subsection": null,
+      "headingPath": [
+        "紫燕百味鸡系列 🆕 v2.3"
+      ],
+      "nutrition": {
+        "calories": 220,
+        "protein_g": 23,
+        "fat_g": 13,
+        "carbs_g": 2,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 300,
+        "weight_g": null
+      },
+      "approximateFields": [
+        "sodium_mg"
+      ],
+      "raw": {
+        "食物": "紫燕百味鸡·川香烤鸡（带皮纯肉）",
+        "热量 (kcal)": "220",
+        "蛋白质 (g)": "23",
+        "脂肪 (g)": "13",
+        "碳水 (g)": "2",
+        "钠 (mg)": "~300",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day35出现；川香酱腌制，与标准带皮版数值相近；误差±25"
+      }
+    },
+    {
+      "id": "594ddaee33e9d9b7",
+      "kind": "food",
+      "canonicalName": "紫燕百味鸡·手撕鸡（去皮撕丝）",
+      "aliases": [
+        "紫燕百味鸡·手撕鸡（去皮撕丝）",
+        "紫燕百味鸡·手撕鸡"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day42/44出现；去皮鸡胸/腿肉撕丝；高蛋白低脂",
+      "section": "紫燕百味鸡系列 🆕 v2.3",
+      "subsection": null,
+      "headingPath": [
+        "紫燕百味鸡系列 🆕 v2.3"
+      ],
+      "nutrition": {
+        "calories": 160,
+        "protein_g": 26,
+        "fat_g": 5,
+        "carbs_g": 1,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 240,
+        "weight_g": null
+      },
+      "approximateFields": [
+        "sodium_mg"
+      ],
+      "raw": {
+        "食物": "紫燕百味鸡·手撕鸡（去皮撕丝）",
+        "热量 (kcal)": "160",
+        "蛋白质 (g)": "26",
+        "脂肪 (g)": "5",
+        "碳水 (g)": "1",
+        "钠 (mg)": "~240",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day42/44出现；去皮鸡胸/腿肉撕丝；高蛋白低脂"
+      }
+    },
+    {
+      "id": "fb7bf8039253c53a",
+      "kind": "food",
+      "canonicalName": "紫燕百味鸡·带皮卤鸡腿（卤味）",
+      "aliases": [
+        "紫燕百味鸡·带皮卤鸡腿（卤味）",
+        "紫燕百味鸡·带皮卤鸡腿"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day44出现；带皮卤制鸡腿；170g≈323kcal",
+      "section": "紫燕百味鸡系列 🆕 v2.3",
+      "subsection": null,
+      "headingPath": [
+        "紫燕百味鸡系列 🆕 v2.3"
+      ],
+      "nutrition": {
+        "calories": 190,
+        "protein_g": 20,
+        "fat_g": 11,
+        "carbs_g": 3,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 330,
+        "weight_g": null
+      },
+      "approximateFields": [
+        "sodium_mg"
+      ],
+      "raw": {
+        "食物": "紫燕百味鸡·带皮卤鸡腿（卤味）",
+        "热量 (kcal)": "190",
+        "蛋白质 (g)": "20",
+        "脂肪 (g)": "11",
+        "碳水 (g)": "3",
+        "钠 (mg)": "~330",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day44出现；带皮卤制鸡腿；170g≈323kcal"
+      }
+    },
+    {
+      "id": "a6369cd0810ac715",
+      "kind": "reference",
+      "canonicalName": "150g",
+      "aliases": [
+        "150g"
+      ],
+      "unit": null,
+      "source": null,
+      "notes": null,
+      "section": "紫燕百味鸡系列 🆕 v2.3",
+      "subsection": "紫燕烤鸡克重速查",
+      "headingPath": [
+        "紫燕百味鸡系列 🆕 v2.3",
+        "紫燕烤鸡克重速查"
+      ],
+      "nutrition": {
+        "calories": 330,
+        "protein_g": 35,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": 150
+      },
+      "approximateFields": [
+        "calories",
+        "protein_g"
+      ],
+      "raw": {
+        "常见克重": "150g",
+        "带皮版热量": "~330 kcal",
+        "蛋白质估算": "~35g"
+      }
+    },
+    {
+      "id": "e97208b64ae105ad",
+      "kind": "reference",
+      "canonicalName": "200g",
+      "aliases": [
+        "200g"
+      ],
+      "unit": null,
+      "source": null,
+      "notes": null,
+      "section": "紫燕百味鸡系列 🆕 v2.3",
+      "subsection": "紫燕烤鸡克重速查",
+      "headingPath": [
+        "紫燕百味鸡系列 🆕 v2.3",
+        "紫燕烤鸡克重速查"
+      ],
+      "nutrition": {
+        "calories": 440,
+        "protein_g": 46,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": 200
+      },
+      "approximateFields": [
+        "calories",
+        "protein_g"
+      ],
+      "raw": {
+        "常见克重": "200g",
+        "带皮版热量": "~440 kcal",
+        "蛋白质估算": "~46g"
+      }
+    },
+    {
+      "id": "789a1fde14f8082c",
+      "kind": "reference",
+      "canonicalName": "220g",
+      "aliases": [
+        "220g"
+      ],
+      "unit": null,
+      "source": null,
+      "notes": null,
+      "section": "紫燕百味鸡系列 🆕 v2.3",
+      "subsection": "紫燕烤鸡克重速查",
+      "headingPath": [
+        "紫燕百味鸡系列 🆕 v2.3",
+        "紫燕烤鸡克重速查"
+      ],
+      "nutrition": {
+        "calories": 484,
+        "protein_g": 51,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": 220
+      },
+      "approximateFields": [
+        "calories",
+        "protein_g"
+      ],
+      "raw": {
+        "常见克重": "220g",
+        "带皮版热量": "~484 kcal",
+        "蛋白质估算": "~51g"
+      }
+    },
+    {
+      "id": "a382da19eda39e34",
+      "kind": "reference",
+      "canonicalName": "250g",
+      "aliases": [
+        "250g"
+      ],
+      "unit": null,
+      "source": null,
+      "notes": null,
+      "section": "紫燕百味鸡系列 🆕 v2.3",
+      "subsection": "紫燕烤鸡克重速查",
+      "headingPath": [
+        "紫燕百味鸡系列 🆕 v2.3",
+        "紫燕烤鸡克重速查"
+      ],
+      "nutrition": {
+        "calories": 550,
+        "protein_g": 58,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": 250
+      },
+      "approximateFields": [
+        "calories",
+        "protein_g"
+      ],
+      "raw": {
+        "常见克重": "250g",
+        "带皮版热量": "~550 kcal",
+        "蛋白质估算": "~58g"
+      }
+    },
+    {
+      "id": "ad1e213902ee6eda",
+      "kind": "reference",
+      "canonicalName": "280g",
+      "aliases": [
+        "280g"
+      ],
+      "unit": null,
+      "source": null,
+      "notes": null,
+      "section": "紫燕百味鸡系列 🆕 v2.3",
+      "subsection": "紫燕烤鸡克重速查",
+      "headingPath": [
+        "紫燕百味鸡系列 🆕 v2.3",
+        "紫燕烤鸡克重速查"
+      ],
+      "nutrition": {
+        "calories": 616,
+        "protein_g": 64,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": 280
+      },
+      "approximateFields": [
+        "calories",
+        "protein_g"
+      ],
+      "raw": {
+        "常见克重": "280g",
+        "带皮版热量": "~616 kcal",
+        "蛋白质估算": "~64g"
+      }
+    },
+    {
+      "id": "99468d32b3f703ee",
+      "kind": "food",
+      "canonicalName": "番茄烫（标准版）",
+      "aliases": [
+        "番茄烫（标准版）",
+        "番茄烫"
+      ],
+      "unit": null,
+      "source": "官方",
+      "notes": "招牌牛肉80g、大虾5个、生菜/金针菇/南瓜/西兰花各50g、土豆粉1份，番茄汤底，不含蘸料（加麻酱/辣油+50~100kcal）",
+      "section": "麻辣烫",
+      "subsection": null,
+      "headingPath": [
+        "麻辣烫"
+      ],
+      "nutrition": {
+        "calories": 580,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "番茄烫（标准版）",
+        "热量 (kcal)": "580",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "—",
+        "来源": "官方",
+        "备注": "招牌牛肉80g、大虾5个、生菜/金针菇/南瓜/西兰花各50g、土豆粉1份，番茄汤底，不含蘸料（加麻酱/辣油+50~100kcal）"
+      }
+    },
+    {
+      "id": "94a3c6c68538950c",
+      "kind": "food",
+      "canonicalName": "番茄烫（去粉去汤，仅固体）",
+      "aliases": [
+        "番茄烫（去粉去汤，仅固体）",
+        "番茄烫"
+      ],
+      "unit": null,
+      "source": "估算",
+      "notes": "牛肉+虾+蔬菜固体部分，扣除土豆粉约-170kcal、汤底约-50kcal，Day11/12/17均用此估算",
+      "section": "麻辣烫",
+      "subsection": null,
+      "headingPath": [
+        "麻辣烫"
+      ],
+      "nutrition": {
+        "calories": 360,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "番茄烫（去粉去汤，仅固体）",
+        "热量 (kcal)": "360",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "—",
+        "来源": "估算",
+        "备注": "牛肉+虾+蔬菜固体部分，扣除土豆粉约-170kcal、汤底约-50kcal，Day11/12/17均用此估算"
+      }
+    },
+    {
+      "id": "6c6978e1c1815273",
+      "kind": "food",
+      "canonicalName": "番茄烫加肉版（招牌牛肉150g+大虾×6+蔬菜+番茄汤底，不含米饭）",
+      "aliases": [
+        "番茄烫加肉版（招牌牛肉150g+大虾×6+蔬菜+番茄汤底，不含米饭）",
+        "番茄烫加肉版",
+        "招牌牛肉150g+大虾×6+蔬菜+番茄汤底，不含米饭"
+      ],
+      "unit": null,
+      "source": "估算",
+      "notes": "Day23/33/41；牛肉升至150g（+160kcal），虾×6（+90kcal），蔬菜约50kcal，汤底约25kcal；不含米饭",
+      "section": "麻辣烫",
+      "subsection": null,
+      "headingPath": [
+        "麻辣烫"
+      ],
+      "nutrition": {
+        "calories": 473,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "番茄烫加肉版（招牌牛肉150g+大虾×6+蔬菜+番茄汤底，不含米饭）",
+        "热量 (kcal)": "473",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "—",
+        "来源": "估算",
+        "备注": "Day23/33/41；牛肉升至150g（+160kcal），虾×6（+90kcal），蔬菜约50kcal，汤底约25kcal；不含米饭"
+      }
+    },
+    {
+      "id": "998da070a6d594eb",
+      "kind": "food",
+      "canonicalName": "火锅底料版（标准食材）",
+      "aliases": [
+        "火锅底料版（标准食材）",
+        "火锅底料版"
+      ],
+      "unit": null,
+      "source": "估算",
+      "notes": "比番茄底多约100kcal，汤底油脂更重",
+      "section": "麻辣烫",
+      "subsection": null,
+      "headingPath": [
+        "麻辣烫"
+      ],
+      "nutrition": {
+        "calories": 680,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "火锅底料版（标准食材）",
+        "热量 (kcal)": "680",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "—",
+        "来源": "估算",
+        "备注": "比番茄底多约100kcal，汤底油脂更重"
+      }
+    },
+    {
+      "id": "3e6a240966b73da4",
+      "kind": "food",
+      "canonicalName": "天水麻辣烫干拌版（标准，不含米饭）",
+      "aliases": [
+        "天水麻辣烫干拌版（标准，不含米饭）",
+        "天水麻辣烫干拌版"
+      ],
+      "unit": null,
+      "source": "估算",
+      "notes": "Day20；招牌牛肉80g+大虾×5+蔬菜4种各50g+天水干拌酱1份（150kcal）；去掉汤底，酱料为主要热量来源；误差±50kcal",
+      "section": "麻辣烫",
+      "subsection": null,
+      "headingPath": [
+        "麻辣烫"
+      ],
+      "nutrition": {
+        "calories": 380,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "天水麻辣烫干拌版（标准，不含米饭）",
+        "热量 (kcal)": "380",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "—",
+        "来源": "估算",
+        "备注": "Day20；招牌牛肉80g+大虾×5+蔬菜4种各50g+天水干拌酱1份（150kcal）；去掉汤底，酱料为主要热量来源；误差±50kcal"
+      }
+    },
+    {
+      "id": "39dc00e3c8308b9e",
+      "kind": "food",
+      "canonicalName": "天水麻辣味干拌酱",
+      "aliases": [
+        "天水麻辣味干拌酱"
+      ],
+      "unit": null,
+      "source": "估算",
+      "notes": "Day20；麻酱+辣油为主，约1份/套餐；按实际摄入63%约95kcal",
+      "section": "麻辣烫",
+      "subsection": null,
+      "headingPath": [
+        "麻辣烫"
+      ],
+      "nutrition": {
+        "calories": 150,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "天水麻辣味干拌酱",
+        "热量 (kcal)": "150",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "—",
+        "来源": "估算",
+        "备注": "Day20；麻酱+辣油为主，约1份/套餐；按实际摄入63%约95kcal"
+      }
+    },
+    {
+      "id": "4c1699da9003ecc0",
+      "kind": "food",
+      "canonicalName": "66%黑巧克力（德芙）",
+      "aliases": [
+        "66%黑巧克力（德芙）",
+        "66%黑巧克力"
+      ],
+      "unit": "块(14g)",
+      "source": "官方",
+      "notes": "游离糖约4g/块",
+      "section": "零食",
+      "subsection": "巧克力 / 乳制品 / 糖果",
+      "headingPath": [
+        "零食",
+        "巧克力 / 乳制品 / 糖果"
+      ],
+      "nutrition": {
+        "calories": 84,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "66%黑巧克力（德芙）",
+        "热量 (kcal)": "84",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "块(14g)",
+        "来源": "官方",
+        "备注": "游离糖约4g/块"
+      }
+    },
+    {
+      "id": "a1e121233ce4769a",
+      "kind": "food",
+      "canonicalName": "牛肉干",
+      "aliases": [
+        "牛肉干"
+      ],
+      "unit": "条(14g)",
+      "source": "官方",
+      "notes": null,
+      "section": "零食",
+      "subsection": "巧克力 / 乳制品 / 糖果",
+      "headingPath": [
+        "零食",
+        "巧克力 / 乳制品 / 糖果"
+      ],
+      "nutrition": {
+        "calories": 42,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "牛肉干",
+        "热量 (kcal)": "42",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "条(14g)",
+        "来源": "官方",
+        "备注": ""
+      }
+    },
+    {
+      "id": "85f45744a0f3b79b",
+      "kind": "food",
+      "canonicalName": "瑞特滋 74% 秘鲁黑巧",
+      "aliases": [
+        "瑞特滋 74% 秘鲁黑巧"
+      ],
+      "unit": "100g",
+      "source": "官方",
+      "notes": "6.25g≈36kcal",
+      "section": "零食",
+      "subsection": "巧克力 / 乳制品 / 糖果",
+      "headingPath": [
+        "零食",
+        "巧克力 / 乳制品 / 糖果"
+      ],
+      "nutrition": {
+        "calories": 580,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "瑞特滋 74% 秘鲁黑巧",
+        "热量 (kcal)": "580",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "官方",
+        "备注": "6.25g≈36kcal"
+      }
+    },
+    {
+      "id": "478ede31e47640e0",
+      "kind": "food",
+      "canonicalName": "瑞特滋 81% 加纳黑巧",
+      "aliases": [
+        "瑞特滋 81% 加纳黑巧"
+      ],
+      "unit": "100g",
+      "source": "官方",
+      "notes": null,
+      "section": "零食",
+      "subsection": "巧克力 / 乳制品 / 糖果",
+      "headingPath": [
+        "零食",
+        "巧克力 / 乳制品 / 糖果"
+      ],
+      "nutrition": {
+        "calories": 597,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "瑞特滋 81% 加纳黑巧",
+        "热量 (kcal)": "597",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "官方",
+        "备注": ""
+      }
+    },
+    {
+      "id": "48405fb7f36806a6",
+      "kind": "food",
+      "canonicalName": "瑞特滋 全榛子黑巧",
+      "aliases": [
+        "瑞特滋 全榛子黑巧"
+      ],
+      "unit": "100g",
+      "source": "官方",
+      "notes": "25g≈139kcal；1/4块≈139kcal",
+      "section": "零食",
+      "subsection": "巧克力 / 乳制品 / 糖果",
+      "headingPath": [
+        "零食",
+        "巧克力 / 乳制品 / 糖果"
+      ],
+      "nutrition": {
+        "calories": 557,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "瑞特滋 全榛子黑巧",
+        "热量 (kcal)": "557",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "官方",
+        "备注": "25g≈139kcal；1/4块≈139kcal"
+      }
+    },
+    {
+      "id": "849337214d7f7ffa",
+      "kind": "food",
+      "canonicalName": "爱莲巧 75%（每块15g）",
+      "aliases": [
+        "爱莲巧 75%（每块15g）",
+        "爱莲巧 75%",
+        "每块15g"
+      ],
+      "unit": "100g",
+      "source": "官方",
+      "notes": "单块约83kcal；游离糖约3g/块",
+      "section": "零食",
+      "subsection": "巧克力 / 乳制品 / 糖果",
+      "headingPath": [
+        "零食",
+        "巧克力 / 乳制品 / 糖果"
+      ],
+      "nutrition": {
+        "calories": 551,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "爱莲巧 75%（每块15g）",
+        "热量 (kcal)": "551",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "官方",
+        "备注": "单块约83kcal；游离糖约3g/块"
+      }
+    },
+    {
+      "id": "2fb193f5bd1d4187",
+      "kind": "food",
+      "canonicalName": "纯牛奶（全脂）",
+      "aliases": [
+        "纯牛奶（全脂）",
+        "纯牛奶"
+      ],
+      "unit": "200ml",
+      "source": "估算",
+      "notes": "Day5/8出现",
+      "section": "零食",
+      "subsection": "巧克力 / 乳制品 / 糖果",
+      "headingPath": [
+        "零食",
+        "巧克力 / 乳制品 / 糖果"
+      ],
+      "nutrition": {
+        "calories": 130,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "纯牛奶（全脂）",
+        "热量 (kcal)": "130",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "200ml",
+        "来源": "估算",
+        "备注": "Day5/8出现"
+      }
+    },
+    {
+      "id": "3a47b6d0a9bd2612",
+      "kind": "food",
+      "canonicalName": "伊利小杯酸奶",
+      "aliases": [
+        "伊利小杯酸奶"
+      ],
+      "unit": "杯(约100g)",
+      "source": "估算",
+      "notes": "Day14酒店早餐出现",
+      "section": "零食",
+      "subsection": "巧克力 / 乳制品 / 糖果",
+      "headingPath": [
+        "零食",
+        "巧克力 / 乳制品 / 糖果"
+      ],
+      "nutrition": {
+        "calories": 65,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "伊利小杯酸奶",
+        "热量 (kcal)": "65",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "杯(约100g)",
+        "来源": "估算",
+        "备注": "Day14酒店早餐出现"
+      }
+    },
+    {
+      "id": "589ec27bcbf4ff42",
+      "kind": "food",
+      "canonicalName": "麦当劳甜筒",
+      "aliases": [
+        "麦当劳甜筒"
+      ],
+      "unit": "个",
+      "source": "fatsecret",
+      "notes": null,
+      "section": "零食",
+      "subsection": "巧克力 / 乳制品 / 糖果",
+      "headingPath": [
+        "零食",
+        "巧克力 / 乳制品 / 糖果"
+      ],
+      "nutrition": {
+        "calories": 123,
+        "protein_g": 3,
+        "fat_g": 3,
+        "carbs_g": 20,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 55,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "麦当劳甜筒",
+        "热量 (kcal)": "123",
+        "蛋白质 (g)": "3",
+        "脂肪 (g)": "3",
+        "碳水 (g)": "20",
+        "钠 (mg)": "55",
+        "单位": "个",
+        "来源": "fatsecret",
+        "备注": ""
+      }
+    },
+    {
+      "id": "4088a6c275223d60",
+      "kind": "food",
+      "canonicalName": "阿尔卑斯棒棒糖",
+      "aliases": [
+        "阿尔卑斯棒棒糖"
+      ],
+      "unit": "100g",
+      "source": "✓用户确认",
+      "notes": "Day37出现；1764kJ/100g换算；单颗10g≈42kcal；游离糖约8g/颗 🆕",
+      "section": "零食",
+      "subsection": "巧克力 / 乳制品 / 糖果",
+      "headingPath": [
+        "零食",
+        "巧克力 / 乳制品 / 糖果"
+      ],
+      "nutrition": {
+        "calories": 421,
+        "protein_g": 0,
+        "fat_g": 10,
+        "carbs_g": 80,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "阿尔卑斯棒棒糖",
+        "热量 (kcal)": "421",
+        "蛋白质 (g)": "0",
+        "脂肪 (g)": "10",
+        "碳水 (g)": "80",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "✓用户确认",
+        "备注": "Day37出现；1764kJ/100g换算；**单颗10g≈42kcal**；游离糖约8g/颗 🆕"
+      }
+    },
+    {
+      "id": "9bb2db37f05f5558",
+      "kind": "food",
+      "canonicalName": "苹果",
+      "aliases": [
+        "苹果"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "天然糖，不计入游离糖；中等苹果约150g→78kcal",
+      "section": "零食",
+      "subsection": "水果（每100g，去皮可食部分）",
+      "headingPath": [
+        "零食",
+        "水果（每100g，去皮可食部分）"
+      ],
+      "nutrition": {
+        "calories": 52,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "苹果",
+        "热量 (kcal)": "52",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "天然糖，不计入游离糖；中等苹果约150g→78kcal"
+      }
+    },
+    {
+      "id": "c76f2bc9a0c07b05",
+      "kind": "food",
+      "canonicalName": "香蕉",
+      "aliases": [
+        "香蕉"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "天然糖，不计入游离糖；中等香蕉去皮≈100g→89kcal；小香蕉去皮≈55g→49kcal；带皮200g→去皮约130g→116kcal",
+      "section": "零食",
+      "subsection": "水果（每100g，去皮可食部分）",
+      "headingPath": [
+        "零食",
+        "水果（每100g，去皮可食部分）"
+      ],
+      "nutrition": {
+        "calories": 89,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "香蕉",
+        "热量 (kcal)": "89",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "天然糖，不计入游离糖；中等香蕉去皮≈100g→89kcal；小香蕉去皮≈55g→49kcal；带皮200g→去皮约130g→116kcal"
+      }
+    },
+    {
+      "id": "c1a83328d4735464",
+      "kind": "food",
+      "canonicalName": "橙子",
+      "aliases": [
+        "橙子"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "天然糖，不计入游离糖",
+      "section": "零食",
+      "subsection": "水果（每100g，去皮可食部分）",
+      "headingPath": [
+        "零食",
+        "水果（每100g，去皮可食部分）"
+      ],
+      "nutrition": {
+        "calories": 47,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "橙子",
+        "热量 (kcal)": "47",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "天然糖，不计入游离糖"
+      }
+    },
+    {
+      "id": "fec3fe41287deb1b",
+      "kind": "food",
+      "canonicalName": "草莓",
+      "aliases": [
+        "草莓"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "天然糖，不计入游离糖",
+      "section": "零食",
+      "subsection": "水果（每100g，去皮可食部分）",
+      "headingPath": [
+        "零食",
+        "水果（每100g，去皮可食部分）"
+      ],
+      "nutrition": {
+        "calories": 32,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "草莓",
+        "热量 (kcal)": "32",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "天然糖，不计入游离糖"
+      }
+    },
+    {
+      "id": "ebf30f2bd9ec4bcd",
+      "kind": "food",
+      "canonicalName": "西瓜",
+      "aliases": [
+        "西瓜"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "天然糖，不计入游离糖",
+      "section": "零食",
+      "subsection": "水果（每100g，去皮可食部分）",
+      "headingPath": [
+        "零食",
+        "水果（每100g，去皮可食部分）"
+      ],
+      "nutrition": {
+        "calories": 30,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "西瓜",
+        "热量 (kcal)": "30",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "天然糖，不计入游离糖"
+      }
+    },
+    {
+      "id": "4caf1e623b6d1d12",
+      "kind": "food",
+      "canonicalName": "葡萄",
+      "aliases": [
+        "葡萄"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "天然糖，不计入游离糖",
+      "section": "零食",
+      "subsection": "水果（每100g，去皮可食部分）",
+      "headingPath": [
+        "零食",
+        "水果（每100g，去皮可食部分）"
+      ],
+      "nutrition": {
+        "calories": 69,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "葡萄",
+        "热量 (kcal)": "69",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "天然糖，不计入游离糖"
+      }
+    },
+    {
+      "id": "329ab6d26c8161fe",
+      "kind": "food",
+      "canonicalName": "芒果",
+      "aliases": [
+        "芒果"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "天然糖，不计入游离糖",
+      "section": "零食",
+      "subsection": "水果（每100g，去皮可食部分）",
+      "headingPath": [
+        "零食",
+        "水果（每100g，去皮可食部分）"
+      ],
+      "nutrition": {
+        "calories": 60,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "芒果",
+        "热量 (kcal)": "60",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "天然糖，不计入游离糖"
+      }
+    },
+    {
+      "id": "f4091e7cc336bf9d",
+      "kind": "food",
+      "canonicalName": "猕猴桃",
+      "aliases": [
+        "猕猴桃"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "天然糖，不计入游离糖",
+      "section": "零食",
+      "subsection": "水果（每100g，去皮可食部分）",
+      "headingPath": [
+        "零食",
+        "水果（每100g，去皮可食部分）"
+      ],
+      "nutrition": {
+        "calories": 61,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "猕猴桃",
+        "热量 (kcal)": "61",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "天然糖，不计入游离糖"
+      }
+    },
+    {
+      "id": "a953945ff4cc506c",
+      "kind": "food",
+      "canonicalName": "梨",
+      "aliases": [
+        "梨"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "天然糖，不计入游离糖",
+      "section": "零食",
+      "subsection": "水果（每100g，去皮可食部分）",
+      "headingPath": [
+        "零食",
+        "水果（每100g，去皮可食部分）"
+      ],
+      "nutrition": {
+        "calories": 58,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "梨",
+        "热量 (kcal)": "58",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "天然糖，不计入游离糖"
+      }
+    },
+    {
+      "id": "8abcad33f144f59c",
+      "kind": "food",
+      "canonicalName": "桃子",
+      "aliases": [
+        "桃子"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "天然糖，不计入游离糖",
+      "section": "零食",
+      "subsection": "水果（每100g，去皮可食部分）",
+      "headingPath": [
+        "零食",
+        "水果（每100g，去皮可食部分）"
+      ],
+      "nutrition": {
+        "calories": 39,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "桃子",
+        "热量 (kcal)": "39",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "天然糖，不计入游离糖"
+      }
+    },
+    {
+      "id": "7f04f17a068d9375",
+      "kind": "food",
+      "canonicalName": "蓝莓",
+      "aliases": [
+        "蓝莓"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "天然糖，不计入游离糖；Day25出现；125g≈71kcal",
+      "section": "零食",
+      "subsection": "水果（每100g，去皮可食部分）",
+      "headingPath": [
+        "零食",
+        "水果（每100g，去皮可食部分）"
+      ],
+      "nutrition": {
+        "calories": 57,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "蓝莓",
+        "热量 (kcal)": "57",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "天然糖，不计入游离糖；Day25出现；125g≈71kcal"
+      }
+    },
+    {
+      "id": "27b31cf5b9aab2c1",
+      "kind": "food",
+      "canonicalName": "新鲜菠萝/凤梨",
+      "aliases": [
+        "新鲜菠萝/凤梨",
+        "新鲜菠萝",
+        "凤梨"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "天然糖，不计入游离糖；Day34/39出现；500g≈250kcal 🆕",
+      "section": "零食",
+      "subsection": "水果（每100g，去皮可食部分）",
+      "headingPath": [
+        "零食",
+        "水果（每100g，去皮可食部分）"
+      ],
+      "nutrition": {
+        "calories": 50,
+        "protein_g": 1,
+        "fat_g": 0,
+        "carbs_g": 13,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "新鲜菠萝/凤梨",
+        "热量 (kcal)": "50",
+        "蛋白质 (g)": "1",
+        "脂肪 (g)": "0",
+        "碳水 (g)": "13",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "天然糖，不计入游离糖；Day34/39出现；500g≈250kcal 🆕"
+      }
+    },
+    {
+      "id": "ab819a67329fa26a",
+      "kind": "food",
+      "canonicalName": "燕麦（西麦，干重，冲水）",
+      "aliases": [
+        "燕麦（西麦，干重，冲水）",
+        "燕麦"
+      ],
+      "unit": "35g",
+      "source": "估算",
+      "notes": "Day16晚餐出现",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 130,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "燕麦（西麦，干重，冲水）",
+        "热量 (kcal)": "130",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "35g",
+        "来源": "估算",
+        "备注": "Day16晚餐出现"
+      }
+    },
+    {
+      "id": "db62ced43d5fabca",
+      "kind": "food",
+      "canonicalName": "燕麦（西麦，干重）",
+      "aliases": [
+        "燕麦（西麦，干重）",
+        "燕麦"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "换算基准；35g≈130kcal",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 371,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "燕麦（西麦，干重）",
+        "热量 (kcal)": "371",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "换算基准；35g≈130kcal"
+      }
+    },
+    {
+      "id": "5c5689852b4a6579",
+      "kind": "food",
+      "canonicalName": "土司/吐司（1片）",
+      "aliases": [
+        "土司/吐司（1片）",
+        "土司/吐司",
+        "土司",
+        "吐司（1片）"
+      ],
+      "unit": "片(约30g)",
+      "source": "估算",
+      "notes": "酒店/日常，多日估算",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 80,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "土司/吐司（1片）",
+        "热量 (kcal)": "80",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "片(约30g)",
+        "来源": "估算",
+        "备注": "酒店/日常，多日估算"
+      }
+    },
+    {
+      "id": "e26075fe293a1d97",
+      "kind": "food",
+      "canonicalName": "全麦面包",
+      "aliases": [
+        "全麦面包"
+      ],
+      "unit": "100g",
+      "source": "✓用户确认",
+      "notes": "Day42出现；1062kJ/100g换算；50g≈127kcal；游离糖约4g/100g 🆕",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 254,
+        "protein_g": 10,
+        "fat_g": 3,
+        "carbs_g": 46,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 400,
+        "weight_g": null
+      },
+      "approximateFields": [
+        "sodium_mg"
+      ],
+      "raw": {
+        "食物": "全麦面包",
+        "热量 (kcal)": "254",
+        "蛋白质 (g)": "10",
+        "脂肪 (g)": "3",
+        "碳水 (g)": "46",
+        "钠 (mg)": "~400",
+        "单位": "100g",
+        "来源": "✓用户确认",
+        "备注": "Day42出现；1062kJ/100g换算；**50g≈127kcal**；游离糖约4g/100g 🆕"
+      }
+    },
+    {
+      "id": "cef15d43996fcca1",
+      "kind": "food",
+      "canonicalName": "糯玉米（1/3根）",
+      "aliases": [
+        "糯玉米（1/3根）",
+        "糯玉米",
+        "糯玉米（1",
+        "3根）"
+      ],
+      "unit": "段",
+      "source": "估算",
+      "notes": "整根约220kcal，Day14/15出现",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 73,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "糯玉米（1/3根）",
+        "热量 (kcal)": "73",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "段",
+        "来源": "估算",
+        "备注": "整根约220kcal，Day14/15出现"
+      }
+    },
+    {
+      "id": "ca5c74dfa857d503",
+      "kind": "food",
+      "canonicalName": "小包子",
+      "aliases": [
+        "小包子"
+      ],
+      "unit": "个(约40g)",
+      "source": "估算",
+      "notes": "Day15酒店早餐",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 90,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "小包子",
+        "热量 (kcal)": "90",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "个(约40g)",
+        "来源": "估算",
+        "备注": "Day15酒店早餐"
+      }
+    },
+    {
+      "id": "bd7dc51e57c7e17a",
+      "kind": "food",
+      "canonicalName": "烧麦",
+      "aliases": [
+        "烧麦"
+      ],
+      "unit": "个(约35g)",
+      "source": "估算",
+      "notes": "Day15酒店早餐",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 70,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "烧麦",
+        "热量 (kcal)": "70",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "个(约35g)",
+        "来源": "估算",
+        "备注": "Day15酒店早餐"
+      }
+    },
+    {
+      "id": "ad40e3b2739ad5d9",
+      "kind": "food",
+      "canonicalName": "太阳蛋/煎蛋（少量油）",
+      "aliases": [
+        "太阳蛋/煎蛋（少量油）",
+        "太阳蛋/煎蛋",
+        "太阳蛋",
+        "煎蛋（少量油）"
+      ],
+      "unit": "个",
+      "source": "估算",
+      "notes": "多日牛排套餐中出现",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 90,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "太阳蛋/煎蛋（少量油）",
+        "热量 (kcal)": "90",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "个",
+        "来源": "估算",
+        "备注": "多日牛排套餐中出现"
+      }
+    },
+    {
+      "id": "112490874d523881",
+      "kind": "food",
+      "canonicalName": "德运脱脂奶粉",
+      "aliases": [
+        "德运脱脂奶粉"
+      ],
+      "unit": "15g",
+      "source": "✓确认",
+      "notes": "100g约370kcal，蛋白质35g/100g，脂肪1.2g；配料仅脱脂牛乳",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 55,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "德运脱脂奶粉",
+        "热量 (kcal)": "55",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "15g",
+        "来源": "✓确认",
+        "备注": "100g约370kcal，蛋白质35g/100g，脂肪1.2g；配料仅脱脂牛乳"
+      }
+    },
+    {
+      "id": "de5e295478cd5593",
+      "kind": "food",
+      "canonicalName": "脆香油条",
+      "aliases": [
+        "脆香油条"
+      ],
+      "unit": "根(约80g)",
+      "source": "估算",
+      "notes": "Day21/22/33/35早餐出现；油炸，饱和脂肪较高；约2.25kcal/g",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 180,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "脆香油条",
+        "热量 (kcal)": "180",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "根(约80g)",
+        "来源": "估算",
+        "备注": "Day21/22/33/35早餐出现；油炸，饱和脂肪较高；约2.25kcal/g"
+      }
+    },
+    {
+      "id": "dd87f557276b16f6",
+      "kind": "food",
+      "canonicalName": "德式图林根香肠",
+      "aliases": [
+        "德式图林根香肠"
+      ],
+      "unit": "根(约40g)",
+      "source": "估算",
+      "notes": "Day20早餐出现；猪肉肠，蛋白质约5g/根；误差±15kcal",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 87,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "德式图林根香肠",
+        "热量 (kcal)": "87",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "根(约40g)",
+        "来源": "估算",
+        "备注": "Day20早餐出现；猪肉肠，蛋白质约5g/根；误差±15kcal"
+      }
+    },
+    {
+      "id": "e75e65d94ae8d931",
+      "kind": "food",
+      "canonicalName": "精品米饭（熟重）",
+      "aliases": [
+        "精品米饭（熟重）",
+        "精品米饭"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "与普通白米饭相当，130kcal/100g熟重",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 130,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "精品米饭（熟重）",
+        "热量 (kcal)": "130",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "与普通白米饭相当，130kcal/100g熟重"
+      }
+    },
+    {
+      "id": "d89442b8a2bc933b",
+      "kind": "food",
+      "canonicalName": "鸡胸肉（熟重，蒸/煮）",
+      "aliases": [
+        "鸡胸肉（熟重，蒸/煮）",
+        "鸡胸肉",
+        "鸡胸肉（熟重，蒸",
+        "煮）"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day25出现；高蛋白低脂；单份约75~100g",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 165,
+        "protein_g": 31,
+        "fat_g": 3,
+        "carbs_g": 0,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "鸡胸肉（熟重，蒸/煮）",
+        "热量 (kcal)": "165",
+        "蛋白质 (g)": "31",
+        "脂肪 (g)": "3",
+        "碳水 (g)": "0",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day25出现；高蛋白低脂；单份约75~100g"
+      }
+    },
+    {
+      "id": "c6f4ed29fd4f6f9a",
+      "kind": "food",
+      "canonicalName": "白灼基围虾/虾仁（熟，去壳）",
+      "aliases": [
+        "白灼基围虾/虾仁（熟，去壳）",
+        "白灼基围虾/虾仁",
+        "白灼基围虾",
+        "虾仁（熟，去壳）"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day24出现；高蛋白极低脂；35.4g≈35kcal",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 100,
+        "protein_g": 22,
+        "fat_g": 1,
+        "carbs_g": 0,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "白灼基围虾/虾仁（熟，去壳）",
+        "热量 (kcal)": "100",
+        "蛋白质 (g)": "22",
+        "脂肪 (g)": "1",
+        "碳水 (g)": "0",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day24出现；高蛋白极低脂；35.4g≈35kcal"
+      }
+    },
+    {
+      "id": "edb3e59bfd3d4e71",
+      "kind": "food",
+      "canonicalName": "无油蜜汁烤鸡腿（去皮，熟重）",
+      "aliases": [
+        "无油蜜汁烤鸡腿（去皮，熟重）",
+        "无油蜜汁烤鸡腿"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day24出现；含蜂蜜糖分；68.9g≈117kcal",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 170,
+        "protein_g": 25,
+        "fat_g": 5,
+        "carbs_g": 8,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "无油蜜汁烤鸡腿（去皮，熟重）",
+        "热量 (kcal)": "170",
+        "蛋白质 (g)": "25",
+        "脂肪 (g)": "5",
+        "碳水 (g)": "8",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day24出现；含蜂蜜糖分；68.9g≈117kcal"
+      }
+    },
+    {
+      "id": "566c3ae9228ac4ec",
+      "kind": "food",
+      "canonicalName": "油醋汁（沙拉用）",
+      "aliases": [
+        "油醋汁（沙拉用）",
+        "油醋汁"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day24出现；主要成分为醋+橄榄油；20g≈40kcal",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 200,
+        "protein_g": 0,
+        "fat_g": 18,
+        "carbs_g": 8,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "油醋汁（沙拉用）",
+        "热量 (kcal)": "200",
+        "蛋白质 (g)": "0",
+        "脂肪 (g)": "18",
+        "碳水 (g)": "8",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day24出现；主要成分为醋+橄榄油；20g≈40kcal"
+      }
+    },
+    {
+      "id": "c797720ea8501e28",
+      "kind": "food",
+      "canonicalName": "纯猪肉培根（烤/煎）",
+      "aliases": [
+        "纯猪肉培根（烤/煎）",
+        "纯猪肉培根",
+        "纯猪肉培根（烤",
+        "煎）"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day28精品汉堡店出现；1片约25g≈65kcal",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 260,
+        "protein_g": 15,
+        "fat_g": 22,
+        "carbs_g": 0,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "纯猪肉培根（烤/煎）",
+        "热量 (kcal)": "260",
+        "蛋白质 (g)": "15",
+        "脂肪 (g)": "22",
+        "碳水 (g)": "0",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day28精品汉堡店出现；1片约25g≈65kcal"
+      }
+    },
+    {
+      "id": "43602fee0f825485",
+      "kind": "food",
+      "canonicalName": "香甜菠萝片（新鲜）",
+      "aliases": [
+        "香甜菠萝片（新鲜）",
+        "香甜菠萝片"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day28精品汉堡配料出现；1片约40g≈20kcal",
+      "section": "日常食品",
+      "subsection": null,
+      "headingPath": [
+        "日常食品"
+      ],
+      "nutrition": {
+        "calories": 50,
+        "protein_g": 0,
+        "fat_g": 0,
+        "carbs_g": 13,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "香甜菠萝片（新鲜）",
+        "热量 (kcal)": "50",
+        "蛋白质 (g)": "0",
+        "脂肪 (g)": "0",
+        "碳水 (g)": "13",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day28精品汉堡配料出现；1片约40g≈20kcal"
+      }
+    },
+    {
+      "id": "bac864275f633b20",
+      "kind": "food",
+      "canonicalName": "海带丝（咸，凉拌）",
+      "aliases": [
+        "海带丝（咸，凉拌）",
+        "海带丝"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day37/38/40高频；30g≈10kcal；热量可忽略，钠不可忽略（30g≈150mg）",
+      "section": "日常食品",
+      "subsection": "凉拌配菜 🆕 v2.3",
+      "headingPath": [
+        "日常食品",
+        "凉拌配菜 🆕 v2.3"
+      ],
+      "nutrition": {
+        "calories": 35,
+        "protein_g": 1,
+        "fat_g": 0,
+        "carbs_g": 6,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 500,
+        "weight_g": null
+      },
+      "approximateFields": [
+        "sodium_mg"
+      ],
+      "raw": {
+        "食物": "海带丝（咸，凉拌）",
+        "热量 (kcal)": "35",
+        "蛋白质 (g)": "1",
+        "脂肪 (g)": "0",
+        "碳水 (g)": "6",
+        "钠 (mg)": "~500",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day37/38/40高频；**30g≈10kcal**；热量可忽略，钠不可忽略（30g≈150mg）"
+      }
+    },
+    {
+      "id": "42d3cccb40c2e73c",
+      "kind": "food",
+      "canonicalName": "笋（熟，凉拌/水煮）",
+      "aliases": [
+        "笋（熟，凉拌/水煮）",
+        "笋",
+        "笋（熟，凉拌",
+        "水煮）"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day40出现；竹笋，极低热量；膳食纤维约2g/100g",
+      "section": "日常食品",
+      "subsection": "凉拌配菜 🆕 v2.3",
+      "headingPath": [
+        "日常食品",
+        "凉拌配菜 🆕 v2.3"
+      ],
+      "nutrition": {
+        "calories": 27,
+        "protein_g": 3,
+        "fat_g": 0,
+        "carbs_g": 5,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 200,
+        "weight_g": null
+      },
+      "approximateFields": [
+        "sodium_mg"
+      ],
+      "raw": {
+        "食物": "笋（熟，凉拌/水煮）",
+        "热量 (kcal)": "27",
+        "蛋白质 (g)": "3",
+        "脂肪 (g)": "0",
+        "碳水 (g)": "5",
+        "钠 (mg)": "~200",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day40出现；竹笋，极低热量；膳食纤维约2g/100g"
+      }
+    },
+    {
+      "id": "b0ef903a7a4ace32",
+      "kind": "food",
+      "canonicalName": "木耳（凉拌，水发）",
+      "aliases": [
+        "木耳（凉拌，水发）",
+        "木耳"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day42出现；热量极低；富含水溶性膳食纤维",
+      "section": "日常食品",
+      "subsection": "凉拌配菜 🆕 v2.3",
+      "headingPath": [
+        "日常食品",
+        "凉拌配菜 🆕 v2.3"
+      ],
+      "nutrition": {
+        "calories": 20,
+        "protein_g": 1,
+        "fat_g": 0,
+        "carbs_g": 4,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 50,
+        "weight_g": null
+      },
+      "approximateFields": [
+        "sodium_mg"
+      ],
+      "raw": {
+        "食物": "木耳（凉拌，水发）",
+        "热量 (kcal)": "20",
+        "蛋白质 (g)": "1",
+        "脂肪 (g)": "0",
+        "碳水 (g)": "4",
+        "钠 (mg)": "~50",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day42出现；热量极低；富含水溶性膳食纤维"
+      }
+    },
+    {
+      "id": "44c7e261f58a23fc",
+      "kind": "reference",
+      "canonicalName": "海带丝（咸）30g",
+      "aliases": [
+        "海带丝（咸）30g",
+        "海带丝30g"
+      ],
+      "unit": null,
+      "source": null,
+      "notes": null,
+      "section": "日常食品",
+      "subsection": "凉菜混合参考",
+      "headingPath": [
+        "日常食品",
+        "凉菜混合参考"
+      ],
+      "nutrition": {
+        "calories": 10,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 150,
+        "weight_g": 30
+      },
+      "approximateFields": [
+        "calories",
+        "sodium_mg"
+      ],
+      "raw": {
+        "组合": "海带丝（咸）30g",
+        "重量": "30g",
+        "热量估算": "~10 kcal",
+        "钠估算": "~150mg"
+      }
+    },
+    {
+      "id": "927ce6359123d72c",
+      "kind": "reference",
+      "canonicalName": "笋+海带丝凉菜",
+      "aliases": [
+        "笋+海带丝凉菜"
+      ],
+      "unit": null,
+      "source": null,
+      "notes": null,
+      "section": "日常食品",
+      "subsection": "凉菜混合参考",
+      "headingPath": [
+        "日常食品",
+        "凉菜混合参考"
+      ],
+      "nutrition": {
+        "calories": 25,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 200,
+        "weight_g": 91
+      },
+      "approximateFields": [
+        "calories",
+        "sodium_mg"
+      ],
+      "raw": {
+        "组合": "笋+海带丝凉菜",
+        "重量": "91g",
+        "热量估算": "~25 kcal",
+        "钠估算": "~200mg"
+      }
+    },
+    {
+      "id": "059f32b2caaba7e6",
+      "kind": "reference",
+      "canonicalName": "木耳+海带丝",
+      "aliases": [
+        "木耳+海带丝"
+      ],
+      "unit": null,
+      "source": null,
+      "notes": null,
+      "section": "日常食品",
+      "subsection": "凉菜混合参考",
+      "headingPath": [
+        "日常食品",
+        "凉菜混合参考"
+      ],
+      "nutrition": {
+        "calories": 15,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 120,
+        "weight_g": 53
+      },
+      "approximateFields": [
+        "calories",
+        "sodium_mg"
+      ],
+      "raw": {
+        "组合": "木耳+海带丝",
+        "重量": "53g",
+        "热量估算": "~15 kcal",
+        "钠估算": "~120mg"
+      }
+    },
+    {
+      "id": "b44753317406c954",
+      "kind": "food",
+      "canonicalName": "卤鸭爪（带骨）",
+      "aliases": [
+        "卤鸭爪（带骨）",
+        "卤鸭爪"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day38出现；两个带骨约60g≈72kcal；钠偏高；净肉约180kcal/100g 🆕",
+      "section": "卤味 / 熟食",
+      "subsection": null,
+      "headingPath": [
+        "卤味 / 熟食"
+      ],
+      "nutrition": {
+        "calories": 120,
+        "protein_g": 12,
+        "fat_g": 7,
+        "carbs_g": 2,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 400,
+        "weight_g": null
+      },
+      "approximateFields": [
+        "sodium_mg"
+      ],
+      "raw": {
+        "食物": "卤鸭爪（带骨）",
+        "热量 (kcal)": "120",
+        "蛋白质 (g)": "12",
+        "脂肪 (g)": "7",
+        "碳水 (g)": "2",
+        "钠 (mg)": "~400",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day38出现；两个带骨约60g≈72kcal；钠偏高；净肉约180kcal/100g 🆕"
+      }
+    },
+    {
+      "id": "455e7314afd4955c",
+      "kind": "food",
+      "canonicalName": "黑椒牛排+意面套餐（牛排150g+意面200g+煎蛋×2+蔬菜）",
+      "aliases": [
+        "黑椒牛排+意面套餐（牛排150g+意面200g+煎蛋×2+蔬菜）",
+        "黑椒牛排+意面套餐",
+        "牛排150g+意面200g+煎蛋×2+蔬菜"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day7确认克重；误差±50kcal；全份约900+kcal",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 675,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "黑椒牛排+意面套餐（牛排150g+意面200g+煎蛋×2+蔬菜）",
+        "热量 (kcal)": "675",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day7确认克重；误差±50kcal；全份约900+kcal"
+      }
+    },
+    {
+      "id": "8ad0999bca222139",
+      "kind": "food",
+      "canonicalName": "精品汉堡（布里欧修+煎蛋+牛肉饼，去酱）",
+      "aliases": [
+        "精品汉堡（布里欧修+煎蛋+牛肉饼，去酱）",
+        "精品汉堡"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day15精品汉堡店；含煎蛋版本",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 480,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "精品汉堡（布里欧修+煎蛋+牛肉饼，去酱）",
+        "热量 (kcal)": "480",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day15精品汉堡店；含煎蛋版本"
+      }
+    },
+    {
+      "id": "3b7a4e4eb1a3aa29",
+      "kind": "food",
+      "canonicalName": "精品汉堡（布里欧修+厚牛肉饼+培根+芝士+生菜+番茄，去酱，350g）",
+      "aliases": [
+        "精品汉堡（布里欧修+厚牛肉饼+培根+芝士+生菜+番茄，去酱，350g）",
+        "精品汉堡",
+        "布里欧修+厚牛肉饼+培根+芝士+生菜+番茄，去酱，350g"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day22精品汉堡店；无煎蛋，有培根+芝士；误差±50kcal",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 580,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "精品汉堡（布里欧修+厚牛肉饼+培根+芝士+生菜+番茄，去酱，350g）",
+        "热量 (kcal)": "580",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day22精品汉堡店；无煎蛋，有培根+芝士；误差±50kcal"
+      }
+    },
+    {
+      "id": "28bb03df6351f871",
+      "kind": "food",
+      "canonicalName": "精品汉堡（鸡蛋胚+厚牛肉+培根+芝士+菠萝，少酱，约350g）",
+      "aliases": [
+        "精品汉堡（鸡蛋胚+厚牛肉+培根+芝士+菠萝，少酱，约350g）",
+        "精品汉堡",
+        "鸡蛋胚+厚牛肉+培根+芝士+菠萝，少酱，约350g"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day28精品汉堡店；以鸡蛋替代面包胚，蛋白质高；误差±60",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 580,
+        "protein_g": 47,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [
+        "protein_g"
+      ],
+      "raw": {
+        "食物": "精品汉堡（鸡蛋胚+厚牛肉+培根+芝士+菠萝，少酱，约350g）",
+        "热量 (kcal)": "580",
+        "蛋白质 (g)": "~47",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day28精品汉堡店；以鸡蛋替代面包胚，蛋白质高；误差±60"
+      }
+    },
+    {
+      "id": "078b1ace49773072",
+      "kind": "food",
+      "canonicalName": "芝士蘸酱（精品汉堡店，约30g）",
+      "aliases": [
+        "芝士蘸酱（精品汉堡店，约30g）",
+        "芝士蘸酱",
+        "精品汉堡店，约30g"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day22出现；奶酪基底蘸酱；误差±15kcal",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 70,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "芝士蘸酱（精品汉堡店，约30g）",
+        "热量 (kcal)": "70",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day22出现；奶酪基底蘸酱；误差±15kcal"
+      }
+    },
+    {
+      "id": "cc06411db3a5d11d",
+      "kind": "food",
+      "canonicalName": "蒜味蘸酱（精品汉堡店，约30g）",
+      "aliases": [
+        "蒜味蘸酱（精品汉堡店，约30g）",
+        "蒜味蘸酱",
+        "精品汉堡店，约30g"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day33出现；蒜香奶酪基底；参考芝士蘸酱；误差±15kcal 🆕",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 65,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "蒜味蘸酱（精品汉堡店，约30g）",
+        "热量 (kcal)": "65",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day33出现；蒜香奶酪基底；参考芝士蘸酱；误差±15kcal 🆕"
+      }
+    },
+    {
+      "id": "18c3a228dd01c64d",
+      "kind": "food",
+      "canonicalName": "薯角（精品汉堡店，约150g）",
+      "aliases": [
+        "薯角（精品汉堡店，约150g）",
+        "薯角",
+        "精品汉堡店，约150g"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day15/22/33出现",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 280,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "薯角（精品汉堡店，约150g）",
+        "热量 (kcal)": "280",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day15/22/33出现"
+      }
+    },
+    {
+      "id": "dd833d6b7aea12f4",
+      "kind": "food",
+      "canonicalName": "奥尔良鸡排三明治（快餐版，全份）",
+      "aliases": [
+        "奥尔良鸡排三明治（快餐版，全份）",
+        "奥尔良鸡排三明治"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day39出现；非赛百味；2/3份≈260kcal；误差±50 🆕",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 390,
+        "protein_g": 20,
+        "fat_g": 12,
+        "carbs_g": 48,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": 600,
+        "weight_g": null
+      },
+      "approximateFields": [
+        "sodium_mg"
+      ],
+      "raw": {
+        "食物": "奥尔良鸡排三明治（快餐版，全份）",
+        "热量 (kcal)": "390",
+        "蛋白质 (g)": "20",
+        "脂肪 (g)": "12",
+        "碳水 (g)": "48",
+        "钠 (mg)": "~600",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day39出现；非赛百味；**2/3份≈260kcal**；误差±50 🆕"
+      }
+    },
+    {
+      "id": "bdfad7030261625e",
+      "kind": "food",
+      "canonicalName": "川菜-小炒黄牛肉（个人份，÷2）",
+      "aliases": [
+        "川菜-小炒黄牛肉（个人份，÷2）",
+        "川菜-小炒黄牛肉"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day13约会川菜",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 300,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "川菜-小炒黄牛肉（个人份，÷2）",
+        "热量 (kcal)": "300",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day13约会川菜"
+      }
+    },
+    {
+      "id": "50c18d16af19ec1e",
+      "kind": "food",
+      "canonicalName": "川菜-螺丝鸡（个人份，÷2）",
+      "aliases": [
+        "川菜-螺丝鸡（个人份，÷2）",
+        "川菜-螺丝鸡"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day13，重油",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 350,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "川菜-螺丝鸡（个人份，÷2）",
+        "热量 (kcal)": "350",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day13，重油"
+      }
+    },
+    {
+      "id": "4dcc6bd0306d1174",
+      "kind": "food",
+      "canonicalName": "川菜-干煸四季豆（个人份，÷2）",
+      "aliases": [
+        "川菜-干煸四季豆（个人份，÷2）",
+        "川菜-干煸四季豆"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day13，素菜但干煸工艺用油极多",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 180,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "川菜-干煸四季豆（个人份，÷2）",
+        "热量 (kcal)": "180",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day13，素菜但干煸工艺用油极多"
+      }
+    },
+    {
+      "id": "091c0bf77b17cb08",
+      "kind": "food",
+      "canonicalName": "干煸四季豆（聚餐版，个人份）",
+      "aliases": [
+        "干煸四季豆（聚餐版，个人份）",
+        "干煸四季豆"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day27组内聚餐；同Day13",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 180,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "干煸四季豆（聚餐版，个人份）",
+        "热量 (kcal)": "180",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day27组内聚餐；同Day13"
+      }
+    },
+    {
+      "id": "c1ecb277fbe8a9a2",
+      "kind": "food",
+      "canonicalName": "蓝莓桑葚酸奶昔（中杯500ml，少甜）",
+      "aliases": [
+        "蓝莓桑葚酸奶昔（中杯500ml，少甜）",
+        "蓝莓桑葚酸奶昔",
+        "中杯500ml，少甜"
+      ],
+      "unit": "杯",
+      "source": "估算",
+      "notes": "Day13，游离糖约25~35g，注意隐形糖",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 280,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "蓝莓桑葚酸奶昔（中杯500ml，少甜）",
+        "热量 (kcal)": "280",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "杯",
+        "来源": "估算",
+        "备注": "Day13，游离糖约25~35g，注意隐形糖"
+      }
+    },
+    {
+      "id": "f846ddc0bf1be68c",
+      "kind": "food",
+      "canonicalName": "豪客来鲜蔬沙拉牛排套餐",
+      "aliases": [
+        "豪客来鲜蔬沙拉牛排套餐"
+      ],
+      "unit": "份",
+      "source": "✓确认",
+      "notes": "Day14，用户给出上限值",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 350,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "豪客来鲜蔬沙拉牛排套餐",
+        "热量 (kcal)": "350",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "✓确认",
+        "备注": "Day14，用户给出上限值"
+      }
+    },
+    {
+      "id": "136bdb61ee08ad86",
+      "kind": "food",
+      "canonicalName": "必胜客-芝士安格斯培根披萨（个人份，÷2）",
+      "aliases": [
+        "必胜客-芝士安格斯培根披萨（个人份，÷2）",
+        "必胜客-芝士安格斯培根披萨"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day14，含芝士加量+蛋黄酱",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 725,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "必胜客-芝士安格斯培根披萨（个人份，÷2）",
+        "热量 (kcal)": "725",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day14，含芝士加量+蛋黄酱"
+      }
+    },
+    {
+      "id": "b39e8a7026a3002a",
+      "kind": "food",
+      "canonicalName": "必胜客-炭烤牛排（个人份，÷2）",
+      "aliases": [
+        "必胜客-炭烤牛排（个人份，÷2）",
+        "必胜客-炭烤牛排"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day14",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 175,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "必胜客-炭烤牛排（个人份，÷2）",
+        "热量 (kcal)": "175",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day14"
+      }
+    },
+    {
+      "id": "24d5e9bc689e382a",
+      "kind": "food",
+      "canonicalName": "必胜客-川香傲椒脆翅尖×4（个人份）",
+      "aliases": [
+        "必胜客-川香傲椒脆翅尖×4（个人份）",
+        "必胜客-川香傲椒脆翅尖×4"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day14",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 200,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "必胜客-川香傲椒脆翅尖×4（个人份）",
+        "热量 (kcal)": "200",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day14"
+      }
+    },
+    {
+      "id": "d3b6736dac438a94",
+      "kind": "food",
+      "canonicalName": "春红火锅-卤肉蛋炒饭（个人份，÷3）",
+      "aliases": [
+        "春红火锅-卤肉蛋炒饭（个人份，÷3）",
+        "春红火锅-卤肉蛋炒饭"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day15，精制碳水+油脂组合",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 183,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "春红火锅-卤肉蛋炒饭（个人份，÷3）",
+        "热量 (kcal)": "183",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day15，精制碳水+油脂组合"
+      }
+    },
+    {
+      "id": "a8fb0bdd3a2d7930",
+      "kind": "food",
+      "canonicalName": "春红火锅-烧卤粑肥肠（个人份，÷3）",
+      "aliases": [
+        "春红火锅-烧卤粑肥肠（个人份，÷3）",
+        "春红火锅-烧卤粑肥肠"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day15，高油脂",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 107,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "春红火锅-烧卤粑肥肠（个人份，÷3）",
+        "热量 (kcal)": "107",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day15，高油脂"
+      }
+    },
+    {
+      "id": "d3856199c654e75e",
+      "kind": "food",
+      "canonicalName": "春红火锅-手工嫩牛肉/手工现切牛肉（个人份，÷3）",
+      "aliases": [
+        "春红火锅-手工嫩牛肉/手工现切牛肉（个人份，÷3）",
+        "春红火锅-手工嫩牛肉/手工现切牛肉",
+        "春红火锅-手工嫩牛肉",
+        "手工现切牛肉（个人份，÷3）"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day15",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 60,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "春红火锅-手工嫩牛肉/手工现切牛肉（个人份，÷3）",
+        "热量 (kcal)": "60",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day15"
+      }
+    },
+    {
+      "id": "5f5a90ef22649b6b",
+      "kind": "food",
+      "canonicalName": "啤酒（普通拉格/工业啤酒，约4%）",
+      "aliases": [
+        "啤酒（普通拉格/工业啤酒，约4%）",
+        "啤酒",
+        "啤酒（普通拉格",
+        "工业啤酒，约4%）"
+      ],
+      "unit": "100ml",
+      "source": "估算",
+      "notes": "Day27聚餐；500ml/瓶≈215kcal；游离糖约3g/瓶",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 43,
+        "protein_g": 0,
+        "fat_g": 0,
+        "carbs_g": 3,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "啤酒（普通拉格/工业啤酒，约4%）",
+        "热量 (kcal)": "43",
+        "蛋白质 (g)": "0",
+        "脂肪 (g)": "0",
+        "碳水 (g)": "3",
+        "钠 (mg)": "—",
+        "单位": "100ml",
+        "来源": "估算",
+        "备注": "Day27聚餐；500ml/瓶≈215kcal；游离糖约3g/瓶"
+      }
+    },
+    {
+      "id": "d4dbcc91596a6c47",
+      "kind": "food",
+      "canonicalName": "红糖糍粑",
+      "aliases": [
+        "红糖糍粑"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day27聚餐；糯米+红糖，高GI；游离糖约20g/100g",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 280,
+        "protein_g": 3,
+        "fat_g": 5,
+        "carbs_g": 56,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "红糖糍粑",
+        "热量 (kcal)": "280",
+        "蛋白质 (g)": "3",
+        "脂肪 (g)": "5",
+        "碳水 (g)": "56",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day27聚餐；糯米+红糖，高GI；游离糖约20g/100g"
+      }
+    },
+    {
+      "id": "06bc7ecfe1c9c998",
+      "kind": "food",
+      "canonicalName": "反沙胡豆（糖衣炸豆）",
+      "aliases": [
+        "反沙胡豆（糖衣炸豆）",
+        "反沙胡豆"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day27聚餐；油炸+糖衣，游离糖高；50g≈190kcal",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 380,
+        "protein_g": 18,
+        "fat_g": 10,
+        "carbs_g": 55,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "反沙胡豆（糖衣炸豆）",
+        "热量 (kcal)": "380",
+        "蛋白质 (g)": "18",
+        "脂肪 (g)": "10",
+        "碳水 (g)": "55",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day27聚餐；油炸+糖衣，游离糖高；50g≈190kcal"
+      }
+    },
+    {
+      "id": "5e435c08cdbb9927",
+      "kind": "food",
+      "canonicalName": "兔肉（烹饪熟重，去骨）",
+      "aliases": [
+        "兔肉（烹饪熟重，去骨）",
+        "兔肉"
+      ],
+      "unit": "100g",
+      "source": "估算",
+      "notes": "Day27聚餐；低脂高蛋白",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 130,
+        "protein_g": 21,
+        "fat_g": 5,
+        "carbs_g": 0,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "兔肉（烹饪熟重，去骨）",
+        "热量 (kcal)": "130",
+        "蛋白质 (g)": "21",
+        "脂肪 (g)": "5",
+        "碳水 (g)": "0",
+        "钠 (mg)": "—",
+        "单位": "100g",
+        "来源": "估算",
+        "备注": "Day27聚餐；低脂高蛋白"
+      }
+    },
+    {
+      "id": "aea49a0c22b9ed02",
+      "kind": "food",
+      "canonicalName": "聚餐混合白肉（鸡/鱼/兔，约300g估算）",
+      "aliases": [
+        "聚餐混合白肉（鸡/鱼/兔，约300g估算）",
+        "聚餐混合白肉",
+        "聚餐混合白肉（鸡",
+        "鱼",
+        "兔，约300g估算）",
+        "鸡/鱼/兔，约300g估算"
+      ],
+      "unit": "份",
+      "source": "估算",
+      "notes": "Day27；平均值，误差±100kcal",
+      "section": "外餐估算",
+      "subsection": null,
+      "headingPath": [
+        "外餐估算"
+      ],
+      "nutrition": {
+        "calories": 450,
+        "protein_g": null,
+        "fat_g": null,
+        "carbs_g": null,
+        "fiber_g": null,
+        "sugar_g": null,
+        "sodium_mg": null,
+        "weight_g": null
+      },
+      "approximateFields": [],
+      "raw": {
+        "食物": "聚餐混合白肉（鸡/鱼/兔，约300g估算）",
+        "热量 (kcal)": "450",
+        "蛋白质 (g)": "—",
+        "脂肪 (g)": "—",
+        "碳水 (g)": "—",
+        "钠 (mg)": "—",
+        "单位": "份",
+        "来源": "估算",
+        "备注": "Day27；平均值，误差±100kcal"
+      }
+    }
+  ]
+}

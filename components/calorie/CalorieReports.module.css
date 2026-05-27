@@ -1,0 +1,361 @@
+.root {
+  --report-bg: #12120f;
+  --report-surface: rgba(25, 27, 22, 0.86);
+  --report-panel: rgba(34, 38, 29, 0.86);
+  --report-ink: #f5efe0;
+  --report-muted: rgba(245, 239, 224, 0.62);
+  --report-border: rgba(201, 214, 169, 0.14);
+  --report-accent: #c5ff88;
+  --report-accent-2: #ff9f59;
+  color: var(--report-ink);
+  min-height: 100vh;
+  padding-bottom: 5rem;
+  background:
+    radial-gradient(circle at 18% 14%, rgba(197, 255, 136, 0.12), transparent 18%),
+    radial-gradient(circle at 82% 10%, rgba(255, 159, 89, 0.12), transparent 22%),
+    linear-gradient(180deg, #12120f, #0d0e0b 50%, #11130f);
+}
+
+.atmosphere {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(197, 255, 136, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(197, 255, 136, 0.06) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.16));
+}
+
+.heroShell,
+.controlShell {
+  width: 100%;
+  max-width: 90rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+.heroShell {
+  padding-top: 4.6rem;
+}
+
+.heroCard,
+.toolbar,
+.summaryCard,
+.reportPanel,
+.sourceCard,
+.insightCard,
+.targetRow {
+  border: 1px solid var(--report-border);
+  border-radius: 1.8rem;
+  background: var(--report-surface);
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(14px);
+}
+
+.heroCard {
+  padding: 1.4rem;
+}
+
+.heroNav,
+.toolbar,
+.periodButtons,
+.anchorField,
+.summaryGrid,
+.reportGrid,
+.sectionHeader,
+.chartBoard,
+.sourceList,
+.insightList,
+.targetTable,
+.targetRow,
+.sourceCard,
+.insightCard,
+.barColumn,
+.barTrack {
+  display: flex;
+}
+
+.heroNav,
+.toolbar,
+.sectionHeader,
+.sourceCard,
+.targetRow,
+.periodButtons,
+.anchorField {
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.navLink,
+.periodButton,
+.periodButtonActive,
+.refreshButton,
+.eyebrow,
+.sectionKicker,
+.anchorField label,
+.barLabel,
+.barValue,
+.sourceCard span,
+.targetRow span {
+  font-family: var(--font-calorie-mono), var(--font-geist-mono), monospace;
+}
+
+.navLink,
+.periodButton,
+.periodButtonActive,
+.refreshButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.7rem 0.92rem;
+  border-radius: 999px;
+  border: 1px solid var(--report-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--report-ink);
+  text-decoration: none;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.eyebrow,
+.sectionKicker,
+.anchorField label,
+.barLabel,
+.barValue,
+.sourceCard span,
+.targetRow span {
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--report-muted);
+}
+
+.heroCard h1,
+.sectionHeader h2,
+.summaryCard strong,
+.sourceCard strong,
+.targetRow strong {
+  font-family: var(--font-calorie-display), var(--font-noto-sc), serif;
+}
+
+.heroCard h1 {
+  margin: 0.55rem 0 0;
+  font-size: clamp(3rem, 8vw, 5.4rem);
+  letter-spacing: -0.05em;
+  line-height: 0.94;
+}
+
+.subtitle {
+  max-width: 44rem;
+  margin: 0.9rem 0 0;
+  color: var(--report-muted);
+  line-height: 1.8;
+}
+
+.controlShell {
+  padding-top: 1.3rem;
+}
+
+.toolbar {
+  flex-wrap: wrap;
+  padding: 1rem;
+}
+
+.periodButtons {
+  gap: 0.55rem;
+}
+
+.periodButton,
+.periodButtonActive,
+.refreshButton {
+  cursor: pointer;
+}
+
+.periodButtonActive {
+  border-color: rgba(197, 255, 136, 0.4);
+  background: rgba(197, 255, 136, 0.14);
+  color: var(--report-accent);
+}
+
+.anchorField {
+  flex-wrap: wrap;
+}
+
+.anchorField input {
+  border: 1px solid var(--report-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--report-ink);
+  padding: 0.75rem 1rem;
+}
+
+.summaryGrid {
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.summaryCard {
+  flex: 1 1 14rem;
+  padding: 1rem;
+}
+
+.summaryCard span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--report-muted);
+  font-size: 0.8rem;
+}
+
+.summaryCard strong {
+  display: block;
+  margin-top: 0.65rem;
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.summaryCard p {
+  margin: 0.45rem 0 0;
+  color: var(--report-muted);
+}
+
+.reportGrid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.reportPanel {
+  padding: 1rem;
+}
+
+.sectionHeader h2 {
+  margin: 0.24rem 0 0;
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+}
+
+.chartBoard {
+  align-items: end;
+  gap: 0.55rem;
+  min-height: 18rem;
+  margin-top: 1rem;
+}
+
+.barColumn {
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.barTrack {
+  position: relative;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  min-height: 13rem;
+  padding: 0.35rem;
+  border-radius: 1.2rem;
+  background: linear-gradient(180deg, rgba(197, 255, 136, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(197, 255, 136, 0.08);
+}
+
+.barTrack div {
+  width: 100%;
+  border-radius: 0.95rem;
+  background: linear-gradient(180deg, var(--report-accent), var(--report-accent-2));
+  box-shadow: 0 0 40px rgba(197, 255, 136, 0.18);
+}
+
+.sourceList,
+.insightList,
+.targetTable {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.sourceCard,
+.targetRow {
+  padding: 0.9rem 1rem;
+}
+
+.sourceCard strong,
+.targetRow strong {
+  display: block;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.sourceCard p {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--report-accent);
+}
+
+.insightPanel {
+  background:
+    linear-gradient(180deg, rgba(255, 159, 89, 0.08), rgba(25, 27, 22, 0.86)),
+    var(--report-panel);
+}
+
+.insightCard {
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.95rem 1rem;
+}
+
+.insightCard p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.emptyState,
+.loadingState,
+.errorBanner {
+  margin-top: 0.9rem;
+  padding: 0.95rem 1rem;
+  border-radius: 1.1rem;
+  line-height: 1.7;
+}
+
+.emptyState,
+.loadingState {
+  border: 1px dashed var(--report-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--report-muted);
+}
+
+.errorBanner {
+  border: 1px solid rgba(255, 159, 89, 0.2);
+  background: rgba(255, 159, 89, 0.08);
+  color: #ffb37c;
+}
+
+@media (min-width: 768px) {
+  .heroShell,
+  .controlShell {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1120px) {
+  .heroShell,
+  .controlShell {
+    padding-inline: 2rem;
+  }
+
+  .reportGrid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    align-items: start;
+  }
+
+  .insightPanel {
+    grid-column: 1 / 2;
+  }
+}
