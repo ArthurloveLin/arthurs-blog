@@ -151,6 +151,11 @@ export const calorieWorkspaceAgentAdapter: AgentRuntimeAdapter<CalorieDraftPaylo
     const latestUserText = context.latestUserMessage?.text_content?.trim() ?? null
     const knowledgeContext = await renderKnowledgeContext(latestUserText)
     const today = new Date().toISOString().slice(0, 10)
+    const hasAttachments = context.attachments.length > 0
+
+    const fsInstruction = hasAttachments
+      ? '如果存在图片附件，必须尝试读取附件绝对路径并结合图片内容判断食物和份量。'
+      : '【禁止】本次无图片附件。禁止调用任何文件系统工具（ListDir、ReadFile、GlobSearch 等）。直接根据文字描述输出 JSON。'
 
     return {
       promptVersion: CALORIE_PROMPT_VERSION,
@@ -159,11 +164,11 @@ export const calorieWorkspaceAgentAdapter: AgentRuntimeAdapter<CalorieDraftPaylo
         attachmentCount: context.attachments.length,
       },
       prompt: [
-        '你正在 arthurs-blog 的 calorie runtime 中工作。',
+        '你是一个营养摄入计算器。根据用户描述的饮食内容，输出结构化 JSON 数据。',
         `今天日期：${today}`,
-        '严格遵守以下系统指令：',
+        '系统指令：',
         instruction,
-        '线程上下文：',
+        '对话上下文：',
         renderMessageContext(context),
         '附件：',
         renderAttachments(context),
@@ -173,7 +178,7 @@ export const calorieWorkspaceAgentAdapter: AgentRuntimeAdapter<CalorieDraftPaylo
         '- 只能输出一个 JSON 对象，不要输出 Markdown，不要输出代码块外说明。',
         '- 所有数值字段必须是 number 或 null。',
         '- 即使信息不完整，也要给出最合理的估算并把 estimate_level 设为 estimated。',
-        '- 如果存在图片附件，必须尝试读取附件绝对路径并结合图片内容判断。',
+        fsInstruction,
         '- summary 用 1-3 句概括摄入与下一餐建议。',
         '- meals 至少包含 1 个餐次，每个餐次至少 1 个 item。',
         'JSON schema 示例：',

@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { spawn } from 'node:child_process'
-import { mkdir, symlink } from 'node:fs/promises'
+import { mkdir, symlink, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
 import { getAgentRuntimeConfig } from '@/lib/agent-runtime/config'
@@ -51,9 +51,8 @@ function buildIsolatedHomeDir(homeRoot: string, homeSubpath?: string): string {
   return resolve(homeRoot, normalized)
 }
 
-// Prepare isolated HOME: create the directory and symlink the OAuth token into it.
-// agy reads $HOME/.gemini/antigravity-cli/antigravity-oauth-token for auth.
-// The symlink makes the real token visible inside the sandbox without copying it.
+// Prepare isolated HOME: create the directory, symlink the OAuth token, and write
+// a minimal settings.json so agy uses the right model and doesn't fallback to defaults.
 async function prepareIsolatedHome(homeDir: string, oauthTokenPath: string): Promise<void> {
   const tokenDir = join(homeDir, '.gemini', 'antigravity-cli')
   await mkdir(tokenDir, { recursive: true })
@@ -63,6 +62,18 @@ async function prepareIsolatedHome(homeDir: string, oauthTokenPath: string): Pro
     await symlink(oauthTokenPath, tokenLink)
   } catch (error) {
     // EEXIST is fine — symlink already placed on a previous run
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+      throw error
+    }
+  }
+
+  // Write settings.json only on first run (EEXIST = already done).
+  // Keeps the model at High quality; no trusted workspaces (sandbox isolation).
+  const settingsPath = join(tokenDir, 'settings.json')
+  const settings = JSON.stringify({ model: 'Gemini 3.5 Flash (High)' })
+  try {
+    await writeFile(settingsPath, settings, { flag: 'wx' })
+  } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
       throw error
     }
