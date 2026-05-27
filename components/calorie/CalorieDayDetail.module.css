@@ -107,6 +107,80 @@
   font-size: 0.78rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.backLink:hover,
+.jumpLink:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.dateNav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dateNavBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid rgba(61, 40, 17, 0.14);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--detail-ink);
+  text-decoration: none;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.dateNavBtn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.dateNavLabel {
+  font-family: var(--font-calorie-mono), monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--detail-muted);
+  white-space: nowrap;
+}
+
+.deleteMealBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid rgba(196, 99, 47, 0.2);
+  background: rgba(196, 99, 47, 0.06);
+  color: #c4632f;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.deleteMealBtn:hover:not(:disabled) {
+  background: rgba(196, 99, 47, 0.15);
+  transform: scale(1.08);
+}
+
+.deleteMealBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinner {
+  animation: detailSpin 0.9s linear infinite;
+}
+
+@keyframes detailSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .eyebrow,

@@ -112,6 +112,68 @@ export async function requestJson<T>(url: string, init: RequestInit = {}) {
   return response.json() as Promise<T>
 }
 
+export interface CalorieDraftItem {
+  food_name: string
+  food_alias?: string | null
+  quantity_text?: string | null
+  grams?: number | null
+  calories?: number | null
+  protein_g?: number | null
+  fat_g?: number | null
+  carbs_g?: number | null
+  fiber_g?: number | null
+  sugar_g?: number | null
+  sodium_mg?: number | null
+  estimate_level: 'confirmed' | 'database' | 'estimated'
+  source_kind: 'agent' | 'knowledge_db' | 'reference_override' | 'ocr' | 'manual'
+  confidence_score?: number | null
+  needs_review?: boolean
+}
+
+export interface CalorieDraftMeal {
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'custom'
+  meal_label?: string | null
+  occurred_at?: string | null
+  items: CalorieDraftItem[]
+}
+
+export interface CalorieDraftPayload {
+  schemaVersion: 'calorie-draft-v1'
+  date: string | null
+  summary: string
+  insights: string[]
+  totals: Partial<NutritionTotals>
+  meals: CalorieDraftMeal[]
+}
+
+export async function deleteWorkspace(id: string) {
+  const response = await fetch(`/api/calorie/workspaces/${id}`, { method: 'DELETE' })
+  if (!response.ok && response.status !== 204) {
+    const payload = await response.json().catch(() => ({})) as { error?: string }
+    throw new Error(payload.error ?? `Delete failed: ${response.status}`)
+  }
+}
+
+export async function discardRun(id: string) {
+  const response = await fetch(`/api/calorie/runs/${id}/discard`, { method: 'POST' })
+  if (!response.ok && response.status !== 204) {
+    const payload = await response.json().catch(() => ({})) as { error?: string }
+    throw new Error(payload.error ?? `Discard failed: ${response.status}`)
+  }
+}
+
+export async function commitRun(id: string, editedPayload?: CalorieDraftPayload | null): Promise<DayResponse> {
+  return requestJson<DayResponse>(`/api/calorie/runs/${id}/commit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(editedPayload ? { editedPayload } : {}),
+  })
+}
+
+export async function deleteMeal(id: string): Promise<{ date: string }> {
+  return requestJson<{ date: string }>(`/api/calorie/meals/${id}`, { method: 'DELETE' })
+}
+
 export function formatTime(value: string | null | undefined) {
   if (!value) {
     return '未记录时间'

@@ -18,6 +18,7 @@ export interface AgentRuntimeConfig {
   timeoutMs: AgentRuntimeSetting<number>
   maxConcurrency: AgentRuntimeSetting<number>
   calorieDbJsonPath: AgentRuntimeSetting<string>
+  oauthTokenPath: AgentRuntimeSetting<string>
 }
 
 export interface AgentRuntimeCheck {
@@ -34,6 +35,7 @@ export interface AgentRuntimeHealth {
     uploadRoot: AgentRuntimeCheck
     homeRoot: AgentRuntimeCheck
     calorieDbJsonPath: AgentRuntimeCheck
+    oauthTokenPath: AgentRuntimeCheck
   }
   warnings: string[]
 }
@@ -45,6 +47,7 @@ const DEFAULT_AGENT_RUNTIME = {
   timeoutMs: 120_000,
   maxConcurrency: 1,
   calorieDbJsonPath: '/home/arthur/repositories/arthurs-blog/ClaudeDesign/calorie/calorie-db.json',
+  oauthTokenPath: '/home/arthur/.gemini/antigravity-cli/antigravity-oauth-token',
 } as const
 
 function resolveStringSetting(envName: string, fallback: string): AgentRuntimeSetting<string> {
@@ -87,6 +90,7 @@ export function getAgentRuntimeConfig(): { config: AgentRuntimeConfig; warnings:
     timeoutMs: resolveNumberSetting('AGY_TIMEOUT_MS', DEFAULT_AGENT_RUNTIME.timeoutMs, warnings),
     maxConcurrency: resolveNumberSetting('AGY_MAX_CONCURRENCY', DEFAULT_AGENT_RUNTIME.maxConcurrency, warnings),
     calorieDbJsonPath: resolveStringSetting('CALORIE_DB_JSON_PATH', DEFAULT_AGENT_RUNTIME.calorieDbJsonPath),
+    oauthTokenPath: resolveStringSetting('AGY_OAUTH_TOKEN_PATH', DEFAULT_AGENT_RUNTIME.oauthTokenPath),
   }
 
   return { config, warnings }
@@ -118,21 +122,23 @@ export async function getAgentRuntimeHealth(): Promise<AgentRuntimeHealth> {
 
   await ensureAgentRuntimeDirectories(config)
 
-  const [agyBin, uploadRoot, homeRoot, calorieDbJsonPath] = await Promise.all([
+  const [agyBin, uploadRoot, homeRoot, calorieDbJsonPath, oauthTokenPath] = await Promise.all([
     checkPath(config.agyBin.value, fsConstants.X_OK, 'agy 可执行文件'),
     checkPath(config.uploadRoot.value, fsConstants.R_OK | fsConstants.W_OK, '上传目录读写权限'),
     checkPath(config.homeRoot.value, fsConstants.R_OK | fsConstants.W_OK, 'agy HOME 目录读写权限'),
     checkPath(config.calorieDbJsonPath.value, fsConstants.R_OK, '热量知识库 JSON 读权限'),
+    checkPath(config.oauthTokenPath.value, fsConstants.R_OK, 'agy OAuth token 读权限'),
   ])
 
   return {
-    ok: agyBin.ok && uploadRoot.ok && homeRoot.ok && calorieDbJsonPath.ok,
+    ok: agyBin.ok && uploadRoot.ok && homeRoot.ok && calorieDbJsonPath.ok && oauthTokenPath.ok,
     config,
     checks: {
       agyBin,
       uploadRoot,
       homeRoot,
       calorieDbJsonPath,
+      oauthTokenPath,
     },
     warnings,
   }

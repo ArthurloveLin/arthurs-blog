@@ -3,6 +3,7 @@ import 'server-only'
 import { revalidateTag } from 'next/cache'
 
 import { validateCalorieDraftPayload } from '@/lib/agent-runtime/validation'
+import type { CalorieDraftPayload } from '@/lib/agent-runtime/contracts'
 import { executeAgentRunForOwner, createAgentMessageForOwner, createAgentThreadForOwner, getAgentRunDetailOrThrow, getAgentThreadBundleOrThrow, listAgentThreadsForOwner } from '@/lib/agent-runtime/service'
 import { AppError } from '@/lib/app-error'
 import { CALORIE_CACHE_TAGS, getCalorieDayTag, getCalorieWorkspaceTag } from '@/lib/calorie/cache'
@@ -531,13 +532,14 @@ export async function commitCalorieRun(input: {
   ownerUserId: string
   runId: string
   dateOverride?: string | null
+  editedPayload?: CalorieDraftPayload | null
 }) {
   const { run, thread } = await getAgentRunDetailOrThrow({ runId: input.runId, ownerUserId: input.ownerUserId })
   if (thread.app_key !== 'calorie' || thread.task_key !== 'workspace') {
     throw new AppError(400, 'Run is not a calorie workspace run')
   }
 
-  const draft = getDraftPayloadFromRun(run.parsed_output)
+  const draft = input.editedPayload ?? getDraftPayloadFromRun(run.parsed_output)
   const targetDate = normalizeDate(input.dateOverride ?? draft.date ?? new Date().toISOString().slice(0, 10))
   const dayLog = await ensureDayLog(input.ownerUserId, targetDate)
 
@@ -719,4 +721,73 @@ export async function getCalorieReports(input: {
   }
 
   return response
+}
+
+export async function deleteCalorieWorkspace(input: { ownerUserId: string; workspaceId: string }) {
+  await getAgentThreadBundleOrThrow({ threadId: input.workspaceId, ownerUserId: input.ownerUserId })
+
+  const { error } = await supabaseAdmin.from('agent_threads').delete().eq('id', input.workspaceId)
+  if (error) {
+    throw new AppError(500, error.message)
+  }
+
+  revalidateTag(CALORIE_CACHE_TAGS.workspaces, 'max')
+}
+
+export async function discardCalorieRun(input: { ownerUserId: string; runId: string }) {
+  const { run, thread } = await getAgentRunDetailOrThrow({ runId: input.runId, ownerUserId: input.ownerUserId })
+  if (thread.app_key !== 'calorie' || thread.task_key !== 'workspace') {
+    throw new AppError(400, 'Run is not a calorie workspace run')
+  }
+
+  if (run.status !== 'needs_confirmation') {
+    throw new AppError(409, 'Only runs in needs_confirmation state can be discarded')
+  }
+
+  const { error } = await supabaseAdmin
+    .from('agent_runs')
+    .update({ status: 'discarded', finished_at: new Date().toISOString() })
+    .eq('id', input.runId)
+
+  if (error) {
+    throw new AppError(500, error.message)
+  }
+
+  revalidateTag(getCalorieWorkspaceTag(thread.id), 'max')
+}
+
+export async function deleteCalorieMeal(input: { ownerUserId: string; mealId: string }) {
+  const { data: meal, error: fetchError } = await supabaseAdmin
+    .from('calorie_meals')
+    .select('id, day_log_id')
+    .eq('id', input.mealId)
+    .single()
+
+  if (fetchError || !meal) {
+    throw new AppError(404, 'Meal not found')
+  }
+
+  const { data: dayLog, error: dayLogError } = await supabaseAdmin
+    .from('calorie_day_logs')
+    .select('id, log_date, owner_user_id')
+    .eq('id', (meal as Record<string, unknown>).day_log_id)
+    .single()
+
+  if (dayLogError || !dayLog) {
+    throw new AppError(404, 'Day log not found')
+  }
+
+  const typedLog = dayLog as Record<string, unknown>
+  if (typedLog.owner_user_id !== input.ownerUserId) {
+    throw new AppError(403, 'Not authorized to delete this meal')
+  }
+
+  const { error: deleteError } = await supabaseAdmin.from('calorie_meals').delete().eq('id', input.mealId)
+  if (deleteError) {
+    throw new AppError(500, deleteError.message)
+  }
+
+  const date = String(typedLog.log_date)
+  revalidateCalorieCache(date)
+  return { date }
 }

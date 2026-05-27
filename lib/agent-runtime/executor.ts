@@ -1,8 +1,8 @@
 import 'server-only'
 
 import { spawn } from 'node:child_process'
-import { mkdir } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { mkdir, symlink } from 'node:fs/promises'
+import { join, resolve } from 'node:path'
 
 import { getAgentRuntimeConfig } from '@/lib/agent-runtime/config'
 import { AppError } from '@/lib/app-error'
@@ -10,7 +10,6 @@ import { AppError } from '@/lib/app-error'
 export interface AgyExecutionInput {
   prompt: string
   addDirs?: string[]
-  cwd?: string
   homeSubpath?: string
 }
 
@@ -46,22 +45,49 @@ async function withExecutionSlot<T>(maxConcurrency: number, operation: () => Pro
   }
 }
 
-function resolveHomeDirectory(homeRoot: string, homeSubpath?: string) {
-  const currentHome = process.env.HOME?.trim()
-  if (currentHome) {
-    return currentHome
-  }
+// Always use an isolated per-thread directory. Never reads process.env.HOME.
+function buildIsolatedHomeDir(homeRoot: string, homeSubpath?: string): string {
+  const normalized = (homeSubpath ?? 'shared').replace(/[^a-zA-Z0-9/_-]+/g, '-')
+  return resolve(homeRoot, normalized)
+}
 
-  const normalizedSubpath = (homeSubpath ?? 'shared').replace(/[^a-zA-Z0-9/_-]+/g, '-')
-  return resolve(homeRoot, normalizedSubpath)
+// Prepare isolated HOME: create the directory and symlink the OAuth token into it.
+// agy reads $HOME/.gemini/antigravity-cli/antigravity-oauth-token for auth.
+// The symlink makes the real token visible inside the sandbox without copying it.
+async function prepareIsolatedHome(homeDir: string, oauthTokenPath: string): Promise<void> {
+  const tokenDir = join(homeDir, '.gemini', 'antigravity-cli')
+  await mkdir(tokenDir, { recursive: true })
+
+  const tokenLink = join(tokenDir, 'antigravity-oauth-token')
+  try {
+    await symlink(oauthTokenPath, tokenLink)
+  } catch (error) {
+    // EEXIST is fine — symlink already placed on a previous run
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+      throw error
+    }
+  }
+}
+
+// Minimal environment passed to agy.
+// Intentionally excludes all process.env secrets (Supabase keys, R2 creds, etc.).
+function buildSandboxEnv(homeDirectory: string): NodeJS.ProcessEnv {
+  // Cast required: Next.js augments ProcessEnv with required app-specific keys,
+  // but we intentionally exclude all app secrets from the agy subprocess.
+  return {
+    HOME: homeDirectory,
+    PATH: process.env.PATH ?? '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+    LANG: process.env.LANG ?? 'en_US.UTF-8',
+    TMPDIR: '/tmp',
+  } as unknown as NodeJS.ProcessEnv
 }
 
 export async function executeAgyPrompt(input: AgyExecutionInput): Promise<AgyExecutionResult> {
   const { config } = getAgentRuntimeConfig()
 
   return withExecutionSlot(config.maxConcurrency.value, async () => {
-    const homeDirectory = resolveHomeDirectory(config.homeRoot.value, input.homeSubpath)
-    await mkdir(homeDirectory, { recursive: true })
+    const homeDirectory = buildIsolatedHomeDir(config.homeRoot.value, input.homeSubpath)
+    await prepareIsolatedHome(homeDirectory, config.oauthTokenPath.value)
 
     const args = ['--dangerously-skip-permissions']
     const addDirs = Array.from(new Set((input.addDirs ?? []).map((dir) => resolve(dir))))
@@ -77,11 +103,8 @@ export async function executeAgyPrompt(input: AgyExecutionInput): Promise<AgyExe
 
     return new Promise<AgyExecutionResult>((resolvePromise, rejectPromise) => {
       const child = spawn(config.agyBin.value, args, {
-        cwd: input.cwd ?? process.cwd(),
-        env: {
-          ...process.env,
-          HOME: homeDirectory,
-        },
+        cwd: homeDirectory,
+        env: buildSandboxEnv(homeDirectory),
         stdio: ['ignore', 'pipe', 'pipe'],
       })
 

@@ -1,34 +1,39 @@
 .root {
-  --report-bg: #12120f;
-  --report-surface: rgba(25, 27, 22, 0.86);
-  --report-panel: rgba(34, 38, 29, 0.86);
-  --report-ink: #f5efe0;
-  --report-muted: rgba(245, 239, 224, 0.62);
-  --report-border: rgba(201, 214, 169, 0.14);
-  --report-accent: #c5ff88;
-  --report-accent-2: #ff9f59;
+  --report-bg: #f6f0e1;
+  --report-surface: rgba(255, 251, 242, 0.88);
+  --report-panel: rgba(255, 255, 255, 0.72);
+  --report-ink: #22170b;
+  --report-muted: rgba(34, 23, 11, 0.62);
+  --report-border: rgba(57, 38, 18, 0.16);
+  --report-accent: #2b8a5a;
+  --report-accent-2: #c4632f;
+  --report-shadow: 0 22px 60px rgba(84, 58, 23, 0.1);
   color: var(--report-ink);
   min-height: 100vh;
   padding-bottom: 5rem;
   background:
-    radial-gradient(circle at 18% 14%, rgba(197, 255, 136, 0.12), transparent 18%),
-    radial-gradient(circle at 82% 10%, rgba(255, 159, 89, 0.12), transparent 22%),
-    linear-gradient(180deg, #12120f, #0d0e0b 50%, #11130f);
+    radial-gradient(circle at 12% 18%, rgba(170, 213, 183, 0.34), transparent 22%),
+    radial-gradient(circle at 86% 8%, rgba(236, 170, 119, 0.22), transparent 28%),
+    linear-gradient(180deg, #f4ecda 0%, #f8f3e8 44%, #f4efe3 100%);
 }
 
 .atmosphere {
   position: fixed;
   inset: 0;
   pointer-events: none;
+  opacity: 0.78;
   background-image:
-    linear-gradient(rgba(197, 255, 136, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(197, 255, 136, 0.06) 1px, transparent 1px);
-  background-size: 26px 26px;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.16));
+    linear-gradient(rgba(126, 114, 89, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(126, 114, 89, 0.18) 1px, transparent 1px),
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.45) 0, transparent 68%);
+  background-size: 28px 28px, 28px 28px, 100% 100%;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.86), rgba(0, 0, 0, 0.35));
 }
 
 .heroShell,
 .controlShell {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 90rem;
   margin-inline: auto;
@@ -49,7 +54,7 @@
   border: 1px solid var(--report-border);
   border-radius: 1.8rem;
   background: var(--report-surface);
-  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.24);
+  box-shadow: var(--report-shadow);
   backdrop-filter: blur(14px);
 }
 
@@ -109,15 +114,23 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.7rem 0.92rem;
+  padding: 0.65rem 0.92rem;
   border-radius: 999px;
   border: 1px solid var(--report-border);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.62);
   color: var(--report-ink);
   text-decoration: none;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.navLink:hover,
+.periodButton:hover,
+.refreshButton:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .eyebrow,
@@ -175,8 +188,8 @@
 }
 
 .periodButtonActive {
-  border-color: rgba(197, 255, 136, 0.4);
-  background: rgba(197, 255, 136, 0.14);
+  border-color: rgba(43, 138, 90, 0.42);
+  background: rgba(43, 138, 90, 0.1);
   color: var(--report-accent);
 }
 
@@ -187,9 +200,17 @@
 .anchorField input {
   border: 1px solid var(--report-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.75);
   color: var(--report-ink);
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 1rem;
+  outline: none;
+  font-family: var(--font-calorie-mono), monospace;
+  font-size: 0.82rem;
+}
+
+.anchorField input:focus {
+  border-color: rgba(43, 138, 90, 0.42);
+  box-shadow: 0 0 0 3px rgba(43, 138, 90, 0.1);
 }
 
 .summaryGrid {
@@ -208,7 +229,10 @@
   align-items: center;
   gap: 0.4rem;
   color: var(--report-muted);
-  font-size: 0.8rem;
+  font-family: var(--font-calorie-mono), monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .summaryCard strong {
@@ -221,6 +245,7 @@
 .summaryCard p {
   margin: 0.45rem 0 0;
   color: var(--report-muted);
+  font-size: 0.88rem;
 }
 
 .reportGrid {
@@ -261,15 +286,15 @@
   min-height: 13rem;
   padding: 0.35rem;
   border-radius: 1.2rem;
-  background: linear-gradient(180deg, rgba(197, 255, 136, 0.05), rgba(255, 255, 255, 0.02));
-  border: 1px solid rgba(197, 255, 136, 0.08);
+  background: rgba(43, 138, 90, 0.06);
+  border: 1px solid rgba(43, 138, 90, 0.1);
 }
 
 .barTrack div {
   width: 100%;
   border-radius: 0.95rem;
-  background: linear-gradient(180deg, var(--report-accent), var(--report-accent-2));
-  box-shadow: 0 0 40px rgba(197, 255, 136, 0.18);
+  background: linear-gradient(180deg, #2b8a5a, #5bbf82);
+  box-shadow: 0 0 24px rgba(43, 138, 90, 0.2);
 }
 
 .sourceList,
@@ -296,11 +321,12 @@
   margin: 0;
   font-size: 1.1rem;
   color: var(--report-accent);
+  font-family: var(--font-calorie-display), serif;
 }
 
 .insightPanel {
   background:
-    linear-gradient(180deg, rgba(255, 159, 89, 0.08), rgba(25, 27, 22, 0.86)),
+    linear-gradient(180deg, rgba(43, 138, 90, 0.08), rgba(255, 251, 242, 0.8)),
     var(--report-panel);
 }
 
@@ -322,19 +348,20 @@
   padding: 0.95rem 1rem;
   border-radius: 1.1rem;
   line-height: 1.7;
+  font-size: 0.9rem;
 }
 
 .emptyState,
 .loadingState {
   border: 1px dashed var(--report-border);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.42);
   color: var(--report-muted);
 }
 
 .errorBanner {
-  border: 1px solid rgba(255, 159, 89, 0.2);
-  background: rgba(255, 159, 89, 0.08);
-  color: #ffb37c;
+  border: 1px solid rgba(196, 99, 47, 0.24);
+  background: rgba(196, 99, 47, 0.08);
+  color: var(--report-accent-2);
 }
 
 @media (min-width: 768px) {

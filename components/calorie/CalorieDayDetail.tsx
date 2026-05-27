@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import useSWR from 'swr'
-import { ArrowLeft, ArrowUpRight, CheckCheck, NotebookText, Save, Scale, Waves, Wheat } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, CheckCheck, Loader2, NotebookText, Save, Scale, Trash2, Waves, Wheat } from 'lucide-react'
 
 import {
   calorieDisplayFont,
   calorieMonoFont,
   type DayResponse,
+  deleteMeal,
   fetcher,
   formatDateLabel,
   formatMealTitle,
@@ -18,6 +19,12 @@ import {
   requestJson,
 } from './client'
 import styles from './CalorieDayDetail.module.css'
+
+function shiftDate(date: string, days: number) {
+  const d = new Date(`${date}T00:00:00.000Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
 
 interface DaySettingsFormProps {
   date: string
@@ -86,10 +93,23 @@ function DaySettingsForm({ date, dayLog, onSaved }: DaySettingsFormProps) {
 }
 
 export default function CalorieDayDetail({ date }: { date: string }) {
+  const [deletingMealId, setDeletingMealId] = useState<string | null>(null)
+
   const { data, error, isLoading, mutate } = useSWR<DayResponse>(`/api/calorie/days/${date}`, fetcher, {
     dedupingInterval: 15_000,
     revalidateOnFocus: false,
   })
+
+  async function handleDeleteMeal(mealId: string) {
+    if (deletingMealId) return
+    setDeletingMealId(mealId)
+    try {
+      await deleteMeal(mealId)
+      await mutate()
+    } finally {
+      setDeletingMealId(null)
+    }
+  }
 
   const totals = normalizeNutritionTotals(data?.totals)
   const calorieProgress = (data?.dayLog?.target_calories ?? 1900) > 0
@@ -111,6 +131,15 @@ export default function CalorieDayDetail({ date }: { date: string }) {
             <Link href="/calorie" className={styles.backLink}>
               <ArrowLeft size={15} /> 返回工作台
             </Link>
+            <div className={styles.dateNav}>
+              <Link href={`/calorie/day/${shiftDate(date, -1)}`} className={styles.dateNavBtn} aria-label="前一天">
+                <ArrowLeft size={14} />
+              </Link>
+              <span className={styles.dateNavLabel}>{formatDateLabel(date)}</span>
+              <Link href={`/calorie/day/${shiftDate(date, 1)}`} className={styles.dateNavBtn} aria-label="后一天">
+                <ArrowRight size={14} />
+              </Link>
+            </div>
             <Link href="/calorie/reports" className={styles.jumpLink}>
               去看报表 <ArrowUpRight size={15} />
             </Link>
@@ -175,6 +204,17 @@ export default function CalorieDayDetail({ date }: { date: string }) {
                       <div className={styles.mealTotals}>
                         <span>{formatNumber(meal.totals.calories)} kcal</span>
                         <span>{formatNumber(meal.totals.protein_g, 1)} g 蛋白</span>
+                        <button
+                          type="button"
+                          className={styles.deleteMealBtn}
+                          onClick={() => void handleDeleteMeal(meal.id)}
+                          disabled={deletingMealId === meal.id}
+                          aria-label="删除该餐"
+                        >
+                          {deletingMealId === meal.id
+                            ? <Loader2 size={13} className={styles.spinner} />
+                            : <Trash2 size={13} />}
+                        </button>
                       </div>
                     </header>
 

@@ -4,7 +4,7 @@ export type AgentThreadStatus = 'active' | 'archived' | 'closed'
 export type AgentMessageRole = 'system' | 'user' | 'assistant' | 'tool'
 export type AgentMessageSourceKind = 'manual' | 'upload' | 'runtime' | 'system_seed'
 export type AgentAttachmentStorageBackend = 'r2' | 'local'
-export type AgentRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'needs_confirmation' | 'cancelled'
+export type AgentRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'needs_confirmation' | 'cancelled' | 'discarded'
 
 export interface AgentThreadRecord {
   id: string
