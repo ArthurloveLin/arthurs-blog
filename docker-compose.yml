@@ -14,12 +14,7 @@ services:
         max-file: "3"
     volumes:
       - nextjs_cache:/app/.next/cache
-      - /home/arthur/.local/bin/agy:/home/arthur/.local/bin/agy:ro
-      - /home/arthur/.gemini/antigravity-cli:/home/arthur/.gemini/antigravity-cli:ro
       - /etc/ssl/certs:/etc/ssl/certs:ro
-      - /home/arthur/repositories/arthurs-blog/ClaudeDesign/calorie/calorie-db.json:/home/arthur/repositories/arthurs-blog/ClaudeDesign/calorie/calorie-db.json:ro
-      - /home/arthur/repositories/arthurs-blog/ClaudeDesign/calorie/instruction.md:/home/arthur/repositories/arthurs-blog/ClaudeDesign/calorie/instruction.md:ro
-      - /tmp/arthurs-blog:/tmp/arthurs-blog
     networks:
       - default
       - 1panel-network
