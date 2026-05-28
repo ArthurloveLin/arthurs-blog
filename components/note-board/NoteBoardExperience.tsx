@@ -430,7 +430,7 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
         <div
           ref={panelRef}
           style={{ position: 'fixed', bottom: panelPos.bottom, left: panelPos.left, zIndex: 1000 }}
-          className="w-[18.5rem] rounded-[1.25rem] border border-border/70 bg-card/95 p-4 shadow-[0_22px_56px_rgba(15,23,42,0.18)] backdrop-blur-xl"
+          className="w-[18.5rem] rounded-[1.25rem] border border-border/70 bg-card p-4 shadow-[0_22px_56px_rgba(15,23,42,0.18)]"
         >
           {/* 月份导航 — 标题可点击直接编辑年月 */}
           <div className="mb-3 flex items-center justify-between px-0.5">

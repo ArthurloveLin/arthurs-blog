@@ -15,11 +15,11 @@ import { NOTE_COLOR_THEMES, useNoteColorTheme } from '@/components/note-board/co
 import type { NoteSortMode } from '@/lib/note-priority'
 
 const CONTROL_BUTTON_CLASS = 'flex h-[34px] w-[34px] items-center justify-center rounded-full border transition [border-color:var(--memo-control-border)] [background:var(--memo-control-surface)] text-[color:var(--memo-control-text)] hover:[background:var(--memo-control-hover-surface)] hover:text-[color:var(--memo-control-hover-text)]'
-const MENU_PANEL_CLASS = 'absolute right-0 top-full mt-1.5 overflow-hidden rounded-2xl border [border-color:var(--memo-panel-border)] [background:var(--memo-panel-surface)] [box-shadow:var(--memo-panel-shadow)] backdrop-blur-xl'
+const MENU_PANEL_CLASS = 'absolute right-0 top-full mt-1.5 overflow-hidden rounded-2xl border [border-color:var(--memo-panel-border)] [background:var(--memo-panel-surface)] [box-shadow:var(--memo-panel-shadow)]'
 const MENU_ITEM_BASE_CLASS = 'flex w-full items-center gap-2 rounded-xl px-3.5 py-2.5 text-[13px] transition'
 const MENU_ITEM_ACTIVE_CLASS = '[background:var(--memo-control-active-surface)] font-medium text-[color:var(--memo-control-active-text)]'
 const MENU_ITEM_IDLE_CLASS = 'text-[color:var(--memo-control-text)] hover:[background:var(--memo-control-hover-surface)] hover:text-[color:var(--memo-control-hover-text)]'
-const SIDEBAR_PANEL_CLASS = 'rounded-[24px] border p-4 [border-color:var(--memo-panel-border)] [background:var(--memo-panel-surface)] [box-shadow:var(--memo-panel-shadow)] backdrop-blur-[14px]'
+const SIDEBAR_PANEL_CLASS = 'rounded-[24px] border p-4 [border-color:var(--memo-panel-border)] [background:var(--memo-panel-surface)] [box-shadow:var(--memo-panel-shadow)]'
 
 function getItemDateKey(item: NoteCardViewModel) {
   const { year, month, day } = getShanghaDateParts(item.message.created_at)

@@ -158,7 +158,7 @@ function PriorityPickerFrame({
           ref={menuRef}
           style={menuStyle ?? { position: 'fixed', left: -9999, top: -9999, zIndex: 90 }}
           className={[
-            'rounded-[18px] border border-black/10 bg-white/94 p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.16)] backdrop-blur-sm',
+            'rounded-[18px] border border-black/10 bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.16)]',
             menuClassName,
           ].filter(Boolean).join(' ')}
           onPointerDown={(event) => event.stopPropagation()}

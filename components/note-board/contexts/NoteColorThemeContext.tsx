@@ -63,7 +63,7 @@ const VALID_IDS = new Set<NoteColorThemeId>(['classic', 'vivid', 'cream', 'mono'
 // ── Theme data ────────────────────────────────────────────────────────────────
 
 const THEME_SLOTS: Record<NoteColorThemeId, readonly NoteColorSlot[]> = {
-  // 00 · Classic 默认 — high-saturation macaroon, original first impression
+  // 00 · Classic 默认 — high-saturation macaroon, original pastel rainbow
   classic: [
     { bg: '#fbd9d3', bg2: '#f4c0b6', ink: '#5a2820', tape: '#f29a87' }, // rose
     { bg: '#fbe9a0', bg2: '#f3d878', ink: '#5a4818', tape: '#d6b045' }, // butter
@@ -74,18 +74,18 @@ const THEME_SLOTS: Record<NoteColorThemeId, readonly NoteColorSlot[]> = {
     { bg: '#d6dbb8', bg2: '#bdc395', ink: '#3a4220', tape: '#9aa57a' }, // sage
   ],
 
-  // 01 · Vivid 明亮 — balanced high-chroma, warm/cool split
+  // 01 · Vivid 明亮 — ocean-inspired, teal & indigo core with warm coral accent
   vivid: [
-    { bg: '#f6d7cf', bg2: '#edbaad', ink: '#512f28', tape: '#e76f51' },
-    { bg: '#f7e2b2', bg2: '#ebcd82', ink: '#544120', tape: '#e9c46a' },
-    { bg: '#cde7da', bg2: '#aed8c8', ink: '#1f4a44', tape: '#2a9d8f' },
-    { bg: '#d3e2f1', bg2: '#b6cbe0', ink: '#21465a', tape: '#457b9d' },
-    { bg: '#e0d7f0', bg2: '#cbbde6', ink: '#453260', tape: '#7b6ed6' },
-    { bg: '#efd8e7', bg2: '#ddc0d3', ink: '#5b3451', tape: '#b565a7' },
-    { bg: '#dde5be', bg2: '#c9d395', ink: '#3d491f', tape: '#8aa145' },
+    { bg: '#cce8f4', bg2: '#aad4e8', ink: '#143d52', tape: '#2b8ebb' }, // ocean
+    { bg: '#d0e6f8', bg2: '#b0d0ef', ink: '#1a3a58', tape: '#4a8dc4' }, // azure
+    { bg: '#b8e4e0', bg2: '#94d4ce', ink: '#134240', tape: '#2a9d8f' }, // teal
+    { bg: '#f6d7cf', bg2: '#edbaad', ink: '#512f28', tape: '#e76f51' }, // coral
+    { bg: '#e0d7f0', bg2: '#cbbde6', ink: '#3a2a5a', tape: '#6366f1' }, // indigo
+    { bg: '#f7e2b2', bg2: '#ebcd82', ink: '#544120', tape: '#e9c46a' }, // sand
+    { bg: '#c4e2d0', bg2: '#a4d2b8', ink: '#1f4a3a', tape: '#3da87a' }, // seafoam
   ],
 
-  // 02 · Cream 奶油 — refined natural paper, based on soft earth neutrals
+  // 02 · Cream 奶油 — refined natural paper, soft earth neutrals
   cream: [
     { bg: '#e3e8cf', bg2: '#ccd5ae', ink: '#44502f', tape: '#a6b97a' },
     { bg: '#f2f1d9', bg2: '#e9edc9', ink: '#5a5532', tape: '#c5c883' },
@@ -107,36 +107,36 @@ const THEME_SLOTS: Record<NoteColorThemeId, readonly NoteColorSlot[]> = {
     { bg: '#d8d6d2', bg2: '#bebab4', ink: '#1f1c18', tape: '#7b746b' },
   ],
 
-  // 04 · Dusk 黄昏 — editorial terracotta, olive, indigo, cream
+  // 04 · Dusk 黄昏 — sunset-inspired, warm terracotta + amber + rose
   dusk: [
-    { bg: '#ebc9bc', bg2: '#dda691', ink: '#4b2c25', tape: '#b85b35' },
-    { bg: '#f0e0bf', bg2: '#e1c793', ink: '#554223', tape: '#dda15e' },
-    { bg: '#d6dac8', bg2: '#b9c0a4', ink: '#38412e', tape: '#5a5e4b' },
-    { bg: '#d5dbe6', bg2: '#b4c0d3', ink: '#263248', tape: '#59708c' },
-    { bg: '#dccddd', bg2: '#c1aec6', ink: '#4a314b', tape: '#8e6c88' },
-    { bg: '#c8d0de', bg2: '#aab6c8', ink: '#1e2433', tape: '#44506b' },
-    { bg: '#e0d2ba', bg2: '#cbb48d', ink: '#4d3c25', tape: '#a47644' },
+    { bg: '#f5cdb8', bg2: '#e8a888', ink: '#4b2215', tape: '#d65d28' }, // burnt orange
+    { bg: '#f7ddb0', bg2: '#ecc078', ink: '#5a3e18', tape: '#e8a530' }, // amber
+    { bg: '#f2c4c4', bg2: '#e2a0a0', ink: '#5a2028', tape: '#c85050' }, // dusty rose
+    { bg: '#f0d0b8', bg2: '#ddb08e', ink: '#553420', tape: '#c07840' }, // sienna
+    { bg: '#e8d4c0', bg2: '#d4b898', ink: '#4d3822', tape: '#b08848' }, // caramel
+    { bg: '#e0ccc4', bg2: '#ccb0a4', ink: '#46302c', tape: '#9a6e60' }, // clay
+    { bg: '#ddd5c8', bg2: '#c8bca8', ink: '#3c3428', tape: '#8a7a60' }, // driftwood
   ],
 
-  // 05 · Linen 亚麻 — field notes palette, olive garden and bark tones
+  // 05 · Linen 亚麻 — forest-inspired, olive garden, deep greens + bark
   linen: [
-    { bg: '#f7f1e3', bg2: '#efe6d4', ink: '#8c5a3c', tape: '#bc6c25' },
-    { bg: '#f6f1e1', bg2: '#ece2c8', ink: '#7b632d', tape: '#dda15e' },
-    { bg: '#f2f0db', bg2: '#e3e3c0', ink: '#5c6730', tape: '#8a9a5b' },
-    { bg: '#eef1e3', bg2: '#dce5c7', ink: '#4a5a36', tape: '#606c38' },
-    { bg: '#ecefde', bg2: '#d9dfc8', ink: '#354226', tape: '#283618' },
-    { bg: '#eef0ea', bg2: '#d6ddd7', ink: '#49555a', tape: '#7d8d90' },
-    { bg: '#efe8e2', bg2: '#dbd0c7', ink: '#6a4b45', tape: '#a06d5d' },
+    { bg: '#d0e4cc', bg2: '#b4d4ae', ink: '#2a4a22', tape: '#4a8838' }, // fern
+    { bg: '#dce8c8', bg2: '#c4d8a4', ink: '#344a20', tape: '#5c8028' }, // moss
+    { bg: '#ccdcc8', bg2: '#b0c8a4', ink: '#283c20', tape: '#487038' }, // sage
+    { bg: '#e4e8d4', bg2: '#ccd4b4', ink: '#3a4228', tape: '#6a7848' }, // lichen
+    { bg: '#f0ead4', bg2: '#e0d4b4', ink: '#504020', tape: '#9a8040' }, // straw
+    { bg: '#e8e0d0', bg2: '#d4c8b4', ink: '#504438', tape: '#8a7060' }, // bark
+    { bg: '#d8dcd4', bg2: '#bcc4b4', ink: '#384038', tape: '#687868' }, // stone
   ],
 }
 
 const THEME_SHELL: Record<NoteColorThemeId, readonly [string, string]> = {
-  classic: ['#f8d878', '#c8b0f8'], // butter gold top-left · lavender bottom-right
-  vivid: ['#e9c46a', '#2a9d8f'],
-  cream: ['#d4a373', '#ccd5ae'],
-  mono: ['#b2a69a', '#8b98a0'],
-  dusk: ['#b85b35', '#1e2433'],
-  linen: ['#606c38', '#bc6c25'],
+  classic: ['#f8d878', '#c8b0f8'], // butter gold · lavender
+  vivid: ['#2b8ebb', '#6366f1'],   // ocean blue · indigo
+  cream: ['#d4a373', '#ccd5ae'],   // caramel · sage
+  mono: ['#b2a69a', '#8b98a0'],    // warm taupe · cool slate
+  dusk: ['#d65d28', '#c85050'],    // burnt orange · dusty rose
+  linen: ['#4a8838', '#8a7060'],   // fern green · bark brown
 }
 
 const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
@@ -155,8 +155,8 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     controlHoverText: '#4a2878',
     controlActiveSurface: 'linear-gradient(180deg, rgba(244,232,204,0.98), rgba(234,218,182,0.96))',
     controlActiveText: '#3d1e66',
-    panelSurface: 'linear-gradient(180deg, rgba(255,254,252,0.60), rgba(249,246,240,0.50))',
-    panelMutedSurface: 'linear-gradient(180deg, rgba(252,250,246,0.44), rgba(244,240,234,0.34))',
+    panelSurface: 'linear-gradient(180deg, rgba(255,254,252,0.96), rgba(249,246,240,0.94))',
+    panelMutedSurface: 'linear-gradient(180deg, rgba(252,250,246,0.92), rgba(244,240,234,0.90))',
     panelBorder: 'rgba(100,60,140,0.12)',
     panelShadow: '0 16px 40px rgba(90,50,130,0.08)',
     cardSurface: 'linear-gradient(180deg, rgba(255,255,255,0.94), rgba(250,247,242,0.92))',
@@ -174,36 +174,36 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     primaryText: '#fff8f4',
   },
   vivid: {
-    shellSurface: 'linear-gradient(165deg, rgba(255,252,246,0.98) 0%, rgba(247,245,236,0.96) 100%), radial-gradient(circle at 14% 12%, rgba(233,196,106,0.26) 0%, transparent 33%), radial-gradient(circle at 84% 16%, rgba(231,111,81,0.18) 0%, transparent 26%), radial-gradient(circle at 76% 84%, rgba(42,157,143,0.22) 0%, transparent 28%)',
-    shellBorder: 'rgba(61,103,103,0.22)',
-    shellShadow: '0 30px 90px rgba(53,93,99,0.14)',
-    heading: '#264653',
-    summary: 'rgba(38,70,83,0.58)',
-    muted: 'rgba(38,70,83,0.46)',
-    controlSurface: 'linear-gradient(180deg, rgba(255,255,255,0.84), rgba(244,241,232,0.84))',
-    controlBorder: 'rgba(38,70,83,0.14)',
-    controlText: 'rgba(38,70,83,0.68)',
-    controlHoverSurface: 'linear-gradient(180deg, rgba(247,243,232,0.98), rgba(240,232,209,0.96))',
-    controlHoverText: '#264653',
-    controlActiveSurface: 'linear-gradient(180deg, rgba(239,228,204,0.98), rgba(231,212,179,0.96))',
-    controlActiveText: '#1f3f4b',
-    panelSurface: 'linear-gradient(180deg, rgba(255,255,255,0.58), rgba(246,243,235,0.48))',
-    panelMutedSurface: 'linear-gradient(180deg, rgba(250,248,242,0.42), rgba(242,239,232,0.34))',
-    panelBorder: 'rgba(38,70,83,0.12)',
-    panelShadow: '0 16px 40px rgba(53,93,99,0.08)',
-    cardSurface: 'linear-gradient(180deg, rgba(255,255,255,0.92), rgba(246,244,236,0.90))',
-    cardEditingSurface: 'linear-gradient(180deg, rgba(247,244,236,0.96), rgba(237,230,214,0.94))',
-    cardBorder: 'rgba(38,70,83,0.11)',
-    cardHoverBorder: 'rgba(42,157,143,0.22)',
-    cardText: 'rgba(36,63,74,0.90)',
-    cardMuted: 'rgba(38,70,83,0.50)',
-    cardShadow: '0 18px 44px rgba(49,86,90,0.10)',
-    cardHoverShadow: '0 26px 58px rgba(49,86,90,0.16)',
-    filterSurface: 'rgba(231,111,81,0.10)',
-    filterBorder: 'rgba(231,111,81,0.18)',
-    filterText: 'rgba(188,84,57,0.82)',
-    primarySurface: 'linear-gradient(135deg, #2a9d8f 0%, #264653 100%)',
-    primaryText: '#fff8ef',
+    shellSurface: 'linear-gradient(165deg, rgba(245,250,255,0.98) 0%, rgba(236,245,252,0.96) 100%), radial-gradient(circle at 14% 12%, rgba(43,142,187,0.22) 0%, transparent 33%), radial-gradient(circle at 84% 16%, rgba(99,102,241,0.18) 0%, transparent 26%), radial-gradient(circle at 76% 84%, rgba(42,157,143,0.18) 0%, transparent 28%)',
+    shellBorder: 'rgba(30,80,120,0.22)',
+    shellShadow: '0 30px 90px rgba(30,80,130,0.14)',
+    heading: '#143d52',
+    summary: 'rgba(20,61,82,0.58)',
+    muted: 'rgba(20,61,82,0.46)',
+    controlSurface: 'linear-gradient(180deg, rgba(245,250,255,0.88), rgba(232,244,252,0.86))',
+    controlBorder: 'rgba(30,80,120,0.14)',
+    controlText: 'rgba(20,61,82,0.68)',
+    controlHoverSurface: 'linear-gradient(180deg, rgba(232,244,255,0.98), rgba(218,238,252,0.96))',
+    controlHoverText: '#143d52',
+    controlActiveSurface: 'linear-gradient(180deg, rgba(216,236,252,0.98), rgba(200,228,248,0.96))',
+    controlActiveText: '#0e3248',
+    panelSurface: 'linear-gradient(180deg, rgba(248,252,255,0.96), rgba(236,245,252,0.94))',
+    panelMutedSurface: 'linear-gradient(180deg, rgba(242,248,252,0.92), rgba(232,242,248,0.90))',
+    panelBorder: 'rgba(30,80,120,0.12)',
+    panelShadow: '0 16px 40px rgba(30,80,130,0.08)',
+    cardSurface: 'linear-gradient(180deg, rgba(250,253,255,0.94), rgba(238,247,253,0.92))',
+    cardEditingSurface: 'linear-gradient(180deg, rgba(240,248,255,0.96), rgba(226,240,250,0.94))',
+    cardBorder: 'rgba(30,80,120,0.11)',
+    cardHoverBorder: 'rgba(43,142,187,0.24)',
+    cardText: 'rgba(18,56,76,0.90)',
+    cardMuted: 'rgba(20,61,82,0.50)',
+    cardShadow: '0 18px 44px rgba(30,80,130,0.10)',
+    cardHoverShadow: '0 26px 58px rgba(30,80,130,0.16)',
+    filterSurface: 'rgba(43,142,187,0.10)',
+    filterBorder: 'rgba(43,142,187,0.18)',
+    filterText: 'rgba(30,100,150,0.82)',
+    primarySurface: 'linear-gradient(135deg, #2b8ebb 0%, #3a50b0 100%)',
+    primaryText: '#f0f8ff',
   },
   cream: {
     shellSurface: 'linear-gradient(180deg, rgba(255,251,243,0.98) 0%, rgba(249,243,229,0.96) 100%), radial-gradient(circle at 13% 16%, rgba(212,163,115,0.22) 0%, transparent 30%), radial-gradient(circle at 84% 14%, rgba(204,213,174,0.22) 0%, transparent 28%), repeating-linear-gradient(90deg, rgba(140,112,83,0.03) 0 1px, transparent 1px 18px)',
@@ -219,8 +219,8 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     controlHoverText: '#5b4636',
     controlActiveSurface: 'linear-gradient(180deg, rgba(238,227,203,0.98), rgba(224,211,180,0.96))',
     controlActiveText: '#543f30',
-    panelSurface: 'linear-gradient(180deg, rgba(255,252,246,0.58), rgba(245,239,229,0.48))',
-    panelMutedSurface: 'linear-gradient(180deg, rgba(250,247,240,0.42), rgba(242,237,228,0.34))',
+    panelSurface: 'linear-gradient(180deg, rgba(255,252,246,0.96), rgba(245,239,229,0.94))',
+    panelMutedSurface: 'linear-gradient(180deg, rgba(250,247,240,0.92), rgba(242,237,228,0.90))',
     panelBorder: 'rgba(141,117,88,0.12)',
     panelShadow: '0 16px 40px rgba(154,130,101,0.08)',
     cardSurface: 'linear-gradient(180deg, rgba(255,252,246,0.92), rgba(245,239,229,0.90))',
@@ -251,8 +251,8 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     controlHoverText: '#23201d',
     controlActiveSurface: 'linear-gradient(180deg, rgba(232,227,219,0.98), rgba(219,213,203,0.96))',
     controlActiveText: '#1d1a18',
-    panelSurface: 'linear-gradient(180deg, rgba(255,255,255,0.46), rgba(241,238,233,0.42))',
-    panelMutedSurface: 'linear-gradient(180deg, rgba(248,246,243,0.44), rgba(238,235,229,0.34))',
+    panelSurface: 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(241,238,233,0.94))',
+    panelMutedSurface: 'linear-gradient(180deg, rgba(248,246,243,0.92), rgba(238,235,229,0.90))',
     panelBorder: 'rgba(110,101,91,0.12)',
     panelShadow: '0 14px 34px rgba(85,79,72,0.08)',
     cardSurface: 'linear-gradient(180deg, rgba(252,251,249,0.92), rgba(241,238,233,0.90))',
@@ -270,68 +270,68 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     primaryText: '#f8f4ee',
   },
   dusk: {
-    shellSurface: 'linear-gradient(180deg, rgba(248,242,235,0.97) 0%, rgba(236,229,220,0.95) 100%), radial-gradient(circle at 14% 12%, rgba(184,91,53,0.24) 0%, transparent 30%), radial-gradient(circle at 86% 16%, rgba(30,36,51,0.22) 0%, transparent 28%), radial-gradient(circle at 72% 84%, rgba(90,94,75,0.18) 0%, transparent 24%)',
-    shellBorder: 'rgba(74,82,92,0.26)',
-    shellShadow: '0 30px 92px rgba(53,61,74,0.16)',
-    heading: '#1e2433',
-    summary: 'rgba(30,36,51,0.58)',
-    muted: 'rgba(30,36,51,0.46)',
-    controlSurface: 'linear-gradient(180deg, rgba(252,247,242,0.84), rgba(239,232,224,0.82))',
-    controlBorder: 'rgba(30,36,51,0.14)',
-    controlText: 'rgba(30,36,51,0.64)',
-    controlHoverSurface: 'linear-gradient(180deg, rgba(242,233,223,0.98), rgba(233,220,204,0.96))',
-    controlHoverText: '#1e2433',
-    controlActiveSurface: 'linear-gradient(180deg, rgba(234,222,213,0.98), rgba(222,208,191,0.96))',
-    controlActiveText: '#1a2030',
-    panelSurface: 'linear-gradient(180deg, rgba(255,250,245,0.50), rgba(241,234,227,0.44))',
-    panelMutedSurface: 'linear-gradient(180deg, rgba(247,241,236,0.42), rgba(236,230,223,0.34))',
-    panelBorder: 'rgba(30,36,51,0.11)',
-    panelShadow: '0 16px 40px rgba(53,61,74,0.10)',
-    cardSurface: 'linear-gradient(180deg, rgba(255,251,247,0.90), rgba(242,235,228,0.88))',
-    cardEditingSurface: 'linear-gradient(180deg, rgba(247,241,235,0.96), rgba(234,225,216,0.94))',
-    cardBorder: 'rgba(30,36,51,0.12)',
-    cardHoverBorder: 'rgba(184,91,53,0.22)',
-    cardText: 'rgba(31,37,50,0.90)',
-    cardMuted: 'rgba(30,36,51,0.50)',
-    cardShadow: '0 18px 44px rgba(53,61,74,0.12)',
-    cardHoverShadow: '0 28px 58px rgba(53,61,74,0.18)',
-    filterSurface: 'rgba(184,91,53,0.10)',
-    filterBorder: 'rgba(184,91,53,0.18)',
-    filterText: 'rgba(146,79,48,0.82)',
-    primarySurface: 'linear-gradient(135deg, #1e2433 0%, #44506b 100%)',
-    primaryText: '#f7f2ea',
+    shellSurface: 'linear-gradient(180deg, rgba(255,248,240,0.97) 0%, rgba(248,236,222,0.95) 100%), radial-gradient(circle at 14% 12%, rgba(214,93,40,0.22) 0%, transparent 30%), radial-gradient(circle at 86% 16%, rgba(200,80,80,0.18) 0%, transparent 28%), radial-gradient(circle at 72% 84%, rgba(232,165,48,0.16) 0%, transparent 24%)',
+    shellBorder: 'rgba(140,60,30,0.24)',
+    shellShadow: '0 30px 92px rgba(120,50,25,0.14)',
+    heading: '#5a2010',
+    summary: 'rgba(90,32,16,0.58)',
+    muted: 'rgba(90,32,16,0.46)',
+    controlSurface: 'linear-gradient(180deg, rgba(255,250,244,0.88), rgba(248,238,226,0.86))',
+    controlBorder: 'rgba(140,60,30,0.14)',
+    controlText: 'rgba(90,32,16,0.64)',
+    controlHoverSurface: 'linear-gradient(180deg, rgba(252,240,224,0.98), rgba(244,226,204,0.96))',
+    controlHoverText: '#5a2010',
+    controlActiveSurface: 'linear-gradient(180deg, rgba(244,226,204,0.98), rgba(236,210,184,0.96))',
+    controlActiveText: '#4a1808',
+    panelSurface: 'linear-gradient(180deg, rgba(255,250,244,0.96), rgba(248,238,226,0.94))',
+    panelMutedSurface: 'linear-gradient(180deg, rgba(252,244,236,0.92), rgba(244,234,222,0.90))',
+    panelBorder: 'rgba(140,60,30,0.11)',
+    panelShadow: '0 16px 40px rgba(120,50,25,0.10)',
+    cardSurface: 'linear-gradient(180deg, rgba(255,252,248,0.94), rgba(250,240,230,0.92))',
+    cardEditingSurface: 'linear-gradient(180deg, rgba(252,244,234,0.96), rgba(244,232,216,0.94))',
+    cardBorder: 'rgba(140,60,30,0.12)',
+    cardHoverBorder: 'rgba(214,93,40,0.22)',
+    cardText: 'rgba(80,28,14,0.90)',
+    cardMuted: 'rgba(90,32,16,0.50)',
+    cardShadow: '0 18px 44px rgba(120,50,25,0.12)',
+    cardHoverShadow: '0 28px 58px rgba(120,50,25,0.18)',
+    filterSurface: 'rgba(214,93,40,0.10)',
+    filterBorder: 'rgba(214,93,40,0.18)',
+    filterText: 'rgba(180,70,28,0.82)',
+    primarySurface: 'linear-gradient(135deg, #d65d28 0%, #a04020 100%)',
+    primaryText: '#fff5ee',
   },
   linen: {
-    shellSurface: 'linear-gradient(180deg, rgba(248,244,233,0.97) 0%, rgba(239,234,220,0.95) 100%), radial-gradient(circle at 15% 15%, rgba(96,108,56,0.20) 0%, transparent 32%), radial-gradient(circle at 87% 14%, rgba(188,108,37,0.18) 0%, transparent 28%), repeating-linear-gradient(90deg, rgba(72,79,48,0.04) 0 1px, transparent 1px 22px)',
-    shellBorder: 'rgba(99,102,71,0.23)',
-    shellShadow: '0 30px 88px rgba(89,92,66,0.12)',
-    heading: '#344225',
-    summary: 'rgba(52,66,37,0.56)',
-    muted: 'rgba(52,66,37,0.44)',
-    controlSurface: 'linear-gradient(180deg, rgba(250,247,238,0.86), rgba(240,236,225,0.82))',
-    controlBorder: 'rgba(99,102,71,0.16)',
-    controlText: 'rgba(52,66,37,0.62)',
-    controlHoverSurface: 'linear-gradient(180deg, rgba(242,238,226,0.98), rgba(229,224,205,0.96))',
-    controlHoverText: '#344225',
-    controlActiveSurface: 'linear-gradient(180deg, rgba(231,227,211,0.98), rgba(217,212,188,0.96))',
-    controlActiveText: '#2f3c21',
-    panelSurface: 'linear-gradient(180deg, rgba(252,249,242,0.50), rgba(241,236,226,0.44))',
-    panelMutedSurface: 'linear-gradient(180deg, rgba(246,243,237,0.42), rgba(236,232,223,0.34))',
-    panelBorder: 'rgba(99,102,71,0.12)',
-    panelShadow: '0 16px 40px rgba(89,92,66,0.08)',
-    cardSurface: 'linear-gradient(180deg, rgba(252,249,242,0.92), rgba(241,236,226,0.90))',
-    cardEditingSurface: 'linear-gradient(180deg, rgba(246,242,234,0.96), rgba(233,227,214,0.94))',
-    cardBorder: 'rgba(99,102,71,0.11)',
-    cardHoverBorder: 'rgba(96,108,56,0.22)',
-    cardText: 'rgba(50,63,36,0.90)',
-    cardMuted: 'rgba(52,66,37,0.50)',
-    cardShadow: '0 18px 44px rgba(89,92,66,0.10)',
-    cardHoverShadow: '0 26px 56px rgba(89,92,66,0.15)',
-    filterSurface: 'rgba(96,108,56,0.10)',
-    filterBorder: 'rgba(96,108,56,0.16)',
-    filterText: 'rgba(73,84,38,0.82)',
-    primarySurface: 'linear-gradient(135deg, #606c38 0%, #283618 100%)',
-    primaryText: '#f9f7ef',
+    shellSurface: 'linear-gradient(180deg, rgba(244,250,244,0.97) 0%, rgba(232,242,232,0.95) 100%), radial-gradient(circle at 15% 15%, rgba(74,136,56,0.18) 0%, transparent 32%), radial-gradient(circle at 87% 14%, rgba(138,112,96,0.16) 0%, transparent 28%), repeating-linear-gradient(90deg, rgba(60,80,48,0.03) 0 1px, transparent 1px 22px)',
+    shellBorder: 'rgba(60,90,48,0.22)',
+    shellShadow: '0 30px 88px rgba(50,80,40,0.12)',
+    heading: '#2a4a22',
+    summary: 'rgba(42,74,34,0.56)',
+    muted: 'rgba(42,74,34,0.44)',
+    controlSurface: 'linear-gradient(180deg, rgba(246,252,246,0.88), rgba(234,244,234,0.86))',
+    controlBorder: 'rgba(60,90,48,0.16)',
+    controlText: 'rgba(42,74,34,0.62)',
+    controlHoverSurface: 'linear-gradient(180deg, rgba(234,246,234,0.98), rgba(218,236,218,0.96))',
+    controlHoverText: '#2a4a22',
+    controlActiveSurface: 'linear-gradient(180deg, rgba(218,236,218,0.98), rgba(200,224,200,0.96))',
+    controlActiveText: '#1e3a18',
+    panelSurface: 'linear-gradient(180deg, rgba(248,253,248,0.96), rgba(236,246,236,0.94))',
+    panelMutedSurface: 'linear-gradient(180deg, rgba(242,250,242,0.92), rgba(232,242,232,0.90))',
+    panelBorder: 'rgba(60,90,48,0.12)',
+    panelShadow: '0 16px 40px rgba(50,80,40,0.08)',
+    cardSurface: 'linear-gradient(180deg, rgba(250,254,250,0.94), rgba(238,248,238,0.92))',
+    cardEditingSurface: 'linear-gradient(180deg, rgba(242,250,242,0.96), rgba(228,240,228,0.94))',
+    cardBorder: 'rgba(60,90,48,0.11)',
+    cardHoverBorder: 'rgba(74,136,56,0.22)',
+    cardText: 'rgba(38,68,30,0.90)',
+    cardMuted: 'rgba(42,74,34,0.50)',
+    cardShadow: '0 18px 44px rgba(50,80,40,0.10)',
+    cardHoverShadow: '0 26px 56px rgba(50,80,40,0.15)',
+    filterSurface: 'rgba(74,136,56,0.10)',
+    filterBorder: 'rgba(74,136,56,0.16)',
+    filterText: 'rgba(56,100,40,0.82)',
+    primarySurface: 'linear-gradient(135deg, #4a8838 0%, #2a4a22 100%)',
+    primaryText: '#f0f8ee',
   },
 }
 
@@ -354,11 +354,11 @@ function buildTheme(
 
 export const NOTE_COLOR_THEMES: readonly NoteColorThemeConfig[] = [
   buildTheme('classic', '默认', 'Classic'),
-  buildTheme('vivid', '明亮', 'Riviera'),
+  buildTheme('vivid', '海蓝', 'Ocean'),
   buildTheme('cream', '奶油', 'Harvest'),
-  buildTheme('mono', '低饱和', 'Newsroom'),
-  buildTheme('dusk', '黄昏', 'Terracotta Ink'),
-  buildTheme('linen', '亚麻', 'Field Notes'),
+  buildTheme('mono', '水墨', 'Newsroom'),
+  buildTheme('dusk', '日落', 'Sunset'),
+  buildTheme('linen', '森林', 'Forest'),
 ]
 
 // ── Context ────────────────────────────────────────────────────────────────────

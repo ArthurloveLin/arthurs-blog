@@ -701,7 +701,7 @@ function StickyNoteCardFrame({
                     'pb-2 pt-12',
                   ].join(' ')}
                   style={{
-                    background: `linear-gradient(to top, ${noteDepth} 18%, ${noteColor} 54%, transparent)`,
+                   background: `linear-gradient(to top, ${noteColor} 35%, transparent)`,
                   }}
                 >
                   <button
