@@ -147,15 +147,12 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
 
-      - name: Create branch and open PR
+      - name: Create branch and push
         if: steps.idempotency.outputs.already_ran != 'true' && steps.verify.outcome == 'success'
-        id: pr
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        id: push
         run: |
           SHORT_SHA=$(git rev-parse --short HEAD)
           BRANCH="ai-fix/${SHORT_SHA}"
-          BASE_BRANCH="${{ github.head_ref || github.ref_name }}"
 
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -170,12 +167,21 @@ jobs:
           COMMIT_MSG=$(printf 'fix(ai-auto): resolve type-check & lint errors for %s\n\nCo-Authored-By: agy <noreply@anthropic.com>' "${SHORT_SHA}")
           git commit -m "$COMMIT_MSG"
           git push origin "$BRANCH"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
 
+      - name: Open fix PR
+        if: steps.push.outputs.branch != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASE_BRANCH="${{ github.head_ref || github.ref_name }}"
+          SHORT_SHA=$(git rev-parse --short HEAD)
           PR_URL=$(gh pr create \
             --title "fix(ai-auto): resolve type-check & lint errors [${SHORT_SHA}]" \
             --body-file tests/ai_hooks/pr_body_template_ci_fix.md \
             --base "$BASE_BRANCH" \
-            --head "$BRANCH")
+            --head "${{ steps.push.outputs.branch }}")
           echo "PR_URL=$PR_URL" >> "$GITHUB_ENV"
 
       - name: Notify via ntfy
