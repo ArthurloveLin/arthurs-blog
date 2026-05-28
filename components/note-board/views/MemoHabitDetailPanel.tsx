@@ -239,7 +239,7 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
           className="absolute inset-0 bg-black/20 pointer-events-auto"
           onClick={onClose}
         />
-        <aside className="relative pointer-events-auto w-full max-h-[82vh] rounded-t-[28px] border border-border/60 bg-card/95 shadow-[0_24px_80px_rgba(15,23,42,0.18)] backdrop-blur-sm px-5 pb-6 pt-4">
+        <aside className="relative pointer-events-auto w-full max-h-[82vh] rounded-t-[28px] border border-border/60 bg-card shadow-[0_24px_80px_rgba(15,23,42,0.18)] px-5 pb-6 pt-4">
           {innerContent}
         </aside>
       </div>
@@ -261,7 +261,7 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
   return (
     <div
       ref={cardRef}
-      className="fixed z-50 w-[360px] max-h-[calc(100vh-6rem)] overflow-y-auto rounded-[28px] border border-border/60 bg-card/98 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-sm"
+      className="fixed z-50 w-[360px] max-h-[calc(100vh-6rem)] overflow-y-auto rounded-[28px] border border-border/60 bg-card p-5 shadow-[0_24px_80px_rgba(15,23,42,0.22)]"
       style={{ left: cardLeft, top: cardTop, animation: 'memoHabitCardIn 0.18s ease-out' }}
     >
       <style>{`
