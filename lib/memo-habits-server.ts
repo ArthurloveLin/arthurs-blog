@@ -118,6 +118,10 @@ function getOccurrenceEventTime(row: MemoHabitOccurrenceRow) {
     : row.updated_at
 }
 
+function getOpenOccurrenceDueAt(row: Pick<MemoHabitOccurrenceRow, 'due_at' | 'delayed_to'>) {
+  return row.delayed_to ?? row.due_at
+}
+
 function computeCurrentStreak(rows: MemoHabitOccurrenceRow[]) {
   if (rows.length === 0) {
     return 0
@@ -144,26 +148,28 @@ function computeCurrentStreak(rows: MemoHabitOccurrenceRow[]) {
 }
 
 function buildCurrentState(noteId: string, item: CurrentStateSeed, rows: MemoHabitOccurrenceRow[], now: number): MemoHabitCurrentState {
-  const latest = rows[0] ?? null
   const streak = computeCurrentStreak(rows)
   const isRepeating = item.repeatMode && item.repeatMode !== 'once'
+  const latestOpen = rows.find((row) => row.status === 'pending' || row.status === 'delayed') ?? null
 
-  if (latest && latest.status !== 'completed') {
+  if (latestOpen) {
+    const dueAt = getOpenOccurrenceDueAt(latestOpen)
     return {
       noteId,
       itemKey: item.itemKey,
-      label: latest.item_label,
-      lineText: latest.line_text,
-      dueAt: latest.due_at,
-      status: latest.status,
+      label: latestOpen.item_label,
+      lineText: latestOpen.line_text,
+      dueAt,
+      status: Date.parse(dueAt) > now ? 'scheduled' : 'pending',
       streak,
-      reminderSentAt: latest.reminder_sent_at,
-      completedAt: latest.completed_at,
-      delayedTo: latest.delayed_to,
-      completionSource: latest.completion_source,
+      reminderSentAt: latestOpen.reminder_sent_at,
+      completedAt: latestOpen.completed_at,
+      delayedTo: latestOpen.delayed_to,
+      completionSource: latestOpen.completion_source,
     }
   }
 
+  const latest = rows[0] ?? null
   if (latest && latest.status === 'completed') {
     // For repeating habits compare Shanghai dates: if the latest completion is
     // from today (Shanghai), show completed; otherwise it's a new day → pending.
@@ -278,7 +284,7 @@ async function reconcileStaleMemoHabitOccurrences(ownerUserId: string) {
 
   const now = Date.now()
   const staleIds = (data ?? [])
-    .filter((row) => Date.parse((row.delayed_to as string | null) ?? (row.due_at as string)) <= now - STALE_PENDING_MS)
+    .filter((row) => Date.parse(getOpenOccurrenceDueAt(row as Pick<MemoHabitOccurrenceRow, 'due_at' | 'delayed_to'>)) <= now - STALE_PENDING_MS)
     .map((row) => row.id as string)
 
   if (staleIds.length === 0) {
@@ -600,17 +606,91 @@ export async function delayMemoHabitOccurrence(noteId: string, itemKey: string, 
     return getMemoHabitItemDetail(note.id, itemKey, note.user_id, true)
   }
 
-  const { error } = await supabaseAdmin
+  const currentDueAt = getOpenOccurrenceDueAt(occurrence)
+  const isCrossDayDelay = toShanghaiDateKey(currentDueAt) !== toShanghaiDateKey(delayUntil)
+
+  if (!isCrossDayDelay) {
+    const { error } = await supabaseAdmin
+      .from('memo_habit_occurrences')
+      .update({
+        due_at: delayUntil,
+        status: 'pending',
+        delayed_to: null,
+        reminder_sent_at: null,
+        updated_at: nowIso,
+      })
+      .eq('id', occurrence.id)
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return getMemoHabitItemDetail(note.id, itemKey, note.user_id, true)
+  }
+
+  // Cross-day postpones close today's occurrence as missed and create the next
+  // day's arrangement as a fresh scheduled/pending occurrence.
+  const { error: markMissedError } = await supabaseAdmin
     .from('memo_habit_occurrences')
     .update({
-      status: 'delayed',
-      delayed_to: delayUntil,
+      status: 'missed',
+      delayed_to: null,
       updated_at: nowIso,
     })
     .eq('id', occurrence.id)
 
-  if (error) {
-    throw new Error(error.message)
+  if (markMissedError) {
+    throw new Error(markMissedError.message)
+  }
+
+  const { data: nextOccurrence, error: nextOccurrenceError } = await supabaseAdmin
+    .from('memo_habit_occurrences')
+    .select('id, note_id, owner_user_id, visibility, item_key, item_label, line_text, due_at, status, reminder_sent_at, completed_at, delayed_to, completion_source, created_at, updated_at')
+    .eq('note_id', note.id)
+    .eq('item_key', item.itemKey)
+    .eq('due_at', delayUntil)
+    .maybeSingle()
+
+  if (nextOccurrenceError) {
+    throw new Error(nextOccurrenceError.message)
+  }
+
+  if (nextOccurrence) {
+    const { error: updateNextError } = await supabaseAdmin
+      .from('memo_habit_occurrences')
+      .update({
+        visibility: note.visibility,
+        item_label: item.label,
+        line_text: item.lineText,
+        status: 'pending',
+        reminder_sent_at: null,
+        delayed_to: null,
+        updated_at: nowIso,
+      })
+      .eq('id', nextOccurrence.id)
+
+    if (updateNextError) {
+      throw new Error(updateNextError.message)
+    }
+  } else {
+    const { error: insertNextError } = await supabaseAdmin
+      .from('memo_habit_occurrences')
+      .insert({
+        note_id: note.id,
+        owner_user_id: note.user_id,
+        visibility: note.visibility,
+        item_key: item.itemKey,
+        item_label: item.label,
+        line_text: item.lineText,
+        due_at: delayUntil,
+        status: 'pending',
+        reminder_sent_at: null,
+        updated_at: nowIso,
+      })
+
+    if (insertNextError) {
+      throw new Error(insertNextError.message)
+    }
   }
 
   return getMemoHabitItemDetail(note.id, itemKey, note.user_id, true)

@@ -28,7 +28,6 @@ import {
   PREVIEW_CARD_SIZE,
   PREVIEW_REVEAL_THRESHOLD,
   sanitizeNotePosition,
-  STICKY_COLORS,
 } from '@/components/note-board/utils/board'
 import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { formatCommentTimeLabel, formatStableDate } from '@/lib/date-format'
@@ -173,7 +172,10 @@ function StickyNoteCardFrame({
   const isPreview = variant === 'preview'
   const isInlineEditing = Boolean(inlineEditor)
   const { theme } = useNoteColorTheme()
-  const noteColor = theme.colors[colorIndex % theme.colors.length] ?? STICKY_COLORS[0]
+  const noteSlot = theme.slots[colorIndex % theme.slots.length] ?? theme.slots[0]
+  const noteColor = noteSlot.bg
+  const noteDepth = noteSlot.bg2
+  const noteInk = noteSlot.ink
   // Collapses automatically while inline-editing (derived — no separate reset effect needed)
   const showExpanded = isExpanded && !isInlineEditing
 
@@ -556,7 +558,8 @@ function StickyNoteCardFrame({
           ref={paperRef}
           className={[styles.paper, isPreview ? styles.previewPaper : styles.boardPaper].join(' ')}
           style={{
-            backgroundColor: noteColor,
+            background: `linear-gradient(180deg, ${noteColor} 0%, ${noteColor} 72%, ${noteDepth} 100%)`,
+            color: noteInk,
             minHeight: isInlineEditing && inlineEditor?.surfaceMinHeight
               ? `${inlineEditor.surfaceMinHeight}px`
               : undefined,
@@ -698,7 +701,7 @@ function StickyNoteCardFrame({
                     'pb-2 pt-12',
                   ].join(' ')}
                   style={{
-                    background: `linear-gradient(to top, ${noteColor} 35%, transparent)`,
+                    background: `linear-gradient(to top, ${noteDepth} 18%, ${noteColor} 54%, transparent)`,
                   }}
                 >
                   <button

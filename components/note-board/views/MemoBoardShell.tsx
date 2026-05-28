@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, Filter, Layers, LayoutList, Palette, Plus, Search, X } from 'lucide-react'
 import {
   useNoteBoardActions,
@@ -13,6 +13,13 @@ import type { MemoHabitOverview } from '@/lib/memo-habits'
 import type { MemoAgendaItem } from '@/lib/note-boards'
 import { NOTE_COLOR_THEMES, useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import type { NoteSortMode } from '@/lib/note-priority'
+
+const CONTROL_BUTTON_CLASS = 'flex h-[34px] w-[34px] items-center justify-center rounded-full border transition [border-color:var(--memo-control-border)] [background:var(--memo-control-surface)] text-[color:var(--memo-control-text)] hover:[background:var(--memo-control-hover-surface)] hover:text-[color:var(--memo-control-hover-text)]'
+const MENU_PANEL_CLASS = 'absolute right-0 top-full mt-1.5 overflow-hidden rounded-2xl border [border-color:var(--memo-panel-border)] [background:var(--memo-panel-surface)] [box-shadow:var(--memo-panel-shadow)] backdrop-blur-xl'
+const MENU_ITEM_BASE_CLASS = 'flex w-full items-center gap-2 rounded-xl px-3.5 py-2.5 text-[13px] transition'
+const MENU_ITEM_ACTIVE_CLASS = '[background:var(--memo-control-active-surface)] font-medium text-[color:var(--memo-control-active-text)]'
+const MENU_ITEM_IDLE_CLASS = 'text-[color:var(--memo-control-text)] hover:[background:var(--memo-control-hover-surface)] hover:text-[color:var(--memo-control-hover-text)]'
+const SIDEBAR_PANEL_CLASS = 'rounded-[24px] border p-4 [border-color:var(--memo-panel-border)] [background:var(--memo-panel-surface)] [box-shadow:var(--memo-panel-shadow)] backdrop-blur-[14px]'
 
 function getItemDateKey(item: NoteCardViewModel) {
   const { year, month, day } = getShanghaDateParts(item.message.created_at)
@@ -79,12 +86,13 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
           'absolute right-0 top-0 h-full rounded-full border overflow-hidden',
           'transition-[width,background,box-shadow,border-color] duration-[600ms]',
           isExpanded
-            ? 'border-primary/25 bg-background/95 ring-2 ring-primary/20'
-            : 'border-border/70 bg-background/70 group-hover:bg-accent/35 group-hover:ring-2 group-hover:ring-primary/20',
+            ? '[border-color:var(--memo-control-border)] [background:var(--memo-control-surface)]'
+            : '[border-color:var(--memo-control-border)] [background:var(--memo-control-surface)] group-hover:[border-color:var(--memo-filter-border)]',
         ].join(' ')}
         style={{
           width: isExpanded ? 'min(210px, 80vw)' : '34px',
           transitionTimingFunction: isExpanded ? 'cubic-bezier(0,1.22,.66,1.39)' : 'cubic-bezier(0.4,0,0.2,1)',
+          boxShadow: isExpanded ? '0 0 0 1px var(--memo-filter-border)' : undefined,
         }}
       >
         <input
@@ -106,7 +114,7 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
           className={[
             'h-full w-full border-0 bg-transparent pr-[36px] text-[13px] outline-none transition-[padding,color,text-indent] duration-[600ms]',
             showInputContent
-              ? 'pointer-events-auto cursor-text pl-3.5 text-foreground placeholder:text-muted-foreground/60'
+              ? 'pointer-events-auto cursor-text pl-3.5 text-[color:var(--memo-shell-heading)] placeholder:text-muted-foreground/60'
               : 'pointer-events-none cursor-pointer pl-0 text-transparent caret-transparent placeholder:text-transparent [text-indent:-9999px]',
           ].join(' ')}
           style={{ transitionTimingFunction: 'cubic-bezier(0,1.22,.66,1.39)' }}
@@ -119,7 +127,7 @@ function MemoSearchField({ placeholder }: { placeholder: string }) {
         type="button"
         onMouseDown={(event) => event.preventDefault()}
         onClick={hasQuery ? handleClear : handleExpandAndFocus}
-        className="absolute inset-0 z-10 flex h-[34px] w-[34px] items-center justify-center text-muted-foreground transition hover:text-foreground"
+        className="absolute inset-0 z-10 flex h-[34px] w-[34px] items-center justify-center text-[color:var(--memo-control-text)] transition hover:text-[color:var(--memo-control-hover-text)]"
         aria-label={hasQuery ? '清除搜索' : '搜索'}
       >
         <Search size={14} className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-200 ${hasQuery ? 'scale-75 opacity-0' : 'scale-100 opacity-100'}`} />
@@ -170,21 +178,21 @@ function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean })
         type="button"
         onClick={() => setOpen((v) => !v)}
         title={`排序：${currentLabel}${!state.showArchived ? ` · ${directionLabel}` : ''}`}
-        className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-border/70 bg-background/70 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+        className={CONTROL_BUTTON_CLASS}
       >
         <ArrowUpDown size={14} />
       </button>
       {open ? (
-        <div className="absolute right-0 top-full z-20 mt-1.5 min-w-[164px] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-lg">
+        <div className={`${MENU_PANEL_CLASS} z-20 min-w-[164px] p-1.5`}>
           <button
             type="button"
             onClick={() => handleSelectSort('time')}
-            className={`flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] transition ${!state.showArchived && state.sortMode === 'time' ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
+            className={`${MENU_ITEM_BASE_CLASS} ${!state.showArchived && state.sortMode === 'time' ? MENU_ITEM_ACTIVE_CLASS : MENU_ITEM_IDLE_CLASS}`}
           >
             {!state.showArchived && state.sortMode === 'time' ? <Check size={13} className="shrink-0" /> : <span className="w-[13px] shrink-0" />}
             <span className="flex-1 text-left">按日期</span>
             {!state.showArchived && state.sortMode === 'time' ? (
-              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1 text-[11px] text-[color:var(--memo-shell-muted)]">
                 <SortDirectionIcon size={11} />
                 {directionLabel}
               </span>
@@ -194,23 +202,23 @@ function MemoSortDropdown({ allowPrioritySort }: { allowPrioritySort: boolean })
             <button
               type="button"
               onClick={() => handleSelectSort('priority')}
-              className={`flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] transition ${!state.showArchived && state.sortMode === 'priority' ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
+              className={`${MENU_ITEM_BASE_CLASS} ${!state.showArchived && state.sortMode === 'priority' ? MENU_ITEM_ACTIVE_CLASS : MENU_ITEM_IDLE_CLASS}`}
             >
               {!state.showArchived && state.sortMode === 'priority' ? <Check size={13} className="shrink-0" /> : <span className="w-[13px] shrink-0" />}
               <span className="flex-1 text-left">按优先级</span>
               {!state.showArchived && state.sortMode === 'priority' ? (
-                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1 text-[11px] text-[color:var(--memo-shell-muted)]">
                   <SortDirectionIcon size={11} />
                   {directionLabel}
                 </span>
               ) : null}
             </button>
           ) : null}
-          <div className="mx-3 border-t border-border/40" />
+          <div className="mx-3 border-t [border-color:var(--memo-panel-border)] opacity-80" />
           <button
             type="button"
             onClick={() => { actions.handleSwitchArchiveView(!state.showArchived); setOpen(false) }}
-            className={`flex w-full items-center gap-2 px-3.5 py-2.5 text-[13px] transition ${state.showArchived ? 'bg-foreground/5 font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}`}
+            className={`${MENU_ITEM_BASE_CLASS} ${state.showArchived ? MENU_ITEM_ACTIVE_CLASS : MENU_ITEM_IDLE_CLASS}`}
           >
             {state.showArchived ? <Check size={13} className="shrink-0" /> : <span className="w-[13px] shrink-0" />}
             已归档
@@ -242,35 +250,42 @@ function NoteThemeButton() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         title={`便签配色：${theme.label} · ${theme.subtitle}`}
-        className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-border/70 bg-background/70 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+        className={CONTROL_BUTTON_CLASS}
       >
         <Palette size={14} />
       </button>
       {open ? (
-        <div className="absolute right-0 top-full z-[1000] mt-1.5 min-w-[196px] overflow-hidden rounded-2xl border border-border/70 bg-card p-1.5 shadow-lg">
+        <div className={`${MENU_PANEL_CLASS} z-[1000] min-w-[244px] p-1.5`}>
           {NOTE_COLOR_THEMES.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => { setThemeId(t.id); setOpen(false) }}
               className={[
-                'flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition',
+                'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition',
                 t.id === theme.id
-                  ? 'bg-foreground/5 font-medium text-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                  ? MENU_ITEM_ACTIVE_CLASS
+                  : MENU_ITEM_IDLE_CLASS,
               ].join(' ')}
             >
-              <div className="flex gap-0.5 shrink-0">
-                {t.colors.slice(0, 5).map((c, i) => (
-                  <span
-                    key={i}
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: c, boxShadow: '0 0 0 1px rgba(0,0,0,0.08)' }}
-                  />
-                ))}
+              <div
+                className="relative h-10 w-14 shrink-0 overflow-hidden rounded-xl border border-black/5"
+                style={{ background: t.chrome.shellSurface }}
+              >
+                <div className="absolute bottom-1.5 left-1.5 flex gap-1">
+                  {t.colors.slice(0, 3).map((c, i) => (
+                    <span
+                      key={i}
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: c, boxShadow: '0 0 0 1px rgba(0,0,0,0.06)' }}
+                    />
+                  ))}
+                </div>
               </div>
-              <span className="flex-1 text-[13px]">{t.label}</span>
-              <span className="text-[11px] opacity-55">{t.subtitle}</span>
+              <div className="min-w-0 flex-1">
+                <span className="block text-[13px] leading-none">{t.label}</span>
+                <span className="mt-1 block text-[10px] uppercase tracking-[0.16em] opacity-60">{t.subtitle}</span>
+              </div>
             </button>
           ))}
         </div>
@@ -352,7 +367,7 @@ function SidebarQuickFilters({ filters, agendaItems }: { filters: MemoBoardFilte
 
   return (
     <div className="space-y-2">
-      <p className="flex items-center gap-1.5 text-[12.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <p className="flex items-center gap-1.5 text-[12.5px] font-semibold uppercase tracking-[0.12em] text-[color:var(--memo-shell-muted)]">
         <Filter size={11} />
         快速筛选
       </p>
@@ -365,13 +380,13 @@ function SidebarQuickFilters({ filters, agendaItems }: { filters: MemoBoardFilte
             className={[
               'flex w-full items-center rounded-lg px-2.5 py-2 text-[13px] transition',
               active
-                ? 'bg-[#c0644a]/10 font-medium text-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                ? '[background:var(--memo-control-active-surface)] font-medium text-[color:var(--memo-control-active-text)]'
+                : 'text-[color:var(--memo-control-text)] hover:[background:var(--memo-control-hover-surface)] hover:text-[color:var(--memo-control-hover-text)]',
             ].join(' ')}
           >
             <span className="flex-1 text-left">{label}</span>
             {count !== null ? (
-              <span className={['text-[11px] tabular-nums', active ? 'text-foreground/55' : 'text-muted-foreground/50'].join(' ')}>
+              <span className={['text-[11px] tabular-nums', active ? 'opacity-65' : 'opacity-55'].join(' ')}>
                 {count}
               </span>
             ) : null}
@@ -452,11 +467,6 @@ export function useMemoBoardFilters(
   }
 }
 
-// ── helpers ─────────────────────────────────────────────────────────────────
-function hexToRgb(hex: string): string {
-  return `${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)}`
-}
-
 // ── Shell ────────────────────────────────────────────────────────────────────
 interface MemoBoardShellProps {
   title: string
@@ -508,7 +518,38 @@ export function MemoBoardShell({
     { key: 'history' as const, label: '历史' },
   ], [])
 
-  const shellBg = `radial-gradient(ellipse at top left, rgba(${hexToRgb(theme.shell[0])},0.32) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(${hexToRgb(theme.shell[1])},0.26) 0%, transparent 50%)`
+  const themeVars = {
+    '--memo-shell-surface': theme.chrome.shellSurface,
+    '--memo-shell-border': theme.chrome.shellBorder,
+    '--memo-shell-shadow': theme.chrome.shellShadow,
+    '--memo-shell-heading': theme.chrome.heading,
+    '--memo-shell-summary': theme.chrome.summary,
+    '--memo-shell-muted': theme.chrome.muted,
+    '--memo-control-surface': theme.chrome.controlSurface,
+    '--memo-control-border': theme.chrome.controlBorder,
+    '--memo-control-text': theme.chrome.controlText,
+    '--memo-control-hover-surface': theme.chrome.controlHoverSurface,
+    '--memo-control-hover-text': theme.chrome.controlHoverText,
+    '--memo-control-active-surface': theme.chrome.controlActiveSurface,
+    '--memo-control-active-text': theme.chrome.controlActiveText,
+    '--memo-panel-surface': theme.chrome.panelSurface,
+    '--memo-panel-muted-surface': theme.chrome.panelMutedSurface,
+    '--memo-panel-border': theme.chrome.panelBorder,
+    '--memo-panel-shadow': theme.chrome.panelShadow,
+    '--memo-card-surface': theme.chrome.cardSurface,
+    '--memo-card-editing-surface': theme.chrome.cardEditingSurface,
+    '--memo-card-border': theme.chrome.cardBorder,
+    '--memo-card-hover-border': theme.chrome.cardHoverBorder,
+    '--memo-card-text': theme.chrome.cardText,
+    '--memo-card-muted': theme.chrome.cardMuted,
+    '--memo-card-shadow': theme.chrome.cardShadow,
+    '--memo-card-hover-shadow': theme.chrome.cardHoverShadow,
+    '--memo-filter-surface': theme.chrome.filterSurface,
+    '--memo-filter-border': theme.chrome.filterBorder,
+    '--memo-filter-text': theme.chrome.filterText,
+    '--memo-primary-surface': theme.chrome.primarySurface,
+    '--memo-primary-text': theme.chrome.primaryText,
+  } as CSSProperties
 
   const filterPillLabel = state.searchQuery
     ? `"${state.searchQuery}" · ${filteredCount}${itemUnit}`
@@ -581,22 +622,22 @@ export function MemoBoardShell({
   }, [agendaItems, filters, habitOverview, onOpenHabitDetail, resolvedCalendarMode, sidebarModes])
 
   return (
-    <section className="rounded-[32px] border border-border/60 bg-card/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-6" style={{ backgroundImage: shellBg }}>
+    <section className="rounded-[32px] border p-5 [border-color:var(--memo-shell-border)] [background:var(--memo-shell-surface)] [box-shadow:var(--memo-shell-shadow)] sm:p-6" style={themeVars}>
       {/* 顶部区域：标题、状态、筛选、操作 */}
       <div className="mb-5 flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <div className="min-w-0">
-          <h2 className="text-[28px] font-bold leading-[0.88] tracking-[-0.04em] text-foreground sm:text-[36px]">
+          <h2 className="text-[28px] font-bold leading-[0.88] tracking-[-0.04em] text-[color:var(--memo-shell-heading)] sm:text-[36px]">
             {title}
           </h2>
           <div className="mt-2 flex min-h-[24px] flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="font-mono text-[11px] uppercase leading-none tracking-[0.18em] text-muted-foreground/40">{summary}</span>
+            <span className="font-mono text-[11px] uppercase leading-none tracking-[0.18em] text-[color:var(--memo-shell-summary)]">{summary}</span>
             {filters.isFilterMode && filterPillLabel ? (
               <>
-                <span aria-hidden className="text-[10px] text-muted-foreground/25">·</span>
+                <span aria-hidden className="text-[10px] text-[color:var(--memo-shell-muted)] opacity-70">·</span>
                 <button
                   type="button"
                   onClick={handleClearFilter}
-                  className="inline-flex items-center gap-1 rounded-full border border-[#c0644a]/20 bg-[#c0644a]/10 px-2.5 py-[3px] text-[11px] font-medium text-[#c0644a]/70 transition hover:bg-[#c0644a]/15 hover:text-[#c0644a]"
+                  className="inline-flex items-center gap-1 rounded-full border px-2.5 py-[3px] text-[11px] font-medium transition [border-color:var(--memo-filter-border)] [background:var(--memo-filter-surface)] text-[color:var(--memo-filter-text)] hover:opacity-90"
                 >
                   <span className="max-w-[160px] truncate">{filterPillLabel}</span>
                   <X size={9} className="shrink-0 opacity-75" />
@@ -614,7 +655,7 @@ export function MemoBoardShell({
             type="button"
             onClick={onToggleViewMode}
             title={toggleLabel}
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-border/70 bg-background/70 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+            className={CONTROL_BUTTON_CLASS}
           >
             <ToggleIcon size={14} />
           </button>
@@ -622,7 +663,7 @@ export function MemoBoardShell({
             type="button"
             onClick={() => actions.scrollToEditor()}
             title={isGuestboard ? '新留言' : '新便签'}
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-foreground text-background transition hover:opacity-85"
+            className="flex h-[34px] w-[34px] items-center justify-center rounded-full text-[color:var(--memo-primary-text)] transition hover:opacity-90 [background:var(--memo-primary-surface)]"
           >
             <Plus size={14} />
           </button>
@@ -634,9 +675,9 @@ export function MemoBoardShell({
         {showSidebar && (
           <aside className="hidden shrink-0 sm:block sm:w-[240px] lg:w-[280px]">
             <div className="sticky top-6 space-y-6">
-              {renderSidebarPanel(false)}
-              <SidebarQuickFilters filters={filters} agendaItems={agendaItems} />
-              <SidebarTagCloud />
+              <div className={SIDEBAR_PANEL_CLASS}>{renderSidebarPanel(false)}</div>
+              <div className={SIDEBAR_PANEL_CLASS}><SidebarQuickFilters filters={filters} agendaItems={agendaItems} /></div>
+              <div className={SIDEBAR_PANEL_CLASS}><SidebarTagCloud /></div>
             </div>
           </aside>
         )}
@@ -648,7 +689,7 @@ export function MemoBoardShell({
             <button
               type="button"
               onClick={() => setMobileCalendarOpen((v) => !v)}
-              className="flex h-[36px] w-full items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 text-[13px] text-muted-foreground transition hover:bg-accent"
+              className="flex h-[36px] w-full items-center gap-2 rounded-full border px-3 text-[13px] transition [border-color:var(--memo-control-border)] [background:var(--memo-control-surface)] text-[color:var(--memo-control-text)] hover:[background:var(--memo-control-hover-surface)] hover:text-[color:var(--memo-control-hover-text)]"
             >
               <CalendarDays size={14} className="shrink-0" />
               <span className="flex-1 text-left">
@@ -671,8 +712,8 @@ export function MemoBoardShell({
               )}
             </button>
             {isMobileCalendarOpen ? (
-              <div className="mt-2 rounded-2xl border border-border/60 bg-background/80 p-3">
-                <div className="mb-3 inline-flex rounded-full border border-border/60 bg-background/70 p-1">
+              <div className="mt-2 rounded-2xl border p-3 [border-color:var(--memo-panel-border)] [background:var(--memo-panel-surface)] [box-shadow:var(--memo-panel-shadow)]">
+                <div className="mb-3 inline-flex rounded-full border p-1 [border-color:var(--memo-control-border)] [background:var(--memo-control-surface)]">
                   {sidebarModes.map((mode) => (
                     <button
                       key={mode.key}
@@ -681,8 +722,8 @@ export function MemoBoardShell({
                       className={[
                         'rounded-full px-3 py-1 text-[12px] font-medium transition',
                         resolvedCalendarMode === mode.key
-                          ? 'bg-foreground text-background'
-                          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                          ? '[background:var(--memo-primary-surface)] text-[color:var(--memo-primary-text)]'
+                          : 'text-[color:var(--memo-control-text)] hover:[background:var(--memo-control-hover-surface)] hover:text-[color:var(--memo-control-hover-text)]',
                       ].join(' ')}
                     >
                       {mode.label}
@@ -706,8 +747,8 @@ export function MemoBoardShell({
                   className={[
                     'rounded-full px-2.5 py-1 text-[12px] transition',
                     state.activeTags.includes(name)
-                      ? 'bg-foreground text-background'
-                      : 'border border-border/70 text-muted-foreground hover:bg-accent',
+                      ? '[background:var(--memo-primary-surface)] text-[color:var(--memo-primary-text)]'
+                      : 'border [border-color:var(--memo-control-border)] text-[color:var(--memo-control-text)] hover:[background:var(--memo-control-hover-surface)] hover:text-[color:var(--memo-control-hover-text)]',
                   ].join(' ')}
                 >
                   #{name}
@@ -717,7 +758,7 @@ export function MemoBoardShell({
                 <button
                   type="button"
                   onClick={() => actions.handleTagFilter('')}
-                  className="flex items-center gap-1 rounded-full border border-border/70 px-2.5 py-1 text-[12px] text-muted-foreground"
+                  className="flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] [border-color:var(--memo-control-border)] text-[color:var(--memo-control-text)]"
                 >
                   <X size={12} />
                   清除

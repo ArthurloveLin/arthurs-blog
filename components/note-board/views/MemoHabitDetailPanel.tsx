@@ -50,8 +50,8 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
 
   const currentState = detail?.currentState ?? null
   const streakLabel = currentState ? getHabitStreakLabel(currentState.streak) : null
-  const canComplete = currentState != null && (currentState.status === 'pending' || currentState.status === 'delayed')
-  const canDelay = canComplete
+  const canComplete = currentState?.status === 'pending'
+  const canDelay = currentState != null && (currentState.status === 'pending' || currentState.status === 'scheduled' || currentState.status === 'delayed')
 
   async function handleComplete() {
     if (completing) return

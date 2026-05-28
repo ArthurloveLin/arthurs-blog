@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { AlarmClock, Archive, ArchiveRestore, Lock, MessageCircle, PencilLine, Trash2 } from 'lucide-react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
@@ -88,21 +88,37 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
   const { theme } = useNoteColorTheme()
   const colorIdx = getStickyColorIndex(getStickyColorSeed(message))
   const accentColor = theme.slots[colorIdx % theme.slots.length]?.tape ?? STICKY_COLORS[0]
+  const cardThemeVars = {
+    '--memo-local-card-surface': theme.chrome.cardSurface,
+    '--memo-local-card-editing-surface': theme.chrome.cardEditingSurface,
+    '--memo-local-card-border': theme.chrome.cardBorder,
+    '--memo-local-card-hover-border': theme.chrome.cardHoverBorder,
+    '--memo-local-card-shadow': theme.chrome.cardShadow,
+    '--memo-local-card-hover-shadow': theme.chrome.cardHoverShadow,
+    '--memo-local-card-text': theme.chrome.cardText,
+    '--memo-local-card-muted': theme.chrome.cardMuted,
+    '--memo-local-control-surface': theme.chrome.controlSurface,
+    '--memo-local-control-border': theme.chrome.controlBorder,
+    '--memo-local-control-text': theme.chrome.controlText,
+    '--memo-local-primary-surface': theme.chrome.primarySurface,
+    '--memo-local-primary-text': theme.chrome.primaryText,
+  } as CSSProperties
 
   return (
     <div
       ref={cardRef}
       className={[
-        'relative overflow-hidden rounded-[22px] border bg-card/85 p-5 pl-9 shadow-[0_10px_28px_rgba(15,23,42,0.06)] transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 hover:shadow-[0_18px_44px_rgba(15,23,42,0.12)]',
+        'relative overflow-hidden rounded-[22px] border p-5 pl-9 transition-all duration-200 ease-out will-change-transform hover:-translate-y-1 [border-color:var(--memo-local-card-border)] [background:var(--memo-local-card-surface)] [box-shadow:var(--memo-local-card-shadow)] hover:[border-color:var(--memo-local-card-hover-border)] hover:[box-shadow:var(--memo-local-card-hover-shadow)]',
         isEditing
-          ? '-translate-y-1 border-border bg-accent/35 shadow-[0_18px_44px_rgba(15,23,42,0.12)]'
-          : 'border-border/60 hover:border-border/80',
+          ? '-translate-y-1 [border-color:var(--memo-local-card-hover-border)] [background:var(--memo-local-card-editing-surface)] [box-shadow:var(--memo-local-card-hover-shadow)]'
+          : '',
         isOptimistic || isOptimisticEditing || isFresh
           ? 'animate-in fade-in slide-in-from-bottom-3 duration-300'
           : '',
       ]
         .filter(Boolean)
         .join(' ')}
+      style={cardThemeVars}
     >
       <span
         aria-hidden
@@ -117,7 +133,7 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <p className="text-[14px] font-medium leading-none text-foreground/85">{message.author}</p>
+            <p className="text-[14px] font-medium leading-none text-[color:var(--memo-local-card-text)]">{message.author}</p>
             {message.visibility === 'admin_only' ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
                 <Lock size={9} strokeWidth={2.2} />
@@ -125,7 +141,7 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
               </span>
             ) : null}
           </div>
-          <span className="mt-1.5 block text-[12px] leading-none text-foreground/50">
+          <span className="mt-1.5 block text-[12px] leading-none text-[color:var(--memo-local-card-muted)]">
             {formatCommentTimeLabel(message.created_at, message.updated_at)}
           </span>
         </div>
@@ -174,14 +190,14 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
         <div className="mb-3 flex items-center justify-end gap-2">
           <button
             type="button"
-            className="rounded-full border border-border/60 bg-background/60 px-3 py-1 text-[11.5px] text-muted-foreground transition hover:text-foreground"
+            className="rounded-full border px-3 py-1 text-[11.5px] transition [border-color:var(--memo-local-control-border)] [background:var(--memo-local-control-surface)] text-[color:var(--memo-local-control-text)] hover:opacity-90"
             onClick={() => setConfirmingAction(null)}
           >
             取消
           </button>
           <button
             type="button"
-            className="rounded-full bg-foreground px-3 py-1 text-[11.5px] font-medium text-background transition hover:opacity-90"
+            className="rounded-full px-3 py-1 text-[11.5px] font-medium transition hover:opacity-90 [background:var(--memo-local-primary-surface)] text-[color:var(--memo-local-primary-text)]"
             onClick={() => {
               if (confirmingAction === 'archive') actions.archive?.onToggle()
               if (confirmingAction === 'delete') actions.delete?.onClick()
@@ -194,7 +210,7 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
       ) : null}
 
       {/* 正文内容 */}
-      <div className="text-[15px] leading-[1.75] text-foreground/85">
+      <div className="text-[15px] leading-[1.75] text-[color:var(--memo-local-card-text)]">
         <NoteContent
           content={message.content}
           variant="stream"
@@ -255,19 +271,19 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
           onReact={reactionControl.onReact}
           onEmojiReact={reactionControl.onEmojiReact}
         />
-        <span className="shrink-0 text-[11px] leading-none text-muted-foreground/45">
+        <span className="shrink-0 text-[11px] leading-none text-[color:var(--memo-local-card-muted)]">
           {formatStableDate(message.created_at, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
 
       {/* 评论入口 */}
-      <div className="mt-3 flex items-center border-t border-border/20 pt-3">
+      <div className="mt-3 flex items-center border-t pt-3 [border-color:var(--memo-local-card-border)]">
         <button
           type="button"
           onClick={() => setShowComments((v) => !v)}
           className={[
             'flex items-center gap-1.5 text-[12px] font-medium transition',
-            showComments ? 'text-foreground/70' : 'text-muted-foreground/55 hover:text-foreground/70',
+            showComments ? 'text-[color:var(--memo-local-card-text)] opacity-75' : 'text-[color:var(--memo-local-card-muted)] hover:opacity-80',
           ].join(' ')}
         >
           <MessageCircle size={13} strokeWidth={1.8} />
