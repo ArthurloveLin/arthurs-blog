@@ -730,10 +730,9 @@ jobs:
             echo "collected=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create branch and open PR
+      - name: Create branch and push
         if: steps.validate_syntax.outputs.valid == 'true' && steps.validate_collect.outputs.collected == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        id: push
         run: |
           TODAY=$(date -u +%Y%m%d)
           SHORT_SHA=$(git rev-parse --short HEAD)
@@ -748,29 +747,49 @@ jobs:
           Co-Authored-By: agy <noreply@anthropic.com>"
 
           git push origin "$BRANCH"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
 
+      - name: Open PR
+        if: steps.push.outputs.branch != ''
+        id: pr
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
           PR_URL=$(gh pr create \
-            --title "test(ai-gen): AI-generated tests for coverage gaps [${TODAY}]" \
+            --title "test(ai-gen): AI-generated tests for coverage gaps [$(date -u +%Y%m%d)]" \
             --body-file tests/ai_hooks/pr_body_template.md \
             --base main \
-            --head "$BRANCH")
-
+            --head "${{ steps.push.outputs.branch }}")
           echo "PR_URL=$PR_URL" >> "$GITHUB_ENV"
 
       - name: Notify via ntfy
-        if: env.PR_URL != ''
+        if: steps.push.outputs.branch != ''
         run: |
+          BRANCH="${{ steps.push.outputs.branch }}"
+          BRANCH_URL="${{ github.server_url }}/${{ github.repository }}/compare/main...${BRANCH}"
+          if [ -n "${PR_URL:-}" ]; then
+            TITLE="🤖 AI Test Gen PR Ready"
+            MSG="新 AI 生成测试 PR，请审核: ${PR_URL}"
+            CLICK="$PR_URL"
+          else
+            TITLE="🤖 AI Test Gen 分支已推送（PR 创建失败）"
+            MSG="测试已推送至分支 ${BRANCH}，请手动创建 PR 或在 Settings → Actions → General 启用 'Allow GitHub Actions to create and approve pull requests'"
+            CLICK="$BRANCH_URL"
+          fi
           curl -fsS -X POST \
             -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "$(jq -n \
-              --arg url "$PR_URL" \
+              --arg title "$TITLE" \
+              --arg msg "$MSG" \
+              --arg click "$CLICK" \
               '{
                 topic: "watchtower-arthur71684",
-                title: "🤖 AI Test Gen PR Ready",
-                message: ("新 AI 生成测试 PR，请审核: " + $url),
+                title: $title,
+                message: $msg,
                 tags: ["test_tube"],
                 priority: 2,
-                click: $url
+                click: $click
               }')" \
             https://arthurlovegrace.top/ntfy-push
