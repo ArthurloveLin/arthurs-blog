@@ -36,11 +36,12 @@ env:
 
 # Job dependency graph (push to main):
 #
-#   check → docker → deploy → release → ai-changelog
+#   check → docker → deploy → post-deploy-check (health + agy, non-blocking)
 #         ↘ ai-fix   (on check failure — opens a fix PR)
 #         ↘ ai-audit (on check success — non-blocking audit report)
-#                     deploy → post-deploy-check (health + agy, non-blocking)
 #                    ↘ notify (on failure)
+#
+# Release + AI Changelog moved to weekly-release.yml (schedule: Sun UTC 16:00).
 #
 # On PR: only check + docker build (no push, no deploy).
 # AI PR Review gate lives in ai-pr-review.yml (separate workflow).
@@ -337,70 +338,7 @@ jobs:
               }')" \
             https://arthurlovegrace.top/ntfy-push
 
-# ─── 5. Version snapshot ──────────────────────────────────────────────────────
-  release:
-    name: Create Version Snapshot
-    needs: deploy
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-      packages: write
-    outputs:
-      tag: ${{ steps.version.outputs.tag }}
-    steps:
-      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
-
-      - name: Log in to GHCR
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate version tag
-        id: version
-        run: echo "tag=v$(date -u +%Y.%m.%d-%H%M)" >> $GITHUB_OUTPUT
-
-      - name: Re-tag image without rebuild
-        run: |
-          SHA_TAG="sha-$(echo ${{ github.sha }} | cut -c1-7)"
-          docker buildx imagetools create \
-            --tag ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }} \
-            ${{ env.IMAGE_NAME }}:${SHA_TAG}
-
-      - name: Get commit message
-        id: commit
-        run: |
-          MSG=$(curl -fsS \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}" \
-            | jq -r '.commit.message | split("\n")[0]')
-          echo "message=${MSG}" >> $GITHUB_OUTPUT
-
-      - name: Create annotated git tag
-        run: |
-          TAG_SHA=$(curl -fsS -X POST \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/${{ github.repository }}/git/tags \
-            -d "$(jq -n \
-              --arg tag "${{ steps.version.outputs.tag }}" \
-              --arg msg "${{ steps.commit.outputs.message }}" \
-              --arg sha "${{ github.sha }}" \
-              '{tag: $tag, message: $msg, object: $sha, type: "commit"}')" \
-            | jq -r '.sha')
-          curl -fsS -X POST \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/${{ github.repository }}/git/refs \
-            -d "$(jq -n \
-              --arg ref "refs/tags/${{ steps.version.outputs.tag }}" \
-              --arg sha "${TAG_SHA}" \
-              '{ref: $ref, sha: $sha}')"
-
-# ─── 5a. Post-Deploy Health Check (non-blocking) ─────────────────────────────
+# ─── 5. Post-Deploy Health Check (non-blocking) ─────────────────────────────
 #
 # Waits 2 min for Watchtower to apply the new image, then collects docker logs
 # and /api/health response, asks agy to detect anomalies, and pushes ntfy.
@@ -497,177 +435,7 @@ jobs:
               }')" \
             https://arthurlovegrace.top/ntfy-push
 
-# ─── 5b. AI Changelog & GitHub Release (non-blocking) ────────────────────────
-#
-# Runs after release job. Generates a Keep a Changelog entry via agy,
-# prepends it to CHANGELOG.md, commits [skip ci] to main, then
-# creates an auto-published GitHub Release with the AI-generated notes.
-  ai-changelog:
-    name: AI Changelog & GitHub Release
-    needs: release
-    runs-on: [self-hosted, linux, vps]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    continue-on-error: true
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Collect git log since previous tag
-        run: |
-          NEW_TAG="${{ needs.release.outputs.tag }}"
-          PREV_TAG=$(git describe --tags --abbrev=0 "${NEW_TAG}^" 2>/dev/null || echo "")
-          echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
-          echo "PREV_TAG=${PREV_TAG}" >> $GITHUB_ENV
-          if [ -n "$PREV_TAG" ]; then
-            git log "${PREV_TAG}..${NEW_TAG}" --format="* %s (%h)" | head -c 20000 > /tmp/git-log.txt
-            git diff "${PREV_TAG}..${NEW_TAG}" --stat | head -c 8000 > /tmp/git-diff-stat.txt
-            git diff "${PREV_TAG}..${NEW_TAG}" -- \
-              '*.ts' '*.tsx' '*.js' '*.jsx' '*.css' \
-              ':!*.min.*' ':!.next/**' ':!**/node_modules/**' \
-              | head -c 8000 > /tmp/git-diff-patch.txt
-          else
-            git log "${NEW_TAG}" --format="* %s (%h)" | head -c 20000 > /tmp/git-log.txt
-            echo "(首个版本，无 diff)" > /tmp/git-diff-stat.txt
-            echo "" > /tmp/git-diff-patch.txt
-          fi
-          echo "Log lines: $(wc -l < /tmp/git-log.txt)"
-          echo "Diff stat lines: $(wc -l < /tmp/git-diff-stat.txt)"
-
-      - name: Assemble agy prompt
-        run: |
-          python3 - << 'PYEOF'
-          import pathlib, os
-          template  = pathlib.Path("tests/ai_hooks/prompts/ai_changelog.md").read_text()
-          git_log   = pathlib.Path("/tmp/git-log.txt").read_text(errors="replace")
-          diff_stat = pathlib.Path("/tmp/git-diff-stat.txt").read_text(errors="replace")
-          diff_patch= pathlib.Path("/tmp/git-diff-patch.txt").read_text(errors="replace")
-          prompt    = (template
-                       .replace("{GIT_LOG}",    git_log)
-                       .replace("{DIFF_STAT}",  diff_stat)
-                       .replace("{DIFF_PATCH}", diff_patch)
-                       .replace("{NEW_TAG}",    os.environ.get("NEW_TAG", ""))
-                       .replace("{PREV_TAG}",   os.environ.get("PREV_TAG", "(首个版本)")))
-          pathlib.Path("/tmp/ai-changelog-prompt.md").write_text(prompt)
-          print(f"Prompt assembled: {len(prompt)} chars")
-          PYEOF
-
-      - name: Invoke agy
-        continue-on-error: true
-        timeout-minutes: 8
-        run: |
-          rm -rf ~/.gemini/antigravity-cli/brain/ 2>/dev/null || true
-          /home/arthur/.local/bin/agy \
-            --dangerously-skip-permissions \
-            -p "$(cat /tmp/ai-changelog-prompt.md)"
-
-      - name: Upload changelog to R2 CDN
-        continue-on-error: true
-        env:
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_CDN_BUCKET: ${{ secrets.R2_CDN_BUCKET }}
-        run: |
-          python3 - << 'PYEOF'
-          import os, sys, pathlib, io
-          try:
-              import boto3
-              from botocore.config import Config
-          except ImportError:
-              print("boto3 not available, skipping R2 upload.")
-              sys.exit(0)
-
-          changelog_path = pathlib.Path("/tmp/ai-changelog.md")
-          if not changelog_path.exists():
-              print("No changelog generated, skipping R2 upload.")
-              sys.exit(0)
-
-          account_id   = os.environ["R2_ACCOUNT_ID"]
-          access_key   = os.environ["R2_ACCESS_KEY_ID"]
-          secret_key   = os.environ["R2_SECRET_ACCESS_KEY"]
-          bucket       = os.environ["R2_CDN_BUCKET"]
-          endpoint_url = f"https://{account_id}.r2.cloudflarestorage.com"
-
-          s3 = boto3.client(
-              "s3",
-              endpoint_url=endpoint_url,
-              aws_access_key_id=access_key,
-              aws_secret_access_key=secret_key,
-              config=Config(signature_version="s3v4"),
-              region_name="auto",
-          )
-
-          new_entry = changelog_path.read_text()
-
-          # Upload latest.md — only the newest entry (for fast badge load)
-          s3.put_object(
-              Bucket=bucket,
-              Key="changelog/latest.md",
-              Body=new_entry.encode(),
-              ContentType="text/markdown; charset=utf-8",
-          )
-          print(f"Uploaded changelog/latest.md ({len(new_entry)} bytes)")
-
-          # Fetch existing all.md and prepend the new entry (cumulative history)
-          try:
-              existing_obj = s3.get_object(Bucket=bucket, Key="changelog/all.md")
-              existing = existing_obj["Body"].read().decode()
-              combined = new_entry.rstrip() + "\n\n" + existing.strip() + "\n"
-          except s3.exceptions.NoSuchKey:
-              combined = "# Changelog\n\n本文件由 CI 自动维护。\n\n" + new_entry.rstrip() + "\n"
-          except Exception:
-              combined = "# Changelog\n\n本文件由 CI 自动维护。\n\n" + new_entry.rstrip() + "\n"
-
-          s3.put_object(
-              Bucket=bucket,
-              Key="changelog/all.md",
-              Body=combined.encode(),
-              ContentType="text/markdown; charset=utf-8",
-          )
-          print(f"Uploaded changelog/all.md ({len(combined)} bytes)")
-          PYEOF
-
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [ -f /tmp/ai-changelog.md ]; then
-            gh release create "${NEW_TAG}" \
-              --title "${NEW_TAG}" \
-              --notes-file /tmp/ai-changelog.md
-          else
-            gh release create "${NEW_TAG}" \
-              --title "${NEW_TAG}" \
-              --notes "Changelog 生成失败，请手动补充。"
-          fi
-
-      - name: Notify via ntfy
-        if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          RELEASE_URL=$(gh release view "${NEW_TAG}" --json url -q .url 2>/dev/null || echo "$RUN_URL")
-          curl -fsS -X POST \
-            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d "$(jq -n \
-              --arg tag "${NEW_TAG}" \
-              --arg click "$RELEASE_URL" \
-              '{
-                topic: "watchtower-arthur71684",
-                title: ("新版本发布 — " + $tag),
-                message: "GitHub Release 已创建，AI Changelog 见 Release 页面。",
-                tags: ["package"],
-                priority: 3,
-                click: $click
-              }')" \
-            https://arthurlovegrace.top/ntfy-push
-
-# ─── 5c. AI Main Audit (non-blocking) ────────────────────────────────────────
+# ─── 5b. AI Main Audit (non-blocking) ────────────────────────────────────────
 #
 # Runs in parallel with docker build on every push to main.
 # Reads the pushed diff, invokes agy to produce an audit report, writes it to
@@ -767,7 +535,7 @@ jobs:
               }')" \
             https://arthurlovegrace.top/ntfy-push
 
-# ─── 6. Failure notification ──────────────────────────────────────────────────
+# ─── 5c. Failure notification ──────────────────────────────────────────────────
   notify:
     name: Notify on Failure
     needs: [check, docker, deploy]

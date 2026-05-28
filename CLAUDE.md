@@ -189,9 +189,9 @@ Each push to `main` automatically produces these tags in GHCR:
 | `latest` | `latest` | Always the current `main` tip; Watchtower tracks this |
 | `sha-<short>` | `sha-32285dc` | Immutable snapshot of a specific commit |
 | `main` | `main` | Same as `latest` for branch-based reference |
-| `v<date>-<time>` | `v2025.05.20-1523` | Auto-generated release snapshot (UTC); **no rebuild** — re-tags the sha image |
+| `v<date>-<time>` | `v2025.05.20-1523` | Weekly release snapshot (UTC); **no rebuild** — re-tags the latest image |
 
-The `release` CI job runs in parallel with `deploy` after `docker` completes. It uses `docker buildx imagetools create` to copy the digest (no rebuild), then calls the GitHub API to create a matching git tag. No manual tagging required.
+The `weekly-release.yml` workflow runs on a schedule (Sun UTC 16:00 / Mon 00:00 Beijing) or via `workflow_dispatch`. It re-tags the current `latest` Docker image, creates an annotated git tag, and generates an AI changelog + GitHub Release.
 
 ### Rollback SOP
 
