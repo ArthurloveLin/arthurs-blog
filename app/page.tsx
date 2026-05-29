@@ -3,17 +3,33 @@ import type { StickyStackPreviewMessage } from '@/components/note-board/views/St
 import { getStableYear } from '@/lib/date-format'
 import { getNoteBoardConfig } from '@/lib/note-board-config'
 import { getBoardMessages } from '@/lib/note-boards'
+import { getPostsByYear, type Post } from '@/lib/blog'
 
 export const revalidate = 1800
 
 export default async function HomePage() {
   const currentYear = getStableYear()
   const guestbookConfig = getNoteBoardConfig('guestbook')
-  let guestbookMessages: StickyStackPreviewMessage[] = []
 
-  try {
-    const messages = await getBoardMessages('guestbook', guestbookConfig.previewLimit)
-    guestbookMessages = messages.map((message) => ({
+  // Render the feed synchronously (pass `posts`, no Suspense) so every
+  // post-cover-${id} shared-element target is in the DOM on back-navigation.
+  // The morph from an article back to its list card can only pair if the
+  // target card is already mounted when the View Transition snapshots — the
+  // Suspense skeleton has no cover element, which silently degraded morph-back
+  // into a fade-in. ISR (revalidate) prerenders the whole page anyway, so
+  // streaming the feed bought nothing. Matches archive/category/tag pages.
+  const [postsResult, guestbookResult] = await Promise.allSettled([
+    getPostsByYear(currentYear, 50, 0),
+    getBoardMessages('guestbook', guestbookConfig.previewLimit),
+  ])
+
+  const posts: Post[] = postsResult.status === 'fulfilled' ? postsResult.value : []
+  const fetchError = postsResult.status === 'rejected'
+
+  // non-fatal: hero shows empty guestbook preview if this rejected
+  let guestbookMessages: StickyStackPreviewMessage[] = []
+  if (guestbookResult.status === 'fulfilled') {
+    guestbookMessages = guestbookResult.value.map((message) => ({
       id: message.id,
       visual_seed: message.visual_seed,
       author: message.author,
@@ -21,12 +37,12 @@ export default async function HomePage() {
       created_at: message.created_at,
       updated_at: message.updated_at,
     }))
-  } catch {
-    // non-fatal: hero shows empty guestbook preview
   }
 
   return (
     <BlogPage
+      posts={posts}
+      fetchError={fetchError}
       currentYear={currentYear}
       initialGuestbookMessages={guestbookMessages}
       guestbookBoard={guestbookConfig}

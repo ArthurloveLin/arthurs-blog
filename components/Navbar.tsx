@@ -438,7 +438,6 @@ function NavbarContent() {
           <Link 
             href={isMemoStandalone ? '/memo' : homeHref}
             onClick={handleBrandClick}
-            transitionTypes={isOnArticle ? ['nav-back'] : undefined}
             className={`flex items-center gap-2.5 flex-shrink-0 group`}
           >
             <div className="w-8 h-8 relative flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
@@ -489,7 +488,6 @@ function NavbarContent() {
                   key={link.href}
                   href={link.href === '/' ? homeHref : link.href}
                   onClick={link.href === '/' ? handleHomeClick : undefined}
-                  transitionTypes={link.href === '/' && isOnArticle ? ['nav-back'] : undefined}
                   className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
                   title={link.tooltip}
                 >

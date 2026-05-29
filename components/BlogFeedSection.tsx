@@ -113,7 +113,11 @@ export default function BlogFeedSection({
             const CardComponent = getPostCardComponent(returningPostSlug === post.slug)
 
             return (
-              <ViewTransition key={post.id}>
+              // default="none": the card container itself must not cross-fade.
+              // On navigation only the inner post-cover/title/meta shared morphs
+              // (and revalidations/Suspense resolves) should animate — letting the
+              // outer VT auto-fade would make ~20 cards flicker around the morph.
+              <ViewTransition key={post.id} default="none">
                 <CardComponent post={post} index={index} />
               </ViewTransition>
             )
