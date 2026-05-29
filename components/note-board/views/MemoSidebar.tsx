@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Activity, CalendarDays, ChevronLeft, ChevronRight, History, Tag, X } from 'lucide-react'
+import { Activity, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, History, Tag, X } from 'lucide-react'
 import { getHabitStatusClassName, getHabitStatusLabel } from '@/components/note-board/utils/habit-ui'
 import type { MemoHabitHistoryEvent, MemoHabitOverview } from '@/lib/memo-habits'
 import type { MemoAgendaItem } from '@/lib/note-boards'
@@ -890,37 +890,62 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
 export function SidebarTagCloud() {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
+  const [isExpanded, setIsExpanded] = useState(false)
 
   if (state.allTags.length === 0) return null
 
+  const needsExpansion = state.allTags.length > 8
+
   return (
     <div className="space-y-2.5">
-      <p className="flex items-center gap-1.5 text-[12.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        <Tag size={11} />
-        标签
-      </p>
-      <div className="flex flex-wrap gap-1.5">
-        {state.allTags.slice(0, 30).map(({ name, count }) => {
-          const isActive = state.activeTags.includes(name)
-          return (
-            <button
-              key={name}
-              type="button"
-              onClick={() => actions.handleTagFilter(name)}
-              className={[
-                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] transition',
-                isActive
-                  ? 'bg-foreground text-background'
-                  : 'border border-border/70 text-muted-foreground hover:bg-accent hover:text-foreground',
-              ].join(' ')}
-            >
-              <span>#{name}</span>
-              <span className="opacity-60">{count}</span>
-            </button>
-          )
-        })}
-        {state.allTags.length > 30 ? (
-          <span className="text-[13px] text-muted-foreground/60">+{state.allTags.length - 30}</span>
+      <div className="flex items-center justify-between">
+        <p className="flex items-center gap-1.5 text-[12.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <Tag size={11} />
+          标签
+        </p>
+        {needsExpansion ? (
+          <button
+            type="button"
+            onClick={() => setIsExpanded((v) => !v)}
+            className="flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground/60 transition hover:text-muted-foreground"
+          >
+            {isExpanded ? '收起' : '展开'}
+            <ChevronDown
+              size={12}
+              className={['transition-transform duration-200', isExpanded ? 'rotate-180' : ''].join(' ')}
+            />
+          </button>
+        ) : null}
+      </div>
+      <div className="relative">
+        <div
+          className={[
+            'flex flex-wrap gap-1.5 transition-all duration-300',
+            !isExpanded && needsExpansion ? 'max-h-[100px] overflow-hidden' : '',
+          ].join(' ')}
+        >
+          {state.allTags.map(({ name, count }) => {
+            const isActive = state.activeTags.includes(name)
+            return (
+              <button
+                key={name}
+                type="button"
+                onClick={() => actions.handleTagFilter(name)}
+                className={[
+                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] transition',
+                  isActive
+                    ? 'bg-foreground text-background'
+                    : 'border border-border/70 text-muted-foreground hover:bg-accent hover:text-foreground',
+                ].join(' ')}
+              >
+                <span>#{name}</span>
+                <span className="opacity-60">{count}</span>
+              </button>
+            )
+          })}
+        </div>
+        {!isExpanded && needsExpansion ? (
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[var(--memo-panel-surface,hsl(var(--background)))] to-transparent" />
         ) : null}
       </div>
       {state.activeTags.length > 0 ? (
