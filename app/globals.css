@@ -798,14 +798,14 @@ html {
 .prose :is(ul),
 .prose :is(ol) { color: var(--foreground); }
 
-/* ── Spectral (光谱) — rainbow by heading level ── */
+/* ── Spectral (光谱) — ROYGBIV by heading level ── */
 [data-md-theme="spectral"] {
   --md-h1: #b91c1c;
   --md-h2: #c2410c;
-  --md-h3: #15803d;
-  --md-h4: #1d4ed8;
-  --md-h5: #7c3aed;
-  --md-h6: #be185d;
+  --md-h3: #a16207;
+  --md-h4: #15803d;
+  --md-h5: #1d4ed8;
+  --md-h6: #7c3aed;
   --md-strong: #b91c1c;
   --md-bq-border: #7c3aed;
   --md-bq-text: #6d28d9;
@@ -814,92 +814,144 @@ html {
 .dark[data-md-theme="spectral"] {
   --md-h1: #f87171;
   --md-h2: #fb923c;
-  --md-h3: #4ade80;
-  --md-h4: #60a5fa;
-  --md-h5: #a78bfa;
-  --md-h6: #f472b6;
+  --md-h3: #fbbf24;
+  --md-h4: #4ade80;
+  --md-h5: #60a5fa;
+  --md-h6: #a78bfa;
   --md-strong: #f87171;
   --md-bq-border: #a78bfa;
   --md-bq-text: #c4b5fd;
   --md-link: #60a5fa;
 }
 
-/* ── Polar (极地) — Nord-inspired arctic blues ── */
+/* ── Polar (极地) — true Nord palette ── */
 [data-md-theme="polar"] {
-  --md-h1: #1e3a5f;
-  --md-h2: #2e5987;
-  --md-h3: #1e7a8a;
-  --md-h4: #2a7a5b;
-  --md-h5: #5a4fa0;
-  --md-h6: #7b5e8a;
-  --md-strong: #1e3a5f;
-  --md-bq-border: #1e7a8a;
-  --md-bq-text: #2e5987;
-  --md-link: #2e5987;
+  --md-h1: #2E3440;
+  --md-h2: #5E81AC;
+  --md-h3: #81A1C1;
+  --md-h4: #8FBCBB;
+  --md-h5: #88C0D0;
+  --md-h6: #4C566A;
+  --md-strong: #2E3440;
+  --md-bq-border: #5E81AC;
+  --md-bq-text: #81A1C1;
+  --md-link: #5E81AC;
 }
 .dark[data-md-theme="polar"] {
-  --md-h1: #88c0d0;
-  --md-h2: #81a1c1;
-  --md-h3: #8fbcbb;
-  --md-h4: #a3be8c;
-  --md-h5: #ebcb8b;
-  --md-h6: #b48ead;
-  --md-strong: #eceff4;
-  --md-bq-border: #4c6f8a;
-  --md-bq-text: #81a1c1;
-  --md-link: #88c0d0;
+  --md-h1: #ECEFF4;
+  --md-h2: #88C0D0;
+  --md-h3: #81A1C1;
+  --md-h4: #A3BE8C;
+  --md-h5: #EBCB8B;
+  --md-h6: #B48EAD;
+  --md-strong: #ECEFF4;
+  --md-bq-border: #5E81AC;
+  --md-bq-text: #81A1C1;
+  --md-link: #88C0D0;
 }
 
-/* ── Sakura (樱花) — rose-pink to lavender ── */
+/* ── Sakura (樱花) — Rosé Pine palette ── */
 [data-md-theme="sakura"] {
-  --md-h1: #9f1239;
-  --md-h2: #c026d3;
-  --md-h3: #7c3aed;
-  --md-h4: #0f766e;
-  --md-h5: #0369a1;
-  --md-h6: #be185d;
-  --md-strong: #9f1239;
-  --md-bq-border: #c026d3;
-  --md-bq-text: #a21caf;
-  --md-link: #7c3aed;
+  --md-h1: #b4637a;
+  --md-h2: #286983;
+  --md-h3: #907aa9;
+  --md-h4: #56949f;
+  --md-h5: #ea9d34;
+  --md-h6: #797593;
+  --md-strong: #b4637a;
+  --md-bq-border: #907aa9;
+  --md-bq-text: #797593;
+  --md-link: #286983;
 }
 .dark[data-md-theme="sakura"] {
-  --md-h1: #fb7185;
-  --md-h2: #e879f9;
-  --md-h3: #c084fc;
-  --md-h4: #2dd4bf;
-  --md-h5: #38bdf8;
-  --md-h6: #f472b6;
-  --md-strong: #fb7185;
-  --md-bq-border: #e879f9;
-  --md-bq-text: #c084fc;
-  --md-link: #c084fc;
+  --md-h1: #eb6f92;
+  --md-h2: #c4a7e7;
+  --md-h3: #9ccfd8;
+  --md-h4: #f6c177;
+  --md-h5: #ebbcba;
+  --md-h6: #6e6a86;
+  --md-strong: #eb6f92;
+  --md-bq-border: #c4a7e7;
+  --md-bq-text: #908caa;
+  --md-link: #c4a7e7;
 }
 
 /* ── Sage (苍翠) — forest greens ── */
 [data-md-theme="sage"] {
   --md-h1: #14532d;
-  --md-h2: #166534;
-  --md-h3: #4d7c0f;
-  --md-h4: #0f766e;
-  --md-h5: #065f46;
+  --md-h2: #15803d;
+  --md-h3: #0f766e;
+  --md-h4: #166534;
+  --md-h5: #4d7c0f;
   --md-h6: #6b7280;
   --md-strong: #14532d;
-  --md-bq-border: #4d7c0f;
-  --md-bq-text: #3f6212;
+  --md-bq-border: #15803d;
+  --md-bq-text: #166534;
   --md-link: #15803d;
 }
 .dark[data-md-theme="sage"] {
   --md-h1: #4ade80;
   --md-h2: #86efac;
-  --md-h3: #bef264;
-  --md-h4: #2dd4bf;
-  --md-h5: #6ee7b7;
-  --md-h6: #a3e635;
+  --md-h3: #2dd4bf;
+  --md-h4: #6ee7b7;
+  --md-h5: #a7f3d0;
+  --md-h6: #737373;
   --md-strong: #4ade80;
-  --md-bq-border: #4d7c0f;
+  --md-bq-border: #15803d;
   --md-bq-text: #86efac;
   --md-link: #4ade80;
+}
+
+/* ── Amber (琥珀) — warm rust-to-gold ── */
+[data-md-theme="amber"] {
+  --md-h1: #7c2d12;
+  --md-h2: #9a3412;
+  --md-h3: #c2410c;
+  --md-h4: #b45309;
+  --md-h5: #ca8a04;
+  --md-h6: #78716c;
+  --md-strong: #7c2d12;
+  --md-bq-border: #c2410c;
+  --md-bq-text: #9a3412;
+  --md-link: #b45309;
+}
+.dark[data-md-theme="amber"] {
+  --md-h1: #fdba74;
+  --md-h2: #fb923c;
+  --md-h3: #fbbf24;
+  --md-h4: #f59e0b;
+  --md-h5: #d97706;
+  --md-h6: #78716c;
+  --md-strong: #fdba74;
+  --md-bq-border: #fb923c;
+  --md-bq-text: #fbbf24;
+  --md-link: #fdba74;
+}
+
+/* ── Night (紫夜) — deep indigo-to-violet ── */
+[data-md-theme="night"] {
+  --md-h1: #1e1b4b;
+  --md-h2: #3730a3;
+  --md-h3: #4338ca;
+  --md-h4: #6d28d9;
+  --md-h5: #7c3aed;
+  --md-h6: #6b7280;
+  --md-strong: #1e1b4b;
+  --md-bq-border: #6d28d9;
+  --md-bq-text: #4338ca;
+  --md-link: #4338ca;
+}
+.dark[data-md-theme="night"] {
+  --md-h1: #c7d2fe;
+  --md-h2: #818cf8;
+  --md-h3: #a78bfa;
+  --md-h4: #c084fc;
+  --md-h5: #e879f9;
+  --md-h6: #9ca3af;
+  --md-strong: #c7d2fe;
+  --md-bq-border: #a78bfa;
+  --md-bq-text: #818cf8;
+  --md-link: #818cf8;
 }
 
 /* Always-dark code blocks — single visual layer */

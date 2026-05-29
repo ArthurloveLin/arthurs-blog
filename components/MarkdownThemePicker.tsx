@@ -10,7 +10,7 @@ export default function MarkdownThemePicker() {
   const isDark = resolvedTheme === 'dark'
 
   return (
-    <div className="flex items-center gap-0.5 px-1 py-0.5">
+    <div className="grid grid-cols-4 gap-1 p-1">
       {MARKDOWN_THEMES.map((t) => {
         const colors = isDark ? t.preview.dark : t.preview.light
         const isActive = mdTheme === t.id
@@ -18,23 +18,28 @@ export default function MarkdownThemePicker() {
           <button
             key={t.id}
             onClick={() => setTheme(t.id)}
-            title={`${t.name} — ${t.label}`}
-            className={`relative w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 ${
+            aria-label={`${t.name} — ${t.label}`}
+            aria-pressed={isActive}
+            title={t.label}
+            className={`flex flex-col items-center gap-[3px] py-2 rounded-lg transition-all duration-150 ${
               isActive
                 ? 'bg-muted ring-1 ring-border'
                 : 'hover:bg-muted/60'
             }`}
           >
-            <div className="flex flex-col gap-[3px]">
-              <div className="flex gap-[3px]">
-                <span className="w-[5px] h-[5px] rounded-full" style={{ backgroundColor: colors[0] }} />
-                <span className="w-[5px] h-[5px] rounded-full" style={{ backgroundColor: colors[1] }} />
-              </div>
-              <div className="flex gap-[3px]">
-                <span className="w-[5px] h-[5px] rounded-full" style={{ backgroundColor: colors[2] }} />
-                <span className="w-[5px] h-[5px] rounded-full" style={{ backgroundColor: colors[3] }} />
-              </div>
+            <span className="text-sm leading-none" aria-hidden="true">{t.icon}</span>
+            <div className="flex gap-[3px] mt-0.5">
+              {colors.map((c, i) => (
+                <span
+                  key={i}
+                  className="w-[5px] h-[5px] rounded-full"
+                  style={{ backgroundColor: c }}
+                />
+              ))}
             </div>
+            <span className="text-[9px] font-medium text-foreground/70 leading-none mt-0.5">
+              {t.name}
+            </span>
           </button>
         )
       })}
