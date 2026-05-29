@@ -2,7 +2,7 @@
 
 import { AlarmClock, Archive, ArchiveRestore, ArrowRight, Check, ChevronsDown, Copy, FileDown, PencilLine, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
@@ -217,6 +217,16 @@ function StickyNoteCardFrame({
     return () => document.removeEventListener('pointerdown', handler)
   }, [showExpanded])
 
+  // Auto-collapse expanded content and close menus when a drag lifts.
+  // Done in the lift handler (not an effect body) per the note-board convention
+  // — avoids react-hooks/set-state-in-effect cascading renders.
+  const handleLift = useCallback(() => {
+    setIsExpanded(false)
+    setShowExportMenu(false)
+    setConfirmingAction(null)
+    onLift?.()
+  }, [onLift])
+
   const { isDragging, activePosition, dragHandlers } = useStickyNoteDrag({
     visualRef,
     paperRef,
@@ -254,7 +264,7 @@ function StickyNoteCardFrame({
     },
     shouldReleaseOnCommit: (distance) =>
       dragBoundsMode !== 'mobile-stack' || distance < PREVIEW_REVEAL_THRESHOLD,
-    onLift,
+    onLift: handleLift,
     onCommit,
   })
 
@@ -276,14 +286,6 @@ function StickyNoteCardFrame({
     const timeout = window.setTimeout(() => setShowExportMenu(false), 5000)
     return () => window.clearTimeout(timeout)
   }, [showExportMenu])
-
-  // Auto-collapse expanded content and close menus when dragging starts
-  useEffect(() => {
-    if (!isDragging) return
-    setIsExpanded(false)
-    setShowExportMenu(false)
-    setConfirmingAction(null)
-  }, [isDragging])
 
   useEffect(() => {
     if (!onHeightChange || typeof ResizeObserver === 'undefined' || isInlineEditing) return
