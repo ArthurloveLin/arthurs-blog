@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import useSWR from 'swr'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, ViewTransition } from 'react'
 import { AlarmClock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { MemoHabitDetailPanel } from '@/components/note-board/views/MemoHabitDetailPanel'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
@@ -159,13 +159,19 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
           />
         </div>
       ) : (
-        <div>
+        <div className="relative">
           <div
             ref={bindContainer}
             className={['note-board-canvas relative rounded-[28px] p-5 sm:p-6', editorState.editingMessage ? 'overflow-visible' : 'overflow-hidden'].join(' ')}
             style={{ minHeight: Math.max(activeSurfaceHeight, 420) }}
           >
             {!meta.surface.hasMeasured ? null : (
+              <ViewTransition
+                key={state.currentPage}
+                enter={{ 'memo-page-next': 'memo-page-from-right', 'memo-page-prev': 'memo-page-from-left', default: 'none' }}
+                exit={{ 'memo-page-next': 'memo-page-to-left', 'memo-page-prev': 'memo-page-to-right', default: 'none' }}
+                default="none"
+              >
               <div className="relative" style={{ minHeight: Math.max(activeSurfaceHeight, 320) }}>
                 {filteredNoteItems.map((item, index) => {
                   const { message, actions: cardActions, priorityControl, reactionControl, checklistControl, inlineEditor, isEditing, isOptimistic, isOptimisticEditing, isFresh } = item
@@ -217,35 +223,31 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
                   )
                 })}
               </div>
+              </ViewTransition>
             )}
           </div>
 
           {state.hasPreviousPage || state.hasNextPage ? (
-            <div className="mt-6 flex justify-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/95 px-2 py-2 text-sm shadow-sm">
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
-                  onClick={actions.handlePreviousPage}
-                  disabled={!state.hasPreviousPage || state.isPending || state.isRefreshingBoard}
-                >
-                  <ChevronLeft size={16} />
-                  上一页
-                </button>
-                <span className="min-w-[92px] text-center text-xs text-muted-foreground">
-                  第 {state.currentPage} 页
-                </span>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
-                  onClick={() => void actions.handleNextPage()}
-                  disabled={!state.hasNextPage || state.isPending || state.isRefreshingBoard}
-                >
-                  下一页
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
+            <>
+              <button
+                type="button"
+                aria-label="上一页"
+                className="group absolute left-1 top-1/2 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 sm:left-2"
+                onClick={actions.handlePreviousPage}
+                disabled={!state.hasPreviousPage || state.isPending || state.isRefreshingBoard}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                type="button"
+                aria-label="下一页"
+                className="group absolute right-1 top-1/2 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 sm:right-2"
+                onClick={() => void actions.handleNextPage()}
+                disabled={!state.hasNextPage || state.isPending || state.isRefreshingBoard}
+              >
+                <ChevronRight size={20} />
+              </button>
+            </>
           ) : null}
         </div>
       )}

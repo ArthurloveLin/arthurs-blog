@@ -90,7 +90,7 @@ const AuthorProfileCardBody = memo(function AuthorProfileCardBody({ variant = 'd
       )}
 
       {/* Avatar & Status */}
-      <ViewTransition name={id ? `${id}-author-avatar` : "author-avatar"} share="morph">
+      <ViewTransition name={id ? `${id}-author-avatar` : "author-avatar"} share="morph" default="none">
         <div className="flex justify-center">
           <div className="relative">
             {avatarUrl ? (
@@ -126,7 +126,7 @@ const AuthorProfileCardBody = memo(function AuthorProfileCardBody({ variant = 'd
       </ViewTransition>
 
       {/* Basic Info */}
-      <ViewTransition name={id ? `${id}-author-name` : "author-name"}>
+      <ViewTransition name={id ? `${id}-author-name` : "author-name"} share="morph" default="none">
         <div className="text-center mt-5">
           <h2
             className="text-xl font-bold text-gradient-primary tracking-tight"

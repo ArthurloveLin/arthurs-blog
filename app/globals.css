@@ -1649,6 +1649,75 @@ html:active-view-transition-type(nav-back) {
     350ms cubic-bezier(0.85, 0, 0.15, 1) both vinyl-slide reverse;
 }
 
+/* ── Memo sticky board: directional page-flip transitions ── */
+@keyframes memo-page-blur-fade {
+  from { opacity: 0; filter: blur(6px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+@keyframes memo-page-slide {
+  from { translate: var(--memo-page-offset, 56px) 0; }
+  to   { translate: 0 0; }
+}
+
+::view-transition-group(.memo-page-from-right),
+::view-transition-group(.memo-page-from-left),
+::view-transition-group(.memo-page-to-left),
+::view-transition-group(.memo-page-to-right) {
+  animation-duration: 0.42s;
+  animation-timing-function: cubic-bezier(0.85, 0, 0.15, 1);
+}
+
+::view-transition-new(.memo-page-from-right) {
+  --memo-page-offset: 56px;
+  animation:
+    240ms cubic-bezier(0.85, 0, 0.15, 1) 140ms both memo-page-blur-fade,
+    420ms cubic-bezier(0.85, 0, 0.15, 1) both memo-page-slide;
+}
+::view-transition-old(.memo-page-to-left) {
+  --memo-page-offset: -56px;
+  animation:
+    160ms cubic-bezier(0.85, 0, 0.15, 1) both memo-page-blur-fade reverse,
+    420ms cubic-bezier(0.85, 0, 0.15, 1) both memo-page-slide reverse;
+}
+::view-transition-new(.memo-page-from-left) {
+  --memo-page-offset: -56px;
+  animation:
+    240ms cubic-bezier(0.85, 0, 0.15, 1) 140ms both memo-page-blur-fade,
+    420ms cubic-bezier(0.85, 0, 0.15, 1) both memo-page-slide;
+}
+::view-transition-old(.memo-page-to-right) {
+  --memo-page-offset: 56px;
+  animation:
+    160ms cubic-bezier(0.85, 0, 0.15, 1) both memo-page-blur-fade reverse,
+    420ms cubic-bezier(0.85, 0, 0.15, 1) both memo-page-slide reverse;
+}
+
+/* ── Sticky note: in-place expand morph (update trigger) ──
+   Wraps the whole card; toggling isExpanded inside startTransition makes the
+   card box grow in place. height:auto keeps both snapshots at natural height
+   (top-anchored) so text doesn't squash while the group box morphs taller. */
+@keyframes sticky-expand-fade-out { to { opacity: 0; } }
+@keyframes sticky-expand-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+::view-transition-group(.sticky-expand) {
+  animation-duration: 0.42s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+::view-transition-image-pair(.sticky-expand) {
+  overflow: clip;
+}
+::view-transition-old(.sticky-expand),
+::view-transition-new(.sticky-expand) {
+  height: auto;
+  width: 100%;
+}
+::view-transition-old(.sticky-expand) {
+  animation: 0.2s ease both sticky-expand-fade-out;
+}
+::view-transition-new(.sticky-expand) {
+  animation: 0.32s 0.1s ease both sticky-expand-fade-in;
+}
+
 /* ── Persistent nav components layering ── */
 ::view-transition-group(navbar),
 ::view-transition-group(navbar-bottom) {
