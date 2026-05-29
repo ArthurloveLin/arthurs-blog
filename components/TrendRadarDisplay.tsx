@@ -88,7 +88,7 @@ function splitParagraphs(text: string): string[] {
 }
 
 function buildFallbackCitations(sectionId: string, citations: InsightCitation[]): InsightCitation[] {
-  return citations.slice(0, 4).map((citation, index) => {
+  return citations.slice(0, 8).map((citation, index) => {
     const citationNo = index + 1;
     const refCode = citationNo.toString().padStart(3, "0");
     return {
@@ -100,36 +100,14 @@ function buildFallbackCitations(sectionId: string, citations: InsightCitation[])
   });
 }
 
-function buildFallbackParagraphs(sectionId: string, content: string, citations: InsightCitation[]): InsightParagraph[] {
-  return splitParagraphs(content).map((text, index) => {
-    const start = citations.length > 0 ? ((index * 2) % citations.length) : 0;
-    const picked = citations.length > 0
-      ? Array.from({ length: Math.min(2, citations.length) }, (_, offset) => citations[(start + offset) % citations.length])
-      : [];
-
-    const citationNos = Array.from(
-      new Set(
-        picked
-          .map((item) => item.citation_no)
-          .filter((value): value is number => typeof value === "number" && Number.isFinite(value)),
-      ),
-    );
-    const citationIds = Array.from(
-      new Set(
-        picked
-          .map((item) => item.citation_id)
-          .filter((value): value is string => Boolean(value)),
-      ),
-    );
-
-    return {
-      paragraph_id: `${sectionId}__p${(index + 1).toString().padStart(2, "0")}`,
-      anchor_id: `${sectionId}-p-${(index + 1).toString().padStart(2, "0")}`,
-      text,
-      citation_nos: citationNos,
-      citation_ids: citationIds,
-    };
-  });
+function buildFallbackParagraphs(sectionId: string, content: string, _citations: InsightCitation[]): InsightParagraph[] {
+  return splitParagraphs(content).map((text, index) => ({
+    paragraph_id: `${sectionId}__p${(index + 1).toString().padStart(2, "0")}`,
+    anchor_id: `${sectionId}-p-${(index + 1).toString().padStart(2, "0")}`,
+    text,
+    citation_nos: [],
+    citation_ids: [],
+  }));
 }
 
 function normalizeSection(
@@ -267,9 +245,8 @@ export default function TrendRadarDisplay({
 
   const hotCitations = useMemo<InsightCitation[]>(() => {
     return standalonePlatforms
-      .slice(0, 3)
       .flatMap((platform) =>
-        platform.items.slice(0, 2).map((item) => ({
+        platform.items.slice(0, 8).map((item) => ({
           title: item.title,
           source: platform.name,
           channel: "平台热点" as const,
@@ -340,8 +317,17 @@ export default function TrendRadarDisplay({
             return;
           }
           const sectionId = `standalone_${toSlug(source)}`;
-          const matchedCitations = hotCitations.filter((citation) => citation.source === source);
-          const citations = buildFallbackCitations(sectionId, matchedCitations.length > 0 ? matchedCitations : hotCitations);
+          const matchedPlatform = standalonePlatforms.find((p) => p.name === source);
+          const platformCitations: InsightCitation[] = matchedPlatform
+            ? matchedPlatform.items.slice(0, 8).map((item) => ({
+                title: item.title,
+                source: matchedPlatform.name,
+                channel: "平台热点" as const,
+                url: item.url,
+                time_display: item.time_display || item.published_at,
+              }))
+            : hotCitations.filter((c) => c.source === source).slice(0, 8);
+          const citations = buildFallbackCitations(sectionId, platformCitations.length > 0 ? platformCitations : hotCitations.slice(0, 8));
           insights.push({
             id: `agy-standalone-${idx}`,
             section_id: sectionId,
@@ -635,35 +621,22 @@ export default function TrendRadarDisplay({
               </SideSection>
             )}
 
-            {/* Keyword filter (trend only) */}
+            {/* Keyword nav (trend only) */}
             {activeCategory === "trend" && (
               <SideSection title="关键词">
                 <div className="space-y-0.5">
-                  {tags.map((tag) => {
-                    const isActive = tag === activeTag;
-                    const item = stats.find((s) => s.word === tag);
-                    const count =
-                      tag === "全部"
-                        ? stats.reduce((a, s) => a + (s.titles?.length ?? 0), 0)
-                        : (item?.titles?.length ?? 0);
-                    return (
-                      <button
-                        key={tag}
-                        onClick={() => setActiveTag(tag)}
-                        className={cn(
-                          "w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[12px] lg:text-[14px] transition-all text-left",
-                          isActive
-                            ? "bg-primary/10 text-primary font-semibold"
-                            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-                        )}
-                      >
-                        <span className="truncate">{tag}</span>
-                        <span className="text-[10px] lg:text-[12px] font-mono opacity-50 shrink-0 ml-2 tabular-nums">
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
+                  {stats.map((s) => (
+                    <a
+                      key={s.word}
+                      href={`#trend-${toSlug(s.word)}`}
+                      className="flex items-center justify-between px-3 py-1.5 rounded-lg text-[12px] lg:text-[14px] transition-all text-left text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                    >
+                      <span className="truncate">{s.word}</span>
+                      <span className="text-[10px] lg:text-[12px] font-mono opacity-50 shrink-0 ml-2 tabular-nums">
+                        {s.titles?.length ?? 0}
+                      </span>
+                    </a>
+                  ))}
                 </div>
               </SideSection>
             )}
@@ -673,15 +646,16 @@ export default function TrendRadarDisplay({
               <SideSection title="订阅源">
                 <div className="space-y-0.5">
                   {rssBySource.slice(0, 12).map((source, i) => (
-                    <div
+                    <a
                       key={i}
-                      className="flex items-center justify-between px-3 py-1.5 text-[11px] lg:text-[13px] text-muted-foreground"
+                      href={`#rss-${toSlug(source.name)}`}
+                      className="flex items-center justify-between px-3 py-1.5 rounded-lg text-[11px] lg:text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                     >
                       <span className="truncate">{source.name}</span>
                       <span className="font-mono text-[10px] lg:text-[12px] opacity-50 shrink-0 ml-2 tabular-nums">
                         {source.items.length}
                       </span>
-                    </div>
+                    </a>
                   ))}
                 </div>
               </SideSection>
@@ -692,15 +666,16 @@ export default function TrendRadarDisplay({
               <SideSection title="平台">
                 <div className="space-y-0.5">
                   {standalonePlatforms.slice(0, 12).map((p, i) => (
-                    <div
+                    <a
                       key={i}
-                      className="flex items-center justify-between px-3 py-1.5 text-[11px] lg:text-[13px] text-muted-foreground"
+                      href={`#hot-${toSlug(p.name)}`}
+                      className="flex items-center justify-between px-3 py-1.5 rounded-lg text-[11px] lg:text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                     >
                       <span className="truncate">{p.name}</span>
                       <span className="font-mono text-[10px] lg:text-[12px] opacity-50 shrink-0 ml-2 tabular-nums">
                         {p.items.length}
                       </span>
-                    </div>
+                    </a>
                   ))}
                 </div>
               </SideSection>
@@ -1196,6 +1171,7 @@ function TrendKeywordCard({
 
   return (
     <div
+      id={`trend-${toSlug(item.word)}`}
       className={cn(
         "group bg-card text-card-foreground rounded-2xl p-5 border transition-all duration-300 hover:shadow-md",
         isTop3
@@ -1285,7 +1261,7 @@ function RssSourceCard({
   };
 }) {
   return (
-    <div className="bg-card/50 rounded-2xl p-5 border border-border/40 hover:border-emerald-500/25 transition-all duration-300 shadow-sm flex flex-col">
+    <div id={`rss-${toSlug(source.name)}`} className="bg-card/50 rounded-2xl p-5 border border-border/40 hover:border-emerald-500/25 transition-all duration-300 shadow-sm flex flex-col">
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/30">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 ring-2 ring-emerald-500/20" />
@@ -1328,7 +1304,7 @@ function RssSourceCard({
 
 function HotPlatformCard({ platform }: { platform: StandalonePlatform }) {
   return (
-    <div className="bg-card/60 rounded-2xl p-5 border border-border/40 hover:border-amber-500/25 transition-all duration-300 shadow-sm flex flex-col">
+    <div id={`hot-${toSlug(platform.name)}`} className="bg-card/60 rounded-2xl p-5 border border-border/40 hover:border-amber-500/25 transition-all duration-300 shadow-sm flex flex-col">
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/30">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-1 h-4 bg-amber-400 rounded-full shrink-0" />
