@@ -51,8 +51,8 @@ export default function WelcomeAnimation({ onFinish }: WelcomeAnimationProps) {
 
       <style jsx>{`
         .thank-you-root {
-          /* Theme Variables */
-          --ty-primary: #7c3aed;
+          /* Theme Variables — consume the active site theme (auto light/dark + 8 hues) */
+          --ty-primary: var(--primary);
           transform: translateY(-50px) translateX(60px);
         }
 
@@ -94,21 +94,6 @@ export default function WelcomeAnimation({ onFinish }: WelcomeAnimationProps) {
           }
         }
 
-        :global(.dark) .thank-you-root {
-          --ty-primary: #a78bfa;
-        }
-
-        :global(.ocean) .thank-you-root {
-          --ty-primary: #0ea5e9;
-        }
-
-        :global(.sunset) .thank-you-root {
-          --ty-primary: #f97316;
-        }
-
-        :global(.forest) .thank-you-root {
-          --ty-primary: #10b981;
-        }
       `}</style>
     </div>
   )

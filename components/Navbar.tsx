@@ -10,7 +10,7 @@ import { GUEST_AUTH_STATE, useAuth } from '@/components/AuthProvider'
 import { logout } from '@/app/auth/logout/actions'
 import { useTheme } from 'next-themes'
 import { useSiteConfig } from './SiteDataProvider'
-import { Menu, X, Settings, User, LayoutList, Tag, Clock, Archive, Wrench } from 'lucide-react'
+import { Menu, X, Settings, User, LayoutList, Tag, Clock, Archive, Wrench, Sun, Moon } from 'lucide-react'
 import NavbarSearch from './NavbarSearch'
 import {
   BLOG_RETURN_CURRENT_POST_ID_KEY,
@@ -23,6 +23,7 @@ import {
 
 const ThemeToggle = dynamic(() => import('./ThemeToggle'), { ssr: false })
 const MarkdownThemePicker = dynamic(() => import('./MarkdownThemePicker'), { ssr: false })
+const SiteThemePicker = dynamic(() => import('./SiteThemePicker'), { ssr: false })
 import MobileDrawers, { preloadMobileDrawerModules } from './MobileDrawers'
 import { NavbarUiStateProvider, useNavbarUiState, type DrawerType } from './NavbarUiState'
 import { ChangelogBadge } from './ChangelogBadge'
@@ -281,7 +282,7 @@ function NavMobileBar({
 function NavbarContent() {
   const config = useSiteConfig()
   const logoUrl = config?.author_avatar_url
-  const { theme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const pathname = usePathname()
   const {
     activeDrawer,
@@ -554,29 +555,35 @@ function NavbarContent() {
                 )
               )}
               <div className="px-4 py-2.5 space-y-3">
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">主题模式</div>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { id: 'light', name: '默认紫', color: 'bg-violet-500' },
-                    { id: 'ocean', name: '海洋蓝', color: 'bg-sky-500' },
-                    { id: 'sunset', name: '日落橙', color: 'bg-orange-500' },
-                    { id: 'forest', name: '森林绿', color: 'bg-emerald-500' },
-                    { id: 'dark', name: '暗色', color: 'bg-zinc-800 border border-zinc-600' }
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => { setTheme(t.id); closeMobileNavigation() }}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                        theme === t.id
-                          ? 'bg-foreground text-background'
-                          : 'bg-[#F5F5F7] dark:bg-zinc-800 text-muted-foreground'
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full ${t.color}`} />
-                      {t.name}
-                    </button>
-                  ))}
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">外观</div>
+                <div className="flex gap-1 p-1 rounded-lg bg-[#F5F5F7] dark:bg-zinc-800">
+                  <button
+                    onClick={() => setTheme('light')}
+                    aria-pressed={resolvedTheme !== 'dark'}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                      resolvedTheme !== 'dark'
+                        ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
+                        : 'text-muted-foreground'
+                    }`}
+                  >
+                    <Sun className="w-3.5 h-3.5" strokeWidth={2} />
+                    浅色
+                  </button>
+                  <button
+                    onClick={() => setTheme('dark')}
+                    aria-pressed={resolvedTheme === 'dark'}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                      resolvedTheme === 'dark'
+                        ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
+                        : 'text-muted-foreground'
+                    }`}
+                  >
+                    <Moon className="w-3.5 h-3.5" strokeWidth={2} />
+                    深色
+                  </button>
                 </div>
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">全站主题</div>
+                <SiteThemePicker />
                 <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">文字主题</div>
                 <MarkdownThemePicker />
               </div>

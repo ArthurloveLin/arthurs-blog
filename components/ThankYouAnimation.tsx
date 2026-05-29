@@ -528,39 +528,11 @@ export default function ThankYouAnimation({ onComplete }: ThankYouAnimationProps
 
       <style jsx>{`
         .thank-you-root {
-          /* Light Theme (Default) */
-          --ty-primary: #7c3aed;
-          --ty-accent-1: #b191ff; /* purple (original lavender) */
-          --ty-accent-2: #dce2aa; /* lime (original pale-lime) */
-          --ty-accent-3: #241e4e; /* blue (original navy) */
-        }
-
-        :global(.dark) .thank-you-root {
-          --ty-primary: #a78bfa;
-          --ty-accent-1: #f472b6; /* pinkish-lavender */
-          --ty-accent-2: #2dd4bf; /* soft-teal */
-          --ty-accent-3: #60a5fa; /* sky-blue */
-        }
-
-        :global(.ocean) .thank-you-root {
-          --ty-primary: #0ea5e9;
-          --ty-accent-1: #06b6d4; /* cyan */
-          --ty-accent-2: #10b981; /* emerald/green-teal */
-          --ty-accent-3: #6366f1; /* indigo */
-        }
-
-        :global(.sunset) .thank-you-root {
-          --ty-primary: #f97316;
-          --ty-accent-1: #facc15; /* amber-yellow */
-          --ty-accent-2: #e11d48; /* crimson-rose */
-          --ty-accent-3: #fb923c; /* light-orange */
-        }
-
-        :global(.forest) .thank-you-root {
-          --ty-primary: #10b981;
-          --ty-accent-1: #4ade80; /* bright-green */
-          --ty-accent-2: #facc15; /* sunshine-yellow */
-          --ty-accent-3: #0d9488; /* forest-teal */
+          /* Consume the active site theme — auto-adapts to light/dark and all 8 hues */
+          --ty-primary: var(--primary);
+          --ty-accent-1: var(--accent-glow-1);
+          --ty-accent-2: var(--accent-glow-2);
+          --ty-accent-3: var(--accent-glow-3);
         }
 
         svg :global(text) {

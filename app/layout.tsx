@@ -36,6 +36,7 @@ import { SiteDataProvider } from "@/components/SiteDataProvider"
 import { getCurrentUser, getUserRole } from "@/lib/auth";
 import Script from 'next/script';
 import { MarkdownThemeInitializer } from '@/components/MarkdownThemeInitializer'
+import { SiteThemeInitializer } from '@/components/SiteThemeInitializer'
 import ContactChat from '@/components/ContactChat';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 
@@ -79,13 +80,17 @@ export default async function RootLayout({
           <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.1.0/style.css" precedence="optional" />
           {/* Inline script: set data-md-theme before first paint to prevent flash */}
           <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('md-theme');document.documentElement.setAttribute('data-md-theme',t||'mono');}catch(e){}` }} />
+          {/* Inline script: set data-site-theme before first paint, and migrate the
+              legacy ocean/sunset/forest next-themes values to (hue + light mode). */}
+          <script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement,s=localStorage.getItem('site-theme'),m=localStorage.getItem('theme'),L={ocean:'tide',sunset:'amber',forest:'sage'};if(!s&&L[m]){s=L[m];localStorage.setItem('site-theme',s);localStorage.setItem('theme','light');}d.setAttribute('data-site-theme',s||'mono');}catch(e){}` }} />
         </head>
-        <body className="bg-background antialiased pb-24 md:pb-0">
+        <body className="antialiased pb-24 md:pb-0">
           <MarkdownThemeInitializer />
+          <SiteThemeInitializer />
           <ThemeProvider
             attribute="class"
             defaultTheme="light"
-            themes={["light", "dark", "ocean", "sunset", "forest"]}
+            themes={["light", "dark"]}
             disableTransitionOnChange
           >
             <AuthProvider initialData={initialAuth}>
