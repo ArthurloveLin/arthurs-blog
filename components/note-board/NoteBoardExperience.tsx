@@ -225,7 +225,8 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
               <button
                 type="button"
                 aria-label="上一页"
-                className="group absolute left-1 top-[210px] z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 sm:left-2"
+                className="group absolute left-1 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 sm:left-2"
+                style={{ top: Math.max(activeSurfaceHeight, 420) / 2 }}
                 onClick={actions.handlePreviousPage}
                 disabled={!state.hasPreviousPage || state.isPending || state.isRefreshingBoard}
               >
@@ -234,7 +235,8 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
               <button
                 type="button"
                 aria-label="下一页"
-                className="group absolute right-1 top-[210px] z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 sm:right-2"
+                className="group absolute right-1 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 sm:right-2"
+                style={{ top: Math.max(activeSurfaceHeight, 420) / 2 }}
                 onClick={() => void actions.handleNextPage()}
                 disabled={!state.hasNextPage || state.isPending || state.isRefreshingBoard}
               >
