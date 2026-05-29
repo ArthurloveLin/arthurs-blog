@@ -57,6 +57,9 @@ Do not call `lib/spotify.ts` functions from client components — they use serve
 
 `PosterShell` provides the outer frame (aspect ratio, background, share controls). The four poster variants in `posters/` implement the content. Each poster receives a specific data subset — they do not fetch anything themselves. Mount them via `SpotifyMusicReportPoster` or the board's share action.
 
+### "Pinned paper" hover lives in `usePosterHover`
+The 3D tilt + elastic lift + shadow cross-fade hover (and the resting-rotation init + unmount `killTweensOf` cleanup) is shared via `usePosterHover.ts`. Both `PosterShell` and `SpotifyMusicReportPoster` use it. Note `SpotifyMusicReportPoster` does **not** wrap itself in `PosterShell` — it has its own pin/tape markup (`SpotifyMusicReportBoard.module.css`) and only shares the hover hook. Editing the hook changes the feel of every poster; pass `restRotation` per card.
+
 ## Architecture Decisions
 
 ### Tag components are dynamically imported

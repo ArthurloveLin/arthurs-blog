@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { useSiteConfig } from '@/components/SiteDataProvider'
 import HandwrittenSloganClient from '@/components/HandwrittenSloganClient'
@@ -11,13 +11,17 @@ interface WelcomeAnimationProps {
 
 export default function WelcomeAnimation({ onFinish }: WelcomeAnimationProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const fadeRef = useRef<gsap.core.Tween | null>(null)
   const siteConfig = useSiteConfig()
+
+  // Kill the (delayed) fade-out if the component unmounts before it runs/finishes
+  useEffect(() => () => { fadeRef.current?.kill() }, [])
 
   const startFadeOut = () => {
     if (!containerRef.current) return
-    
+
     // Hold for 3 seconds after the second line is fully written, then fade out
-    gsap.to(containerRef.current, {
+    fadeRef.current = gsap.to(containerRef.current, {
       opacity: 0,
       duration: 1.5,
       delay: 3,
