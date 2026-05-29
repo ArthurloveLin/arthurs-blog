@@ -8,7 +8,8 @@ function parseChangelog(content: string) {
   let current: { version: string; date: string; lines: string[] } | null = null
 
   for (const line of lines) {
-    const match = line.match(/^##\s+(\[?v[\d.]+\]?)\s*[—-]?\s*(.*)/)
+    // Matches both timestamp tags (v2026.05.28-1521) and weekly tags (v2026-W22)
+    const match = line.match(/^##\s+(\[?v[^\s\]]+\]?)\s*[—–-]?\s*(.*)/)
     if (match) {
       if (current) {
         entries.push({ version: current.version, date: current.date, body: current.lines.join('\n').trim() })
