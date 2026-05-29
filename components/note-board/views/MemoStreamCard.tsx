@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
-import { AlarmClock, Archive, ArchiveRestore, FileDown, Lock, MessageCircle, PencilLine, Trash2 } from 'lucide-react'
+import { AlarmClock, Archive, ArchiveRestore, Check, Copy, FileDown, FileImage, FileText, Lock, MessageCircle, PencilLine, Share2, Trash2 } from 'lucide-react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
@@ -11,6 +11,7 @@ import { useNoteBoardActions } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
 import { getStickyColorIndex, getStickyColorSeed, STICKY_COLORS } from '@/components/note-board/utils/board'
 import { hasInlineDueTags } from '@/components/note-board/utils/editor'
+import { downloadNote, exportNoteAsImage } from '@/components/note-board/utils/noteExport'
 import { NoteCommentPanel } from '@/components/note-board/components/NoteCommentPanel'
 import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { formatCommentTimeLabel, formatStableDate } from '@/lib/date-format'
@@ -35,28 +36,6 @@ function formatDueLabel(dueAt: string): { label: string; variant: 'upcoming' | '
   return { label, variant }
 }
 
-function exportNote(content: string, format: 'md' | 'txt') {
-  const firstLine = content.split('\n')[0]?.replace(/^#+\s*/, '').replace(/[^\w\u4e00-\u9fff\-]/g, ' ').trim().slice(0, 40) || 'memo'
-  const text = format === 'md' ? content : content
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/\*([^*\n]+)\*/g, '$1')
-    .replace(/==([^=\n]+)==/g, '$1')
-    .replace(/`([^`\n]+)`/g, '$1')
-    .replace(/~~([^~\n]+)~~/g, '$1')
-    .replace(/@due\[[^\]]*\]\([^)]*\)/g, '')
-    .replace(/#[\w\u4e00-\u9fff]+/g, (m) => m.slice(1))
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .trim()
-  const ext = format === 'md' ? 'md' : 'txt'
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${firstLine}.${ext}`
-  a.click()
-  URL.revokeObjectURL(url)
-}
 
 interface MemoStreamCardProps {
   item: NoteCardViewModel
@@ -82,6 +61,7 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
   } = item
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
   const [showExportMenu, setShowExportMenu] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [showComments, setShowComments] = useState(true)
   const [commentCountDelta, setCommentCountDelta] = useState(0)
   const [liveCommentCount, setLiveCommentCount] = useState<number | null>(null)
@@ -207,10 +187,10 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
             </NoteActionButton>
           ) : null}
           <NoteActionButton
-            label="导出便签"
+            label="分享/导出"
             onClick={() => setShowExportMenu((v) => !v)}
           >
-            <FileDown size={14} strokeWidth={1.85} />
+            <Share2 size={14} strokeWidth={1.85} />
           </NoteActionButton>
         </div>
       </div>
@@ -239,29 +219,47 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
         </div>
       ) : null}
 
-      {/* 导出格式选择行 */}
+      {/* 导出/分享菜单 */}
       {showExportMenu ? (
-        <div className="mb-3 flex items-center justify-end gap-2">
+        <div className="mb-3 overflow-hidden rounded-xl border [border-color:var(--memo-local-card-border)]">
           <button
             type="button"
-            className="rounded-full border px-3 py-1 text-[11.5px] transition [border-color:var(--memo-local-control-border)] [background:var(--memo-local-control-surface)] text-[color:var(--memo-local-control-text)] hover:opacity-90"
-            onClick={() => setShowExportMenu(false)}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-[color:var(--memo-local-card-text)] transition hover:bg-black/[0.03]"
+            onClick={() => {
+              void navigator.clipboard.writeText(message.content).then(() => {
+                setCopied(true)
+                setTimeout(() => setCopied(false), 1500)
+                setShowExportMenu(false)
+              })
+            }}
           >
-            取消
+            {copied ? <Check size={13} strokeWidth={2} className="shrink-0 text-green-600" /> : <Copy size={13} strokeWidth={1.85} className="shrink-0 opacity-60" />}
+            复制文本
+          </button>
+          <div className="border-t [border-color:var(--memo-local-card-border)]" />
+          <button
+            type="button"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-[color:var(--memo-local-card-text)] transition hover:bg-black/[0.03]"
+            onClick={() => { downloadNote(message.content, 'txt'); setShowExportMenu(false) }}
+          >
+            <FileText size={13} strokeWidth={1.85} className="shrink-0 opacity-60" />
+            导出纯文本
           </button>
           <button
             type="button"
-            className="rounded-full border px-3 py-1 text-[11.5px] transition [border-color:var(--memo-local-control-border)] [background:var(--memo-local-control-surface)] text-[color:var(--memo-local-control-text)] hover:opacity-90"
-            onClick={() => { exportNote(message.content, 'txt'); setShowExportMenu(false) }}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-[color:var(--memo-local-card-text)] transition hover:bg-black/[0.03]"
+            onClick={() => { downloadNote(message.content, 'md'); setShowExportMenu(false) }}
           >
-            纯文本
+            <FileDown size={13} strokeWidth={1.85} className="shrink-0 opacity-60" />
+            导出 Markdown
           </button>
           <button
             type="button"
-            className="rounded-full px-3 py-1 text-[11.5px] font-medium transition hover:opacity-90 [background:var(--memo-local-primary-surface)] text-[color:var(--memo-local-primary-text)]"
-            onClick={() => { exportNote(message.content, 'md'); setShowExportMenu(false) }}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-[color:var(--memo-local-card-text)] transition hover:bg-black/[0.03]"
+            onClick={() => { exportNoteAsImage(message.content, message.author, message.created_at); setShowExportMenu(false) }}
           >
-            Markdown
+            <FileImage size={13} strokeWidth={1.85} className="shrink-0 opacity-60" />
+            导出为图片
           </button>
         </div>
       ) : null}
