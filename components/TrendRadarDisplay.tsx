@@ -476,6 +476,18 @@ export default function TrendRadarDisplay({
       .sort((a, b) => b.count - a.count);
   }, [aiInsights]);
 
+  const sourceToSectionId = useMemo(() => {
+    const map: Record<string, string> = {};
+    aiInsights.forEach((insight) => {
+      insight.citations.forEach((citation) => {
+        if (!map[citation.source]) {
+          map[citation.source] = insight.section_id;
+        }
+      });
+    });
+    return map;
+  }, [aiInsights]);
+
   // 4. Filtered Stats for Trend tab
   const tags = useMemo(() => ["全部", ...stats.map((s) => s.word)], [stats]);
   const filteredStats = useMemo(
@@ -593,17 +605,31 @@ export default function TrendRadarDisplay({
                   <p className="px-3 text-[11px] text-muted-foreground/40">暂无可用引用</p>
                 ) : (
                   <div className="space-y-0.5">
-                    {aiSourceBreakdown.slice(0, 12).map((source) => (
-                      <div
-                        key={source.name}
-                        className="flex items-center justify-between px-3 py-1.5 text-[11px] lg:text-[13px] text-muted-foreground"
-                      >
-                        <span className="truncate">{source.name}</span>
-                        <span className="font-mono text-[10px] lg:text-[12px] opacity-50 shrink-0 ml-2 tabular-nums">
-                          {source.count}
-                        </span>
-                      </div>
-                    ))}
+                    {aiSourceBreakdown.slice(0, 12).map((source) => {
+                      const sectionId = sourceToSectionId[source.name];
+                      return sectionId ? (
+                        <a
+                          key={source.name}
+                          href={`#insight-${sectionId}`}
+                          className="flex items-center justify-between px-3 py-1.5 rounded-lg text-[11px] lg:text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                        >
+                          <span className="truncate">{source.name}</span>
+                          <span className="font-mono text-[10px] lg:text-[12px] opacity-50 shrink-0 ml-2 tabular-nums">
+                            {source.count}
+                          </span>
+                        </a>
+                      ) : (
+                        <div
+                          key={source.name}
+                          className="flex items-center justify-between px-3 py-1.5 text-[11px] lg:text-[13px] text-muted-foreground"
+                        >
+                          <span className="truncate">{source.name}</span>
+                          <span className="font-mono text-[10px] lg:text-[12px] opacity-50 shrink-0 ml-2 tabular-nums">
+                            {source.count}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </SideSection>
@@ -747,9 +773,20 @@ export default function TrendRadarDisplay({
                 >
                   <div className="flex items-center gap-2">
                     <span className={cn(
-                      "text-sm lg:text-base transition-all duration-200",
+                      "lg:text-base transition-all duration-200",
                       isActive ? "font-bold" : "font-medium",
-                    )}>{tab.label}</span>
+                    )}>
+                      {/^[\u4e00-\u9fa5]{4}$/.test(tab.label) ? (
+                        <>
+                          <span className="sm:hidden leading-tight text-[13px]">
+                            {tab.label.slice(0, 2)}<br />{tab.label.slice(2)}
+                          </span>
+                          <span className="hidden sm:inline text-sm lg:text-base">{tab.label}</span>
+                        </>
+                      ) : (
+                        <span className="text-sm lg:text-base">{tab.label}</span>
+                      )}
+                    </span>
                     <span
                       className={cn(
                         "text-[10px] lg:text-[12px] font-mono px-1.5 py-0.5 rounded-md transition-all duration-200",
@@ -807,12 +844,6 @@ export default function TrendRadarDisplay({
           {/* ── 0. AI Digest ── */}
           {activeCategory === "ai" && (
             <div className="space-y-6">
-              <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-[12px] lg:text-[14px] text-muted-foreground leading-relaxed">
-                {ai_report?.has_content
-                  ? "知微见著内容由 workflow 中的 agy 分析直接生成，并通过 reports JSON 同步写入 R2。每条洞察下方都附带可追溯新闻引用与来源。"
-                  : "知微见著当前基于趋势词、RSS 更新与平台热点自动生成。每条洞察下方都附带可追溯新闻引用，并标注对应来源。"}
-              </div>
-
               {ai_report?.error && (
                 <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-[11px] lg:text-[13px] text-amber-700 dark:text-amber-300">
                   agy 报告状态：{ai_report.error}
@@ -999,17 +1030,15 @@ function AiInsightCard({ insight }: { insight: AIInsight }) {
     : buildFallbackParagraphs(insight.section_id, insight.summary, citations);
 
   return (
-    <article className="bg-card text-card-foreground rounded-2xl p-5 border border-border/50 hover:border-primary/25 hover:shadow-md transition-all duration-300 shadow-sm">
+    <article id={`insight-${insight.section_id}`} className="bg-card text-card-foreground rounded-2xl p-5 border border-border/50 hover:border-primary/25 hover:shadow-md transition-all duration-300 shadow-sm">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
           <h3 className="text-[15px] sm:text-[17px] lg:text-[18px] font-bold text-foreground leading-snug">
             {insight.headline}
           </h3>
-          <p className="text-[9px] lg:text-[10px] font-mono text-muted-foreground/40 mt-1 tracking-wide uppercase">
-            {insight.section_id}
-          </p>
         </div>
         <span
+          title="AI 分析置信度：基于来源数量与交叉验证程度"
           className={cn(
             "shrink-0 px-2.5 py-1 rounded-full text-[10px] lg:text-[11px] font-mono font-semibold border mt-0.5",
             insight.confidence === "高"
@@ -1017,7 +1046,7 @@ function AiInsightCard({ insight }: { insight: AIInsight }) {
               : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
           )}
         >
-          {insight.confidence === "高" ? "↑ 高" : "≈ 中"}
+          {insight.confidence === "高" ? "↑ 高置信" : "≈ 中置信"}
         </span>
       </div>
 
