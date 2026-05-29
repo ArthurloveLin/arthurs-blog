@@ -83,3 +83,15 @@ Use Claude's execution speed as the reference — not human hours. A task that t
 ### Think Before Coding
 
 Before implementing, **state your interpretation** if a request could be read multiple ways. Don't pick silently — present the options and confirm. (See also: High-Blast-Radius Zones in `AGENT.md`.)
+
+### Worktree creation (Claude only)
+
+**Do not create a git worktree by default.** Work directly in the current checkout. Only create one when the user **explicitly** asks (e.g., "用 worktree", "新建 worktree", "in a worktree"). Spawning a sub-agent does not by itself imply a worktree.
+
+When explicitly asked, create it under the sibling `arthurs-blog.worktrees/` directory — never inside the repo and never elsewhere:
+
+```bash
+git worktree add ../arthurs-blog.worktrees/<slug> -b feat/<scope>-<slug>
+```
+
+This governs only *when and where Claude creates* worktrees. The shared rules for working *inside* a worktree (branch naming, contention zones, migration serialization, completion protocol) live in `AGENT.md` § Parallel Worktree Development and still apply.
