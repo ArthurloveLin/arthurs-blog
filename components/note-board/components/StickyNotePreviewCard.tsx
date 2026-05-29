@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { useRef } from 'react'
 import { NoteContent } from '@/components/note-board/components/NoteContent'
+import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { useStickyNoteDrag } from '@/components/note-board/hooks/useStickyNoteDrag'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
 import type {
@@ -13,7 +14,6 @@ import type {
 } from '@/components/note-board/types'
 import {
   PREVIEW_CARD_SIZE,
-  STICKY_COLORS,
 } from '@/components/note-board/utils/board'
 import { formatCommentTimeLabel } from '@/lib/date-format'
 import type { NoteMessage } from '@/lib/note-boards'
@@ -55,6 +55,8 @@ export function StickyNotePreviewCard({
 }: StickyNotePreviewCardProps) {
   const visualRef = useRef<HTMLDivElement>(null)
   const paperRef = useRef<HTMLDivElement>(null)
+  const { theme } = useNoteColorTheme()
+  const noteSlot = theme.slots[colorIndex % theme.slots.length] ?? theme.slots[0]
 
   const { isDragging, activePosition, dragHandlers } = useStickyNoteDrag({
     visualRef,
@@ -108,7 +110,8 @@ export function StickyNotePreviewCard({
           ref={paperRef}
           className={[styles.paper, styles.previewPaper].join(' ')}
           style={{
-            backgroundColor: STICKY_COLORS[colorIndex % STICKY_COLORS.length],
+            background: `linear-gradient(180deg, ${noteSlot.bg} 0%, ${noteSlot.bg} 72%, ${noteSlot.bg2} 100%)`,
+            color: noteSlot.ink,
           }}
         >
           <div className={styles.meta}>
@@ -134,7 +137,7 @@ export function StickyNotePreviewCard({
             ) : null}
           </div>
           <NoteContent content={message.content} variant="preview" />
-          <p className="text-[10px] font-bold tracking-widest text-slate-500/70">
+          <p className="text-[10px] font-bold tracking-widest" style={{ color: noteSlot.ink, opacity: 0.5 }}>
             {formatCommentTimeLabel(message.created_at, message.updated_at)}
           </p>
         </div>

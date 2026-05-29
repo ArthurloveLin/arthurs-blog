@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import React, { useMemo, useState } from 'react'
 import useSWR from 'swr'
 import type { StickyStackPreviewMessage } from '@/components/note-board/views/StickyStackPreview'
+import { NoteColorThemeProvider } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { useSiteConfig } from '@/components/SiteDataProvider'
 import { createCommentRecord, type Comment } from '@/lib/comments'
 import { fetchEngagementPublicApi } from '@/lib/engagement-public-api'
@@ -129,7 +130,9 @@ export default function BlogHero({ guestbookBoard, initialGuestbookMessages, slo
 
 
         <div className="pointer-events-none absolute inset-0 z-20 hidden lg:block">
-          <StickyStackPreview board={guestbookBoard} messages={guestbookPreviewMessages} />
+          <NoteColorThemeProvider>
+            <StickyStackPreview board={guestbookBoard} messages={guestbookPreviewMessages} />
+          </NoteColorThemeProvider>
         </div>
 
         <div className="relative z-10">
