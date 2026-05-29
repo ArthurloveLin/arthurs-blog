@@ -50,7 +50,7 @@ export default function ThemeToggle() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-44 origin-top-right rounded-xl bg-card shadow-lg ring-1 ring-border focus:outline-none z-50 overflow-hidden p-1.5">
+        <div className="absolute right-0 mt-2 w-52 origin-top-right rounded-xl bg-card shadow-lg ring-1 ring-border focus:outline-none z-50 overflow-hidden p-1.5">
           {themes.map((t) => (
             <button
               key={t.id}

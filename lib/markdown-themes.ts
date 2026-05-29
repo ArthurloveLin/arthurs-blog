@@ -1,12 +1,15 @@
-export type MarkdownThemeId = 'mono' | 'spectral' | 'polar' | 'sakura' | 'sage'
+export type MarkdownThemeId = 'mono' | 'spectral' | 'polar' | 'sakura' | 'sage' | 'amber' | 'night'
 
 export interface MarkdownTheme {
   id: MarkdownThemeId
   name: string
   label: string
+  /** Emoji icon representing the theme's character */
+  icon: string
+  /** H1 / H2 / H3 representative colors for the swatch preview */
   preview: {
-    light: readonly [string, string, string, string]
-    dark: readonly [string, string, string, string]
+    light: readonly [string, string, string]
+    dark: readonly [string, string, string]
   }
 }
 
@@ -14,46 +17,71 @@ export const MARKDOWN_THEMES: readonly MarkdownTheme[] = [
   {
     id: 'mono',
     name: '墨色',
-    label: '默认无彩色',
+    label: '无彩分级',
+    icon: '🖋',
     preview: {
-      light: ['#111111', '#2d2d2d', '#555555', '#6b6b6b'],
-      dark:  ['#f5f5f5', '#d4d4d4', '#a3a3a3', '#737373'],
+      light: ['#0f0f0f', '#2d2d2d', '#555555'],
+      dark:  ['#f5f5f5', '#d4d4d4', '#a3a3a3'],
     },
   },
   {
     id: 'spectral',
     name: '光谱',
     label: '彩虹层级',
+    icon: '🌈',
     preview: {
-      light: ['#b91c1c', '#c2410c', '#15803d', '#1d4ed8'],
-      dark:  ['#f87171', '#fb923c', '#4ade80', '#60a5fa'],
+      light: ['#b91c1c', '#c2410c', '#a16207'],
+      dark:  ['#f87171', '#fb923c', '#fbbf24'],
     },
   },
   {
     id: 'polar',
     name: '极地',
     label: '北欧冰蓝',
+    icon: '❄️',
     preview: {
-      light: ['#1e3a5f', '#2e5987', '#1e7a8a', '#2a7a5b'],
-      dark:  ['#88c0d0', '#81a1c1', '#8fbcbb', '#a3be8c'],
+      light: ['#2E3440', '#5E81AC', '#81A1C1'],
+      dark:  ['#ECEFF4', '#88C0D0', '#81A1C1'],
     },
   },
   {
     id: 'sakura',
     name: '樱花',
     label: '玫粉薰衣',
+    icon: '🌸',
     preview: {
-      light: ['#9f1239', '#c026d3', '#7c3aed', '#0f766e'],
-      dark:  ['#fb7185', '#e879f9', '#c084fc', '#2dd4bf'],
+      light: ['#b4637a', '#286983', '#907aa9'],
+      dark:  ['#eb6f92', '#c4a7e7', '#9ccfd8'],
     },
   },
   {
     id: 'sage',
     name: '苍翠',
-    label: '森林草绿',
+    label: '幽林草泽',
+    icon: '🌿',
     preview: {
-      light: ['#14532d', '#166534', '#4d7c0f', '#0f766e'],
-      dark:  ['#4ade80', '#86efac', '#bef264', '#2dd4bf'],
+      light: ['#14532d', '#15803d', '#0f766e'],
+      dark:  ['#4ade80', '#86efac', '#2dd4bf'],
+    },
+  },
+  {
+    id: 'amber',
+    name: '琥珀',
+    label: '暖焰熔金',
+    icon: '🌅',
+    preview: {
+      light: ['#7c2d12', '#c2410c', '#b45309'],
+      dark:  ['#fdba74', '#fb923c', '#fbbf24'],
+    },
+  },
+  {
+    id: 'night',
+    name: '紫夜',
+    label: '深蓝星域',
+    icon: '🌙',
+    preview: {
+      light: ['#1e1b4b', '#4338ca', '#6d28d9'],
+      dark:  ['#c7d2fe', '#818cf8', '#a78bfa'],
     },
   },
 ] as const
