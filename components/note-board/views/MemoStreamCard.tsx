@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
-import { AlarmClock, Archive, ArchiveRestore, Lock, MessageCircle, PencilLine, Trash2 } from 'lucide-react'
+import { AlarmClock, Archive, ArchiveRestore, FileDown, Lock, MessageCircle, PencilLine, Trash2 } from 'lucide-react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
@@ -35,6 +35,29 @@ function formatDueLabel(dueAt: string): { label: string; variant: 'upcoming' | '
   return { label, variant }
 }
 
+function exportNote(content: string, format: 'md' | 'txt') {
+  const firstLine = content.split('\n')[0]?.replace(/^#+\s*/, '').replace(/[^\w\u4e00-\u9fff\-]/g, ' ').trim().slice(0, 40) || 'memo'
+  const text = format === 'md' ? content : content
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*\n]+)\*/g, '$1')
+    .replace(/==([^=\n]+)==/g, '$1')
+    .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/~~([^~\n]+)~~/g, '$1')
+    .replace(/@due\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/#[\w\u4e00-\u9fff]+/g, (m) => m.slice(1))
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .trim()
+  const ext = format === 'md' ? 'md' : 'txt'
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${firstLine}.${ext}`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 interface MemoStreamCardProps {
   item: NoteCardViewModel
   habitStates?: Record<string, MemoHabitCurrentState>
@@ -58,6 +81,7 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
     isEditing,
   } = item
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
+  const [showExportMenu, setShowExportMenu] = useState(false)
   const [showComments, setShowComments] = useState(true)
   const [commentCountDelta, setCommentCountDelta] = useState(0)
   const [liveCommentCount, setLiveCommentCount] = useState<number | null>(null)
@@ -145,7 +169,7 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
             {formatCommentTimeLabel(message.created_at, message.updated_at)}
           </span>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1">
           {priorityControl ? (
             <PriorityPicker.Dot
               value={priorityControl.value}
@@ -182,6 +206,12 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
               <Trash2 size={14} strokeWidth={1.85} />
             </NoteActionButton>
           ) : null}
+          <NoteActionButton
+            label="导出便签"
+            onClick={() => setShowExportMenu((v) => !v)}
+          >
+            <FileDown size={14} strokeWidth={1.85} />
+          </NoteActionButton>
         </div>
       </div>
 
@@ -205,6 +235,33 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
             }}
           >
             {confirmingAction === 'archive' ? '确认归档' : '确认删除'}
+          </button>
+        </div>
+      ) : null}
+
+      {/* 导出格式选择行 */}
+      {showExportMenu ? (
+        <div className="mb-3 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            className="rounded-full border px-3 py-1 text-[11.5px] transition [border-color:var(--memo-local-control-border)] [background:var(--memo-local-control-surface)] text-[color:var(--memo-local-control-text)] hover:opacity-90"
+            onClick={() => setShowExportMenu(false)}
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            className="rounded-full border px-3 py-1 text-[11.5px] transition [border-color:var(--memo-local-control-border)] [background:var(--memo-local-control-surface)] text-[color:var(--memo-local-control-text)] hover:opacity-90"
+            onClick={() => { exportNote(message.content, 'txt'); setShowExportMenu(false) }}
+          >
+            纯文本
+          </button>
+          <button
+            type="button"
+            className="rounded-full px-3 py-1 text-[11.5px] font-medium transition hover:opacity-90 [background:var(--memo-local-primary-surface)] text-[color:var(--memo-local-primary-text)]"
+            onClick={() => { exportNote(message.content, 'md'); setShowExportMenu(false) }}
+          >
+            Markdown
           </button>
         </div>
       ) : null}

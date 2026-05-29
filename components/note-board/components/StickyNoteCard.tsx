@@ -1,6 +1,6 @@
 'use client'
 
-import { AlarmClock, Archive, ArchiveRestore, ArrowRight, Check, ChevronsDown, Copy, PencilLine, Trash2, X } from 'lucide-react'
+import { AlarmClock, Archive, ArchiveRestore, ArrowRight, Check, ChevronsDown, Copy, FileDown, PencilLine, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
@@ -120,6 +120,29 @@ const RESTING_NOTE_SHADOW = '-1px 10px 5px -4px rgba(0, 0, 0, 0.2), inset 0 24px
 const LIFTED_NOTE_SHADOW = '-1px 14px 40px -4px rgba(0, 0, 0, 0.12), inset 0 18px 24px -12px rgba(0, 0, 0, 0.22)'
 const RELEASE_NOTE_SHADOW = '-1px 10px 5px -4px rgba(0, 0, 0, 0.2), inset 0 24px 30px -12px rgba(0, 0, 0, 0.3)'
 
+function exportNote(content: string, format: 'md' | 'txt') {
+  const firstLine = content.split('\n')[0]?.replace(/^#+\s*/, '').replace(/[^\w\u4e00-\u9fff\-]/g, ' ').trim().slice(0, 40) || 'memo'
+  const text = format === 'md' ? content : content
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*\n]+)\*/g, '$1')
+    .replace(/==([^=\n]+)==/g, '$1')
+    .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/~~([^~\n]+)~~/g, '$1')
+    .replace(/@due\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/#[\w\u4e00-\u9fff]+/g, (m) => m.slice(1))
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .trim()
+  const ext = format === 'md' ? 'md' : 'txt'
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${firstLine}.${ext}`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 function StickyNoteCardFrame({
   message,
   x,
@@ -157,6 +180,7 @@ function StickyNoteCardFrame({
   const [copied, setCopied] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [isOverflowing, setIsOverflowing] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
   const isPreview = variant === 'preview'
   const isInlineEditing = Boolean(inlineEditor)
@@ -246,6 +270,20 @@ function StickyNoteCardFrame({
     const timeout = window.setTimeout(() => setConfirmingAction(null), 3600)
     return () => window.clearTimeout(timeout)
   }, [confirmingAction])
+
+  useEffect(() => {
+    if (!showExportMenu) return
+    const timeout = window.setTimeout(() => setShowExportMenu(false), 5000)
+    return () => window.clearTimeout(timeout)
+  }, [showExportMenu])
+
+  // Auto-collapse expanded content and close menus when dragging starts
+  useEffect(() => {
+    if (!isDragging) return
+    setIsExpanded(false)
+    setShowExportMenu(false)
+    setConfirmingAction(null)
+  }, [isDragging])
 
   useEffect(() => {
     if (!onHeightChange || typeof ResizeObserver === 'undefined' || isInlineEditing) return
@@ -345,7 +383,7 @@ function StickyNoteCardFrame({
                 {formatCommentTimeLabel(message.created_at, message.updated_at)}
               </p>
             </div>
-            <div className={[styles.actions, (confirmingAction !== null || isInlineEditing) ? styles.actionsVisible : ''].filter(Boolean).join(' ')}>
+            <div className={[styles.actions, (confirmingAction !== null || isInlineEditing || showExportMenu) ? styles.actionsVisible : ''].filter(Boolean).join(' ')}>
               {actions?.cta ? (
                 <Link
                   href={actions.cta.href}
@@ -390,6 +428,14 @@ function StickyNoteCardFrame({
                   {copied ? <Check size={16} strokeWidth={1.9} /> : <Copy size={16} strokeWidth={1.9} />}
                 </NoteActionButton>
               ) : null}
+              {!isInlineEditing ? (
+                <NoteActionButton
+                  label="导出便签"
+                  onClick={() => setShowExportMenu((v) => !v)}
+                >
+                  <FileDown size={16} strokeWidth={1.85} />
+                </NoteActionButton>
+              ) : null}
               {actions?.delete && !isInlineEditing ? (
                 <NoteActionButton
                   label={confirmingAction === 'delete' ? '确认删除便签' : '删除便签'}
@@ -425,6 +471,31 @@ function StickyNoteCardFrame({
                 }}
               >
                 {confirmingAction === 'archive' ? '确认归档' : '确认删除'}
+              </button>
+            </div>
+          ) : null}
+          {showExportMenu ? (
+            <div className="mb-2 flex items-center justify-end gap-1.5" onPointerDown={(event) => event.stopPropagation()}>
+              <button
+                type="button"
+                className="rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-[10px] font-bold tracking-widest text-slate-500 transition hover:text-slate-900"
+                onClick={() => setShowExportMenu(false)}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-[10px] font-bold tracking-widest text-slate-500 transition hover:text-slate-900"
+                onClick={() => { exportNote(message.content, 'txt'); setShowExportMenu(false) }}
+              >
+                纯文本
+              </button>
+              <button
+                type="button"
+                className="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-bold tracking-widest text-white transition hover:opacity-90"
+                onClick={() => { exportNote(message.content, 'md'); setShowExportMenu(false) }}
+              >
+                Markdown
               </button>
             </div>
           ) : null}
@@ -480,13 +551,12 @@ function StickyNoteCardFrame({
                 <button
                   type="button"
                   aria-label="展开查看全部"
-                  className="mx-auto mt-2 flex items-center gap-1 rounded-full border border-current/10 bg-current/[0.06] px-3 py-[3px] text-[11px] font-medium opacity-55 transition-all duration-200 hover:opacity-90 hover:bg-current/[0.10] active:scale-95"
+                  className="mx-auto mt-2 flex items-center justify-center opacity-45 transition-all duration-200 hover:opacity-85 active:scale-95"
                   style={{ color: noteInk }}
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); setIsExpanded(true) }}
                 >
-                  <ChevronsDown size={11} strokeWidth={2} />
-                  <span>展开全文</span>
+                  <ChevronsDown size={18} strokeWidth={1.5} />
                 </button>
               ) : null}
             </>

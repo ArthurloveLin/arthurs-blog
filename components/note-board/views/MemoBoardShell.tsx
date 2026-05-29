@@ -510,6 +510,7 @@ export function MemoBoardShell({
   const { theme } = useNoteColorTheme()
   const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false)
   const [calendarMode, setCalendarMode] = useState<'heatmap' | 'agenda' | 'history'>('agenda')
+  const [mobileTagsExpanded, setMobileTagsExpanded] = useState(false)
   const isMobileCalendarOpen = state.isMobileViewport && mobileCalendarOpen
   const resolvedCalendarMode = !habitOverview && calendarMode === 'history' ? 'agenda' : calendarMode
   const sidebarModes = useMemo(() => [
@@ -738,32 +739,59 @@ export function MemoBoardShell({
 
           {/* 移动端标签 */}
           {state.allTags.length > 0 ? (
-            <div className="mb-4 flex flex-wrap gap-1.5 sm:hidden">
-              {state.allTags.slice(0, 12).map(({ name }) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => actions.handleTagFilter(name)}
+            <div className="mb-4 sm:hidden">
+              <div className="relative">
+                <div
                   className={[
-                    'rounded-full px-2.5 py-1 text-[12px] transition',
-                    state.activeTags.includes(name)
-                      ? '[background:var(--memo-primary-surface)] text-[color:var(--memo-primary-text)]'
-                      : 'border [border-color:var(--memo-control-border)] text-[color:var(--memo-control-text)] hover:[background:var(--memo-control-hover-surface)] hover:text-[color:var(--memo-control-hover-text)]',
+                    'flex flex-wrap gap-1.5 transition-all duration-300',
+                    mobileTagsExpanded ? '' : 'max-h-[68px] overflow-hidden',
                   ].join(' ')}
                 >
-                  #{name}
-                </button>
-              ))}
-              {state.activeTags.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => actions.handleTagFilter('')}
-                  className="flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] [border-color:var(--memo-control-border)] text-[color:var(--memo-control-text)]"
-                >
-                  <X size={12} />
-                  清除
-                </button>
-              ) : null}
+                  {state.allTags.map(({ name }) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => actions.handleTagFilter(name)}
+                      className={[
+                        'rounded-full px-2.5 py-1 text-[12px] transition',
+                        state.activeTags.includes(name)
+                          ? '[background:var(--memo-primary-surface)] text-[color:var(--memo-primary-text)]'
+                          : 'border [border-color:var(--memo-control-border)] text-[color:var(--memo-control-text)] hover:[background:var(--memo-control-hover-surface)] hover:text-[color:var(--memo-control-hover-text)]',
+                      ].join(' ')}
+                    >
+                      #{name}
+                    </button>
+                  ))}
+                </div>
+                {!mobileTagsExpanded && state.allTags.length > 6 ? (
+                  <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[var(--memo-shell-surface)] to-transparent" />
+                ) : null}
+              </div>
+              <div className="mt-1.5 flex items-center gap-2">
+                {state.allTags.length > 6 ? (
+                  <button
+                    type="button"
+                    onClick={() => setMobileTagsExpanded((v) => !v)}
+                    className="flex items-center gap-0.5 text-[11px] font-medium text-[color:var(--memo-shell-muted)] transition hover:text-[color:var(--memo-control-text)]"
+                  >
+                    {mobileTagsExpanded ? '收起' : '展开'}
+                    <ChevronDown
+                      size={12}
+                      className={['transition-transform duration-200', mobileTagsExpanded ? 'rotate-180' : ''].join(' ')}
+                    />
+                  </button>
+                ) : null}
+                {state.activeTags.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => actions.handleTagFilter('')}
+                    className="flex items-center gap-1 text-[11px] text-[color:var(--memo-shell-muted)] transition hover:text-[color:var(--memo-control-text)]"
+                  >
+                    <X size={10} />
+                    清除筛选
+                  </button>
+                ) : null}
+              </div>
             </div>
           ) : null}
 
