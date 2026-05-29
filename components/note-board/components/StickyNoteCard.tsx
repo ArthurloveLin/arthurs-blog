@@ -679,43 +679,44 @@ function StickyNoteCardFrame({
               onCompleteHabitItem={onCompleteHabitItem ? (itemKey) => onCompleteHabitItem(message.id, itemKey) : undefined}
             />
           ) : (
-            <div
-              ref={contentRef}
-              className="relative"
-              style={!showExpanded ? { maxHeight: 260, overflow: 'hidden' } : undefined}
-            >
-              <NoteContent
-                content={message.content}
-                variant={variant}
-                onToggleChecklistItem={checklistControl?.onToggle}
-                checklistPending={checklistControl?.pending}
-                notifiedDues={message.notified_dues}
-                habitStates={habitStates}
-                onOpenHabitDetail={onOpenHabitDetail ? (itemKey) => onOpenHabitDetail(message.id, itemKey) : undefined}
-                onCompleteHabitItem={onCompleteHabitItem ? (itemKey) => onCompleteHabitItem(message.id, itemKey) : undefined}
-              />
+            <>
+              <div
+                ref={contentRef}
+                className="relative"
+                style={!showExpanded ? {
+                  maxHeight: 260,
+                  overflow: 'hidden',
+                  ...(isOverflowing ? {
+                    maskImage: 'linear-gradient(to bottom, black 0%, black 45%, transparent 100%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 45%, transparent 100%)',
+                  } : {}),
+                } : undefined}
+              >
+                <NoteContent
+                  content={message.content}
+                  variant={variant}
+                  onToggleChecklistItem={checklistControl?.onToggle}
+                  checklistPending={checklistControl?.pending}
+                  notifiedDues={message.notified_dues}
+                  habitStates={habitStates}
+                  onOpenHabitDetail={onOpenHabitDetail ? (itemKey) => onOpenHabitDetail(message.id, itemKey) : undefined}
+                  onCompleteHabitItem={onCompleteHabitItem ? (itemKey) => onCompleteHabitItem(message.id, itemKey) : undefined}
+                />
+              </div>
               {isOverflowing && !showExpanded ? (
-                <div
-                  className={[
-                    'pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center justify-end',
-                    'pb-2 pt-12',
-                  ].join(' ')}
-                  style={{
-                   background: `linear-gradient(to top, ${noteColor} 35%, transparent)`,
-                  }}
+                <button
+                  type="button"
+                  aria-label="展开查看全部"
+                  className="mx-auto mt-2 flex items-center gap-1 rounded-full border border-current/10 bg-current/[0.06] px-3 py-[3px] text-[11px] font-medium opacity-55 transition-all duration-200 hover:opacity-90 hover:bg-current/[0.10] active:scale-95"
+                  style={{ color: noteInk }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); setIsExpanded(true) }}
                 >
-                  <button
-                    type="button"
-                    aria-label="展开查看全部"
-                    className="pointer-events-auto inline-flex h-7 w-7 items-center justify-center text-slate-400 transition-all hover:text-slate-700 active:scale-95"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); setIsExpanded(true) }}
-                  >
-                    <ChevronsDown size={15} strokeWidth={1.6} />
-                  </button>
-                </div>
+                  <ChevronsDown size={11} strokeWidth={2} />
+                  <span>展开全文</span>
+                </button>
               ) : null}
-            </div>
+            </>
           )}
           {!isPreview && message.due_at && !hasInlineDueTags(message.content) ? (
             <StickyDueBadge dueAt={message.due_at} />
