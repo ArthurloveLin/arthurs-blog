@@ -1649,49 +1649,6 @@ html:active-view-transition-type(nav-back) {
     350ms cubic-bezier(0.85, 0, 0.15, 1) both vinyl-slide reverse;
 }
 
-/* ── Memo sticky board: directional page-flip transitions ── */
-@keyframes memo-page-blur-fade {
-  from { opacity: 0; filter: blur(6px); }
-  to   { opacity: 1; filter: blur(0); }
-}
-@keyframes memo-page-slide {
-  from { translate: var(--memo-page-offset, 56px) 0; }
-  to   { translate: 0 0; }
-}
-
-::view-transition-group(.memo-page-from-right),
-::view-transition-group(.memo-page-from-left),
-::view-transition-group(.memo-page-to-left),
-::view-transition-group(.memo-page-to-right) {
-  animation-duration: 0.42s;
-  animation-timing-function: cubic-bezier(0.85, 0, 0.15, 1);
-}
-
-::view-transition-new(.memo-page-from-right) {
-  --memo-page-offset: 56px;
-  animation:
-    240ms cubic-bezier(0.85, 0, 0.15, 1) 140ms both memo-page-blur-fade,
-    420ms cubic-bezier(0.85, 0, 0.15, 1) both memo-page-slide;
-}
-::view-transition-old(.memo-page-to-left) {
-  --memo-page-offset: -56px;
-  animation:
-    160ms cubic-bezier(0.85, 0, 0.15, 1) both memo-page-blur-fade reverse,
-    420ms cubic-bezier(0.85, 0, 0.15, 1) both memo-page-slide reverse;
-}
-::view-transition-new(.memo-page-from-left) {
-  --memo-page-offset: -56px;
-  animation:
-    240ms cubic-bezier(0.85, 0, 0.15, 1) 140ms both memo-page-blur-fade,
-    420ms cubic-bezier(0.85, 0, 0.15, 1) both memo-page-slide;
-}
-::view-transition-old(.memo-page-to-right) {
-  --memo-page-offset: 56px;
-  animation:
-    160ms cubic-bezier(0.85, 0, 0.15, 1) both memo-page-blur-fade reverse,
-    420ms cubic-bezier(0.85, 0, 0.15, 1) both memo-page-slide reverse;
-}
-
 /* ── Sticky note: in-place expand morph (update trigger) ──
    Wraps the whole card; toggling isExpanded inside startTransition makes the
    card box grow in place. height:auto keeps both snapshots at natural height
