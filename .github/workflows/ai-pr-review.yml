@@ -4,14 +4,9 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened]
-    paths-ignore:
-      - 'MD/**'
-      - '**/*.md'
-      - 'workers/**'
-      - 'supabase/**'
-      - '.claude/**'
-      - '.agents/**'
-      - 'tmp/**'
+    # paths-ignore removed: workflow-level path filtering leaves required status
+    # checks permanently "pending" when excluded files are the only change,
+    # blocking merge. Use job-level if: instead — skipped jobs report "success".
 
 concurrency:
   group: ai-pr-review-${{ github.event.pull_request.number }}
@@ -23,16 +18,37 @@ permissions:
 
 # Job graph:
 #
-#   pr-review  (gate — required status check)
-#     ├─ extract diff → sanitize → assemble prompt
-#     ├─ invoke agy (continue-on-error — infra crash → exit 0, not a blocker)
-#     ├─ parse severity → CRITICAL exits 1 (blocks merge), else exits 0
-#     └─ post review comment + ntfy
+#   check-paths  (lightweight — always runs, never blocks)
+#     └─ pr-review  (gate — required status check; skipped → reports success)
+#          ├─ extract diff → sanitize → assemble prompt
+#          ├─ invoke agy (continue-on-error — infra crash → exit 0, not a blocker)
+#          ├─ parse severity → CRITICAL exits 1 (blocks merge), else exits 0
+#          └─ post review comment + ntfy
 
 jobs:
 
+# ─── Path gate (must always run so the required check never stays pending) ────
+  check-paths:
+    name: Check changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.filter.outputs.run }}
+    steps:
+      - id: filter
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CHANGED=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+            --paginate --jq '.[].filename' \
+            | grep -vE '^(MD/|workers/|supabase/|\.claude/|\.agents/|tmp/)' \
+            | grep -v '\.md$' | wc -l)
+          echo "run=$([[ $CHANGED -gt 0 ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "Relevant changed files: $CHANGED"
+
 # ─── AI PR Review (gate) ───────────────────────────────────────────────────────
   pr-review:
+    needs: check-paths
+    if: needs.check-paths.outputs.run == 'true'
     name: AI PR Review
     runs-on: [self-hosted, linux, vps]
 
