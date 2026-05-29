@@ -484,6 +484,7 @@ interface MemoBoardShellProps {
   onOpenHabitDetail?: (noteId: string, itemKey: string, source?: 'sidebar' | 'note') => void
   showSidebar?: boolean
   extraControls?: ReactNode
+  onSidebarHeightChange?: (height: number) => void
   children: ReactNode
 }
 
@@ -502,6 +503,7 @@ export function MemoBoardShell({
   onOpenHabitDetail,
   showSidebar = true,
   extraControls,
+  onSidebarHeightChange,
   children,
 }: MemoBoardShellProps) {
   const state = useNoteBoardBoardState()
@@ -512,6 +514,15 @@ export function MemoBoardShell({
   const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false)
   const [calendarMode, setCalendarMode] = useState<'heatmap' | 'agenda' | 'history'>('agenda')
   const [mobileTagsExpanded, setMobileTagsExpanded] = useState(false)
+  const sidebarAsideRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!onSidebarHeightChange || !sidebarAsideRef.current) return
+    const ro = new ResizeObserver(([entry]) => {
+      onSidebarHeightChange(entry.contentRect.height)
+    })
+    ro.observe(sidebarAsideRef.current)
+    return () => ro.disconnect()
+  }, [onSidebarHeightChange])
   const isMobileCalendarOpen = state.isMobileViewport && mobileCalendarOpen
   const resolvedCalendarMode = !habitOverview && calendarMode === 'history' ? 'agenda' : calendarMode
   const sidebarModes = useMemo(() => [
@@ -675,7 +686,7 @@ export function MemoBoardShell({
       <div className="flex gap-6">
         {/* 桌面侧边栏 */}
         {showSidebar && (
-          <aside className="hidden shrink-0 sm:block sm:w-[240px] lg:w-[280px]">
+          <aside ref={sidebarAsideRef} className="hidden shrink-0 sm:block sm:w-[240px] lg:w-[280px]">
             <div className="sticky top-6 space-y-6">
               <div className={SIDEBAR_PANEL_CLASS}>{renderSidebarPanel(false)}</div>
               <div className={SIDEBAR_PANEL_CLASS}><SidebarQuickFilters filters={filters} agendaItems={agendaItems} /></div>
