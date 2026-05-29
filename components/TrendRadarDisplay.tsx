@@ -335,7 +335,6 @@ export default function TrendRadarDisplay({
       pushSectionInsight(sectionMap.outlook_strategy, ["策略建议", "行动方案"], [...trendCitations.slice(0, 2), ...rssCitations.slice(0, 2)]);
 
       Object.entries(standaloneSummaries)
-        .slice(0, 2)
         .forEach(([source, summary], idx) => {
           if (!summary?.trim()) {
             return;
@@ -543,11 +542,12 @@ export default function TrendRadarDisplay({
           </span>
 
           {/* sm+: full stat pills */}
-          <div className="hidden sm:flex items-center gap-5 flex-wrap">
+          <div className="hidden sm:flex items-center gap-2 flex-wrap">
             <StatPill value={aiInsights.length} label="知微见著" color="sky" />
             <StatPill value={stats.length} label="趋势词" color="purple" />
             <StatPill value={rssBySource.length} label="RSS 来源" color="emerald" />
             <StatPill value={standalonePlatforms.length} label="热榜平台" color="amber" />
+            <div className="w-px h-3 bg-border/60 mx-1" />
             <StatPill value={totalAll} label="条目合计" color="default" />
           </div>
         </div>
@@ -739,32 +739,35 @@ export default function TrendRadarDisplay({
                     setActiveTag("全部");
                   }}
                   className={cn(
-                    "relative flex flex-col items-start px-3 py-3 sm:px-5 sm:py-3.5 text-left transition-colors duration-200",
+                    "relative flex flex-col items-start px-3 py-3 sm:px-5 sm:py-3.5 text-left transition-all duration-200",
                     isActive
                       ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground",
+                      : "text-muted-foreground hover:text-foreground/80",
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm lg:text-base font-semibold">{tab.label}</span>
+                    <span className={cn(
+                      "text-sm lg:text-base transition-all duration-200",
+                      isActive ? "font-bold" : "font-medium",
+                    )}>{tab.label}</span>
                     <span
                       className={cn(
-                        "text-[10px] lg:text-[13px] font-mono px-1.5 py-0.5 rounded-full transition-colors",
+                        "text-[10px] lg:text-[12px] font-mono px-1.5 py-0.5 rounded-md transition-all duration-200",
                         isActive
-                          ? "bg-primary/15 text-primary"
-                          : "bg-muted text-muted-foreground/60",
+                          ? "bg-primary/15 text-primary font-bold"
+                          : "bg-muted/80 text-muted-foreground/50",
                       )}
                     >
                       {counts[tab.id]}
                     </span>
                   </div>
-                  <span className="hidden sm:block text-[10px] lg:text-[12px] font-mono text-muted-foreground/40 mt-0.5">
+                  <span className="hidden sm:block text-[10px] lg:text-[11px] font-mono text-muted-foreground/35 mt-0.5 tracking-wide">
                     {tab.sub}
                   </span>
                   <div
                     className={cn(
-                      "absolute bottom-0 left-3 right-3 sm:left-5 sm:right-5 h-0.5 rounded-full transition-all duration-300",
-                      isActive ? "bg-primary" : "opacity-0",
+                      "absolute bottom-0 left-3 right-3 sm:left-5 sm:right-5 h-[2px] rounded-full transition-all duration-300",
+                      isActive ? "bg-primary" : "scale-x-0 opacity-0",
                     )}
                   />
                 </button>
@@ -918,9 +921,12 @@ function SideSection({
 }) {
   return (
     <div>
-      <h4 className="text-[9px] lg:text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40 px-3 mb-2">
-        {title}
-      </h4>
+      <div className="flex items-center gap-2 px-3 mb-2.5">
+        <h4 className="text-[9px] lg:text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/35">
+          {title}
+        </h4>
+        <div className="flex-1 h-px bg-border/30" />
+      </div>
       {children}
     </div>
   );
@@ -946,11 +952,22 @@ function StatPill({
             ? "bg-sky-500"
           : "bg-muted-foreground/40";
 
+  const ringColor =
+    color === "purple"
+      ? "border-primary/25 bg-primary/5"
+      : color === "emerald"
+        ? "border-emerald-500/25 bg-emerald-500/5"
+        : color === "amber"
+          ? "border-amber-500/25 bg-amber-500/5"
+          : color === "sky"
+            ? "border-sky-500/25 bg-sky-500/5"
+          : "border-border/40 bg-muted/30";
+
   return (
-    <div className="flex items-center gap-2">
+    <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-full border", ringColor)}>
       <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", dotColor)} />
-      <span className="text-[12px] lg:text-[15px] font-mono font-semibold tabular-nums">{value}</span>
-      <span className="text-[11px] lg:text-[13px] text-muted-foreground">{label}</span>
+      <span className="text-[12px] lg:text-[14px] font-mono font-bold tabular-nums">{value}</span>
+      <span className="text-[10px] lg:text-[12px] text-muted-foreground/70">{label}</span>
     </div>
   );
 }
@@ -982,25 +999,25 @@ function AiInsightCard({ insight }: { insight: AIInsight }) {
     : buildFallbackParagraphs(insight.section_id, insight.summary, citations);
 
   return (
-    <article className="bg-card text-card-foreground rounded-2xl p-5 border border-border/50 hover:border-primary/30 transition-colors duration-300 shadow-sm">
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <div>
-          <h3 className="text-[15px] sm:text-[17px] lg:text-[19px] font-bold text-foreground leading-snug">
+    <article className="bg-card text-card-foreground rounded-2xl p-5 border border-border/50 hover:border-primary/25 hover:shadow-md transition-all duration-300 shadow-sm">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="min-w-0">
+          <h3 className="text-[15px] sm:text-[17px] lg:text-[18px] font-bold text-foreground leading-snug">
             {insight.headline}
           </h3>
-          <p className="text-[9px] lg:text-[11px] font-mono text-muted-foreground/55 mt-1">
+          <p className="text-[9px] lg:text-[10px] font-mono text-muted-foreground/40 mt-1 tracking-wide uppercase">
             {insight.section_id}
           </p>
         </div>
         <span
           className={cn(
-            "shrink-0 px-2 py-1 rounded-full text-[10px] lg:text-[12px] font-mono",
+            "shrink-0 px-2.5 py-1 rounded-full text-[10px] lg:text-[11px] font-mono font-semibold border mt-0.5",
             insight.confidence === "高"
-              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-              : "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+              : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
           )}
         >
-          置信度 {insight.confidence}
+          {insight.confidence === "高" ? "↑ 高" : "≈ 中"}
         </span>
       </div>
 
@@ -1062,30 +1079,39 @@ function AiInsightCard({ insight }: { insight: AIInsight }) {
         ))}
       </div>
 
-      <div className="space-y-2.5">
+      <div className="space-y-1.5 pt-3 border-t border-border/30">
         {citations.map((citation, idx) => {
+          const channelAccent =
+            citation.channel === "RSS订阅"
+              ? "border-l-emerald-500/60"
+              : citation.channel === "平台热点"
+              ? "border-l-amber-500/60"
+              : "border-l-primary/40";
+
           const citationNode = (
             <>
-              <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                <span className="text-[9px] lg:text-[11px] font-mono text-foreground/75 bg-muted px-1.5 py-0.5 rounded leading-none">
-                  [{citation.citation_no}]
+              <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                <span className="text-[9px] lg:text-[10px] font-mono text-foreground/50 bg-muted/80 px-1.5 py-0.5 rounded leading-none tabular-nums">
+                  {citation.citation_no}
                 </span>
-                <span className="text-[9px] lg:text-[11px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded leading-none">
-                  {citation.channel}
-                </span>
-                <span className="text-[9px] lg:text-[11px] font-mono text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded leading-none">
+                <span className="text-[9px] lg:text-[10px] font-mono text-muted-foreground/60 leading-none">
                   {citation.source}
                 </span>
                 {citation.time_display && (
-                  <span className="text-[9px] lg:text-[11px] font-mono text-muted-foreground/45 ml-auto">
+                  <span className="text-[9px] lg:text-[10px] font-mono text-muted-foreground/35 ml-auto tabular-nums">
                     {citation.time_display}
                   </span>
                 )}
               </div>
-              <p className="text-[12px] sm:text-[14px] text-foreground/80 leading-relaxed line-clamp-2">
+              <p className="text-[12px] sm:text-[13px] text-foreground/75 leading-snug line-clamp-2">
                 {citation.title}
               </p>
             </>
+          );
+
+          const baseClass = cn(
+            "block rounded-r-lg border-l-2 border border-border/30 bg-muted/15 px-3 py-2 transition-colors",
+            channelAccent,
           );
 
           if (!citation.url) {
@@ -1093,7 +1119,7 @@ function AiInsightCard({ insight }: { insight: AIInsight }) {
               <div
                 key={citation.citation_id || `${citation.source}-${idx}`}
                 id={citation.anchor_id}
-                className="block rounded-lg border border-border/50 bg-muted/20 px-3 py-2"
+                className={baseClass}
               >
                 {citationNode}
               </div>
@@ -1107,7 +1133,7 @@ function AiInsightCard({ insight }: { insight: AIInsight }) {
               href={citation.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block rounded-lg border border-border/50 bg-muted/20 px-3 py-2 hover:border-primary/25 hover:bg-primary/5 transition-colors"
+              className={cn(baseClass, "hover:bg-muted/30 hover:border-border/60")}
             >
               {citationNode}
             </a>
@@ -1230,13 +1256,13 @@ function RssSourceCard({
   };
 }) {
   return (
-    <div className="bg-card/50 rounded-2xl p-5 border border-border/40 hover:border-emerald-500/20 transition-all duration-300 shadow-sm flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-2 h-2 rounded-full bg-emerald-500/70 shrink-0" />
-          <h4 className="text-[13px] sm:text-[15px] lg:text-base font-bold text-foreground truncate">{source.name}</h4>
+    <div className="bg-card/50 rounded-2xl p-5 border border-border/40 hover:border-emerald-500/25 transition-all duration-300 shadow-sm flex flex-col">
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/30">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 ring-2 ring-emerald-500/20" />
+          <h4 className="text-[13px] sm:text-[14px] lg:text-[15px] font-semibold text-foreground truncate">{source.name}</h4>
         </div>
-        <span className="text-[10px] lg:text-[12px] font-mono text-muted-foreground/50 shrink-0 ml-2 tabular-nums">
+        <span className="text-[10px] lg:text-[11px] font-mono text-muted-foreground/40 shrink-0 ml-2 tabular-nums bg-muted/50 px-1.5 py-0.5 rounded">
           {source.items.length}
         </span>
       </div>
@@ -1273,29 +1299,29 @@ function RssSourceCard({
 
 function HotPlatformCard({ platform }: { platform: StandalonePlatform }) {
   return (
-    <div className="bg-card/60 rounded-2xl p-5 border border-border/40 hover:border-amber-500/20 transition-all duration-300 shadow-sm flex flex-col">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-card/60 rounded-2xl p-5 border border-border/40 hover:border-amber-500/25 transition-all duration-300 shadow-sm flex flex-col">
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/30">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-1 h-4 bg-amber-400/80 rounded-full shrink-0" />
-          <h4 className="text-[13px] sm:text-[15px] lg:text-base font-bold text-foreground truncate">{platform.name}</h4>
+          <div className="w-1 h-4 bg-amber-400 rounded-full shrink-0" />
+          <h4 className="text-[13px] sm:text-[14px] lg:text-[15px] font-semibold text-foreground truncate">{platform.name}</h4>
         </div>
-        <span className="text-[10px] lg:text-[12px] font-mono text-muted-foreground/50 shrink-0 ml-2 tabular-nums">
+        <span className="text-[10px] lg:text-[11px] font-mono text-muted-foreground/40 shrink-0 ml-2 tabular-nums bg-muted/50 px-1.5 py-0.5 rounded">
           {platform.items.length}
         </span>
       </div>
-      <ol className="space-y-2.5">
+      <ol className="space-y-2">
         {platform.items.map((item, i) => (
           <li key={i} className="flex items-start gap-2.5">
             <span
               className={cn(
-                "text-[10px] lg:text-[13px] font-mono mt-0.5 w-5 lg:w-6 shrink-0 text-right tabular-nums font-bold",
+                "shrink-0 mt-0.5 tabular-nums font-mono font-bold leading-none",
                 i === 0
-                  ? "text-amber-500"
+                  ? "text-[13px] lg:text-[14px] text-amber-500 w-5 lg:w-6 text-right"
                   : i === 1
-                    ? "text-amber-400/80"
+                    ? "text-[11px] lg:text-[12px] text-amber-400/75 w-5 lg:w-6 text-right"
                     : i === 2
-                      ? "text-amber-400/60"
-                      : "text-muted-foreground/25",
+                      ? "text-[10px] lg:text-[11px] text-amber-400/55 w-5 lg:w-6 text-right"
+                      : "text-[10px] lg:text-[11px] text-muted-foreground/20 w-5 lg:w-6 text-right",
               )}
             >
               {(i + 1).toString().padStart(2, "0")}
@@ -1304,7 +1330,12 @@ function HotPlatformCard({ platform }: { platform: StandalonePlatform }) {
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[13px] sm:text-[15px] lg:text-base text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors line-clamp-2 leading-snug"
+              className={cn(
+                "text-[13px] sm:text-[14px] lg:text-[15px] transition-colors line-clamp-2 leading-snug",
+                i < 3
+                  ? "text-foreground/80 hover:text-amber-600 dark:hover:text-amber-400"
+                  : "text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400",
+              )}
             >
               {item.title}
             </a>
