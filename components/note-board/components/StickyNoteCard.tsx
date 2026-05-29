@@ -1,6 +1,6 @@
 'use client'
 
-import { AlarmClock, Archive, ArchiveRestore, ArrowRight, Check, ChevronsDown, Copy, FileDown, PencilLine, Trash2, X } from 'lucide-react'
+import { AlarmClock, Archive, ArchiveRestore, ArrowRight, Check, ChevronsDown, Copy, FileDown, FileImage, FileText, PencilLine, Share2, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 import { startTransition, useCallback, useEffect, useRef, useState, ViewTransition } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
@@ -8,6 +8,7 @@ import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
 import { NoteContent } from '@/components/note-board/components/NoteContent'
 import { useStickyNoteDrag } from '@/components/note-board/hooks/useStickyNoteDrag'
+import { downloadNote, exportNoteAsImage } from '@/components/note-board/utils/noteExport'
 import { hasInlineDueTags } from '@/components/note-board/utils/editor'
 import { NoteInlineEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
@@ -120,28 +121,6 @@ const RESTING_NOTE_SHADOW = '-1px 10px 5px -4px rgba(0, 0, 0, 0.2), inset 0 24px
 const LIFTED_NOTE_SHADOW = '-1px 14px 40px -4px rgba(0, 0, 0, 0.12), inset 0 18px 24px -12px rgba(0, 0, 0, 0.22)'
 const RELEASE_NOTE_SHADOW = '-1px 10px 5px -4px rgba(0, 0, 0, 0.2), inset 0 24px 30px -12px rgba(0, 0, 0, 0.3)'
 
-function exportNote(content: string, format: 'md' | 'txt') {
-  const firstLine = content.split('\n')[0]?.replace(/^#+\s*/, '').replace(/[^\w\u4e00-\u9fff\-]/g, ' ').trim().slice(0, 40) || 'memo'
-  const text = format === 'md' ? content : content
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/\*([^*\n]+)\*/g, '$1')
-    .replace(/==([^=\n]+)==/g, '$1')
-    .replace(/`([^`\n]+)`/g, '$1')
-    .replace(/~~([^~\n]+)~~/g, '$1')
-    .replace(/@due\[[^\]]*\]\([^)]*\)/g, '')
-    .replace(/#[\w\u4e00-\u9fff]+/g, (m) => m.slice(1))
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .trim()
-  const ext = format === 'md' ? 'md' : 'txt'
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${firstLine}.${ext}`
-  a.click()
-  URL.revokeObjectURL(url)
-}
 
 function StickyNoteCardFrame({
   message,
@@ -420,23 +399,10 @@ function StickyNoteCardFrame({
               ) : null}
               {!isInlineEditing ? (
                 <NoteActionButton
-                  label={copied ? '已复制' : '复制内容'}
-                  onClick={() => {
-                    void navigator.clipboard.writeText(message.content).then(() => {
-                      setCopied(true)
-                      setTimeout(() => setCopied(false), 1500)
-                    })
-                  }}
-                >
-                  {copied ? <Check size={16} strokeWidth={1.9} /> : <Copy size={16} strokeWidth={1.9} />}
-                </NoteActionButton>
-              ) : null}
-              {!isInlineEditing ? (
-                <NoteActionButton
-                  label="导出便签"
+                  label="分享/导出"
                   onClick={() => setShowExportMenu((v) => !v)}
                 >
-                  <FileDown size={16} strokeWidth={1.85} />
+                  <Share2 size={15} strokeWidth={1.85} />
                 </NoteActionButton>
               ) : null}
               {actions?.delete && !isInlineEditing ? (
@@ -478,27 +444,49 @@ function StickyNoteCardFrame({
             </div>
           ) : null}
           {showExportMenu ? (
-            <div className="mb-2 flex items-center justify-end gap-1.5" onPointerDown={(event) => event.stopPropagation()}>
+            <div
+              className="absolute right-0 top-10 z-20 min-w-[152px] overflow-hidden rounded-xl border border-black/8 bg-white/96 py-1 shadow-lg backdrop-blur-md"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+            >
               <button
                 type="button"
-                className="rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-[10px] font-bold tracking-widest text-slate-500 transition hover:text-slate-900"
-                onClick={() => setShowExportMenu(false)}
+                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-slate-700 transition hover:bg-slate-50/80 active:bg-slate-100/80"
+                onClick={() => {
+                  void navigator.clipboard.writeText(message.content).then(() => {
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 1500)
+                    setShowExportMenu(false)
+                  })
+                }}
               >
-                取消
+                {copied ? <Check size={13} strokeWidth={2} className="text-green-600 shrink-0" /> : <Copy size={13} strokeWidth={1.85} className="shrink-0" />}
+                复制文本
+              </button>
+              <div className="mx-3 my-0.5 border-t border-slate-100" />
+              <button
+                type="button"
+                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-slate-700 transition hover:bg-slate-50/80 active:bg-slate-100/80"
+                onClick={() => { downloadNote(message.content, 'txt'); setShowExportMenu(false) }}
+              >
+                <FileText size={13} strokeWidth={1.85} className="shrink-0" />
+                导出纯文本
               </button>
               <button
                 type="button"
-                className="rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-[10px] font-bold tracking-widest text-slate-500 transition hover:text-slate-900"
-                onClick={() => { exportNote(message.content, 'txt'); setShowExportMenu(false) }}
+                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-slate-700 transition hover:bg-slate-50/80 active:bg-slate-100/80"
+                onClick={() => { downloadNote(message.content, 'md'); setShowExportMenu(false) }}
               >
-                纯文本
+                <FileDown size={13} strokeWidth={1.85} className="shrink-0" />
+                导出 Markdown
               </button>
               <button
                 type="button"
-                className="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-bold tracking-widest text-white transition hover:opacity-90"
-                onClick={() => { exportNote(message.content, 'md'); setShowExportMenu(false) }}
+                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-slate-700 transition hover:bg-slate-50/80 active:bg-slate-100/80"
+                onClick={() => { exportNoteAsImage(message.content, message.author, message.created_at); setShowExportMenu(false) }}
               >
-                Markdown
+                <FileImage size={13} strokeWidth={1.85} className="shrink-0" />
+                导出为图片
               </button>
             </div>
           ) : null}
