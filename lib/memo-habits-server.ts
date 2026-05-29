@@ -628,8 +628,11 @@ export async function delayMemoHabitOccurrence(noteId: string, itemKey: string, 
     return getMemoHabitItemDetail(note.id, itemKey, note.user_id, true)
   }
 
-  // Cross-day postpones close today's occurrence as missed and create the next
-  // day's arrangement as a fresh scheduled/pending occurrence.
+  // Cross-day postpones close today's occurrence as missed.
+  // A recurring habit can only run once per day, so only insert a new occurrence
+  // for the target date when no active occurrence already exists for that date.
+  // If the target date already has a scheduled/pending/delayed occurrence (e.g. the
+  // natural recurrence for that day), treat the current attempt as a plain miss.
   const { error: markMissedError } = await supabaseAdmin
     .from('memo_habit_occurrences')
     .update({
@@ -643,36 +646,23 @@ export async function delayMemoHabitOccurrence(noteId: string, itemKey: string, 
     throw new Error(markMissedError.message)
   }
 
-  const { data: nextOccurrence, error: nextOccurrenceError } = await supabaseAdmin
+  const delayDateKey = toShanghaiDateKey(delayUntil)
+  const { data: targetDateRows, error: targetDateError } = await supabaseAdmin
     .from('memo_habit_occurrences')
-    .select('id, note_id, owner_user_id, visibility, item_key, item_label, line_text, due_at, status, reminder_sent_at, completed_at, delayed_to, completion_source, created_at, updated_at')
+    .select('id, due_at, status')
     .eq('note_id', note.id)
     .eq('item_key', item.itemKey)
-    .eq('due_at', delayUntil)
-    .maybeSingle()
+    .in('status', ['scheduled', 'pending', 'delayed'])
 
-  if (nextOccurrenceError) {
-    throw new Error(nextOccurrenceError.message)
+  if (targetDateError) {
+    throw new Error(targetDateError.message)
   }
 
-  if (nextOccurrence) {
-    const { error: updateNextError } = await supabaseAdmin
-      .from('memo_habit_occurrences')
-      .update({
-        visibility: note.visibility,
-        item_label: item.label,
-        line_text: item.lineText,
-        status: 'pending',
-        reminder_sent_at: null,
-        delayed_to: null,
-        updated_at: nowIso,
-      })
-      .eq('id', nextOccurrence.id)
+  const alreadyScheduledOnTargetDate = (targetDateRows ?? []).some(
+    (row: { due_at: string }) => toShanghaiDateKey(row.due_at) === delayDateKey,
+  )
 
-    if (updateNextError) {
-      throw new Error(updateNextError.message)
-    }
-  } else {
+  if (!alreadyScheduledOnTargetDate) {
     const { error: insertNextError } = await supabaseAdmin
       .from('memo_habit_occurrences')
       .insert({
