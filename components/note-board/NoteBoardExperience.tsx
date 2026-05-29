@@ -952,20 +952,22 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
   return (
     <div className="space-y-6">
       {viewMode === 'stream'
-        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={enrichedAgendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} onCompleteHabitItem={handleCompleteHabitItem} showSidebar={meta.board.slug === 'memo'} />
-        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={enrichedAgendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={openHabitDetail} onCompleteHabitItem={handleCompleteHabitItem} showSidebar={meta.board.slug === 'memo'} />}
+        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={enrichedAgendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={state.isAdmin ? openHabitDetail : undefined} onCompleteHabitItem={state.isAdmin ? handleCompleteHabitItem : undefined} showSidebar={meta.board.slug === 'memo'} />
+        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={enrichedAgendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={state.isAdmin ? openHabitDetail : undefined} onCompleteHabitItem={state.isAdmin ? handleCompleteHabitItem : undefined} showSidebar={meta.board.slug === 'memo'} />}
       <NoteBoardEditorSection autoFocusOnEdit={viewMode === 'stream'} />
       <NoteBoardToast />
-      <MemoHabitDetailPanel
-        detail={selectedHabitDetail}
-        isLoading={Boolean(selectedHabit) && isHabitDetailLoading}
-        isMobile={state.isMobileViewport}
-        anchorPos={selectedHabit?.anchorPos}
-        onClose={closeHabitDetail}
-        onComplete={handleCompleteHabit}
-        onDelay={handleDelayHabit}
-        onDeleteOccurrence={handleDeleteOccurrence}
-      />
+      {state.isAdmin && (
+        <MemoHabitDetailPanel
+          detail={selectedHabitDetail}
+          isLoading={Boolean(selectedHabit) && isHabitDetailLoading}
+          isMobile={state.isMobileViewport}
+          anchorPos={selectedHabit?.anchorPos}
+          onClose={closeHabitDetail}
+          onComplete={handleCompleteHabit}
+          onDelay={handleDelayHabit}
+          onDeleteOccurrence={handleDeleteOccurrence}
+        />
+      )}
     </div>
   )
 }
