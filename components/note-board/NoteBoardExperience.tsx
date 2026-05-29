@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import useSWR from 'swr'
-import { useCallback, useEffect, useMemo, useRef, useState, ViewTransition } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlarmClock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { MemoHabitDetailPanel } from '@/components/note-board/views/MemoHabitDetailPanel'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
@@ -166,12 +166,6 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
             style={{ minHeight: Math.max(activeSurfaceHeight, 420) }}
           >
             {!meta.surface.hasMeasured ? null : (
-              <ViewTransition
-                key={state.currentPage}
-                enter={{ 'memo-page-next': 'memo-page-from-right', 'memo-page-prev': 'memo-page-from-left', default: 'none' }}
-                exit={{ 'memo-page-next': 'memo-page-to-left', 'memo-page-prev': 'memo-page-to-right', default: 'none' }}
-                default="none"
-              >
               <div className="relative" style={{ minHeight: Math.max(activeSurfaceHeight, 320) }}>
                 {filteredNoteItems.map((item, index) => {
                   const { message, actions: cardActions, priorityControl, reactionControl, checklistControl, inlineEditor, isEditing, isOptimistic, isOptimisticEditing, isFresh } = item
@@ -223,7 +217,6 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
                   )
                 })}
               </div>
-              </ViewTransition>
             )}
           </div>
 

@@ -1,4 +1,4 @@
-import { addTransitionType, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import useSWR from 'swr'
 import type { NoteBoardListPayload, NotePosition, OptimisticMessageSnapshot } from '@/components/note-board/types'
 import { createBoardPayload, isSameBoardSurfacePayload, sortBoardMessages } from '@/components/note-board/utils/board'
@@ -452,7 +452,6 @@ export function useBoardData({
     }
 
     startTransition(() => {
-      addTransitionType('memo-page-prev')
       replaceMessages((current) => current, { resetPositions: true })
       setCurrentPageIndex((current) => Math.max(current - 1, 0))
     })
@@ -467,7 +466,6 @@ export function useBoardData({
 
     if (targetPageIndex < loadedDesktopPageCount) {
       startTransition(() => {
-        addTransitionType('memo-page-next')
         replaceMessages((current) => current, { resetPositions: true })
         setCurrentPageIndex(targetPageIndex)
       })
@@ -487,7 +485,6 @@ export function useBoardData({
       }
 
       startTransition(() => {
-        addTransitionType('memo-page-next')
         replaceMessages((current) => [...current, ...payload.messages], {
           nextOffset: payload.nextOffset,
           hasMore: payload.hasMore,
