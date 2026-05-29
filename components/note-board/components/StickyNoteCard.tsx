@@ -2,7 +2,7 @@
 
 import { AlarmClock, Archive, ArchiveRestore, ArrowRight, Check, ChevronsDown, Copy, FileDown, FileImage, FileText, PencilLine, Share2, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
-import { startTransition, useCallback, useEffect, useRef, useState, ViewTransition } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
@@ -190,7 +190,7 @@ function StickyNoteCardFrame({
   useEffect(() => {
     if (!showExpanded) return
     const handler = (e: PointerEvent) => {
-      if (!articleRef.current?.contains(e.target as Node)) startTransition(() => setIsExpanded(false))
+      if (!articleRef.current?.contains(e.target as Node)) setIsExpanded(false)
     }
     document.addEventListener('pointerdown', handler)
     return () => document.removeEventListener('pointerdown', handler)
@@ -304,7 +304,6 @@ function StickyNoteCardFrame({
   const showConfirmActions = !isPreview && confirmingAction && ((confirmingAction === 'archive' && actions?.archive) || (confirmingAction === 'delete' && actions?.delete))
 
   return (
-    <ViewTransition default="none" update={isPreview ? 'none' : 'sticky-expand'}>
     <article
       ref={articleRef}
       className={[
@@ -545,7 +544,7 @@ function StickyNoteCardFrame({
                   className="mx-auto mt-2 flex items-center justify-center opacity-45 transition-all duration-200 hover:opacity-85 active:scale-95"
                   style={{ color: noteInk }}
                   onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => { e.stopPropagation(); startTransition(() => setIsExpanded(true)) }}
+                  onClick={(e) => { e.stopPropagation(); setIsExpanded(true) }}
                 >
                   <ChevronsDown size={18} strokeWidth={1.5} />
                 </button>
@@ -584,7 +583,6 @@ function StickyNoteCardFrame({
         </div>
       </div>
     </article>
-    </ViewTransition>
   )
 }
 

@@ -1649,31 +1649,6 @@ html:active-view-transition-type(nav-back) {
     350ms cubic-bezier(0.85, 0, 0.15, 1) both vinyl-slide reverse;
 }
 
-/* ── Sticky note: in-place expand morph (update trigger) ──
-   Wraps the whole card; toggling isExpanded inside startTransition makes the
-   card box grow in place. height:auto keeps both snapshots at natural height
-   (top-anchored) so text doesn't squash while the group box morphs taller. */
-@keyframes sticky-expand-fade-out { to { opacity: 0; } }
-@keyframes sticky-expand-fade-in { from { opacity: 0; } to { opacity: 1; } }
-
-::view-transition-group(.sticky-expand) {
-  animation-duration: 0.42s;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-}
-::view-transition-image-pair(.sticky-expand) {
-  overflow: clip;
-}
-::view-transition-old(.sticky-expand),
-::view-transition-new(.sticky-expand) {
-  height: auto;
-  width: 100%;
-}
-::view-transition-old(.sticky-expand) {
-  animation: 0.2s ease both sticky-expand-fade-out;
-}
-::view-transition-new(.sticky-expand) {
-  animation: 0.32s 0.1s ease both sticky-expand-fade-in;
-}
 
 /* ── Persistent nav components layering ── */
 ::view-transition-group(navbar),
