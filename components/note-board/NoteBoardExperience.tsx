@@ -738,6 +738,7 @@ function NoteBoardToast() {
 function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?: NoteBoardViewMode }) {
   const meta = useNoteBoardMeta()
   const state = useNoteBoardBoardState()
+  const editorState = useNoteBoardEditorState()
   const viewModeStorageKey = getNoteBoardViewModeStorageKey(meta.board.slug)
   const viewModeCookieName = getNoteBoardViewModeCookieName(meta.board.slug)
 
@@ -952,11 +953,11 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
   return (
     <div className="space-y-6">
       {viewMode === 'stream'
-        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={enrichedAgendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={state.isAdmin ? openHabitDetail : undefined} onCompleteHabitItem={state.isAdmin ? handleCompleteHabitItem : undefined} showSidebar={meta.board.slug === 'memo'} />
-        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={enrichedAgendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={state.isAdmin ? openHabitDetail : undefined} onCompleteHabitItem={state.isAdmin ? handleCompleteHabitItem : undefined} showSidebar={meta.board.slug === 'memo'} />}
+        ? <MemosStreamView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={enrichedAgendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={editorState.isAdmin ? openHabitDetail : undefined} onCompleteHabitItem={editorState.isAdmin ? handleCompleteHabitItem : undefined} showSidebar={meta.board.slug === 'memo'} />
+        : <BoardStickyView onToggleViewMode={toggleViewMode} filters={filters} agendaItems={enrichedAgendaItems ?? null} habitOverview={habitOverview ?? null} onOpenHabitDetail={editorState.isAdmin ? openHabitDetail : undefined} onCompleteHabitItem={editorState.isAdmin ? handleCompleteHabitItem : undefined} showSidebar={meta.board.slug === 'memo'} />}
       <NoteBoardEditorSection autoFocusOnEdit={viewMode === 'stream'} />
       <NoteBoardToast />
-      {state.isAdmin && (
+      {editorState.isAdmin && (
         <MemoHabitDetailPanel
           detail={selectedHabitDetail}
           isLoading={Boolean(selectedHabit) && isHabitDetailLoading}
