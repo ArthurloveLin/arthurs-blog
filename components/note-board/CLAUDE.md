@@ -34,6 +34,7 @@ hooks/
   useBoardNoteItems.ts    — assembles NoteCardViewModel list
   useBoardSurface.ts      — desktop canvas drag state
   useNoteEditor.ts        — editor open/close + optimistic note
+  useStickyNoteDrag.ts    — shared sticky-note drag physics (board + preview cards)
 
 contexts/
   NoteColorThemeContext.tsx — color palette switcher (persisted to localStorage)
@@ -77,6 +78,24 @@ components depending on context:
 
 `MobileNoteList` and `MemoStreamCard` must stay visually consistent.
 When adding a new card-level action, add it to **both**.
+
+### Sticky-note drag physics is shared via `useStickyNoteDrag`
+The grab/release GSAP timelines, velocity-based wobble, and rAF-batched
+position state live in `hooks/useStickyNoteDrag.ts`, used by **both**
+`StickyNoteCardFrame` (in `StickyNoteCard.tsx`) and the standalone
+`StickyNotePreviewCard.tsx` (homepage preview strip). Editing the hook changes
+the feel on both surfaces. Per-card differences are passed in as options, not
+branched inside the hook:
+- **shadows** — the two cards use different resting/lift/release box-shadows
+  (the preview card's release even cross-fades two different shadows).
+- **computeDragBounds** — board card has `mobile-stack` / `contained` / preview
+  variants; the preview card uses fixed bounds.
+- **shouldReleaseOnCommit** — preview card always plays the release; the board
+  card skips it on a mobile-stack fling past `PREVIEW_REVEAL_THRESHOLD`.
+
+Do not re-inline this logic into one card — that recreates the fork the hook
+removed. Note `StickyNoteCard.Preview` (the `variant="preview"` path) is
+currently unused; the live preview is the standalone file.
 
 ### Filter state flow
 `useMemoBoardFilters` (defined in `MemoBoardShell.tsx`) is the single source

@@ -1,19 +1,13 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import Image from 'next/image'
-import gsap from 'gsap'
 
 import type { MusicReportStats } from '@/lib/spotify-report'
 import { spotifyImg } from '@/lib/spotify-img'
 
+import { usePosterHover } from './usePosterHover'
 import styles from './SpotifyMusicReportBoard.module.css'
-
-const RESTING_SHADOW =
-  '0 14px 22px -10px rgba(15, 10, 0, 0.28), inset 0 20px 28px -10px rgba(0, 0, 0, 0.22)'
-const LIFTED_SHADOW =
-  '-2px 22px 48px -6px rgba(0, 0, 0, 0.2), inset 0 16px 22px -10px rgba(0, 0, 0, 0.18)'
 
 // Per-period visual identity
 const PERIOD_CONFIG = {
@@ -63,68 +57,7 @@ interface Props {
 
 export default function SpotifyMusicReportPoster({ stats, isLoading }: Props) {
   const config = PERIOD_CONFIG[stats.period]
-  const surfaceRef = useRef<HTMLDivElement>(null)
-  const paperRef = useRef<HTMLDivElement>(null)
-
-  const baseRotation = config.rotation
-
-  // Initialise resting rotation
-  useEffect(() => {
-    if (!surfaceRef.current) return
-    gsap.set(surfaceRef.current, { rotation: baseRotation })
-  }, [baseRotation])
-
-  function handleMouseEnter() {
-    const surface = surfaceRef.current
-    const paper = paperRef.current
-    if (!surface || !paper) return
-
-    gsap.killTweensOf(surface)
-    gsap.killTweensOf(paper)
-
-    const tl = gsap.timeline()
-    tl.to(surface, { rotateX: 6, duration: 0.22 })
-      .to(paper, { boxShadow: LIFTED_SHADOW, duration: 0.22 }, 0)
-      .to(
-        surface,
-        {
-          rotation: baseRotation * 0.25,
-          rotateX: 4,
-          scale: 1.04,
-          y: -8,
-          ease: 'elastic.out(0.75, 0.5)',
-          duration: 0.65,
-        },
-        0.14
-      )
-      .to(paper, { boxShadow: LIFTED_SHADOW, ease: 'elastic.out(0.75, 0.5)', duration: 0.65 }, 0.14)
-  }
-
-  function handleMouseLeave() {
-    const surface = surfaceRef.current
-    const paper = paperRef.current
-    if (!surface || !paper) return
-
-    gsap.killTweensOf(surface)
-    gsap.killTweensOf(paper)
-
-    const tl = gsap.timeline()
-    tl.to(surface, { rotateX: 12, duration: 0.18 })
-      .to(paper, { boxShadow: RESTING_SHADOW, duration: 0.18 }, 0)
-      .to(
-        surface,
-        {
-          rotation: baseRotation,
-          rotateX: 0,
-          scale: 1,
-          y: 0,
-          ease: 'elastic.out(0.8, 0.5)',
-          duration: 0.6,
-        },
-        0.12
-      )
-      .to(paper, { boxShadow: RESTING_SHADOW, ease: 'elastic.out(0.8, 0.5)', duration: 0.6 }, 0.12)
-  }
+  const { surfaceRef, paperRef, handleMouseEnter, handleMouseLeave } = usePosterHover(config.rotation)
 
   const wrapStyle: CSSProperties = { width: `${config.width}px` }
 
