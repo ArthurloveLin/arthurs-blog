@@ -11,9 +11,6 @@ jobs:
     name: Consolidate R2 changelog to weekly
     runs-on: [self-hosted, linux, vps]
     steps:
-      - name: Install boto3
-        run: pip install boto3 --quiet
-
       - name: Fetch W21 + W22 release bodies from GitHub
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
