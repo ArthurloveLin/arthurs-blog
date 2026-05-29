@@ -921,7 +921,7 @@ export function SidebarTagCloud() {
         <div
           className={[
             'flex flex-wrap gap-1.5 transition-all duration-300',
-            !isExpanded && needsExpansion ? 'max-h-[100px] overflow-hidden' : '',
+            !isExpanded && needsExpansion ? 'max-h-[268px] overflow-hidden' : '',
           ].join(' ')}
         >
           {state.allTags.map(({ name, count }) => {
