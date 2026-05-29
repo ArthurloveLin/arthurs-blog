@@ -255,39 +255,40 @@ function NoteThemeButton() {
         <Palette size={14} />
       </button>
       {open ? (
-        <div className={`${MENU_PANEL_CLASS} z-[1000] min-w-[244px] p-1.5`}>
-          {NOTE_COLOR_THEMES.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => { setThemeId(t.id); setOpen(false) }}
-              className={[
-                'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition',
-                t.id === theme.id
-                  ? MENU_ITEM_ACTIVE_CLASS
-                  : MENU_ITEM_IDLE_CLASS,
-              ].join(' ')}
-            >
-              <div
-                className="relative h-10 w-14 shrink-0 overflow-hidden rounded-xl border border-black/5"
-                style={{ background: t.chrome.shellSurface }}
-              >
-                <div className="absolute bottom-1.5 left-1.5 flex gap-1">
-                  {t.colors.slice(0, 3).map((c, i) => (
-                    <span
-                      key={i}
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: c, boxShadow: '0 0 0 1px rgba(0,0,0,0.06)' }}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="block text-[13px] leading-none">{t.label}</span>
-                <span className="mt-1 block text-[10px] uppercase tracking-[0.16em] opacity-60">{t.subtitle}</span>
-              </div>
-            </button>
-          ))}
+        <div className={`${MENU_PANEL_CLASS} z-[1000] w-[176px] p-1`}>
+          <div className="grid grid-cols-3 gap-0.5">
+            {NOTE_COLOR_THEMES.map((t) => {
+              const isActive = t.id === theme.id
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => { setThemeId(t.id); setOpen(false) }}
+                  aria-label={t.label}
+                  aria-pressed={isActive}
+                  title={`${t.label} · ${t.subtitle}`}
+                  className={[
+                    'flex flex-col items-center gap-[3px] py-2 rounded-xl transition',
+                    isActive
+                      ? `${MENU_ITEM_ACTIVE_CLASS} ring-1`
+                      : MENU_ITEM_IDLE_CLASS,
+                  ].join(' ')}
+                >
+                  <span className="text-sm leading-none" aria-hidden="true">{t.icon}</span>
+                  <div className="flex gap-[3px] mt-0.5">
+                    {t.colors.slice(0, 3).map((c, i) => (
+                      <span
+                        key={i}
+                        className="w-[5px] h-[5px] rounded-full"
+                        style={{ backgroundColor: c, boxShadow: '0 0 0 1px rgba(0,0,0,0.06)' }}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[9px] font-medium leading-none mt-0.5 opacity-70">{t.label}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       ) : null}
     </div>

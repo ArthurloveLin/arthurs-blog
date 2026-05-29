@@ -30,7 +30,7 @@ export default function HandwrittenSlogan({
   size1 = '68px',
   size2 = '46px',
   className = '',
-  color = 'var(--ty-primary, #7c3aed)',
+  color = 'var(--primary)',
   textAlign = 'center',
 }: HandwrittenSloganProps) {
   const [showSecondLine, setShowSecondLine] = React.useState(false)

@@ -2,7 +2,7 @@
 
 import { createContext, use, useSyncExternalStore, type ReactNode } from 'react'
 
-export type NoteColorThemeId = 'classic' | 'vivid' | 'cream' | 'mono' | 'dusk' | 'linen'
+export type NoteColorThemeId = 'classic' | 'vivid' | 'cream' | 'mono' | 'dusk' | 'linen' | 'sakura' | 'night' | 'dark'
 
 export interface NoteColorSlot {
   bg: string   // sticky note face background
@@ -15,6 +15,8 @@ export interface NoteColorThemeConfig {
   id: NoteColorThemeId
   label: string
   subtitle: string
+  /** emoji icon shown in the theme picker */
+  icon: string
   /** bg values only — used for preview dots */
   colors: readonly string[]
   /** full 7-slot palette (rose · butter · mint · sky · lilac · lavender · sage) */
@@ -58,7 +60,7 @@ export interface NoteColorThemeChrome {
   primaryText: string
 }
 
-const VALID_IDS = new Set<NoteColorThemeId>(['classic', 'vivid', 'cream', 'mono', 'dusk', 'linen'])
+const VALID_IDS = new Set<NoteColorThemeId>(['classic', 'vivid', 'cream', 'mono', 'dusk', 'linen', 'sakura', 'night', 'dark'])
 
 // ── Theme data ────────────────────────────────────────────────────────────────
 
@@ -128,6 +130,39 @@ const THEME_SLOTS: Record<NoteColorThemeId, readonly NoteColorSlot[]> = {
     { bg: '#e8e0d0', bg2: '#d4c8b4', ink: '#504438', tape: '#8a7060' }, // bark
     { bg: '#d8dcd4', bg2: '#bcc4b4', ink: '#384038', tape: '#687868' }, // stone
   ],
+
+  // 06 · Sakura 樱花 — soft pink, rose petal, cherry blossom palette
+  sakura: [
+    { bg: '#fce4ec', bg2: '#f8bbd0', ink: '#5c1a2a', tape: '#e85080' }, // rose
+    { bg: '#fde8f0', bg2: '#f9c8da', ink: '#5a1a30', tape: '#e6658c' }, // blush
+    { bg: '#f8d7e8', bg2: '#f0b4cc', ink: '#521828', tape: '#d45a7a' }, // petal
+    { bg: '#f4d4e8', bg2: '#e8acd0', ink: '#4a1840', tape: '#c45898' }, // mauve
+    { bg: '#f0d8f0', bg2: '#e0b8e0', ink: '#421848', tape: '#b85ab8' }, // orchid
+    { bg: '#ead0e8', bg2: '#d4b0d4', ink: '#3c1840', tape: '#9c50a0' }, // lavender-rose
+    { bg: '#fcd8e4', bg2: '#f4b4c8', ink: '#501828', tape: '#da6080' }, // carnation
+  ],
+
+  // 07 · Night 紫夜 — deep violet, indigo, twilight purple
+  night: [
+    { bg: '#e4dff8', bg2: '#ccc4f0', ink: '#1a1048', tape: '#6448c8' }, // violet
+    { bg: '#dcd8f4', bg2: '#c0baec', ink: '#180e40', tape: '#5040b8' }, // purple
+    { bg: '#d4dcf8', bg2: '#b4c0f0', ink: '#101848', tape: '#3850c0' }, // indigo
+    { bg: '#d8d4f4', bg2: '#beb4ec', ink: '#160e3c', tape: '#5448b8' }, // periwinkle
+    { bg: '#e8d8f8', bg2: '#d0b8f0', ink: '#200e48', tape: '#7050c8' }, // deep lilac
+    { bg: '#dce0f4', bg2: '#c0c8ec', ink: '#141848', tape: '#4450b8' }, // night blue
+    { bg: '#e4d8f4', bg2: '#ccc0ec', ink: '#1c1040', tape: '#6248c0' }, // slate violet
+  ],
+
+  // 08 · Dark 暗色 — dark sticky notes, deep hues with light ink
+  dark: [
+    { bg: '#2d2440', bg2: '#1e1530', ink: '#e4d8f8', tape: '#9070d0' }, // deep violet
+    { bg: '#1e2a40', bg2: '#141e2e', ink: '#d8e8f8', tape: '#6088c0' }, // midnight
+    { bg: '#1e3028', bg2: '#142018', ink: '#d0f0e0', tape: '#508860' }, // forest night
+    { bg: '#302018', bg2: '#201408', ink: '#f0e0c8', tape: '#9a6030' }, // ember
+    { bg: '#301828', bg2: '#201018', ink: '#f0d0e0', tape: '#9a5068' }, // dark rose
+    { bg: '#282030', bg2: '#181424', ink: '#e4d8f0', tape: '#786898' }, // dusk violet
+    { bg: '#202828', bg2: '#141818', ink: '#d0e4e4', tape: '#508888' }, // dark teal
+  ],
 }
 
 const THEME_SHELL: Record<NoteColorThemeId, readonly [string, string]> = {
@@ -137,6 +172,9 @@ const THEME_SHELL: Record<NoteColorThemeId, readonly [string, string]> = {
   mono: ['#b2a69a', '#8b98a0'],    // warm taupe · cool slate
   dusk: ['#d65d28', '#c85050'],    // burnt orange · dusty rose
   linen: ['#4a8838', '#8a7060'],   // fern green · bark brown
+  sakura: ['#e85080', '#c45898'],  // rose · mauve
+  night: ['#6448c8', '#3850c0'],   // violet · indigo
+  dark: ['#9070d0', '#6088c0'],    // violet light · blue light (used for heatmap)
 }
 
 const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
@@ -333,18 +371,119 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     primarySurface: 'linear-gradient(135deg, #4a8838 0%, #2a4a22 100%)',
     primaryText: '#f0f8ee',
   },
+  // 06 · Sakura 樱花 — cherry blossom pink, rose, mauve chrome
+  sakura: {
+    shellSurface: 'linear-gradient(165deg, rgba(255,248,252,0.98) 0%, rgba(252,236,246,0.96) 100%), radial-gradient(circle at 14% 12%, rgba(248,180,210,0.26) 0%, transparent 33%), radial-gradient(circle at 84% 16%, rgba(196,88,152,0.18) 0%, transparent 26%), radial-gradient(circle at 74% 84%, rgba(248,200,220,0.20) 0%, transparent 26%)',
+    shellBorder: 'rgba(160,60,100,0.18)',
+    shellShadow: '0 30px 90px rgba(140,40,90,0.12)',
+    heading: '#5a1a30',
+    summary: 'rgba(90,26,48,0.58)',
+    muted: 'rgba(90,26,48,0.46)',
+    controlSurface: 'linear-gradient(180deg, rgba(255,248,252,0.86), rgba(252,238,246,0.84))',
+    controlBorder: 'rgba(160,60,100,0.14)',
+    controlText: 'rgba(90,26,48,0.68)',
+    controlHoverSurface: 'linear-gradient(180deg, rgba(252,238,246,0.98), rgba(248,222,236,0.96))',
+    controlHoverText: '#5a1a30',
+    controlActiveSurface: 'linear-gradient(180deg, rgba(248,220,234,0.98), rgba(240,200,218,0.96))',
+    controlActiveText: '#4a1228',
+    panelSurface: 'linear-gradient(180deg, rgba(255,250,254,0.96), rgba(252,240,248,0.94))',
+    panelMutedSurface: 'linear-gradient(180deg, rgba(252,244,250,0.92), rgba(248,234,244,0.90))',
+    panelBorder: 'rgba(160,60,100,0.12)',
+    panelShadow: '0 16px 40px rgba(140,40,90,0.08)',
+    cardSurface: 'linear-gradient(180deg, rgba(255,252,254,0.94), rgba(252,242,248,0.92))',
+    cardEditingSurface: 'linear-gradient(180deg, rgba(252,244,250,0.96), rgba(244,228,240,0.94))',
+    cardBorder: 'rgba(160,60,100,0.10)',
+    cardHoverBorder: 'rgba(232,116,138,0.28)',
+    cardText: 'rgba(72,20,40,0.90)',
+    cardMuted: 'rgba(90,26,48,0.50)',
+    cardShadow: '0 18px 44px rgba(140,40,90,0.10)',
+    cardHoverShadow: '0 26px 58px rgba(140,40,90,0.16)',
+    filterSurface: 'rgba(232,116,138,0.12)',
+    filterBorder: 'rgba(232,116,138,0.22)',
+    filterText: 'rgba(160,60,90,0.82)',
+    primarySurface: 'linear-gradient(135deg, #e85080 0%, #5a1a30 100%)',
+    primaryText: '#fff8fc',
+  },
+  // 07 · Night 紫夜 — deep violet, indigo, twilight purple chrome
+  night: {
+    shellSurface: 'linear-gradient(165deg, rgba(244,240,255,0.98) 0%, rgba(232,224,252,0.96) 100%), radial-gradient(circle at 14% 12%, rgba(96,72,200,0.22) 0%, transparent 33%), radial-gradient(circle at 84% 16%, rgba(56,72,192,0.18) 0%, transparent 26%), radial-gradient(circle at 76% 84%, rgba(112,80,200,0.18) 0%, transparent 28%)',
+    shellBorder: 'rgba(40,30,100,0.22)',
+    shellShadow: '0 30px 90px rgba(40,30,120,0.14)',
+    heading: '#1a1040',
+    summary: 'rgba(26,16,64,0.58)',
+    muted: 'rgba(26,16,64,0.46)',
+    controlSurface: 'linear-gradient(180deg, rgba(248,244,255,0.88), rgba(236,228,252,0.86))',
+    controlBorder: 'rgba(40,30,100,0.14)',
+    controlText: 'rgba(26,16,64,0.68)',
+    controlHoverSurface: 'linear-gradient(180deg, rgba(236,228,255,0.98), rgba(220,212,252,0.96))',
+    controlHoverText: '#1a1040',
+    controlActiveSurface: 'linear-gradient(180deg, rgba(220,212,252,0.98), rgba(200,192,248,0.96))',
+    controlActiveText: '#120a38',
+    panelSurface: 'linear-gradient(180deg, rgba(250,248,255,0.96), rgba(236,228,252,0.94))',
+    panelMutedSurface: 'linear-gradient(180deg, rgba(244,240,255,0.92), rgba(228,220,248,0.90))',
+    panelBorder: 'rgba(40,30,100,0.12)',
+    panelShadow: '0 16px 40px rgba(40,30,120,0.08)',
+    cardSurface: 'linear-gradient(180deg, rgba(252,250,255,0.94), rgba(238,230,252,0.92))',
+    cardEditingSurface: 'linear-gradient(180deg, rgba(244,240,255,0.96), rgba(228,220,248,0.94))',
+    cardBorder: 'rgba(40,30,100,0.11)',
+    cardHoverBorder: 'rgba(96,72,200,0.24)',
+    cardText: 'rgba(22,12,52,0.90)',
+    cardMuted: 'rgba(26,16,64,0.50)',
+    cardShadow: '0 18px 44px rgba(40,30,120,0.10)',
+    cardHoverShadow: '0 26px 58px rgba(40,30,120,0.16)',
+    filterSurface: 'rgba(96,72,200,0.10)',
+    filterBorder: 'rgba(96,72,200,0.18)',
+    filterText: 'rgba(60,44,160,0.82)',
+    primarySurface: 'linear-gradient(135deg, #6448c8 0%, #1a1040 100%)',
+    primaryText: '#f0ecff',
+  },
+  // 08 · Dark 暗色 — dark board chrome, dark sticky notes with light ink
+  dark: {
+    shellSurface: 'linear-gradient(165deg, rgba(18,12,30,0.98) 0%, rgba(24,18,42,0.96) 100%), radial-gradient(circle at 14% 12%, rgba(100,70,180,0.28) 0%, transparent 33%), radial-gradient(circle at 84% 16%, rgba(70,90,180,0.22) 0%, transparent 28%), radial-gradient(circle at 76% 84%, rgba(80,60,150,0.20) 0%, transparent 28%)',
+    shellBorder: 'rgba(100,80,180,0.28)',
+    shellShadow: '0 30px 90px rgba(0,0,0,0.40)',
+    heading: '#e4d8f8',
+    summary: 'rgba(220,210,248,0.70)',
+    muted: 'rgba(200,188,240,0.56)',
+    controlSurface: 'linear-gradient(180deg, rgba(30,22,52,0.90), rgba(24,18,42,0.88))',
+    controlBorder: 'rgba(100,80,180,0.22)',
+    controlText: 'rgba(200,188,240,0.72)',
+    controlHoverSurface: 'linear-gradient(180deg, rgba(44,32,78,0.96), rgba(36,26,66,0.94))',
+    controlHoverText: '#e4d8f8',
+    controlActiveSurface: 'linear-gradient(180deg, rgba(58,44,100,0.98), rgba(48,36,86,0.96))',
+    controlActiveText: '#f0ecff',
+    panelSurface: 'linear-gradient(180deg, rgba(24,18,44,0.96), rgba(18,14,36,0.94))',
+    panelMutedSurface: 'linear-gradient(180deg, rgba(22,16,40,0.94), rgba(16,12,30,0.92))',
+    panelBorder: 'rgba(100,80,180,0.20)',
+    panelShadow: '0 16px 40px rgba(0,0,0,0.32)',
+    cardSurface: 'linear-gradient(180deg, rgba(30,24,52,0.96), rgba(22,18,42,0.94))',
+    cardEditingSurface: 'linear-gradient(180deg, rgba(38,30,68,0.96), rgba(30,24,56,0.94))',
+    cardBorder: 'rgba(100,80,180,0.18)',
+    cardHoverBorder: 'rgba(130,100,220,0.32)',
+    cardText: 'rgba(220,210,248,0.90)',
+    cardMuted: 'rgba(180,165,220,0.60)',
+    cardShadow: '0 18px 44px rgba(0,0,0,0.28)',
+    cardHoverShadow: '0 26px 58px rgba(0,0,0,0.38)',
+    filterSurface: 'rgba(100,80,180,0.14)',
+    filterBorder: 'rgba(120,100,200,0.28)',
+    filterText: 'rgba(180,165,230,0.90)',
+    primarySurface: 'linear-gradient(135deg, #7060c0 0%, #2a1e5a 100%)',
+    primaryText: '#f0ecff',
+  },
 }
 
 function buildTheme(
   id: NoteColorThemeId,
   label: string,
   subtitle: string,
+  icon: string,
 ): NoteColorThemeConfig {
   const slots = THEME_SLOTS[id]
   return {
     id,
     label,
     subtitle,
+    icon,
     slots,
     colors: slots.map((s) => s.bg),
     shell: THEME_SHELL[id],
@@ -353,12 +492,15 @@ function buildTheme(
 }
 
 export const NOTE_COLOR_THEMES: readonly NoteColorThemeConfig[] = [
-  buildTheme('classic', '默认', 'Classic'),
-  buildTheme('vivid', '海蓝', 'Ocean'),
-  buildTheme('cream', '奶油', 'Harvest'),
-  buildTheme('mono', '水墨', 'Newsroom'),
-  buildTheme('dusk', '日落', 'Sunset'),
-  buildTheme('linen', '森林', 'Forest'),
+  buildTheme('classic', '默认', 'Classic', '🎨'),
+  buildTheme('vivid',   '海蓝', 'Ocean',   '🌊'),
+  buildTheme('cream',   '奶油', 'Harvest', '🌾'),
+  buildTheme('mono',    '水墨', 'Newsroom','🖋'),
+  buildTheme('dusk',    '日落', 'Sunset',  '🌅'),
+  buildTheme('linen',   '森林', 'Forest',  '🌿'),
+  buildTheme('sakura',  '樱花', 'Sakura',  '🌸'),
+  buildTheme('night',   '紫夜', 'Night',   '🌙'),
+  buildTheme('dark',    '暗色', 'Dark',    '🌑'),
 ]
 
 // ── Context ────────────────────────────────────────────────────────────────────
