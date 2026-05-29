@@ -40,6 +40,8 @@ npx supabase db push     # Apply pending migrations to remote
 
 ## Worktree / Parallel Dev
 
+**Do not create a worktree by default** — work in the current checkout. Only create one when the user explicitly asks. When asked, place it in the sibling `arthurs-blog.worktrees/` dir: `git worktree add ../arthurs-blog.worktrees/<slug> -b feat/<scope>-<slug>`.
+
 When on a feature branch (not `main`):
 - Branch naming: `feat/<scope>-<slug>`
 - Declare scope upfront; flag if touching `package.json`, `supabase/migrations/`, or `app/layout.tsx`

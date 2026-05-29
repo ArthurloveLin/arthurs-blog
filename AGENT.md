@@ -153,7 +153,17 @@ When modifying a shared component, call it out explicitly. Don't silently refact
 
 ## Parallel Worktree Development
 
-When working inside a git worktree (path contains a worktree suffix, or `git branch --show-current` is not `main`):
+### 0. Worktree creation policy
+
+**Do not create a worktree by default.** Work directly in the current checkout. Only create a worktree when the user **explicitly** asks for one (e.g., "用 worktree", "新建 worktree", "in a worktree"). Spawning a sub-agent does not by itself imply a worktree.
+
+When explicitly asked, create it under the sibling `arthurs-blog.worktrees/` directory — never inside the repo and never elsewhere:
+
+```bash
+git worktree add ../arthurs-blog.worktrees/<slug> -b feat/<scope>-<slug>
+```
+
+The rest of this section applies once you are working inside a worktree (path is under `arthurs-blog.worktrees/`, or `git branch --show-current` is not `main`).
 
 ### 1. Identify your context first
 
