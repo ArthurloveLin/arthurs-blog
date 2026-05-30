@@ -31,6 +31,7 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
   const cardRef = useRef<HTMLDivElement>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [completing, setCompleting] = useState(false)
+  const [showAllRecords, setShowAllRecords] = useState(false)
 
   const visible = !!(detail || isLoading)
 
@@ -169,7 +170,7 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
                 <div className="rounded-xl bg-background/80 px-3 py-4 text-[12px] text-muted-foreground/55">
                   还没有历史记录。
                 </div>
-              ) : detail.recentOccurrences.map((event) => {
+              ) : (showAllRecords ? detail.recentOccurrences : detail.recentOccurrences.slice(0, 3)).map((event) => {
                 const eventState = {
                   noteId: event.noteId,
                   itemKey: event.itemKey,
@@ -217,6 +218,15 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
                 )
               })}
             </div>
+            {detail.recentOccurrences.length > 3 ? (
+              <button
+                type="button"
+                onClick={() => setShowAllRecords(v => !v)}
+                className="mt-2 w-full rounded-xl py-1.5 text-[11px] text-muted-foreground/55 transition hover:bg-background/80 hover:text-muted-foreground"
+              >
+                {showAllRecords ? '收起' : `查看全部 ${detail.recentOccurrences.length} 条`}
+              </button>
+            ) : null}
           </div>
 
           {detail.nextDueAt ? (
