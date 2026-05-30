@@ -44,6 +44,23 @@ jobs:
         id: version
         run: echo "tag=v$(date -u +%Y.%m.%d-%H%M)" >> "$GITHUB_OUTPUT"
 
+      - name: Compute ISO week label
+        id: week
+        run: |
+          python3 - << 'PYEOF'
+          import os
+          from datetime import date
+          today = date.today()
+          year, week, _ = today.isocalendar()
+          week_start = date.fromisocalendar(year, week, 1)
+          label = f"v{year}-W{week:02d}"
+          date_range = f"{week_start} ~ {today}"
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"label={label}\n")
+              f.write(f"date_range={date_range}\n")
+          print(f"label={label}  date_range={date_range}")
+          PYEOF
+
       # ── Re-tag Docker image (no rebuild) ───────────────────────────────────
       - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
 
@@ -146,6 +163,8 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_CDN_BUCKET: ${{ secrets.R2_CDN_BUCKET }}
+          WEEK_LABEL: ${{ steps.week.outputs.label }}
+          DATE_RANGE: ${{ steps.week.outputs.date_range }}
         run: |
           python3 - << 'PYEOF'
           import os, sys, pathlib, io
@@ -176,7 +195,16 @@ jobs:
               region_name="auto",
           )
 
-          new_entry = changelog_path.read_text()
+          import re as _re
+
+          raw = changelog_path.read_text()
+          week_label = os.environ["WEEK_LABEL"]
+          date_range  = os.environ["DATE_RANGE"]
+
+          # Replace the agy-generated "## v{timestamp} — date" header with the
+          # week label so all R2 entries use a consistent ## v2026-Wxx format.
+          body = _re.sub(r'^##\s+v\S+[^\n]*\n', '', raw, count=1).strip()
+          new_entry = f"## {week_label} — {date_range}\n\n{body}\n"
 
           # Upload latest.md — only the newest entry (for fast badge load)
           s3.put_object(
@@ -187,15 +215,18 @@ jobs:
           )
           print(f"Uploaded changelog/latest.md ({len(new_entry)} bytes)")
 
-          # Fetch existing all.md and prepend the new entry (cumulative history)
+          # Fetch existing all.md and prepend new entry after the preamble
+          PREAMBLE = "# Changelog\n\n本文件由 CI 自动维护。\n\n"
           try:
               existing_obj = s3.get_object(Bucket=bucket, Key="changelog/all.md")
               existing = existing_obj["Body"].read().decode()
-              combined = new_entry.rstrip() + "\n\n" + existing.strip() + "\n"
+              # Strip preamble if present so it stays at the top
+              body_only = existing[len(PREAMBLE):] if existing.startswith(PREAMBLE) else existing
+              combined = PREAMBLE + new_entry.rstrip() + "\n\n---\n\n" + body_only.strip() + "\n"
           except s3.exceptions.NoSuchKey:
-              combined = "# Changelog\n\n本文件由 CI 自动维护。\n\n" + new_entry.rstrip() + "\n"
+              combined = PREAMBLE + new_entry.rstrip() + "\n"
           except Exception:
-              combined = "# Changelog\n\n本文件由 CI 自动维护。\n\n" + new_entry.rstrip() + "\n"
+              combined = PREAMBLE + new_entry.rstrip() + "\n"
 
           s3.put_object(
               Bucket=bucket,
@@ -210,13 +241,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          WEEK_TITLE="${{ steps.week.outputs.label }} — Weekly Release (${{ steps.week.outputs.date_range }})"
           if [ -f /tmp/ai-changelog.md ]; then
             gh release create "${NEW_TAG}" \
-              --title "${NEW_TAG}" \
+              --title "${WEEK_TITLE}" \
               --notes-file /tmp/ai-changelog.md
           else
             gh release create "${NEW_TAG}" \
-              --title "${NEW_TAG}" \
+              --title "${WEEK_TITLE}" \
               --notes "Changelog 生成失败，请手动补充。"
           fi
 
