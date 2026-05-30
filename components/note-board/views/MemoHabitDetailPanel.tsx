@@ -31,7 +31,7 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
   const cardRef = useRef<HTMLDivElement>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [completing, setCompleting] = useState(false)
-  const [showAllRecords, setShowAllRecords] = useState(false)
+  const [visibleRecords, setVisibleRecords] = useState(3)
 
   const visible = !!(detail || isLoading)
 
@@ -170,7 +170,7 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
                 <div className="rounded-xl bg-background/80 px-3 py-4 text-[12px] text-muted-foreground/55">
                   还没有历史记录。
                 </div>
-              ) : (showAllRecords ? detail.recentOccurrences : detail.recentOccurrences.slice(0, 3)).map((event) => {
+              ) : detail.recentOccurrences.slice(0, visibleRecords).map((event) => {
                 const eventState = {
                   noteId: event.noteId,
                   itemKey: event.itemKey,
@@ -218,13 +218,13 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
                 )
               })}
             </div>
-            {detail.recentOccurrences.length > 3 ? (
+            {visibleRecords < detail.recentOccurrences.length ? (
               <button
                 type="button"
-                onClick={() => setShowAllRecords(v => !v)}
+                onClick={() => setVisibleRecords(n => n + 10)}
                 className="mt-2 w-full rounded-xl py-1.5 text-[11px] text-muted-foreground/55 transition hover:bg-background/80 hover:text-muted-foreground"
               >
-                {showAllRecords ? '收起' : `查看全部 ${detail.recentOccurrences.length} 条`}
+                更多（还有 {detail.recentOccurrences.length - visibleRecords} 条）
               </button>
             ) : null}
           </div>
