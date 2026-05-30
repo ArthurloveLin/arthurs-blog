@@ -2,7 +2,7 @@ name: Nightly Tests
 
 on:
   schedule:
-    - cron: '0 2 * * *'   # 02:00 UTC = 10:00 CST
+    - cron: '0 18 * * *'  # 18:00 UTC = 02:00 CST
   workflow_dispatch:
 
 concurrency:
