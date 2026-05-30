@@ -6,7 +6,7 @@ import type { SpotifySectionCopy } from '@/lib/spotify-page-copy'
 import type { SpotifySavedTrack } from '@/lib/spotify-types'
 import { formatStableDate } from '@/lib/date-format'
 import { getSpotifyPublicApiUrl } from '@/lib/spotify-public-api'
-import SpotifyTrackWall from './SpotifyTrackWall'
+import SpotifyTrackWall from './SpotifyTrackWallLazy'
 import { useSpotifyCollectionPagination } from './useSpotifyCollectionPagination'
 
 function formatLocalDateTime(iso: string) {

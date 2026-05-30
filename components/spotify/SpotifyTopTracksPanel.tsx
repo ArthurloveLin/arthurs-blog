@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from 'react'
 
 import type { SpotifySectionCopy } from '@/lib/spotify-page-copy'
 import type { SpotifyTimeRange, SpotifyTopTrack } from '@/lib/spotify-types'
-import SpotifyTrackWall from './SpotifyTrackWall'
+import SpotifyTrackWall from './SpotifyTrackWallLazy'
 import SpotifyTimeRangeTabs from './SpotifyTimeRangeTabs'
 
 function formatDuration(durationMs: number) {
