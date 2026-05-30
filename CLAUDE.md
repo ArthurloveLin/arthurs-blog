@@ -20,6 +20,7 @@ Claude Code agent instructions.
 - [`components/life-gallery/CLAUDE.md`](components/life-gallery/CLAUDE.md) — Life Gallery: 5 层叠卡时序常量耦合、canvas 取色竞态保护、mod 环形导航。
 - [`components/now-watching/CLAUDE.md`](components/now-watching/CLAUDE.md) — Now Watching: prefetchedRef 预加载策略、GSAP 视差列选择、IntersectionObserver 触底。
 - [`app/memo/CLAUDE.md`](app/memo/CLAUDE.md) — Memo 页面: 流式 Suspense 分层、force-dynamic 原因、三源配置融合优先级。
+- [`components/Live2D.CLAUDE.md`](components/Live2D.CLAUDE.md) — Live2D 挂件: Pixi v6 锁定（勿升级）、Cubism 2 core 外部脚本必需、gh-pages 审计噪音、滚出视口暂停的跨文件耦合。
 
 ---
 

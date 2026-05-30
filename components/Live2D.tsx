@@ -1,12 +1,58 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import * as PIXI from 'pixi.js'
 import { useSiteConfig } from './SiteDataProvider'
 
 declare global {
   interface Window {
-    loadlive2d?: (id: string, url: string) => void
+    // Cubism 2.1 WebGL core globals (Live2D, Live2DModelWebGL, UtSystem...) are
+    // installed onto window by the external core script. pixi-live2d-display's
+    // /cubism2 runtime hooks into them; it does NOT bundle the core itself.
+    Live2D?: unknown
+    PIXI?: unknown
   }
+}
+
+/**
+ * Loads the Cubism 2.1 core script (live2d.min.js) exactly once and resolves
+ * when the global runtime is available. The engine URL must point to a Cubism 2
+ * *core* build that exposes the `Live2D` / `Live2DModelWebGL` globals — the
+ * legacy `loadlive2d` widget wrapper is unnecessary here (pixi-live2d-display
+ * drives the model via PixiJS, not via loadlive2d).
+ */
+let cubism2CorePromise: Promise<void> | null = null
+function ensureCubism2Core(engineUrl: string): Promise<void> {
+  if (typeof window !== 'undefined' && window.Live2D) return Promise.resolve()
+  if (cubism2CorePromise) return cubism2CorePromise
+
+  cubism2CorePromise = new Promise<void>((resolve, reject) => {
+    const scriptId = 'live2d-cubism2-core'
+    const existing = document.getElementById(scriptId) as HTMLScriptElement | null
+    if (existing) {
+      if (window.Live2D) {
+        resolve()
+      } else {
+        existing.addEventListener('load', () => resolve())
+        existing.addEventListener('error', () => reject(new Error('Live2D core failed to load')))
+      }
+      return
+    }
+
+    const script = document.createElement('script')
+    script.id = scriptId
+    script.src = engineUrl
+    script.async = true
+    script.onload = () => resolve()
+    script.onerror = () => {
+      // Allow a future mount to retry from scratch.
+      cubism2CorePromise = null
+      reject(new Error('Live2D core failed to load'))
+    }
+    document.body.appendChild(script)
+  })
+
+  return cubism2CorePromise
 }
 
 export default function Live2D() {
@@ -46,9 +92,20 @@ export default function Live2D() {
   const [opacity, setOpacity] = useState(0)
   const dragStartPos = useRef({ x: 0, y: 0, left: 0, bottom: 0 })
 
+  // PixiJS application handle + latest visibility, read by async init / effects.
+  const appRef = useRef<PIXI.Application | null>(null)
+  const isVisibleRef = useRef(isVisible)
+  // Latest cursor position (client coords). Written by a passive global listener
+  // doing zero layout work; consumed once per frame inside the ticker.
+  const pointerRef = useRef<{ x: number; y: number } | null>(null)
+  useEffect(() => {
+    isVisibleRef.current = isVisible
+  }, [isVisible])
+
   useEffect(() => {
     // Initial fade in
-    setTimeout(() => setOpacity(1), 500)
+    const timer = setTimeout(() => setOpacity(1), 500)
+    return () => clearTimeout(timer)
   }, [])
 
   // Visibility Optimization: IntersectionObserver
@@ -68,43 +125,98 @@ export default function Live2D() {
     return () => observer.disconnect()
   }, [])
 
-  // Live2D Initialization
+  // Live2D rendering via PixiJS + pixi-live2d-display (Cubism 2.1).
+  // Replaces the legacy `loadlive2d` widget, whose internal rAF loop could not
+  // be paused — here we own the PIXI ticker and stop it when off-screen.
   useEffect(() => {
-    // Default to the R2 CDN for the core model and engine if no custom config exists
+    if (!isDesktop) return
+
     const modelUrl = config.live2d_model_url || 'https://cdn.arthurlovegrace.top/tororo/tororo.model.json'
     const engineUrl = config.live2d_engine_js_url || 'https://cdn.arthurlovegrace.top/js/live2d.js'
-    const scriptId = 'live2d-js-engine'
 
-    const initModel = () => {
-      if (window.loadlive2d && canvasRef.current) {
-        try {
-          // Use the constant canvas ID but dynamic model URL
-          window.loadlive2d('live2d-canvas', modelUrl)
-        } catch (err) {
-          console.error('Live2D init error:', err)
+    let cancelled = false
+    let app: PIXI.Application | null = null
+    let cleanupPointer: (() => void) | null = null
+
+    void (async () => {
+      try {
+        await ensureCubism2Core(engineUrl)
+        if (cancelled || !canvasRef.current) return
+
+        // /cubism2 entry: pulls only the Cubism 2.1 runtime (no Cubism 4 bytes).
+        const { Live2DModel } = await import('pixi-live2d-display/cubism2')
+        // Expose PIXI so the plugin can reference window.PIXI internals.
+        window.PIXI = PIXI
+
+        app = new PIXI.Application({
+          view: canvasRef.current,
+          width: canvasWidth,
+          height: canvasHeight,
+          backgroundAlpha: 0,
+          antialias: true,
+          autoStart: false, // we drive start()/stop() from visibility
+        })
+
+        // autoUpdate:false → motion/physics advance only through our ticker, so
+        // stopping the ticker fully pauses the model. autoInteract:false → our
+        // own pointer handlers own dragging; no global listeners are added.
+        const model = await Live2DModel.from(modelUrl, { autoUpdate: false, autoInteract: false })
+        if (cancelled || !app) {
+          model.destroy()
+          return
         }
-      }
-    }
 
-    let script = document.getElementById(scriptId) as HTMLScriptElement
-    if (!script) {
-      script = document.createElement('script')
-      script.id = scriptId
-      script.src = engineUrl
-      script.async = true
-      script.onload = initModel
-      document.body.appendChild(script)
-    } else {
-      // If script exists, we might need to update its src if the engineUrl changed
-      // but usually the engine is the same. To be safe, if engineUrl changed, 
-      // we'd need to reload but that's complex. Most models use the same v2 engine.
-      if (window.loadlive2d) {
-        initModel()
-      } else {
-        script.addEventListener('load', initModel)
+        app.stage.addChild(model)
+
+        const scale = Math.min(canvasWidth / model.width, canvasHeight / model.height)
+        model.scale.set(scale)
+        model.x = (canvasWidth - model.width) / 2
+        model.y = canvasHeight - model.height // bottom-align within the canvas
+
+        // Cursor-follow: the listener only records coordinates (no layout read,
+        // passive). The look-at is applied in the ticker — one update per frame,
+        // and skipped entirely while off-screen since the ticker is stopped.
+        const onPointerMove = (e: PointerEvent) => {
+          pointerRef.current = { x: e.clientX, y: e.clientY }
+        }
+        window.addEventListener('pointermove', onPointerMove, { passive: true })
+        cleanupPointer = () => window.removeEventListener('pointermove', onPointerMove)
+
+        const canvas = canvasRef.current
+        app.ticker.add(() => {
+          const pointer = pointerRef.current
+          if (pointer && canvas) {
+            // Single getBoundingClientRect per frame, no interleaved DOM writes
+            // (the model renders to WebGL), so this does not thrash layout.
+            const rect = canvas.getBoundingClientRect()
+            model.focus(pointer.x - rect.left, pointer.y - rect.top)
+          }
+          model.update(app!.ticker.deltaMS)
+        })
+
+        appRef.current = app
+        if (isVisibleRef.current) app.start()
+      } catch (err) {
+        console.error('Live2D init error:', err)
       }
+    })()
+
+    return () => {
+      cancelled = true
+      appRef.current = null
+      cleanupPointer?.()
+      // removeView=false: the <canvas> is owned by React; let it unmount it.
+      app?.destroy(false, { children: true, texture: true, baseTexture: true })
     }
-  }, [config.live2d_model_url, config.live2d_engine_js_url, config.live2d_canvas_width, config.live2d_canvas_height])
+  }, [config.live2d_model_url, config.live2d_engine_js_url, canvasWidth, canvasHeight, isDesktop])
+
+  // Pause the render loop while the mascot is scrolled out of view.
+  useEffect(() => {
+    const app = appRef.current
+    if (!app) return
+    if (isVisible) app.start()
+    else app.stop()
+  }, [isVisible])
 
   // Dragging Logic
   const handlePointerDown = (e: React.PointerEvent) => {
