@@ -4,44 +4,12 @@ import {
   markSupersededMemoHabitOccurrencesAsMissed,
   upsertMemoHabitOccurrenceForReminder,
 } from '@/lib/memo-habits-server'
+import { parseInlineDueTags, stripInlineDueTags } from '@/lib/memo-due-tags'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendNtfyReminder } from '@/lib/ntfy'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://arthurlovegrace.top'
 const REMINDER_TOKEN = process.env.REMINDER_CHECK_TOKEN
-
-const INLINE_DUE_CAPTURE = /@due\[([^\]]*)\]\(([^)]*)\)/g
-
-// Tag format: @due[label](iso) or @due[label](iso,daily|weekdays|custom:0,1,2)
-function parseDueParens(raw: string): { iso: string; repeatSpec: string } {
-  const comma = raw.indexOf(',')
-  if (comma === -1) return { iso: raw, repeatSpec: '' }
-  return { iso: raw.slice(0, comma), repeatSpec: raw.slice(comma + 1) }
-}
-
-function parseRepeatSpec(spec: string): { repeatMode: string; repeatDays: number[] | null } {
-  if (!spec) return { repeatMode: 'once', repeatDays: null }
-  if (spec === 'daily') return { repeatMode: 'daily', repeatDays: null }
-  if (spec === 'weekdays') return { repeatMode: 'weekdays', repeatDays: null }
-  if (spec.startsWith('custom:')) {
-    const days = spec.slice(7).split(',').map(Number).filter((d) => !isNaN(d) && d >= 0 && d <= 6)
-    return { repeatMode: 'custom', repeatDays: days.length > 0 ? days : null }
-  }
-  return { repeatMode: 'once', repeatDays: null }
-}
-
-function parseInlineDueTags(content: string): Array<{ label: string; iso: string; repeatMode: string; repeatDays: number[] | null; fullMatch: string; rawParens: string }> {
-  const result: Array<{ label: string; iso: string; repeatMode: string; repeatDays: number[] | null; fullMatch: string; rawParens: string }> = []
-  INLINE_DUE_CAPTURE.lastIndex = 0
-  let match: RegExpExecArray | null
-  while ((match = INLINE_DUE_CAPTURE.exec(content)) !== null) {
-    const { iso, repeatSpec } = parseDueParens(match[2])
-    if (!iso || isNaN(Date.parse(iso))) continue
-    const { repeatMode, repeatDays } = parseRepeatSpec(repeatSpec)
-    result.push({ label: match[1], iso, repeatMode, repeatDays, fullMatch: match[0], rawParens: match[2] })
-  }
-  return result
-}
 
 function formatDueTime(iso: string, now: Date): string {
   const due = new Date(iso)
@@ -67,8 +35,7 @@ function buildNotification(
     : ''
   const title = `⏰ ${label}${repeatSuffix}`
   // 去掉 @due 标签后的完整内容；保留换行结构，折叠多余空行，上限 500 字
-  const noteText = content
-    .replace(INLINE_DUE_CAPTURE, (_match, label: string) => label.trim())
+  const noteText = stripInlineDueTags(content)
     .replace(/\n{3,}/g, '\n\n')
     .trim()
     .slice(0, 500)
@@ -78,7 +45,19 @@ function buildNotification(
   return { title, body }
 }
 
-// Advance ISO to the next occurrence based on repeat mode (UTC preserved)
+// Returns the calendar day-of-week (0=Sun … 6=Sat) in Asia/Shanghai timezone.
+// Required because a task set for e.g. 01:00 Shanghai (+08:00) is 17:00 UTC the
+// previous day, so getUTCDay() returns the wrong weekday for weekday/custom modes.
+function getShanghaiWeekday(date: Date): number {
+  const abbr = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Shanghai',
+    weekday: 'short',
+  }).format(date)
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(abbr)
+}
+
+// Advance ISO to the next occurrence based on repeat mode (UTC date arithmetic,
+// weekday check converted to Asia/Shanghai calendar day).
 function advanceDueAt(dueAt: string, repeatMode: string, repeatDays: number[] | null): string {
   const due = new Date(dueAt)
 
@@ -89,7 +68,7 @@ function advanceDueAt(dueAt: string, repeatMode: string, repeatDays: number[] | 
 
   if (repeatMode === 'weekdays') {
     due.setUTCDate(due.getUTCDate() + 1)
-    while (due.getUTCDay() === 0 || due.getUTCDay() === 6) {
+    while ([0, 6].includes(getShanghaiWeekday(due))) {
       due.setUTCDate(due.getUTCDate() + 1)
     }
     return due.toISOString()
@@ -99,7 +78,7 @@ function advanceDueAt(dueAt: string, repeatMode: string, repeatDays: number[] | 
     const sorted = [...repeatDays].sort((a, b) => a - b)
     due.setUTCDate(due.getUTCDate() + 1)
     for (let i = 0; i < 7; i++) {
-      if (sorted.includes(due.getUTCDay())) break
+      if (sorted.includes(getShanghaiWeekday(due))) break
       due.setUTCDate(due.getUTCDate() + 1)
     }
     return due.toISOString()
@@ -226,7 +205,16 @@ export async function POST(req: NextRequest) {
     }
 
     const patch: Record<string, unknown> = { notified_at: nowIso }
-    if (pendingOnce.length > 0 || pendingHabitOnce.length > 0) patch.notified_dues = notifiedDues
+    if (pendingOnce.length > 0 || pendingHabitOnce.length > 0) {
+      // Prune notified_dues to only ISOs that still exist as once-tags in the
+      // final content — drops stale entries from deleted tags automatically.
+      const remainingOnceIsos = new Set(
+        parseInlineDueTags(updatedContent)
+          .filter((t) => t.repeatMode === 'once')
+          .map((t) => t.iso),
+      )
+      patch.notified_dues = notifiedDues.filter((iso) => remainingOnceIsos.has(iso))
+    }
     if (pendingRepeat.length > 0 || pendingHabitRepeat.length > 0) patch.content = updatedContent
     await supabaseAdmin.from('comments').update(patch).eq('id', memo.id)
   }

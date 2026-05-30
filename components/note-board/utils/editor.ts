@@ -1,5 +1,7 @@
 import type { ChecklistItemDraft, TextEditResult } from '@/components/note-board/types'
 import { clamp } from '@/components/note-board/utils/board'
+export { hasInlineDueTags, parseInlineDueTags, parseRepeatSpec } from '@/lib/memo-due-tags'
+import { parseInlineDueTags } from '@/lib/memo-due-tags'
 
 function buildChecklistItem(text = '', checked = false, id?: string): ChecklistItemDraft {
   return {
@@ -98,50 +100,12 @@ export function insertLinePrefixSyntax(value: string, start: number, end: number
   return replaceRange(value, block.start, block.end, converted, block.start, block.start + converted.length)
 }
 
-const INLINE_DUE_PATTERN = /@due\[[^\]]*\]\([^)]*\)/g
-const INLINE_DUE_CAPTURE = /@due\[([^\]]*)\]\(([^)]*)\)/g
-
-// Tag format: @due[label](iso) or @due[label](iso,daily|weekdays|custom:0,1,2)
-function splitDueParens(raw: string): { iso: string; repeatSpec: string } {
-  const comma = raw.indexOf(',')
-  if (comma === -1) return { iso: raw, repeatSpec: '' }
-  return { iso: raw.slice(0, comma), repeatSpec: raw.slice(comma + 1) }
-}
-
-export function parseRepeatSpec(spec: string): { repeatMode: string; repeatDays: number[] | null } {
-  if (!spec) return { repeatMode: 'once', repeatDays: null }
-  if (spec === 'daily') return { repeatMode: 'daily', repeatDays: null }
-  if (spec === 'weekdays') return { repeatMode: 'weekdays', repeatDays: null }
-  if (spec.startsWith('custom:')) {
-    const days = spec.slice(7).split(',').map(Number).filter((d) => !isNaN(d) && d >= 0 && d <= 6)
-    return { repeatMode: 'custom', repeatDays: days.length > 0 ? days : null }
-  }
-  return { repeatMode: 'once', repeatDays: null }
-}
-
-export function parseInlineDueTags(content: string): Array<{ label: string; iso: string; repeatMode: string; repeatDays: number[] | null; fullMatch: string; rawParens: string }> {
-  const result: Array<{ label: string; iso: string; repeatMode: string; repeatDays: number[] | null; fullMatch: string; rawParens: string }> = []
-  INLINE_DUE_CAPTURE.lastIndex = 0
-  let match: RegExpExecArray | null
-  while ((match = INLINE_DUE_CAPTURE.exec(content)) !== null) {
-    const { iso, repeatSpec } = splitDueParens(match[2])
-    if (!iso || isNaN(Date.parse(iso))) continue
-    const { repeatMode, repeatDays } = parseRepeatSpec(repeatSpec)
-    result.push({ label: match[1], iso, repeatMode, repeatDays, fullMatch: match[0], rawParens: match[2] })
-  }
-  return result
-}
-
 export function extractEarliestDueAt(content: string): string | null {
   const tags = parseInlineDueTags(content)
   if (tags.length === 0) return null
   return tags.reduce((earliest, t) => Date.parse(t.iso) < Date.parse(earliest) ? t.iso : earliest, tags[0].iso)
 }
 
-export function hasInlineDueTags(content: string): boolean {
-  INLINE_DUE_PATTERN.lastIndex = 0
-  return INLINE_DUE_PATTERN.test(content)
-}
 
 const HASHTAG_PATTERN = /#([\p{L}\p{N}_-]+)/gu
 

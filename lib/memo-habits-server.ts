@@ -654,6 +654,7 @@ export async function delayMemoHabitOccurrence(noteId: string, itemKey: string, 
     .eq('note_id', note.id)
     .eq('item_key', item.itemKey)
     .in('status', ['scheduled', 'pending', 'delayed'])
+    .limit(30)
 
   if (targetDateError) {
     throw new Error(targetDateError.message)
@@ -706,16 +707,14 @@ export async function markSupersededMemoHabitOccurrencesAsMissed(noteId: string,
   }
 
   const nowIso = new Date().toISOString()
-  await Promise.all(staleIds.map(async (id) => {
-    const { error: updateError } = await supabaseAdmin
-      .from('memo_habit_occurrences')
-      .update({ status: 'missed', updated_at: nowIso })
-      .eq('id', id)
+  const { error: updateError } = await supabaseAdmin
+    .from('memo_habit_occurrences')
+    .update({ status: 'missed', updated_at: nowIso })
+    .in('id', staleIds)
 
-    if (updateError) {
-      throw new Error(updateError.message)
-    }
-  }))
+  if (updateError) {
+    throw new Error(updateError.message)
+  }
 }
 
 export async function upsertMemoHabitOccurrenceForReminder(note: MemoHabitNoteRow, item: MemoHabitChecklistItem, reminderSentAt: string) {

@@ -16,6 +16,7 @@ import { getCurrentUser, getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { extractMemoHabitChecklistItems, updateMemoHabitChecklistLine } from '@/lib/memo-habits'
+import { parseInlineDueTags } from '@/lib/memo-due-tags'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export type NoteVisibility = 'public' | 'admin_only'
@@ -213,8 +214,6 @@ export const getMemoTagCounts = cache(async (ownerUserId: string, showAdminOnly 
 
 export type MemoAgendaItem = { memoId: string; dueAt: string; label: string; priority: NotePriority; repeatMode?: string; isNotified?: boolean }
 
-const INLINE_DUE_RE = /@due\[([^\]]*)\]\(([^)]*)\)/g
-
 function extractContentLabel(content: string): string {
   const line = (content.split('\n').find((l) => l.trim().length > 0) ?? '').trim()
   const cleaned = line
@@ -264,23 +263,11 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
   // Primary: inline @due tags in content
   for (const row of inlineData ?? []) {
     const notifiedDues: string[] = Array.isArray(row.notified_dues) ? row.notified_dues as string[] : []
-    INLINE_DUE_RE.lastIndex = 0
-    let match: RegExpExecArray | null
-    while ((match = INLINE_DUE_RE.exec(row.content as string)) !== null) {
-      const rawParens = match[2]
-      const comma = rawParens.indexOf(',')
-      const iso = comma === -1 ? rawParens : rawParens.slice(0, comma)
-      const repeatSpec = comma === -1 ? '' : rawParens.slice(comma + 1)
-      if (!iso || isNaN(Date.parse(iso))) continue
-      const repeatMode = !repeatSpec ? 'once'
-        : repeatSpec === 'daily' ? 'daily'
-        : repeatSpec === 'weekdays' ? 'weekdays'
-        : repeatSpec.startsWith('custom:') ? 'custom'
-        : 'once'
+    for (const tag of parseInlineDueTags(row.content as string)) {
       // Single: show always (including overdue) until notified, then show as done; Repeat: show current ISO (next occurrence)
-      const isNotified = repeatMode === 'once' && notifiedDues.includes(iso)
-      const label = match[1].trim() || '截止'
-      items.push({ memoId: row.id as string, dueAt: iso, label, priority: normalizeNotePriority(row.priority), repeatMode: repeatMode !== 'once' ? repeatMode : undefined, isNotified: isNotified || undefined })
+      const isNotified = tag.repeatMode === 'once' && notifiedDues.includes(tag.iso)
+      const label = tag.label.trim() || '截止'
+      items.push({ memoId: row.id as string, dueAt: tag.iso, label, priority: normalizeNotePriority(row.priority), repeatMode: tag.repeatMode !== 'once' ? tag.repeatMode : undefined, isNotified: isNotified || undefined })
       seenMemoIds.add(row.id as string)
     }
   }
