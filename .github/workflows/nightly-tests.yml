@@ -27,6 +27,7 @@ jobs:
 # ─── 1. Start test container ───────────────────────────────────────────────────
   setup:
     name: Start Test Container
+    if: github.event_name != 'schedule'
     runs-on: [self-hosted, linux, vps]
     steps:
       - uses: actions/checkout@v4
@@ -279,7 +280,7 @@ jobs:
     name: Stop Test Container
     needs: [api-tests, infra-tests, e2e-tests, ai-generated-tests]
     runs-on: [self-hosted, linux, vps]
-    if: always()
+    if: always() && github.event_name != 'schedule'
     steps:
       - uses: actions/checkout@v4
       - run: docker compose -f tests/docker-compose.test.yml down --remove-orphans
@@ -289,7 +290,7 @@ jobs:
     name: Generate Allure Report
     needs: [api-tests, infra-tests, e2e-tests, ai-generated-tests]
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && github.event_name != 'schedule'
     permissions:
       contents: write
     steps:
@@ -371,7 +372,7 @@ jobs:
     name: Performance Tests (Locust)
     needs: [api-tests, infra-tests, e2e-tests]
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && github.event_name != 'schedule'
     steps:
       - uses: actions/checkout@v4
 
@@ -442,7 +443,7 @@ jobs:
     name: Notify Result
     needs: [api-tests, infra-tests, e2e-tests, ai-generated-tests, report, perf-tests]
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && github.event_name != 'schedule'
     steps:
       - name: Send result notification
         env:
@@ -490,7 +491,7 @@ jobs:
     name: AI Nightly Summary
     needs: [api-tests, infra-tests]
     runs-on: [self-hosted, linux, vps]
-    if: always()
+    if: always() && github.event_name != 'schedule'
     steps:
       - uses: actions/checkout@v4
 
@@ -598,7 +599,144 @@ jobs:
               }')" \
             https://arthurlovegrace.top/ntfy-push
 
-# ─── 10. AI Test Generation ────────────────────────────────────────────────────
+# ─── 10. AI Test Prune ─────────────────────────────────────────────────────────
+#
+# Runs after teardown, parallel to ai-test-gen.
+# Scans tests/ai_generated/ for test files whose source modules no longer exist,
+# then opens a PR to delete them.  Decision is ground-truth (file existence),
+# never based on test results — avoids false deletions from transient failures.
+# continue-on-error: true — never affects the nightly run result.
+  ai-test-prune:
+    name: AI Test Prune
+    needs: [teardown]
+    runs-on: ubuntu-latest
+    if: always() && github.event_name != 'schedule'
+    continue-on-error: true
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Scan for stale tests
+        id: scan
+        run: |
+          rm -f /tmp/stale-tests.md /tmp/stale-file-list.txt
+          python3 tests/ai_hooks/scan_stale_tests.py \
+            --repo . \
+            --output /tmp/stale-tests.md \
+            --list-output /tmp/stale-file-list.txt
+          if [ -s /tmp/stale-file-list.txt ]; then
+            echo "stale_found=true" >> "$GITHUB_OUTPUT"
+            echo "Stale files detected:"
+            cat /tmp/stale-file-list.txt
+          else
+            echo "stale_found=false" >> "$GITHUB_OUTPUT"
+            echo "No stale test files found."
+          fi
+
+      - name: Idempotency check
+        if: steps.scan.outputs.stale_found == 'true'
+        id: idempotency
+        run: |
+          TODAY=$(date -u +%Y%m%d)
+          EXISTING=$(git ls-remote --heads origin "refs/heads/ai-tests/prune-${TODAY}-*" | head -1)
+          if [ -n "$EXISTING" ]; then
+            echo "already_ran=true" >> "$GITHUB_OUTPUT"
+            echo "Prune branch for today already exists — skipping"
+          else
+            echo "already_ran=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Delete stale files, commit, and push
+        if: steps.scan.outputs.stale_found == 'true' && steps.idempotency.outputs.already_ran != 'true'
+        id: push
+        run: |
+          TODAY=$(date -u +%Y%m%d)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          BRANCH="ai-tests/prune-${TODAY}-${SHORT_SHA}"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+
+          while IFS= read -r f; do
+            [ -n "$f" ] && rm -f "$f" && echo "Deleted: $f"
+          done < /tmp/stale-file-list.txt
+
+          git add -u tests/ai_generated/
+          git diff --staged --quiet && { echo "Nothing staged — skipping"; exit 0; }
+
+          printf 'test(prune): remove stale AI-generated tests [%s]\n\nAutomated cleanup: source modules no longer exist for removed tests.\nSee stale-tests report in workflow artifacts for details.\n\nCo-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>\n' \
+            "$TODAY" > /tmp/prune-commit-msg.txt
+          git commit -F /tmp/prune-commit-msg.txt
+          git push origin "$BRANCH"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload stale tests report
+        if: steps.scan.outputs.stale_found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stale-tests-report-${{ github.run_number }}
+          path: /tmp/stale-tests.md
+          if-no-files-found: ignore
+
+      - name: Open PR
+        if: steps.push.outputs.branch != ''
+        id: pr
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          STALE_LIST=$(grep "^## " /tmp/stale-tests.md | sed 's|## ||' | sed 's|^|- |')
+          printf '## Summary\n\nAutomated cleanup: the following AI-generated test files reference source modules that no longer exist in the repo.\n\n%s\n\n> Generated by the `ai-test-prune` nightly job.\n> Decision is based on source file existence — not test results — so no valid tests are at risk.\n' \
+            "$STALE_LIST" > /tmp/prune-pr-body.md
+          PR_URL=$(gh pr create \
+            --title "test(prune): remove stale AI tests for deleted modules [$(date -u +%Y%m%d)]" \
+            --body-file /tmp/prune-pr-body.md \
+            --base main \
+            --head "${{ steps.push.outputs.branch }}")
+          echo "PR_URL=$PR_URL" >> "$GITHUB_ENV"
+
+      - name: Notify via ntfy
+        if: steps.push.outputs.branch != ''
+        run: |
+          BRANCH="${{ steps.push.outputs.branch }}"
+          if [ -n "${PR_URL:-}" ]; then
+            TITLE="🧹 AI Test Prune PR Ready"
+            MSG="发现过期测试文件，已提 PR 删除: ${PR_URL}"
+            CLICK="$PR_URL"
+          else
+            BRANCH_URL="${{ github.server_url }}/${{ github.repository }}/compare/main...${BRANCH}"
+            TITLE="🧹 AI Test Prune 分支已推送（PR 创建失败）"
+            MSG="过期测试已推送至分支 ${BRANCH}，请手动创建 PR"
+            CLICK="$BRANCH_URL"
+          fi
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg title "$TITLE" \
+              --arg msg "$MSG" \
+              --arg click "$CLICK" \
+              '{
+                topic: "watchtower-arthur71684",
+                title: $title,
+                message: $msg,
+                tags: ["broom"],
+                priority: 2,
+                click: $click
+              }')" \
+            https://arthurlovegrace.top/ntfy-push
+
+# ─── 11. AI Test Generation ────────────────────────────────────────────────────
 #
 # Non-blocking job that runs after the test container is torn down.
 # Scans git commits from the last 24h for source files without test coverage,
@@ -608,7 +746,7 @@ jobs:
     name: AI Test Generation
     needs: [teardown]
     runs-on: [self-hosted, linux, vps]
-    if: always()
+    if: always() && github.event_name != 'schedule'
     continue-on-error: true
     permissions:
       contents: write
