@@ -80,9 +80,11 @@ export default async function RootLayout({
           <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.1.0/style.css" precedence="optional" />
           {/* Inline script: set data-md-theme before first paint to prevent flash */}
           <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('md-theme');document.documentElement.setAttribute('data-md-theme',t||'mono');}catch(e){}` }} />
-          {/* Inline script: set data-site-theme before first paint, and migrate the
-              legacy ocean/sunset/forest next-themes values to (hue + light mode). */}
-          <script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement,s=localStorage.getItem('site-theme'),m=localStorage.getItem('theme'),L={ocean:'tide',sunset:'amber',forest:'sage'};if(!s&&L[m]){s=L[m];localStorage.setItem('site-theme',s);localStorage.setItem('theme','light');}d.setAttribute('data-site-theme',s||'mono');}catch(e){}` }} />
+          {/* Inline script: set data-site-theme before first paint, migrate legacy
+              ocean/sunset/forest next-themes values to (hue + light mode), and apply
+              the dark class so next-themes' body script is not the sole gatekeeper
+              for dark mode — preventing a flash when Suspense defers body effects. */}
+          <script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement,s=localStorage.getItem('site-theme'),m=localStorage.getItem('theme'),L={ocean:'tide',sunset:'amber',forest:'sage'};if(!s&&L[m]){s=L[m];localStorage.setItem('site-theme',s);localStorage.setItem('theme','light');}d.setAttribute('data-site-theme',s||'mono');if(m==='dark'){d.classList.add('dark');}}catch(e){}` }} />
         </head>
         <body className="antialiased pb-24 md:pb-0">
           <MarkdownThemeInitializer />
