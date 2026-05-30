@@ -14,6 +14,14 @@ files for the API coverage gaps listed in the Coverage Gaps Report below.
 5. Do NOT hallucinate endpoints — only test URLs that appear verbatim in the
    diff or source shown in the gap report.
 6. Do NOT write tests that create, modify, or delete data without inline cleanup.
+7. **The very first line of every output file MUST be a source comment:**
+   ```
+   # tested-source: <path>
+   ```
+   where `<path>` is the source file path from the gap report
+   (e.g., `# tested-source: app/api/changelog/route.ts` or `# tested-source: lib/ntfy.ts`).
+   For library modules with no HTTP endpoint, use the `lib/` path.
+   This line is machine-read by the nightly prune job to detect stale tests.
 
 ## Available fixtures (from tests/ai_generated/conftest.py)
 
@@ -79,6 +87,7 @@ base_url      # str — TEST_BASE_URL env var (e.g. "http://localhost:3020")
 ## Example test file
 
 ```python
+# tested-source: app/api/contact/route.ts
 """API tests for /api/contact endpoint."""
 
 import allure
