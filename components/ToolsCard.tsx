@@ -3,6 +3,7 @@
 import { memo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import SidebarCard from './SidebarCard'
 import { SpotifyProvider } from './SpotifyProvider'
 import SpotifyNowPlaying from './SpotifyNowPlaying'
 import { useAuth } from './AuthProvider'
@@ -158,12 +159,7 @@ const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
   }
 
   return (
-    <div className="bg-card text-card-foreground rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.08)] dark:hover:border-white/20 p-5">
-
-      {/* Title */}
-      <h3 className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase mb-3">
-        我的工具
-      </h3>
+    <SidebarCard title="我的工具">
 
       {/* Tool links */}
       <ul className="space-y-1">
@@ -217,7 +213,7 @@ const ToolsCard = memo(function ToolsCard({ id = 'sidebar' }: { id?: string }) {
         )}
       </ul>
 
-    </div>
+    </SidebarCard>
   )
 })
 

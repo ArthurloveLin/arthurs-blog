@@ -2,6 +2,7 @@
 
 import { memo } from 'react'
 import Link from 'next/link'
+import SidebarCard from './SidebarCard'
 import { useSiteCategories } from './SiteDataProvider'
 
 interface CategoriesCardProps {
@@ -13,12 +14,7 @@ const CategoriesCard = memo(function CategoriesCard({ activeCategory }: Categori
   if (categories.length === 0) return null
 
   return (
-    <div className="bg-card text-card-foreground rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.08)] dark:hover:border-white/20 p-5">
-
-      {/* Title */}
-      <h3 className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase mb-3">
-        分类
-      </h3>
+    <SidebarCard title="分类">
 
       {/* Category list */}
       <ul className="space-y-1">
@@ -55,7 +51,7 @@ const CategoriesCard = memo(function CategoriesCard({ activeCategory }: Categori
         })}
       </ul>
 
-    </div>
+    </SidebarCard>
   )
 })
 

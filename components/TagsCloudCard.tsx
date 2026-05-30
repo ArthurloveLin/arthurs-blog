@@ -2,6 +2,7 @@
 
 import { memo, useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import SidebarCard from './SidebarCard'
 import { useSiteTags } from './SiteDataProvider'
 import { ChevronDown } from 'lucide-react'
 
@@ -83,18 +84,13 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
   if (tags.length === 0) return null
 
   return (
-    <div 
+    <SidebarCard
       ref={containerRef}
-      className="bg-card text-card-foreground rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.08)] dark:hover:border-white/20 p-5 overflow-hidden"
-    >
-
-      {/* Title */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase">
-          标签
-        </h3>
-        {tags.length > 10 && (
-          <button 
+      className="overflow-hidden"
+      title="标签"
+      titleAccessory={
+        tags.length > 10 ? (
+          <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-widest flex items-center gap-1 group"
           >
@@ -104,8 +100,11 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
               strokeWidth={2.5}
             />
           </button>
-        )}
-      </div>
+        ) : (
+          <></>
+        )
+      }
+    >
 
       {/* Tags Cloud Container */}
       <div className="relative group/tags">
@@ -162,7 +161,7 @@ const TagsCloudCard = memo(function TagsCloudCard({ activeTags = [] }: TagsCloud
         )}
       </div>
 
-    </div>
+    </SidebarCard>
   )
 })
 

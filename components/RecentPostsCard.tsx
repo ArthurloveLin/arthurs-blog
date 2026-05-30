@@ -2,6 +2,7 @@
 
 import { memo } from 'react'
 import Link from 'next/link'
+import SidebarCard from './SidebarCard'
 import { useRecentPosts } from './SiteDataProvider'
 import { formatShortDate } from '@/lib/date-format'
 
@@ -11,12 +12,7 @@ const RecentPostsCard = memo(function RecentPostsCard() {
   if (recent.length === 0) return null
 
   return (
-    <div className="bg-card text-card-foreground rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.08)] dark:hover:border-white/20 p-5">
-
-      {/* Title */}
-      <h3 className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase mb-3">
-        最新文章
-      </h3>
+    <SidebarCard title="最新文章">
 
       {/* Post list */}
       <ul className="space-y-0.5">
@@ -37,7 +33,7 @@ const RecentPostsCard = memo(function RecentPostsCard() {
         ))}
       </ul>
 
-    </div>
+    </SidebarCard>
   )
 })
 
