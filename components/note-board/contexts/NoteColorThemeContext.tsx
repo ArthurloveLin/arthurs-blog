@@ -506,6 +506,7 @@ export const NOTE_COLOR_THEMES: readonly NoteColorThemeConfig[] = [
 // ── Context ────────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'note-color-theme'
+const STORAGE_KEY_DARK = 'note-color-theme-dark'
 const DEFAULT_THEME = NOTE_COLOR_THEMES[0]
 
 interface NoteColorThemeContextValue {
@@ -518,33 +519,51 @@ const NoteColorThemeContext = createContext<NoteColorThemeContextValue>({
   setThemeId: () => {},
 })
 
+function isDarkMode(): boolean {
+  try {
+    return document.documentElement.classList.contains('dark')
+  } catch {
+    return false
+  }
+}
+
 function getStoredThemeId(): NoteColorThemeId {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const dark = isDarkMode()
+    const key = dark ? STORAGE_KEY_DARK : STORAGE_KEY
+    const stored = localStorage.getItem(key)
     if (stored && VALID_IDS.has(stored as NoteColorThemeId)) return stored as NoteColorThemeId
+    return dark ? 'dark' : 'classic'
   } catch {}
   return 'classic'
 }
 
-function subscribeStorage(callback: () => void): () => void {
+function subscribeThemeChanges(callback: () => void): () => void {
   window.addEventListener('storage', callback)
-  return () => window.removeEventListener('storage', callback)
+  // Watch .dark class toggles driven by next-themes
+  const observer = new MutationObserver(callback)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+  return () => {
+    window.removeEventListener('storage', callback)
+    observer.disconnect()
+  }
 }
 
 export function NoteColorThemeProvider({ children }: { children: ReactNode }) {
   // useSyncExternalStore handles SSR/hydration correctly:
-  // server snapshot = 'vivid', client snapshot = actual localStorage value.
-  // No useEffect needed — React reconciles the two automatically.
+  // server snapshot = 'classic', client snapshot = actual localStorage value
+  // (dark-mode-aware). No useEffect needed — React reconciles automatically.
   const themeId = useSyncExternalStore(
-    subscribeStorage,
+    subscribeThemeChanges,
     getStoredThemeId,
     () => 'classic' as NoteColorThemeId,
   )
 
   const handleSetThemeId = (id: NoteColorThemeId) => {
-    localStorage.setItem(STORAGE_KEY, id)
+    const key = isDarkMode() ? STORAGE_KEY_DARK : STORAGE_KEY
+    localStorage.setItem(key, id)
     // Dispatch a synthetic storage event so the same-tab subscriber re-reads immediately
-    window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY, newValue: id }))
+    window.dispatchEvent(new StorageEvent('storage', { key, newValue: id }))
   }
 
   const theme = NOTE_COLOR_THEMES.find((t) => t.id === themeId) ?? DEFAULT_THEME

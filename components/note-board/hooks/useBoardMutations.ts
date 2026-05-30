@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import { useSWRConfig } from 'swr'
 import type { NoteMessage } from '@/lib/note-boards'
 import type { NotePriority } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
@@ -51,6 +52,7 @@ export function useBoardMutations({
   editingMessage,
   setEditPriority,
 }: UseBoardMutationsProps) {
+  const { mutate: globalMutate } = useSWRConfig()
   const [priorityUpdatingIds, setPriorityUpdatingIds] = useState<Record<string, boolean>>({})
   const [reactionUpdatingIds, setReactionUpdatingIds] = useState<Record<string, boolean>>({})
   const [emojiUpdatingIds, setEmojiUpdatingIds] = useState<Record<string, boolean>>({})
@@ -198,6 +200,18 @@ export function useBoardMutations({
 
       if (!response.ok) {
         throw new Error(response.status === 403 ? '当前身份没有归档权限。' : '归档状态更新失败，请稍后再试。')
+      }
+      if (board.slug === 'memo') {
+        const archivedId = message.id
+        void globalMutate(
+          '/api/note-boards/memo/agenda',
+          (current: unknown) => Array.isArray(current)
+            ? current.filter((item: { memoId: string }) => item.memoId !== archivedId)
+            : current,
+          { revalidate: true },
+        )
+        void globalMutate('/api/note-boards/memo/dates')
+        void globalMutate('/api/note-boards/memo/tags')
       }
     } catch (archiveError) {
       if (snapshot) {
