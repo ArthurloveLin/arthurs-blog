@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, startTransition, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { Fragment, startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Image from 'next/image'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Loader2, Music2 } from 'lucide-react'
 
@@ -187,7 +187,13 @@ function generateWallLayout(items: SpotifyTrackWallItem[], preset: WallPreset, v
   const options = LAYOUT_PRESETS[preset]
   const rankedItems = [...items].sort((left, right) => left.order - right.order)
 
-  if (rankedItems.length === 0) {
+  // Skip the heavy placement loop until the viewport has been measured. Computing
+  // it at width 0 falls back to minimumWallWidth/Height and produces a full wall
+  // that is thrown away the moment the real width arrives — wasted work on every
+  // mount. The useLayoutEffect measurement below fills in the real size before
+  // paint. (When off-screen under content-visibility, width stays 0 and the wall
+  // costs nothing until scrolled into view.)
+  if (rankedItems.length === 0 || viewport.width <= 0) {
     return {
       items: [],
       totalWidth: 0,
@@ -460,7 +466,10 @@ export default function SpotifyTrackWall({
     }, HOVER_INTENT_DELAY_MS)
   }, [clearHoverIntent])
 
-  useEffect(() => {
+  // useLayoutEffect so the first measurement lands before paint: the empty
+  // width-0 layout never reaches the screen. (Safe: this wall is mounted
+  // client-only via SpotifyTrackWallLazy, so there is no SSR layout-effect warning.)
+  useLayoutEffect(() => {
     const viewport = viewportRef.current
     if (!viewport) {
       return
