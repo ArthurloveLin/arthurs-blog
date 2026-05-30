@@ -1,3 +1,4 @@
+import { after } from 'next/server'
 import { getCurrentUser, getUserRole } from '@/lib/auth'
 import {
   extractMemoHabitChecklistItems,
@@ -388,7 +389,7 @@ function buildSummary(currentStates: Record<string, Record<string, MemoHabitCurr
 }
 
 export async function getMemoHabitOverview(ownerUserId: string, showAdminOnly = false): Promise<MemoHabitOverview> {
-  await reconcileStaleMemoHabitOccurrences(ownerUserId)
+  after(() => reconcileStaleMemoHabitOccurrences(ownerUserId))
 
   const [notes, rows] = await Promise.all([
     fetchVisibleMemoNotes(ownerUserId, showAdminOnly),
@@ -428,7 +429,7 @@ function buildItemDetail(noteId: string, item: CurrentStateSeed, rows: MemoHabit
 }
 
 export async function getMemoHabitItemDetail(noteId: string, itemKey: string, ownerUserId: string, showAdminOnly = false): Promise<MemoHabitItemDetail> {
-  await reconcileStaleMemoHabitOccurrences(ownerUserId)
+  after(() => reconcileStaleMemoHabitOccurrences(ownerUserId))
 
   const config = getNoteBoardConfig('memo')
   const { data: note, error } = await supabaseAdmin

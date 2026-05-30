@@ -409,14 +409,20 @@ export const getBoardMessages = cache(async (
   const baseData = (data ?? []) as Array<Omit<NoteMessage, 'viewer_reaction' | 'emoji_reactions' | 'viewer_emojis'>>
   const noteIds = baseData.map((m) => m.id)
 
-  // batchFetchNoteCommentCounts only needs noteIds (available now), so run it
-  // in parallel with the reactions chain rather than after it.
-  const [withReactions, commentCounts] = await Promise.all([
+  // All three queries are independent — run them concurrently.
+  const [withReactions, withEmojiReactions, commentCounts] = await Promise.all([
     attachViewerReactions(baseData, viewerIdentity),
+    attachViewerEmojiReactions(baseData, viewerIdentity),
     batchFetchNoteCommentCounts(noteIds),
   ])
 
-  const messages = await attachViewerEmojiReactions(withReactions, viewerIdentity) as NoteMessage[]
+  // Merge: attachViewerReactions adds viewer_reaction; attachViewerEmojiReactions adds
+  // emoji_reactions/viewer_emojis. Fields don't overlap and arrays are index-aligned.
+  const messages = withReactions.map((msg, i) => ({
+    ...msg,
+    emoji_reactions: withEmojiReactions[i].emoji_reactions,
+    viewer_emojis: withEmojiReactions[i].viewer_emojis,
+  })) as NoteMessage[]
 
   return messages.map((m) => ({ ...m, comment_count: commentCounts[m.id] ?? 0 }))
 })

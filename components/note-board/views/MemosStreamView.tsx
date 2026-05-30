@@ -204,13 +204,17 @@ export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitO
               </div>
               <div className="space-y-3">
                 {group.items.map((item) => (
-                  <MemoStreamCard
+                  <div
                     key={item.message.id}
-                    item={item}
-                    habitStates={habitOverview?.currentStates[item.message.id]}
-                    onOpenHabitDetail={onOpenHabitDetail}
-                    onCompleteHabitItem={onCompleteHabitItem}
-                  />
+                    style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 120px' }}
+                  >
+                    <MemoStreamCard
+                      item={item}
+                      habitStates={habitOverview?.currentStates[item.message.id]}
+                      onOpenHabitDetail={onOpenHabitDetail}
+                      onCompleteHabitItem={onCompleteHabitItem}
+                    />
+                  </div>
                 ))}
               </div>
             </section>
