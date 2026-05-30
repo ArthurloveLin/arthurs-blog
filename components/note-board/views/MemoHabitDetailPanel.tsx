@@ -31,7 +31,12 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
   const cardRef = useRef<HTMLDivElement>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [completing, setCompleting] = useState(false)
-  const [visibleRecords, setVisibleRecords] = useState(3)
+  const [recordPage, setRecordPage] = useState(0)
+
+  const RECORDS_PER_PAGE = 5
+
+  // Reset to first page when the habit detail changes
+  useEffect(() => { setRecordPage(0) }, [detail?.currentState?.itemKey])
 
   const visible = !!(detail || isLoading)
 
@@ -164,69 +169,96 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
           ) : null}
 
           <div className="rounded-2xl border border-border/50 bg-background/60 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/55">最近记录</p>
-            <div className="mt-3 space-y-2">
-              {detail.recentOccurrences.length === 0 ? (
-                <div className="rounded-xl bg-background/80 px-3 py-4 text-[12px] text-muted-foreground/55">
-                  还没有历史记录。
-                </div>
-              ) : detail.recentOccurrences.slice(0, visibleRecords).map((event) => {
-                const eventState = {
-                  noteId: event.noteId,
-                  itemKey: event.itemKey,
-                  label: event.label,
-                  lineText: event.lineText,
-                  dueAt: event.dueAt,
-                  status: event.status,
-                  streak: 0,
-                  delayedTo: event.delayedTo,
-                  completionSource: event.completionSource,
-                } as const
-                const isDeleting = deletingId === event.occurrenceId
-                return (
-                  <div key={event.occurrenceId} className="flex items-start justify-between gap-2 rounded-xl bg-background/80 px-3 py-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[12px] font-medium text-foreground/80">{event.label}</p>
-                      <p className="mt-1 text-[11px] text-muted-foreground/55">{formatDetailTimestamp(event.occurredAt)}</p>
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <span className={[
-                        'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium',
-                        getHabitStatusClassName(eventState.status),
-                      ].join(' ')}>
-                        {getHabitStatusLabel(eventState)}
-                      </span>
-                      {event.completionSource ? (
-                        <span className="text-[10px] text-muted-foreground/45">
-                          {event.completionSource === 'manual_check' ? '手动勾选' : '提醒确认'}
-                        </span>
-                      ) : null}
-                      {onDeleteOccurrence ? (
-                        <button
-                          type="button"
-                          disabled={isDeleting || !!deletingId}
-                          onClick={() => void handleDeleteOccurrence(event.occurrenceId)}
-                          className="mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] text-muted-foreground/50 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-950/40"
-                          title="删除此条记录"
-                        >
-                          <Trash2 size={9} />
-                          {isDeleting ? '删除中…' : '删除'}
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                )
-              })}
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/55">最近记录</p>
+              {detail.recentOccurrences.length > 0 && (
+                <span className="text-[10px] text-muted-foreground/40">
+                  共 {detail.recentOccurrences.length} 条
+                </span>
+              )}
             </div>
-            {visibleRecords < detail.recentOccurrences.length ? (
-              <button
-                type="button"
-                onClick={() => setVisibleRecords(n => n + 10)}
-                className="mt-2 w-full rounded-xl py-1.5 text-[11px] text-muted-foreground/55 transition hover:bg-background/80 hover:text-muted-foreground"
-              >
-                更多（还有 {detail.recentOccurrences.length - visibleRecords} 条）
-              </button>
-            ) : null}
+            {detail.recentOccurrences.length === 0 ? (
+              <div className="mt-3 rounded-xl bg-background/80 px-3 py-4 text-[12px] text-muted-foreground/55">
+                还没有历史记录。
+              </div>
+            ) : (
+              <>
+                <div className="mt-3 max-h-[220px] overflow-y-auto space-y-2 pr-0.5">
+                  {detail.recentOccurrences
+                    .slice(recordPage * RECORDS_PER_PAGE, (recordPage + 1) * RECORDS_PER_PAGE)
+                    .map((event) => {
+                      const eventState = {
+                        noteId: event.noteId,
+                        itemKey: event.itemKey,
+                        label: event.label,
+                        lineText: event.lineText,
+                        dueAt: event.dueAt,
+                        status: event.status,
+                        streak: 0,
+                        delayedTo: event.delayedTo,
+                        completionSource: event.completionSource,
+                      } as const
+                      const isDeleting = deletingId === event.occurrenceId
+                      return (
+                        <div key={event.occurrenceId} className="flex items-start justify-between gap-2 rounded-xl bg-background/80 px-3 py-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[12px] font-medium text-foreground/80">{event.label}</p>
+                            <p className="mt-1 text-[11px] text-muted-foreground/55">{formatDetailTimestamp(event.occurredAt)}</p>
+                          </div>
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            <span className={[
+                              'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium',
+                              getHabitStatusClassName(eventState.status),
+                            ].join(' ')}>
+                              {getHabitStatusLabel(eventState)}
+                            </span>
+                            {event.completionSource ? (
+                              <span className="text-[10px] text-muted-foreground/45">
+                                {event.completionSource === 'manual_check' ? '手动勾选' : '提醒确认'}
+                              </span>
+                            ) : null}
+                            {onDeleteOccurrence ? (
+                              <button
+                                type="button"
+                                disabled={isDeleting || !!deletingId}
+                                onClick={() => void handleDeleteOccurrence(event.occurrenceId)}
+                                className="mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] text-muted-foreground/50 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-950/40"
+                                title="删除此条记录"
+                              >
+                                <Trash2 size={9} />
+                                {isDeleting ? '删除中…' : '删除'}
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      )
+                  })}
+                </div>
+                {detail.recentOccurrences.length > RECORDS_PER_PAGE && (
+                  <div className="mt-2 flex items-center justify-between">
+                    <button
+                      type="button"
+                      disabled={recordPage === 0}
+                      onClick={() => setRecordPage(p => p - 1)}
+                      className="rounded-lg px-2 py-1 text-[11px] text-muted-foreground/55 transition hover:bg-background/80 hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-30"
+                    >
+                      ← 上一页
+                    </button>
+                    <span className="text-[11px] text-muted-foreground/45">
+                      {recordPage + 1} / {Math.ceil(detail.recentOccurrences.length / RECORDS_PER_PAGE)}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={(recordPage + 1) * RECORDS_PER_PAGE >= detail.recentOccurrences.length}
+                      onClick={() => setRecordPage(p => p + 1)}
+                      className="rounded-lg px-2 py-1 text-[11px] text-muted-foreground/55 transition hover:bg-background/80 hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-30"
+                    >
+                      下一页 →
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {detail.nextDueAt ? (
