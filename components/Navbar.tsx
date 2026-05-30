@@ -425,8 +425,9 @@ function NavbarContent() {
       <header
         className={
           "sticky top-0 z-[1000] border-b transition-colors duration-300 " +
-        // 浅色模式: 移动端减少 blur 合成，桌面保留磨砂效果
-        "bg-white/92 backdrop-blur-none border-black/5 md:bg-white/80 md:backdrop-blur-md " +
+        // 浅色模式: 统一用高不透明度纯色，去除 backdrop-blur（sticky header 上的
+        // 实时模糊是滚动卡顿的最大单点来源；对齐深色模式与移动端已采用的纯色做法）
+        "bg-white/95 backdrop-blur-none border-black/5 " +
         // 深色模式(独立逻辑): 替换为纯黑色，去除磨砂模糊
         "dark:bg-black dark:backdrop-blur-none dark:border-white/10"
       }

@@ -36,7 +36,9 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
       className="bg-card text-card-foreground border border-border/50 dark:border-white/10 rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.08)] dark:shadow-none transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.12)] dark:hover:border-white/20 overflow-hidden group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       style={{
         contentVisibility: isEager ? 'visible' : 'auto',
-        containIntrinsicSize: isEager ? undefined : '0 400px',
+        // auto 关键字: 浏览器在卡片首次渲染后记住真实尺寸，滚回时不再用估值重排，
+        // 消除卡片滚入视口时的布局跳动；480px 也比旧的 400px 更接近真实卡片高度
+        containIntrinsicSize: isEager ? undefined : 'auto 480px',
         scrollMarginTop: '6rem',
       }}
     >
