@@ -92,9 +92,9 @@ export function NoteCodeBlock({ code, lang }: NoteCodeBlockProps) {
   }
 
   return (
-    <div className="group my-2.5 w-full overflow-hidden rounded-[10px] bg-black/[0.05]">
+    <div className="group my-2.5 w-full overflow-hidden rounded-[10px] bg-black/[0.05] dark:bg-white/[0.06]">
       <div className="flex items-center justify-between px-3.5 pb-0 pt-2">
-        <span className="select-none font-mono text-[10px] text-slate-400/80">
+        <span className="select-none font-mono text-[10px] text-slate-400/80 dark:text-slate-300/80">
           {labelText || ' '}
         </span>
         <button
@@ -102,7 +102,7 @@ export function NoteCodeBlock({ code, lang }: NoteCodeBlockProps) {
           aria-label="复制代码"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={handleCopy}
-          className="flex h-6 w-6 items-center justify-center rounded-md bg-black/[0.06] text-slate-400 opacity-0 transition-opacity duration-150 hover:bg-black/10 hover:text-slate-600 group-hover:opacity-100 focus-visible:opacity-100"
+          className="flex h-6 w-6 items-center justify-center rounded-md bg-black/[0.06] text-slate-400 opacity-0 transition-opacity duration-150 hover:bg-black/10 hover:text-slate-600 group-hover:opacity-100 focus-visible:opacity-100 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/20 dark:hover:text-slate-100"
         >
           {copied
             ? <Check size={12} strokeWidth={2.5} className="text-green-500" />
@@ -111,7 +111,7 @@ export function NoteCodeBlock({ code, lang }: NoteCodeBlockProps) {
       </div>
       <pre className="m-0 overflow-x-auto p-0 font-mono text-[0.85em] leading-[1.5] [scrollbar-color:rgba(15,23,42,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-black/15 [&::-webkit-scrollbar-track]:bg-transparent">
         <code
-          className="hljs block whitespace-pre px-[14px] pb-3 pt-1.5"
+          className="hljs block whitespace-pre px-[14px] pb-3 pt-1.5 dark:invert dark:hue-rotate-180"
           style={{ background: 'transparent' }}
           dangerouslySetInnerHTML={{ __html: html }}
         />

@@ -149,7 +149,8 @@
 }
 
 .author {
-  color: #2a3140;
+  color: inherit;
+  opacity: 0.95;
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -165,7 +166,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #172033;
+  color: inherit;
   font-family: 'LXGW WenKai Screen', serif;
   font-synthesis: none;
   font-weight: 500;
@@ -206,7 +207,8 @@
 
 .time {
   display: inline-block;
-  color: rgba(42, 49, 64, 0.78);
+  color: inherit;
+  opacity: 0.78;
   font-size: 12px;
   font-weight: 500;
   text-align: right;
@@ -237,18 +239,19 @@
   padding: 4px;
   border-radius: 999px;
   background: transparent;
-  color: #0f172a;
+  color: inherit;
+  opacity: 0.85;
   cursor: pointer;
   text-decoration: none;
-  transition: color 180ms ease, transform 180ms ease, background 180ms ease;
+  transition: opacity 180ms ease, transform 180ms ease, background 180ms ease;
 }
 
 .iconLink:hover,
 .iconLink:focus-visible,
 .iconButton:hover,
 .iconButton:focus-visible {
-  background: rgba(15, 23, 42, 0.07);
-  color: rgba(15, 23, 42, 0.85);
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  opacity: 1;
   transform: translateY(-1px);
 }
 
@@ -291,9 +294,9 @@
   width: 100%;
   overflow-x: auto;
   border-radius: 10px;
-  background: rgba(15, 23, 42, 0.06);
+  background: color-mix(in srgb, currentColor 6%, transparent);
   padding: 12px 14px;
-  color: #1e293b;
+  color: inherit;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.85em;
   font-weight: 450;
@@ -303,11 +306,16 @@
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
+.codeBlock :global(.hljs) {
+  color: inherit !important;
+  background: transparent !important;
+}
+
 .inlineCode {
   border-radius: 5px;
-  background: rgba(15, 23, 42, 0.08);
+  background: color-mix(in srgb, currentColor 8%, transparent);
   padding: 0.1em 0.4em;
-  color: #0f172a;
+  color: inherit;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.9em;
   font-weight: 500;

@@ -521,8 +521,8 @@ function StickyNoteCardFrame({
                   maxHeight: 260,
                   overflow: 'hidden',
                   ...(isOverflowing ? {
-                    maskImage: 'linear-gradient(to bottom, black 0%, black 45%, transparent 100%)',
-                    WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 45%, transparent 100%)',
+                    maskImage: 'linear-gradient(to bottom, black 0%, black calc(100% - 45px), transparent 100%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black calc(100% - 45px), transparent 100%)',
                   } : {}),
                 } : undefined}
               >
