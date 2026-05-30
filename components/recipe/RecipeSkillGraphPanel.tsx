@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Maximize2, X } from 'lucide-react'
+import { useDismiss } from '@/hooks/useDismiss'
 import { useRecipeSkillGraph } from './RecipeSkillGraphProvider'
 
 const SkillTreeGraph = dynamic(() => import('./SkillTreeGraph'), {
@@ -99,27 +100,7 @@ function SkillGraphModal({
     setMounted(true)
   }, [])
 
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-
-    const previousOverflow = document.body.style.overflow
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    document.body.style.overflow = 'hidden'
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [onClose, open])
+  useDismiss({ enabled: open, onDismiss: onClose, lockScroll: true })
 
   if (!open || !mounted) {
     return null

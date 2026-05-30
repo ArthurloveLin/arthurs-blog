@@ -2,6 +2,7 @@
 
 import { ThumbsDown } from 'lucide-react'
 import { useEffect, useId, useRef, useState, useCallback } from 'react'
+import { useDismiss } from '@/hooks/useDismiss'
 import type { ReactionValue } from '@/lib/comment-reactions'
 import { COMMON_REACTION_EMOJIS } from '@/lib/emoji'
 
@@ -338,31 +339,11 @@ export default function ReactionToggleBar({
     }, mode === 'impact' ? 760 : 520)
   }
 
-  useEffect(() => {
-    if (!wheelOpen) {
-      return
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setWheelOpen(false)
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setWheelOpen(false)
-      }
-    }
-
-    window.addEventListener('pointerdown', handlePointerDown)
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      window.removeEventListener('pointerdown', handlePointerDown)
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [wheelOpen])
+  useDismiss({
+    enabled: wheelOpen,
+    onDismiss: () => setWheelOpen(false),
+    refs: [containerRef],
+  })
 
   useEffect(() => () => {
     clearLongPressTimer()

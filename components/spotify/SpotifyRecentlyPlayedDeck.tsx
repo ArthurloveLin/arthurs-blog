@@ -3,6 +3,8 @@
 import { startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ChevronLeft, ChevronRight, Music2 } from 'lucide-react'
 
+import { useDismiss } from '@/hooks/useDismiss'
+
 import {
   buildWeekDayKeys,
   formatCompactDateLabel,
@@ -191,31 +193,11 @@ function HistoryDaySelector({
     }
   }, [isMenuOpen, updateMenuPosition])
 
-  useEffect(() => {
-    if (!isMenuOpen) {
-      return
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) {
-        setIsMenuOpen(false)
-      }
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsMenuOpen(false)
-      }
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isMenuOpen])
+  useDismiss({
+    enabled: isMenuOpen,
+    onDismiss: () => setIsMenuOpen(false),
+    refs: [menuRef],
+  })
 
   const handleSelectDay = (day: string) => {
     onSelect(day)

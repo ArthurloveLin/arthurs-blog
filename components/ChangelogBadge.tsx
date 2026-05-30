@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { X, Tag } from 'lucide-react'
+import { useDismiss } from '@/hooks/useDismiss'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -109,25 +110,12 @@ export function ChangelogBadge() {
       .finally(() => setHistoryLoading(false))
   }
 
-  useEffect(() => {
-    if (!open) return
-    function handleClick(e: MouseEvent) {
-      const target = e.target as Node
-      if (
-        ref.current && !ref.current.contains(target) &&
-        popupDivRef.current && !popupDivRef.current.contains(target)
-      ) setOpen(false)
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    document.addEventListener('keydown', handleKey)
-    return () => {
-      document.removeEventListener('mousedown', handleClick)
-      document.removeEventListener('keydown', handleKey)
-    }
-  }, [open])
+  useDismiss({
+    enabled: open,
+    onDismiss: () => setOpen(false),
+    refs: [ref, popupDivRef],
+    outsideEvent: 'mousedown',
+  })
 
   return (
     <div ref={ref} className="relative flex-shrink-0">

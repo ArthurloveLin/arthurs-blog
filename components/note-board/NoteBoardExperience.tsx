@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import useSWR from 'swr'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlarmClock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useDismiss } from '@/hooks/useDismiss'
 import { MemoHabitDetailPanel } from '@/components/note-board/views/MemoHabitDetailPanel'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
@@ -332,25 +333,11 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
     setOpen((v) => !v)
   }
 
-  useEffect(() => {
-    if (!open) return
-    function onPointerDown(e: PointerEvent) {
-      if (
-        panelRef.current?.contains(e.target as Node) ||
-        wrapperRef.current?.contains(e.target as Node)
-      ) return
-      setOpen(false)
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [open])
+  useDismiss({
+    enabled: open,
+    onDismiss: () => setOpen(false),
+    refs: [panelRef, wrapperRef],
+  })
 
   function prevMonth() {
     if (viewMonth === 1) { setViewYear((y) => y - 1); setViewMonth(12) }
