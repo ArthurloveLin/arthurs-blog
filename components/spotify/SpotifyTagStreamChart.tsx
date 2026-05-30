@@ -1,7 +1,9 @@
 'use client'
 
 import { useMemo, useRef, useState, useEffect } from 'react'
-import * as d3 from 'd3'
+import { area as d3Area, curveCatmullRom, stack as d3Stack, stackOffsetWiggle, stackOrderInsideOut, type Series, type SeriesPoint } from 'd3-shape'
+import { max, min, range } from 'd3-array'
+import { scaleLinear } from 'd3-scale'
 import useSWR from 'swr'
 
 import { getSpotifyPublicApiUrl } from '@/lib/spotify-public-api'
@@ -50,13 +52,13 @@ export default function SpotifyTagStreamChart() {
   const data = allData ? allData[activeDim] : null
 
   const series = useMemo(() => {
-    if (!data) return [] as d3.Series<Record<string, number>, string>[]
-    const stack = d3.stack<unknown, Record<string, number>, string>()
-      .keys(d3.range(TAGS.length).map(String))
-      .offset(d3.stackOffsetWiggle)
-      .order(d3.stackOrderInsideOut)
+    if (!data) return [] as Series<Record<string, number>, string>[]
+    const stack = d3Stack<unknown, Record<string, number>, string>()
+      .keys(range(TAGS.length).map(String))
+      .offset(stackOffsetWiggle)
+      .order(stackOrderInsideOut)
 
-    const tableData = d3.range(data.n).map(xi => {
+    const tableData = range(data.n).map(xi => {
       const row: Record<string, number> = { i: xi }
       TAGS.forEach((_, ti) => { row[String(ti)] = data.raw[ti][xi] })
       return row
@@ -86,19 +88,19 @@ export default function SpotifyTagStreamChart() {
   const innerW = W - PL - PR
   const innerH = H - PT - PB
 
-  const xScale = d3.scaleLinear().domain([0, data.n - 1]).range([0, innerW])
-  const allVals = series.flatMap(s => (s as unknown as d3.SeriesPoint<Record<string, number>>[]).flatMap(d => [d[0], d[1]]))
-  const yMin = (d3.min(allVals) as number) ?? 0
-  const yMax = (d3.max(allVals) as number) ?? 1
+  const xScale = scaleLinear().domain([0, data.n - 1]).range([0, innerW])
+  const allVals = series.flatMap(s => (s as unknown as SeriesPoint<Record<string, number>>[]).flatMap(d => [d[0], d[1]]))
+  const yMin = (min(allVals) as number) ?? 0
+  const yMax = (max(allVals) as number) ?? 1
   // Add some padding to Y scale so the wiggle fits nicely
   const yDiff = yMax - yMin
-  const yScale = d3.scaleLinear().domain([yMin - yDiff * 0.1, yMax + yDiff * 0.1]).range([innerH, 0]).nice()
+  const yScale = scaleLinear().domain([yMin - yDiff * 0.1, yMax + yDiff * 0.1]).range([innerH, 0]).nice()
 
-  const area = d3.area<d3.SeriesPoint<Record<string, number>>>()
+  const area = d3Area<SeriesPoint<Record<string, number>>>()
     .x((d, i) => xScale(i))
     .y0(d => yScale(d[0]))
     .y1(d => yScale(d[1]))
-    .curve(d3.curveCatmullRom.alpha(0.5))
+    .curve(curveCatmullRom.alpha(0.5))
 
   function handleSvgMove(e: React.MouseEvent) {
     if (!svgRef.current || !data) return
@@ -111,7 +113,7 @@ export default function SpotifyTagStreamChart() {
       setMouseX(xScale(xi))
       let maxBand = -Infinity, maxTi = 0
       series.forEach((s, ti) => {
-        const point = (s as unknown as d3.SeriesPoint<Record<string, number>>[])[xi]
+        const point = (s as unknown as SeriesPoint<Record<string, number>>[])[xi]
         if (!point) return
         const band = point[1] - point[0]
         if (band > maxBand) { maxBand = band; maxTi = ti }

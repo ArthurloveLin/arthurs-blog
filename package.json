@@ -24,6 +24,8 @@
     "@types/jquery": "^4.0.0",
     "browser-image-compression": "^2.0.2",
     "d3": "^7.9.0",
+    "d3-array": "^3.2.4",
+    "d3-scale": "^4.0.2",
     "d3-shape": "^3.2.0",
     "developer-icons": "^6.0.5",
     "dotenv": "^17.4.0",
