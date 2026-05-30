@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from 'react'
+import { memo, type CSSProperties, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { AlertTriangle } from 'lucide-react'
 
@@ -20,6 +20,13 @@ import SpotifyTopTracksPanel from './SpotifyTopTracksPanel'
 
 const SpotifyTagCloudCard = dynamic(() => import('./SpotifyTagCloudCard'))
 const SpotifyTagRadarCard = dynamic(() => import('./SpotifyTagRadarCard'))
+
+// Below-the-fold sections are skipped for layout/paint until scrolled near the
+// viewport. `auto` in containIntrinsicSize remembers the real size after first
+// render; the px value is just the initial placeholder estimate (the live and
+// recently-played sections at the top stay eager and are intentionally excluded).
+const deferredSection: CSSProperties = { contentVisibility: 'auto', containIntrinsicSize: 'auto 520px' }
+const deferredTallSection: CSSProperties = { contentVisibility: 'auto', containIntrinsicSize: 'auto 1600px' }
 
 const SectionCard = memo(function SectionCard({
   eyebrow,
@@ -107,15 +114,15 @@ export default function SpotifyDashboard({
         />
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4" style={deferredSection}>
         <SpotifyMusicReportSection copy={copy.report} report={musicReport} />
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4" style={deferredSection}>
         <SpotifyTopArtistsPanel data={data.topArtists} copy={copy.topArtists} />
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4" style={deferredSection}>
         <SpotifyVinylAlbumsPanel
           items={data.library.savedAlbums.items}
           total={data.library.savedAlbums.total}
@@ -123,7 +130,7 @@ export default function SpotifyDashboard({
         />
       </div>
 
-      <div className="mt-4 space-y-4">
+      <div className="mt-4 space-y-4" style={deferredTallSection}>
         <SpotifyTopTracksPanel data={data.topTracks} copy={copy.topTracks} />
         <SpotifySavedTracksPanel
           initialItems={data.library.savedTracks.items}
@@ -132,12 +139,12 @@ export default function SpotifyDashboard({
         />
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2 lg:items-stretch">
+      <div className="mt-4 grid gap-4 lg:grid-cols-2 lg:items-stretch" style={deferredSection}>
         <SpotifyTagCloudCard analysis={tagAnalysis} copy={copy.tagCloud} />
         <SpotifyTagRadarCard analysis={tagAnalysis} copy={copy.tagRadar} />
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4" style={deferredSection}>
         <SectionCard
           eyebrow={copy.playlists.eyebrow}
           id="playlists"
