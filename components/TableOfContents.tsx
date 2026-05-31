@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useRef } from 'react'
+import { CARD_SURFACE, EYEBROW } from './cardSurface'
 
 interface TocItem {
   id: string
@@ -59,8 +60,8 @@ export default function TableOfContents({ content }: { content: string }) {
   if (toc.length === 0) return null
 
   return (
-    <div className="bg-card text-card-foreground rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.08)] dark:hover:border-white/20 p-5">
-      <h3 className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase mb-4">
+    <div className={`${CARD_SURFACE} p-5`}>
+      <h3 className={`${EYEBROW} mb-4`}>
         目录
       </h3>
       <nav className="max-h-[60vh] overflow-y-auto custom-scrollbar">

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useSiteConfig, useSiteStats } from './SiteDataProvider'
 import { useAuth } from './AuthProvider'
 import { GitHubIcon, WeChatIcon, WeiboIcon } from './SocialIcons'
+import { CARD_SURFACE } from './cardSurface'
 
 const STATUS_EMOJI_MAP: Record<string, string> = {
   '工作中': '👨‍💻',
@@ -71,7 +72,7 @@ const AuthorProfileCardBody = memo(function AuthorProfileCardBody({ variant = 'd
 
   return (
     <div
-      className={`bg-card text-card-foreground rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.08)] dark:hover:border-white/20 relative group ${isCompact ? 'p-5' : 'p-6'}`}
+      className={`${CARD_SURFACE} relative group ${isCompact ? 'p-5' : 'p-6'}`}
       style={{ overflowAnchor: 'none' }}
     >
 
