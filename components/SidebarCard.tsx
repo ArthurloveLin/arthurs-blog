@@ -1,4 +1,5 @@
 import type { ReactNode, Ref } from 'react'
+import { CARD_SURFACE, EYEBROW } from './cardSurface'
 
 /**
  * Shared chrome for the homepage/blog sidebar widget cards
@@ -10,10 +11,9 @@ import type { ReactNode, Ref } from 'react'
  * (e.g. the tag cloud's expand toggle); content goes in `children`.
  */
 
-const CARD_CLASS =
-  'bg-card text-card-foreground rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.04)] dark:shadow-none border border-border/50 dark:border-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.08)] dark:hover:border-white/20 p-5'
+const CARD_CLASS = `${CARD_SURFACE} p-5`
 
-const TITLE_CLASS = 'font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase'
+const TITLE_CLASS = EYEBROW
 
 interface SidebarCardProps {
   title?: ReactNode

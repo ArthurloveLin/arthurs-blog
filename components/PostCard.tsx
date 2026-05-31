@@ -6,6 +6,7 @@ import type { Post } from '@/lib/blog'
 import { formatBlogPublishedDate } from '@/lib/date-format'
 import PrefetchOnHover from './PrefetchOnHover'
 import PostCardStats from './PostCardStats'
+import { CARD_SURFACE } from './cardSurface'
 
 const MAX_VISIBLE_TAGS = 3
 
@@ -33,7 +34,7 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
     <PrefetchOnHover
       href={`/blog/${post.slug}`}
       id={`post-${post.id}`}
-      className="bg-card text-card-foreground border border-border/50 dark:border-white/10 rounded-2xl shadow-[3px_5px_30px_rgba(0,0,0,0.08)] dark:shadow-none transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.12)] dark:hover:border-white/20 overflow-hidden group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className={`${CARD_SURFACE} overflow-hidden group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
       style={{
         contentVisibility: isEager ? 'visible' : 'auto',
         // auto 关键字: 浏览器在卡片首次渲染后记住真实尺寸，滚回时不再用估值重排，
