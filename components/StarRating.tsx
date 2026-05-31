@@ -47,7 +47,7 @@ export default function StarRating({ itemId, author, initialScore, onRate }: Sta
             onMouseEnter={() => setHover(star)}
             onMouseLeave={() => setHover(null)}
             className={`text-3xl leading-none transition-colors disabled:cursor-not-allowed ${
-              display >= star ? 'text-yellow-400' : 'text-gray-200'
+              display >= star ? 'text-yellow-400' : 'text-muted-foreground/25'
             }`}
           >
             ★
@@ -55,10 +55,10 @@ export default function StarRating({ itemId, author, initialScore, onRate }: Sta
         ))}
       </div>
       {score !== null && (
-        <p className="text-xs text-gray-400">{score.toFixed(1)} 分</p>
+        <p className="text-xs text-muted-foreground">{score.toFixed(1)} 分</p>
       )}
       {!author && (
-        <p className="text-xs text-gray-400">请先选择身份再评分</p>
+        <p className="text-xs text-muted-foreground">请先选择身份再评分</p>
       )}
     </div>
   )

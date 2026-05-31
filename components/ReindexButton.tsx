@@ -57,7 +57,7 @@ export default function ReindexButton() {
       <button
         onClick={handlePurge}
         disabled={busy}
-        className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg transition duration-200 disabled:opacity-50"
+        className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg transition duration-200 disabled:opacity-50"
         title="清空 Cloudflare 全量缓存（兜底备用）"
       >
         {purgeState === 'loading' ? (
@@ -75,7 +75,7 @@ export default function ReindexButton() {
       <button
         onClick={handleSync}
         disabled={busy}
-        className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/30 rounded-lg transition duration-200 disabled:opacity-50"
+        className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-muted-foreground hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/30 rounded-lg transition duration-200 disabled:opacity-50"
         title="从 R2 同步博客文章到数据库"
       >
         {syncState === 'loading' ? (

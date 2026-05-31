@@ -81,11 +81,11 @@ export default function ActivityBanner({ sessionId }: ActivityBannerProps) {
 
   if (!activeAlerts) {
     return (
-      <div className="bg-white/90 dark:bg-black backdrop-blur-md dark:backdrop-blur-none border-b border-gray-100 dark:border-white/10 px-4 py-1.5 sticky top-16 z-40 overflow-hidden shadow-sm transition duration-500">
+      <div className="bg-card/90 backdrop-blur-md dark:backdrop-blur-none border-b border-border px-4 py-1.5 sticky top-16 z-40 overflow-hidden shadow-sm transition duration-500">
         <div className="max-w-2xl mx-auto flex items-center justify-center gap-3">
           <div className="flex -space-x-1.5">
             {onlineUsers.map((u, i) => (
-              <div key={i} className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow-sm ${u === 'Arthur' ? 'bg-pink-400' : u === 'Grace' ? 'bg-blue-400' : 'bg-gray-400'}`}>
+              <div key={i} className={`w-6 h-6 rounded-full border-2 border-background flex items-center justify-center text-[10px] font-bold text-white shadow-sm ${u === 'Arthur' ? 'bg-pink-400' : u === 'Grace' ? 'bg-blue-400' : 'bg-muted-foreground'}`}>
                 {u[0]}
               </div>
             ))}
@@ -95,7 +95,7 @@ export default function ActivityBanner({ sessionId }: ActivityBannerProps) {
               <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
             </span>
-            <p className="text-[11px] font-bold text-gray-500 tracking-wide uppercase">
+            <p className="text-[11px] font-bold text-muted-foreground tracking-wide uppercase">
               {isMultiUser ? `${onlineUsers.join(' & ')} 正在协同` : `${onlineUsers[0]} 在线`}
             </p>
           </div>
