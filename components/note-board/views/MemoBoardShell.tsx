@@ -255,7 +255,7 @@ function NoteThemeButton() {
         <Palette size={14} />
       </button>
       {open ? (
-        <div className={`${MENU_PANEL_CLASS} z-[1000] w-[176px] p-1`}>
+        <div className={`${MENU_PANEL_CLASS} z-[var(--z-popover)] w-[176px] p-1`}>
           <div className="grid grid-cols-3 gap-0.5">
             {NOTE_COLOR_THEMES.map((t) => {
               const isActive = t.id === theme.id

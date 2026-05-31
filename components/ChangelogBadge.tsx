@@ -141,7 +141,7 @@ export function ChangelogBadge() {
         <div
           ref={popupDivRef}
           style={{ position: 'fixed', top: popupPos.top, left: popupPos.left, width: popupPos.width }}
-          className="z-[2000] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_24px_60px_rgba(15,23,42,0.12)]"
+          className="z-[var(--z-search)] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_24px_60px_rgba(15,23,42,0.12)]"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">

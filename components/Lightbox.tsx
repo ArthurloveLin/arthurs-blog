@@ -29,7 +29,7 @@ export default function Lightbox({ imageUrl, detailUrl, onClose, onPrev, onNext 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/90"
       onClick={onClose}
     >
       {/* Prev */}

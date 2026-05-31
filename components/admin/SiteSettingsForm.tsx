@@ -763,7 +763,7 @@ function AvatarCropModal({
   fileInputRef: React.RefObject<HTMLInputElement | null>
 }) {
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[var(--z-modal)] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-card border border-border rounded-2xl shadow-xl max-w-md w-full overflow-hidden flex flex-col">
         <div className="p-4 border-b border-border flex justify-between items-center">
           <h3 className="font-semibold text-foreground">裁剪头像 (1:1等比)</h3>

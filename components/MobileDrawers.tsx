@@ -128,7 +128,7 @@ export default function MobileDrawers() {
   }, [isOpen])
 
   return (
-    <div className={`fixed inset-0 z-[999] md:hidden flex flex-col justify-end transition-[visibility] duration-200 ${isOpen ? 'visible' : 'invisible pointer-events-none'}`}>
+    <div className={`fixed inset-0 z-[var(--z-drawer)] md:hidden flex flex-col justify-end transition-[visibility] duration-200 ${isOpen ? 'visible' : 'invisible pointer-events-none'}`}>
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/50 transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0'}`}

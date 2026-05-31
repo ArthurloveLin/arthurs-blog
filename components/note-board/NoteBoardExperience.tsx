@@ -416,7 +416,7 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
       {open ? (
         <div
           ref={panelRef}
-          style={{ position: 'fixed', bottom: panelPos.bottom, left: panelPos.left, zIndex: 1000 }}
+          style={{ position: 'fixed', bottom: panelPos.bottom, left: panelPos.left, zIndex: 'var(--z-popover)' }}
           className="w-[18.5rem] rounded-[1.25rem] border border-border/70 bg-card p-4 shadow-[0_22px_56px_rgba(15,23,42,0.18)]"
         >
           {/* 月份导航 — 标题可点击直接编辑年月 */}
@@ -714,7 +714,7 @@ function NoteBoardToast() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-4 bottom-5 z-50 flex justify-center sm:justify-end">
+    <div className="pointer-events-none fixed inset-x-4 bottom-5 z-[var(--z-toast)] flex justify-center sm:justify-end">
       <div className="rounded-full bg-slate-950 px-4 py-2 text-sm text-white shadow-[0_18px_50px_rgba(15,23,42,0.28)]">
         {toastNotice.message}
       </div>

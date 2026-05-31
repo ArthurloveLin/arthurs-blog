@@ -261,7 +261,7 @@ function NavMobileBar({
 }) {
   return (
     <div 
-      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[1000] md:hidden"
+      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[var(--z-header)] md:hidden"
       style={NAVBAR_BOTTOM_TRANSITION_STYLE}
     >
       <div className={
@@ -432,7 +432,7 @@ function NavbarContent() {
 
       <header
         className={
-          "sticky top-0 z-[1000] border-b border-border transition-colors duration-300 " +
+          "sticky top-0 z-[var(--z-header)] border-b border-border transition-colors duration-300 " +
         // 用主题驱动的卡面色 + 高不透明度，去除 backdrop-blur（sticky header 上的实时模糊
         // 是滚动卡顿的最大单点来源）。bg-card 在亮/暗与 8 套色相下自动跟随，比硬编码白/黑更一致
         "bg-card/95 backdrop-blur-none"

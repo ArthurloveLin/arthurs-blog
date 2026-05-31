@@ -474,7 +474,7 @@ export default function NavbarSearch() {
         <>
           <div
             ref={containerRef}
-            className={`fixed inset-x-0 top-0 h-16 z-[1100] flex items-center pointer-events-none transition-opacity duration-300 ${isSearching ? 'opacity-100' : 'opacity-0'}`}
+            className={`fixed inset-x-0 top-0 h-16 z-[var(--z-search)] flex items-center pointer-events-none transition-opacity duration-300 ${isSearching ? 'opacity-100' : 'opacity-0'}`}
           >
             <div className="site-shell flex items-center h-full w-full relative pointer-events-none">
               <div className="flex items-center w-full md:absolute md:left-1/2 md:-translate-x-1/2 md:max-w-[540px] pl-[170px] pr-[10px] md:px-0 pointer-events-auto">
@@ -534,7 +534,7 @@ export default function NavbarSearch() {
           </div>
 
           <div 
-            className={`fixed inset-x-0 bottom-0 top-16 bg-black/10 dark:bg-black/30 z-[1090] transition-opacity duration-300 ${isSearching ? 'opacity-100' : 'opacity-0'}`}
+            className={`fixed inset-x-0 bottom-0 top-16 bg-black/10 dark:bg-black/30 z-[var(--z-search)] transition-opacity duration-300 ${isSearching ? 'opacity-100' : 'opacity-0'}`}
             onClick={() => setIsSearching(false)}
           />
         </>,

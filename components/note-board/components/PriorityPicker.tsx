@@ -78,7 +78,7 @@ function PriorityPickerFrame({
       top = Math.max(padding, triggerRect.top - menuRect.height - padding)
     }
 
-    setMenuStyle({ left, top, position: 'fixed', zIndex: 1000 })
+    setMenuStyle({ left, top, position: 'fixed', zIndex: 'var(--z-popover)' })
   }, [menuAlign, menuDirection])
 
   useEffect(() => {
@@ -156,7 +156,7 @@ function PriorityPickerFrame({
       {isOpen ? createPortal(
         <div
           ref={menuRef}
-          style={menuStyle ?? { position: 'fixed', left: -9999, top: -9999, zIndex: 90 }}
+          style={menuStyle ?? { position: 'fixed', left: -9999, top: -9999, zIndex: 'var(--z-popover)' }}
           className={[
             'rounded-[18px] border border-black/10 bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.16)]',
             menuClassName,

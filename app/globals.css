@@ -20,6 +20,25 @@
   color-scheme: dark;
 }
 
+/* ═══ z-index scale ══════════════════════════════════════════════════════════
+   Global stacking order for fixed / sticky / portaled elements that share the
+   ROOT stacking context. Higher wins. Use via `z-[var(--z-modal)]` (className)
+   or `zIndex: 'var(--z-modal)'` (inline). In-card local layering (z-10 / z-20)
+   and CSS-module-internal z-index live in their own stacking contexts and are
+   intentionally NOT part of this scale — don't migrate those.
+   ════════════════════════════════════════════════════════════════════════════ */
+:root {
+  --z-raised: 10;   /* raised in-flow element (badge, overlapping card) */
+  --z-sticky: 20;   /* sticky in-content element (sidebar) */
+  --z-banner: 30;   /* sticky sub-header below the site header (ActivityBanner) */
+  --z-modal: 50;    /* modal / dialog panel, fullscreen takeover (+ its backdrop) */
+  --z-popover: 60;  /* dropdown / picker / popover anchored to content */
+  --z-drawer: 70;   /* mobile drawer / bottom sheet */
+  --z-header: 80;   /* site header, mobile bottom dock, header-anchored menus */
+  --z-search: 90;   /* search takeover that sits above the header */
+  --z-toast: 100;   /* toast / notification — always on top */
+}
+
 /* ── mono 墨色 (base / default) — neutral warm paper, brand-violet accent ── */
 :root, .light {
   --background: #f6f5f2;

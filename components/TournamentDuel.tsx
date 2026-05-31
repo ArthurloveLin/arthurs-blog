@@ -115,7 +115,7 @@ export default function TournamentDuel({ items: initialItems, sessionToken, onCl
   if (!leftItem || !rightItem) return null
 
   return (
-    <div className={`fixed inset-0 z-[200] overflow-hidden bg-black/98 backdrop-blur-md flex flex-col transition-opacity duration-700 ${showContent ? 'opacity-100' : 'opacity-0'}`}>
+    <div className={`fixed inset-0 z-[var(--z-modal)] overflow-hidden bg-black/98 backdrop-blur-md flex flex-col transition-opacity duration-700 ${showContent ? 'opacity-100' : 'opacity-0'}`}>
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 md:px-8 md:py-5 shrink-0">
         <button

@@ -274,7 +274,7 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
   // ── Mobile: bottom sheet drawer ───────────────────────────────────────────
   if (isMobile) {
     return (
-      <div className="fixed inset-0 z-50 flex pointer-events-none items-end">
+      <div className="fixed inset-0 z-[var(--z-modal)] flex pointer-events-none items-end">
         <button
           type="button"
           aria-label="关闭详情"
@@ -303,7 +303,7 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
   return (
     <div
       ref={cardRef}
-      className="fixed z-50 w-[360px] max-h-[calc(100vh-6rem)] overflow-y-auto rounded-[28px] border border-border/60 bg-card p-5 shadow-[0_24px_80px_rgba(15,23,42,0.22)]"
+      className="fixed z-[var(--z-modal)] w-[360px] max-h-[calc(100vh-6rem)] overflow-y-auto rounded-[28px] border border-border/60 bg-card p-5 shadow-[0_24px_80px_rgba(15,23,42,0.22)]"
       style={{ left: cardLeft, top: cardTop, animation: 'memoHabitCardIn 0.18s ease-out' }}
     >
       <style>{`

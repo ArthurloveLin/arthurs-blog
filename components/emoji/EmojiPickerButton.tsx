@@ -152,7 +152,7 @@ export default function EmojiPickerButton({
       {open && canUsePortal && panelStyle ? createPortal(
         <div
           ref={panelRef}
-          className="fixed z-[260] overflow-hidden rounded-[24px] border border-border bg-card shadow-[0_22px_60px_-24px_rgba(15,23,42,0.45)]"
+          className="fixed z-[var(--z-popover)] overflow-hidden rounded-[24px] border border-border bg-card shadow-[0_22px_60px_-24px_rgba(15,23,42,0.45)]"
           style={{
             bottom: panelStyle.bottom,
             left: panelStyle.left,

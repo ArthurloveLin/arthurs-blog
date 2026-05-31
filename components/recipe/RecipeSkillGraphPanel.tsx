@@ -107,7 +107,7 @@ function SkillGraphModal({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] bg-stone-950/72 p-4 backdrop-blur-sm md:p-8" onClick={onClose}>
+    <div className="fixed inset-0 z-[var(--z-modal)] bg-stone-950/72 p-4 backdrop-blur-sm md:p-8" onClick={onClose}>
       <div
         className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[28px] border border-white/12 bg-[#120d08]/95 text-stone-50 shadow-[0_28px_120px_rgba(0,0,0,0.55)]"
         onClick={(event) => event.stopPropagation()}
