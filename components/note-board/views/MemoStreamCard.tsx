@@ -77,10 +77,11 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
     wasEditingRef.current = isEditing
   }, [isEditing])
 
-  // Scroll to this card when it is freshly published
+  // Scroll to this card when it is freshly published — center it in the viewport
+  // (block:'nearest' barely moved when the card was already partly on screen).
   useEffect(() => {
     if (isFresh) {
-      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, [isFresh])
 
@@ -178,6 +179,13 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
               ) : null}
             </>
           ) : null}
+          {/* Share before delete to match StickyNoteCard (delete stays rightmost). */}
+          <NoteActionButton
+            label="分享/导出"
+            onClick={() => setShowExportMenu((v) => !v)}
+          >
+            <Share2 size={14} strokeWidth={1.85} />
+          </NoteActionButton>
           {canDelete && actions.delete ? (
             <NoteActionButton
               label={confirmingAction === 'delete' ? '确认删除便签' : '删除便签'}
@@ -186,12 +194,6 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
               <Trash2 size={14} strokeWidth={1.85} />
             </NoteActionButton>
           ) : null}
-          <NoteActionButton
-            label="分享/导出"
-            onClick={() => setShowExportMenu((v) => !v)}
-          >
-            <Share2 size={14} strokeWidth={1.85} />
-          </NoteActionButton>
         </div>
       </div>
 

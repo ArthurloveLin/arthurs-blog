@@ -75,8 +75,16 @@ export function useNoteEditor({
   )
 
   const scrollToEditor = useCallback(() => {
+    // Double rAF: a click that opens the editor often also flips it into edit
+    // mode / expands an optimistic card, which changes layout. Wait for that to
+    // commit before measuring, or the smooth scroll lands on a stale position
+    // (the editor ended up off-screen entirely on phone & tablet). block:'center'
+    // keeps the target clear of the fixed navbar and the mobile bottom dock, and
+    // matches the post-send centering.
     window.requestAnimationFrame(() => {
-      editorSectionElement?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      window.requestAnimationFrame(() => {
+        editorSectionElement?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
     })
   }, [editorSectionElement])
 
