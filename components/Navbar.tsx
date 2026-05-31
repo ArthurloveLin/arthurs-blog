@@ -64,6 +64,15 @@ function getDrawerButtonClass(isActive: boolean) {
   return `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`
 }
 
+function getNavLinkClass(isActive: boolean) {
+  return `px-4 py-2 text-sm font-medium rounded-lg transition duration-200 ${isActive ? 'text-primary bg-primary/10' : 'text-foreground/70 hover:text-foreground hover:bg-foreground/5'}`
+}
+
+function isNavLinkActive(pathname: string, href: string) {
+  if (href === '/') return pathname === '/'
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
 function AdminRoleBadge() {
   return (
     <span className="text-xs font-semibold px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-md">
@@ -257,8 +266,7 @@ function NavMobileBar({
     >
       <div className={
         "flex items-center gap-0.5 px-2 py-1.5 " +
-        "bg-white/94 border border-black/5 " +
-        "dark:bg-black/90 dark:backdrop-blur-none dark:border-white/10 " +
+        "bg-card/94 border border-border backdrop-blur-none " +
         "rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.32)]"
       }>
         {mobileDrawerItems.map(({ key, label, Icon }, index) => (
@@ -424,12 +432,10 @@ function NavbarContent() {
 
       <header
         className={
-          "sticky top-0 z-[1000] border-b transition-colors duration-300 " +
-        // 浅色模式: 统一用高不透明度纯色，去除 backdrop-blur（sticky header 上的
-        // 实时模糊是滚动卡顿的最大单点来源；对齐深色模式与移动端已采用的纯色做法）
-        "bg-white/95 backdrop-blur-none border-black/5 " +
-        // 深色模式(独立逻辑): 替换为纯黑色，去除磨砂模糊
-        "dark:bg-black dark:backdrop-blur-none dark:border-white/10"
+          "sticky top-0 z-[1000] border-b border-border transition-colors duration-300 " +
+        // 用主题驱动的卡面色 + 高不透明度，去除 backdrop-blur（sticky header 上的实时模糊
+        // 是滚动卡顿的最大单点来源）。bg-card 在亮/暗与 8 套色相下自动跟随，比硬编码白/黑更一致
+        "bg-card/95 backdrop-blur-none"
       }
     >
       <div className="site-shell">
@@ -446,7 +452,7 @@ function NavbarContent() {
               {/* Elegant Blur Glow */}
               <div className="absolute inset-0 rounded-xl bg-gradient-primary opacity-0 group-hover:opacity-40 blur-md group-hover:blur-lg transition-all duration-500 scale-50 group-hover:scale-125" />
               
-              <div className="w-full h-full relative rounded-xl bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 flex items-center justify-center shadow-sm overflow-hidden z-10">
+              <div className="w-full h-full relative rounded-xl bg-card border border-border flex items-center justify-center shadow-sm overflow-hidden z-10">
                 {(isMemoStandalone || logoUrl) ? (
                   <Image
                     src={isMemoStandalone ? '/icons/notes.png' : logoUrl!}
@@ -480,7 +486,7 @@ function NavbarContent() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+                  className={getNavLinkClass(isNavLinkActive(pathname, link.href))}
                   title={link.tooltip}
                 >
                   {link.label}
@@ -490,7 +496,8 @@ function NavbarContent() {
                   key={link.href}
                   href={link.href === '/' ? homeHref : link.href}
                   onClick={link.href === '/' ? handleHomeClick : undefined}
-                  className="px-4 py-2 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+                  className={getNavLinkClass(isNavLinkActive(pathname, link.href))}
+                  aria-current={isNavLinkActive(pathname, link.href) ? 'page' : undefined}
                   title={link.tooltip}
                 >
                   {link.label}
@@ -527,7 +534,7 @@ function NavbarContent() {
 
         {/* ── Mobile Menu ─────────────────────────────────────────── */}
         {isMobileMenuOpen && (
-          <nav className="md:hidden pb-4 pt-2 border-t border-gray-200/60 dark:border-white/10 bg-white dark:bg-black">
+          <nav className="md:hidden pb-4 pt-2 border-t border-border bg-card">
             <div className="space-y-0.5">
               {navLinks.map((link) =>
                 link.external ? (
@@ -536,7 +543,7 @@ function NavbarContent() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+                    className={`block px-4 py-2.5 text-sm font-medium rounded-lg transition duration-200 ${isNavLinkActive(pathname, link.href) ? 'text-primary bg-primary/10' : 'text-foreground/70 hover:text-foreground hover:bg-foreground/5'}`}
                     onClick={closeMobileNavigation}
                   >
                     {link.label}
@@ -549,7 +556,7 @@ function NavbarContent() {
                       if (link.href === '/') handleHomeClick()
                       closeMobileNavigation()
                     }}
-                    className="block px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
+                    className={`block px-4 py-2.5 text-sm font-medium rounded-lg transition duration-200 ${isNavLinkActive(pathname, link.href) ? 'text-primary bg-primary/10' : 'text-foreground/70 hover:text-foreground hover:bg-foreground/5'}`}
                   >
                     {link.label}
                   </Link>
@@ -557,7 +564,7 @@ function NavbarContent() {
               )}
               <div className="px-4 py-2.5 space-y-3">
                 <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">外观</div>
-                <div className="flex gap-1 p-1 rounded-lg bg-[#F5F5F7] dark:bg-zinc-800">
+                <div className="flex gap-1 p-1 rounded-lg bg-muted">
                   <button
                     onClick={() => setTheme('light')}
                     aria-pressed={resolvedTheme !== 'dark'}
