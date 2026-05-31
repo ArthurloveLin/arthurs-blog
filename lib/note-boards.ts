@@ -16,7 +16,7 @@ import { getCurrentUser, getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { extractMemoHabitChecklistItems, updateMemoHabitChecklistLine } from '@/lib/memo-habits'
-import { parseInlineDueTags } from '@/lib/memo-due-tags'
+import { getShanghaiWeekday, parseInlineDueTags } from '@/lib/memo-due-tags'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export type NoteVisibility = 'public' | 'admin_only'
@@ -258,7 +258,10 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
   if (columnError) throw new Error(columnError.message)
 
   const items: MemoAgendaItem[] = []
-  const seenMemoIds = new Set<string>()
+  // Dedup key is memo + due instant, not memo alone: a memo may carry an inline
+  // tag *and* a distinct legacy column due_at — keying on memo id would silently
+  // drop the column due. Inline still wins for an identical (memo, due) pair.
+  const seenKeys = new Set<string>()
 
   // Primary: inline @due tags in content
   for (const row of inlineData ?? []) {
@@ -268,13 +271,13 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
       const isNotified = tag.repeatMode === 'once' && notifiedDues.includes(tag.iso)
       const label = tag.label.trim() || '截止'
       items.push({ memoId: row.id as string, dueAt: tag.iso, label, priority: normalizeNotePriority(row.priority), repeatMode: tag.repeatMode !== 'once' ? tag.repeatMode : undefined, isNotified: isNotified || undefined })
-      seenMemoIds.add(row.id as string)
+      seenKeys.add(`${row.id as string}|${tag.iso}`)
     }
   }
 
   // Legacy: column-based due_at
   for (const row of columnData ?? []) {
-    if (seenMemoIds.has(row.id as string)) continue
+    if (seenKeys.has(`${row.id as string}|${row.due_at as string}`)) continue
     const repeatMode = (row.repeat_mode as string | null) ?? 'once'
     const dueAt = row.due_at as string
     // Single: show until notified, then show as done; Repeat: show current due_at (next occurrence)
@@ -603,10 +606,13 @@ export async function updateBoardMessage(
     const lineTextSig = (item: { lineText: string }) => normalizeSigText(item.lineText)
 
     // Advance dueAt to the next day that is valid under the repeat pattern.
+    // Weekday checks use the Asia/Shanghai calendar day (matching the reminder
+    // dispatcher's getShanghaiWeekday) so a cross-midnight UTC offset can't shift
+    // a task onto the wrong weekday. weekly/monthly impose no weekday constraint.
     const advanceToValidDay = (dueAt: string, repeatMode: string, repeatDays: number[] | null): string => {
-      if (repeatMode === 'once' || repeatMode === 'daily') return dueAt
+      if (repeatMode === 'once' || repeatMode === 'daily' || repeatMode === 'weekly' || repeatMode === 'monthly') return dueAt
       const due = new Date(dueAt)
-      const dow = due.getUTCDay()
+      const dow = getShanghaiWeekday(due)
       const valid = repeatMode === 'weekdays'
         ? (dow >= 1 && dow <= 5)
         : (repeatMode === 'custom' && repeatDays?.length ? repeatDays.includes(dow) : true)
@@ -614,13 +620,14 @@ export async function updateBoardMessage(
       if (repeatMode === 'weekdays') {
         for (let i = 0; i < 7; i++) {
           due.setUTCDate(due.getUTCDate() + 1)
-          if (due.getUTCDay() >= 1 && due.getUTCDay() <= 5) break
+          const d = getShanghaiWeekday(due)
+          if (d >= 1 && d <= 5) break
         }
       } else if (repeatMode === 'custom' && repeatDays?.length) {
         const sorted = [...repeatDays].sort((a, b) => a - b)
         for (let i = 0; i < 7; i++) {
           due.setUTCDate(due.getUTCDate() + 1)
-          if (sorted.includes(due.getUTCDay())) break
+          if (sorted.includes(getShanghaiWeekday(due))) break
         }
       }
       return due.toISOString()

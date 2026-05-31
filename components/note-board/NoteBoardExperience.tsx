@@ -274,11 +274,13 @@ function buildDueDateCells(year: number, month: number) {
   return cells
 }
 
-type RepeatMode = 'once' | 'daily' | 'weekdays' | 'custom'
+type RepeatMode = 'once' | 'daily' | 'weekly' | 'monthly' | 'weekdays' | 'custom'
 
 const REPEAT_MODE_OPTIONS: { value: RepeatMode; label: string }[] = [
   { value: 'once', label: '一次' },
   { value: 'daily', label: '每天' },
+  { value: 'weekly', label: '每周' },
+  { value: 'monthly', label: '每月' },
   { value: 'weekdays', label: '周一至周五' },
   { value: 'custom', label: '自定义' },
 ]
@@ -383,6 +385,8 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
     const dateStr = `${selectedDay.year}-${pad(selectedDay.month)}-${pad(selectedDay.day)}`
     const iso = new Date(`${dateStr}T${pad(hour)}:${pad(minute)}`).toISOString()
     const repeatSpec = repeatMode === 'daily' ? ',daily'
+      : repeatMode === 'weekly' ? ',weekly'
+      : repeatMode === 'monthly' ? ',monthly'
       : repeatMode === 'weekdays' ? ',weekdays'
       : repeatMode === 'custom' ? `,custom:${customDays.sort((a, b) => a - b).join(',')}`
       : ''

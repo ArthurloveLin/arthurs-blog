@@ -130,52 +130,74 @@ guestbook config sets `allowPrioritySort={false}`.
 Each memo note can carry an optional `due_at` ISO timestamp. The full data flow:
 
 **Storage**: `comments.due_at TIMESTAMPTZ NULL` + `comments.notified_at TIMESTAMPTZ NULL`
-(migration `20260518075249_memo_due_at.sql`). When `due_at` is updated, `notified_at`
-is reset to NULL so a fresh notification fires at the new time.
+(migration `20260518075249_memo_due_at.sql`). These columns are the **legacy** path;
+the active path encodes reminders inline in `content` (see below). When the column
+`due_at` is updated, `notified_at` is reset to NULL so a fresh notification fires.
 
-**Editor UI**: `DueDatePicker` (inline component in `NoteBoardExperience.tsx`) renders
-as an `AlarmClock` icon in the editor toolbar. Admin-only — guarded by `state.isAdmin`.
-State lives in `useNoteEditor` as `draftDueAt` / `editDueAt`, exposed through
-`NoteBoardProvider` as `editorDueAt` / `updateEditorDueAt`.
+**Editor UI**: `DueDateInserter` (inline component in `NoteBoardExperience.tsx`) renders
+as an `AlarmClock` icon in the editor toolbar, admin-only (rendered under the
+`state.isAdmin` block). It is purely a text-splicer — `handleInsert` builds the
+`@due[label](iso[,repeat])` string and calls `insertAtCursor(tag)`. It holds no
+provider/editor state; the tag lives in the note `content` like any other text.
 
-**Card display**: `due_at` is shown as a small badge on both `MemoStreamCard` and
-`StickyNoteCard` (via `StickyDueBadge` component). Three color states:
-- slate — more than 24h away
-- amber — within 24h
-- red — overdue
+**Card display**: an inline `@due` tag inside content is rendered as `InlineDueChip`
+(defined in `components/note-board/components/NoteContent.tsx`). Separately, a legacy
+*column* `due_at` is shown as a standalone `AlarmClock` badge in `MemoStreamCard` /
+`StickyNoteCard`, but **only when the content has no inline `@due` tag**
+(`!hasInlineDueTags(message.content)`) so the two never double-render. Badge color:
+slate (>24h) / amber (≤24h) / red (overdue).
 
-**Repeat modes** (`comments.repeat_mode`, migration `20260523000000_memo_repeat_mode.sql`):
-- The DB columns (`repeat_mode`, `repeat_days`, `due_at`) still exist and the
-  `check-reminders` API still handles the column-based advance path for legacy notes.
-- **New UI no longer writes these columns.** All reminders created via `DueDateInserter`
-  are now inline `@due` tags — including batch/repeat modes.
+**There is no `memo_reminders` table and no `/api/note-boards/memo/reminders` route.**
+Reminders are not separate rows — they are encoded **inline in the memo's `content`**
+as `@due` tags. The only reminder columns are the legacy `comments.due_at` /
+`comments.repeat_mode` / `comments.repeat_days` / `comments.notified_at` /
+`comments.notified_dues`, and only the legacy path still reads `due_at`/`repeat_mode`.
+
+**Inline `@due` tag format** (parsed by `lib/memo-due-tags.ts`):
+```
+@due[label](iso)                          # one-off
+@due[label](iso,daily)
+@due[label](iso,weekly)
+@due[label](iso,monthly)
+@due[label](iso,weekdays)
+@due[label](iso,custom:1,3,5)             # 0=Sun … 6=Sat
+```
+A `custom:` spec with no valid weekday degrades to one-off (it could never advance).
+`weekly`/`monthly` are reminder-only — they are **not** tracked as habits (the habit
+parser in `lib/memo-habits.ts` only recognises `daily`/`weekdays`/`custom`).
 
 **DueDateInserter** (inline component in `NoteBoardExperience.tsx`):
-- Reads context via `useNoteBoardEditorState()` / `useNoteBoardActions()` — no props needed.
-- **Create mode**: calls `boardActions.addDraftReminder(r)` to stage a `PendingReminder`
-  in `useNoteEditor`. After note save, `submitDraft` POSTs each pending reminder to
-  `/api/note-boards/memo/reminders` (with the now-known `memo_id`), then attaches them
-  to the message via `addReminderToMessage`.
-- **Edit mode**: directly POSTs to `/api/note-boards/memo/reminders`, then calls
-  `boardActions.addReminderToMessage` for optimistic update.
-- All modes: single reminder rule (no batch generation). Recurring reminders advance
-  their `due_at` on each fire in `check-reminders`.
-- Label input always visible; shown as `{label || '提醒'}` on the card badge.
-- `editorDueAt` / `editorRepeatMode` / `editorRepeatDays` in provider state are never
-  set by new notes — they remain for backwards compat when editing legacy column-based notes.
+- The calendar/time/repeat picker; `handleInsert` builds the `@due[...]` string and
+  calls `insertAtCursor(tag)` to splice it into the editor textarea. That's it — there
+  is no `PendingReminder`, no `addDraftReminder`, no POST to a reminders endpoint.
+  The tag rides along with the note content through the normal create/update path.
+- Label input always visible; defaults to `提醒` when empty.
 
-**Notification pipeline**:
+**Notification pipeline** (`app/api/memo/check-reminders/route.ts`):
 ```
 VPS crontab (every minute)
-  → POST localhost:3000/api/memo/check-reminders  (Bearer token auth)
-    → Path 1 (primary): query memo_reminders WHERE due_at ≤ now AND notified_at IS NULL
-        join comments WHERE archived = false
-        → POST http://1Panel-ntfy-5k3U/memo-reminder  (via lib/ntfy.ts)
-        → once:   UPDATE memo_reminders SET notified_at = now()
-        → repeat: UPDATE memo_reminders SET due_at = <next occurrence>  (notified_at stays NULL)
-    → Path 2 (legacy): inline @due[label](iso) tags in content
-    → Path 3 (legacy): column due_at / repeat_mode on comments table
+  → POST /api/memo/check-reminders  (Bearer REMINDER_CHECK_TOKEN, fail-closed:
+                                     missing env → 500, not open)
+    → pages through ALL matching memos (no fixed cap), then per memo:
+    → Path 1 (primary): inline @due[label](iso[,repeat]) tags in content
+        once   → send ntfy, push iso into comments.notified_dues
+        repeat → send ntfy, rewrite the tag's iso to the next future occurrence
+    → Path 2: habit checklist items (- [ ] … @due) → occurrence rows + content advance
+    → Path 3 (legacy): comments.due_at / repeat_mode columns
+        once   → send ntfy, set notified_at
+        repeat → send ntfy, advance due_at
+    → ntfy via lib/ntfy.ts (NTFY_INTERNAL_URL / NTFY_TOPIC)
 ```
+
+**`advanceDueAt` advances to the next *future* occurrence**, not just +1 period: a
+back-filled or long-overdue repeat collapses into a single upcoming fire instead of
+replaying one notification per missed period every tick (bounded by an iteration cap).
+
+**`notified_at` belongs to Path 3 only.** Path 1 must not write it (it tracks delivery
+via `notified_dues` + content rewrite); writing it there would falsely mark a
+co-located column `due_at` as already notified. Weekday math for repeats uses the
+Asia/Shanghai calendar day (`getShanghaiWeekday`) on both the dispatcher and the
+habit-reschedule path in `updateBoardMessage`.
 
 The blog container is on `1panel-network` so it can reach ntfy by container name.
 `NTFY_INTERNAL_URL`, `NTFY_TOPIC`, `REMINDER_CHECK_TOKEN` are set in `.env.local`.
@@ -184,14 +206,17 @@ The blog container is on `1panel-network` so it can reach ntfy by container name
 - Runs two parallel queries: inline `@due` tags + `due_at` column memos
 - Column memos: recurring ones always shown (next occurrence); one-time only if
   `due_at > now` (unfired)
-- Dedup by memo ID: if a memo has both inline tags and `due_at`, inline tags win
+- Dedup by `(memoId, dueAt)`: inline wins only for an identical due instant; a memo
+  carrying both an inline tag and a *distinct* column `due_at` shows both (keying on
+  memo id alone would silently drop the column due)
 
 **Hard constraints**:
 - `due_at` is only settable/visible for memo, not guestbook (admin-only in practice).
 - Do not call `Date.now()` inline in JSX — React's `react-hooks/purity` lint will reject
   it. Even `useMemo(() => Date.now(), [])` is flagged. The correct pattern is
   `const [now] = useState(Date.now)` — pass the function reference, not the call result,
-  so React invokes it as a lazy initializer internally (see `StickyDueBadge`).
+  so React invokes it as a lazy initializer internally (see `InlineDueChip` in
+  `NoteContent.tsx` and `MemoStreamCard`).
 - `notified_at` must always be reset to NULL when `due_at` changes; the API layer
   (`updateBoardMessage`) handles this via `'due_at' in input` check.
 - `patch` object in `updateBoardMessage` is typed `Record<string, string | boolean | number | number[] | null>` — the `number[]` is required for `repeat_days`; do not narrow it back to scalar-only.

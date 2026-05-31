@@ -19,15 +19,32 @@ function splitDueParens(raw: string): { iso: string; repeatSpec: string } {
 export function parseRepeatSpec(spec: string): { repeatMode: string; repeatDays: number[] | null } {
   if (!spec) return { repeatMode: 'once', repeatDays: null }
   if (spec === 'daily') return { repeatMode: 'daily', repeatDays: null }
+  if (spec === 'weekly') return { repeatMode: 'weekly', repeatDays: null }
+  if (spec === 'monthly') return { repeatMode: 'monthly', repeatDays: null }
   if (spec === 'weekdays') return { repeatMode: 'weekdays', repeatDays: null }
   if (spec.startsWith('custom:')) {
     const days = spec.slice(7).split(',').map(Number).filter((d) => !isNaN(d) && d >= 0 && d <= 6)
-    return { repeatMode: 'custom', repeatDays: days.length > 0 ? days : null }
+    // A custom repeat with no valid weekdays is meaningless and would never
+    // advance (causing an every-tick resend loop), so degrade it to a one-off.
+    if (days.length === 0) return { repeatMode: 'once', repeatDays: null }
+    return { repeatMode: 'custom', repeatDays: days }
   }
   return { repeatMode: 'once', repeatDays: null }
 }
 
-// Tag format: @due[label](iso) or @due[label](iso,daily|weekdays|custom:0,1,2)
+// Calendar day-of-week (0=Sun … 6=Sat) in Asia/Shanghai. Shared by the reminder
+// dispatcher and the habit-reschedule logic so both agree on which weekday a due
+// time falls on — a task at 01:00 Shanghai (+08:00) is 17:00 UTC the previous day,
+// so getUTCDay() would return the wrong weekday for weekday/custom modes.
+export function getShanghaiWeekday(date: Date): number {
+  const abbr = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Shanghai',
+    weekday: 'short',
+  }).format(date)
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(abbr)
+}
+
+// Tag format: @due[label](iso) or @due[label](iso,daily|weekly|monthly|weekdays|custom:0,1,2)
 export function parseInlineDueTags(content: string): InlineDueTag[] {
   const re = /@due\[([^\]]*)\]\(([^)]*)\)/g
   const result: InlineDueTag[] = []

@@ -4,7 +4,7 @@ import {
   markSupersededMemoHabitOccurrencesAsMissed,
   upsertMemoHabitOccurrenceForReminder,
 } from '@/lib/memo-habits-server'
-import { parseInlineDueTags, stripInlineDueTags } from '@/lib/memo-due-tags'
+import { getShanghaiWeekday, parseInlineDueTags, stripInlineDueTags } from '@/lib/memo-due-tags'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendNtfyReminder } from '@/lib/ntfy'
 
@@ -31,7 +31,11 @@ function buildNotification(
 ): { title: string; body: string } {
   const label = due.label.trim() || 'Memo 提醒'
   const repeatSuffix = repeatMode && repeatMode !== 'once'
-    ? repeatMode === 'daily' ? ' · 每天' : repeatMode === 'weekdays' ? ' · 周一至周五' : ' · 自定义重复'
+    ? repeatMode === 'daily' ? ' · 每天'
+      : repeatMode === 'weekly' ? ' · 每周'
+      : repeatMode === 'monthly' ? ' · 每月'
+      : repeatMode === 'weekdays' ? ' · 周一至周五'
+      : ' · 自定义重复'
     : ''
   const title = `⏰ ${label}${repeatSuffix}`
   // 去掉 @due 标签后的完整内容；保留换行结构，折叠多余空行，上限 500 字
@@ -45,51 +49,69 @@ function buildNotification(
   return { title, body }
 }
 
-// Returns the calendar day-of-week (0=Sun … 6=Sat) in Asia/Shanghai timezone.
-// Required because a task set for e.g. 01:00 Shanghai (+08:00) is 17:00 UTC the
-// previous day, so getUTCDay() returns the wrong weekday for weekday/custom modes.
-function getShanghaiWeekday(date: Date): number {
-  const abbr = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Shanghai',
-    weekday: 'short',
-  }).format(date)
-  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(abbr)
-}
+// Hard cap on advance iterations (~10 years of daily steps). Guards against a
+// non-advancing repeat mode hanging the request, and bounds back-fill catch-up.
+const MAX_ADVANCE_ITERATIONS = 3660
 
-// Advance ISO to the next occurrence based on repeat mode (UTC date arithmetic,
-// weekday check converted to Asia/Shanghai calendar day).
-function advanceDueAt(dueAt: string, repeatMode: string, repeatDays: number[] | null): string {
+// Advance ISO to the *next future* occurrence for the given repeat mode. We keep
+// stepping until the result is strictly after `now`, so a back-filled or long-
+// overdue task collapses into a single upcoming occurrence instead of replaying
+// one notification per missed period on every cron tick. UTC date arithmetic;
+// weekday checks are converted to the Asia/Shanghai calendar day.
+function advanceDueAt(dueAt: string, repeatMode: string, repeatDays: number[] | null, now: Date): string {
   const due = new Date(dueAt)
 
-  if (repeatMode === 'daily') {
-    due.setUTCDate(due.getUTCDate() + 1)
-    return due.toISOString()
-  }
-
-  if (repeatMode === 'weekdays') {
-    due.setUTCDate(due.getUTCDate() + 1)
-    while ([0, 6].includes(getShanghaiWeekday(due))) {
+  // One step of the given mode. Returns false when the mode cannot advance,
+  // signalling the caller to leave dueAt untouched (no resend loop).
+  const stepOnce = (): boolean => {
+    if (repeatMode === 'daily') {
       due.setUTCDate(due.getUTCDate() + 1)
+      return true
     }
-    return due.toISOString()
+    if (repeatMode === 'weekly') {
+      due.setUTCDate(due.getUTCDate() + 7)
+      return true
+    }
+    if (repeatMode === 'monthly') {
+      // JS rolls overflowing day-of-month into the next month (e.g. Jan 31 → Mar 3).
+      due.setUTCMonth(due.getUTCMonth() + 1)
+      return true
+    }
+    if (repeatMode === 'weekdays') {
+      do {
+        due.setUTCDate(due.getUTCDate() + 1)
+      } while ([0, 6].includes(getShanghaiWeekday(due)))
+      return true
+    }
+    if (repeatMode === 'custom' && repeatDays?.length) {
+      const sorted = [...repeatDays].sort((a, b) => a - b)
+      for (let i = 0; i < 7; i++) {
+        due.setUTCDate(due.getUTCDate() + 1)
+        if (sorted.includes(getShanghaiWeekday(due))) break
+      }
+      return true
+    }
+    return false
   }
 
-  if (repeatMode === 'custom' && repeatDays?.length) {
-    const sorted = [...repeatDays].sort((a, b) => a - b)
-    due.setUTCDate(due.getUTCDate() + 1)
-    for (let i = 0; i < 7; i++) {
-      if (sorted.includes(getShanghaiWeekday(due))) break
-      due.setUTCDate(due.getUTCDate() + 1)
-    }
-    return due.toISOString()
-  }
+  let iterations = 0
+  do {
+    if (!stepOnce()) return dueAt
+    iterations += 1
+  } while (due.getTime() <= now.getTime() && iterations < MAX_ADVANCE_ITERATIONS)
 
-  return dueAt
+  return due.toISOString()
 }
 
 export async function POST(req: NextRequest) {
+  // Fail closed: a missing token env must never leave this dispatch endpoint open
+  // (it sends pushes and mutates rows), so a misconfigured deploy returns 500
+  // rather than silently accepting unauthenticated calls.
+  if (!REMINDER_TOKEN) {
+    return NextResponse.json({ error: 'REMINDER_CHECK_TOKEN not configured' }, { status: 500 })
+  }
   const token = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (REMINDER_TOKEN && token !== REMINDER_TOKEN) {
+  if (token !== REMINDER_TOKEN) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -99,18 +121,30 @@ export async function POST(req: NextRequest) {
   let sent = 0
   const errors: string[] = []
 
-  // ── Primary path: inline @due tags in content ────────────────────────────
-  const { data: memos, error: memosError } = await supabaseAdmin
-    .from('comments')
-    .select('id, content, notified_dues, user_id, visibility')
-    .eq('target_type', 'memo')
-    .eq('archived', false)
-    .not('user_id', 'is', null)
-    .ilike('content', '%@due[%')
-    .limit(100)
+  // Page size for scanning candidate memos. We page through *all* matches (ordered
+  // by id) rather than capping at a fixed count, otherwise reminders on memos past
+  // the cap would silently never fire.
+  const PAGE_SIZE = 1000
 
-  if (memosError) {
-    return NextResponse.json({ error: memosError.message }, { status: 500 })
+  // ── Primary path: inline @due tags in content ────────────────────────────
+  const memos: Array<{ id: string; content: string; notified_dues: unknown; user_id: string; visibility: string }> = []
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabaseAdmin
+      .from('comments')
+      .select('id, content, notified_dues, user_id, visibility')
+      .eq('target_type', 'memo')
+      .eq('archived', false)
+      .not('user_id', 'is', null)
+      .ilike('content', '%@due[%')
+      .order('id', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    if (!data || data.length === 0) break
+    memos.push(...(data as typeof memos))
+    if (data.length < PAGE_SIZE) break
   }
 
   for (const memo of memos ?? []) {
@@ -153,7 +187,7 @@ export async function POST(req: NextRequest) {
       try {
         const { title, body } = buildNotification(tag, memo.content, now, tag.repeatMode)
         await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
-        const nextIso = advanceDueAt(tag.iso, tag.repeatMode, tag.repeatDays)
+        const nextIso = advanceDueAt(tag.iso, tag.repeatMode, tag.repeatDays, now)
         const newRawParens = nextIso + (tag.rawParens.includes(',') ? tag.rawParens.slice(tag.rawParens.indexOf(',')) : '')
         const newTag = `@due[${tag.label}](${newRawParens})`
         updatedContent = updatedContent.split(tag.fullMatch).join(newTag)
@@ -191,7 +225,7 @@ export async function POST(req: NextRequest) {
         }, item, nowIso)
         // Advance content before sending notification so that a ntfy failure
         // does not leave due_at un-advanced, causing an infinite retry loop.
-        const nextIso = advanceDueAt(item.dueAt, item.repeatMode, item.repeatDays)
+        const nextIso = advanceDueAt(item.dueAt, item.repeatMode, item.repeatDays, now)
         updatedContent = updateMemoHabitChecklistLine(updatedContent, item.lineIndex, {
           checked: false,
           dueAt: nextIso,
@@ -204,7 +238,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const patch: Record<string, unknown> = { notified_at: nowIso }
+    // NOTE: do not write `notified_at` here. That column belongs solely to the
+    // legacy column-based path below; the inline path tracks delivery via
+    // `notified_dues` (once tags) and content rewrite (repeat tags). Writing it
+    // here would falsely mark a co-located column due_at as already notified.
+    const patch: Record<string, unknown> = {}
     if (pendingOnce.length > 0 || pendingHabitOnce.length > 0) {
       // Prune notified_dues to only ISOs that still exist as once-tags in the
       // final content — drops stale entries from deleted tags automatically.
@@ -216,22 +254,34 @@ export async function POST(req: NextRequest) {
       patch.notified_dues = notifiedDues.filter((iso) => remainingOnceIsos.has(iso))
     }
     if (pendingRepeat.length > 0 || pendingHabitRepeat.length > 0) patch.content = updatedContent
-    await supabaseAdmin.from('comments').update(patch).eq('id', memo.id)
+    if (Object.keys(patch).length > 0) {
+      // Surface a failed write: delivery is at-least-once, so a silent failure
+      // here means the same notifications resend next tick.
+      const { error: updateError } = await supabaseAdmin.from('comments').update(patch).eq('id', memo.id)
+      if (updateError) errors.push(`memo ${memo.id} state update failed: ${updateError.message}`)
+    }
   }
 
   // ── Legacy path: column-based due_at / repeat_mode on comments ───────────
-  const { data: columnMemos, error: columnError } = await supabaseAdmin
-    .from('comments')
-    .select('id, content, due_at, notified_at, repeat_mode, repeat_days')
-    .eq('target_type', 'memo')
-    .eq('archived', false)
-    .not('due_at', 'is', null)
-    .is('notified_at', null)
-    .lte('due_at', nowIso)
-    .limit(100)
+  const columnMemos: Array<{ id: string; content: string; due_at: string; notified_at: string | null; repeat_mode: string | null; repeat_days: unknown }> = []
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabaseAdmin
+      .from('comments')
+      .select('id, content, due_at, notified_at, repeat_mode, repeat_days')
+      .eq('target_type', 'memo')
+      .eq('archived', false)
+      .not('due_at', 'is', null)
+      .is('notified_at', null)
+      .lte('due_at', nowIso)
+      .order('id', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1)
 
-  if (columnError) {
-    return NextResponse.json({ error: columnError.message }, { status: 500 })
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    if (!data || data.length === 0) break
+    columnMemos.push(...(data as typeof columnMemos))
+    if (data.length < PAGE_SIZE) break
   }
 
   for (const memo of columnMemos ?? []) {
@@ -248,7 +298,7 @@ export async function POST(req: NextRequest) {
       await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
 
       if (repeatMode !== 'once') {
-        const nextDueAt = advanceDueAt(memo.due_at as string, repeatMode, repeatDays)
+        const nextDueAt = advanceDueAt(memo.due_at as string, repeatMode, repeatDays, now)
         await supabaseAdmin.from('comments').update({ due_at: nextDueAt }).eq('id', memo.id)
       } else {
         await supabaseAdmin.from('comments').update({ notified_at: nowIso }).eq('id', memo.id)

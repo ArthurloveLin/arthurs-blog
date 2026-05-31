@@ -102,7 +102,10 @@ export function parseMemoHabitRepeatSpec(spec: string): { repeatMode: MemoHabitR
       .split(',')
       .map((value) => Number(value))
       .filter((value) => Number.isInteger(value) && value >= 0 && value <= 6)
-    return { repeatMode: 'custom', repeatDays: repeatDays.length > 0 ? repeatDays : null }
+    // A custom repeat with no valid weekdays can never advance — treat it as a
+    // one-off so it isn't tracked as a (non-advancing) repeating habit.
+    if (repeatDays.length === 0) return { repeatMode: 'once', repeatDays: null }
+    return { repeatMode: 'custom', repeatDays }
   }
   return { repeatMode: 'once', repeatDays: null }
 }
