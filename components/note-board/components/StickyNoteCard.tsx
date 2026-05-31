@@ -2,7 +2,7 @@
 
 import { AlarmClock, Archive, ArchiveRestore, ArrowRight, Check, ChevronsDown, Copy, FileDown, FileImage, FileText, PencilLine, Share2, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
@@ -164,10 +164,22 @@ function StickyNoteCardFrame({
   const isPreview = variant === 'preview'
   const isInlineEditing = Boolean(inlineEditor)
   const { theme } = useNoteColorTheme()
+  const chrome = theme.chrome
   const noteSlot = theme.slots[colorIndex % theme.slots.length] ?? theme.slots[0]
   const noteColor = noteSlot.bg
   const noteDepth = noteSlot.bg2
   const noteInk = noteSlot.ink
+  // Export menu / confirm-action chrome follows the active note palette (incl. the
+  // opt-in `dark` theme) instead of hardcoded slate/white, which inverted to
+  // light-on-dark under the dark note palette. Hover is driven via local CSS vars
+  // so the arbitrary-property classes stay declarative (matches MemoBoardShell's
+  // --memo-* convention, but scoped locally to avoid relying on ancestor cascade).
+  const menuChromeVars = {
+    '--note-menu-text': chrome.cardText,
+    '--note-menu-hover-surface': chrome.controlHoverSurface,
+    '--note-menu-hover-text': chrome.controlHoverText,
+    '--note-menu-active-surface': chrome.controlActiveSurface,
+  } as CSSProperties
   // Collapses automatically while inline-editing (derived — no separate reset effect needed)
   const showExpanded = isExpanded && !isInlineEditing
 
@@ -418,14 +430,16 @@ function StickyNoteCardFrame({
             <div className="mb-2 flex items-center justify-end gap-2" onPointerDown={(event) => event.stopPropagation()}>
               <button
                 type="button"
-                className="rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-[10px] font-bold tracking-widest text-slate-500 transition hover:text-slate-900"
+                className="rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-widest transition [border-color:var(--memo-control-border,rgba(0,0,0,0.1))] [background:var(--note-menu-hover-surface)] text-[color:var(--note-menu-text)] hover:text-[color:var(--note-menu-hover-text)]"
+                style={menuChromeVars}
                 onClick={() => setConfirmingAction(null)}
               >
                 取消
               </button>
               <button
                 type="button"
-                className="rounded-full bg-slate-900 px-3 py-1 text-[10px] font-bold tracking-widest text-white transition hover:opacity-90"
+                className="rounded-full px-3 py-1 text-[10px] font-bold tracking-widest transition hover:opacity-90"
+                style={{ background: chrome.primarySurface, color: chrome.primaryText }}
                 onClick={() => {
                   if (confirmingAction === 'archive') {
                     actions?.archive?.onToggle()
@@ -444,13 +458,14 @@ function StickyNoteCardFrame({
           ) : null}
           {showExportMenu ? (
             <div
-              className="absolute right-0 top-10 z-20 min-w-[152px] overflow-hidden rounded-xl border border-black/8 bg-white/96 py-1 shadow-lg backdrop-blur-md"
+              className="absolute right-0 top-10 z-20 min-w-[152px] overflow-hidden rounded-xl border py-1 shadow-lg backdrop-blur-md"
+              style={{ ...menuChromeVars, background: chrome.panelSurface, borderColor: chrome.panelBorder, boxShadow: chrome.panelShadow }}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => event.stopPropagation()}
             >
               <button
                 type="button"
-                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-slate-700 transition hover:bg-slate-50/80 active:bg-slate-100/80"
+                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] transition text-[color:var(--note-menu-text)] hover:[background:var(--note-menu-hover-surface)] hover:text-[color:var(--note-menu-hover-text)] active:[background:var(--note-menu-active-surface)]"
                 onClick={() => {
                   void navigator.clipboard.writeText(message.content).then(() => {
                     setCopied(true)
@@ -462,10 +477,10 @@ function StickyNoteCardFrame({
                 {copied ? <Check size={13} strokeWidth={2} className="text-green-600 shrink-0" /> : <Copy size={13} strokeWidth={1.85} className="shrink-0" />}
                 复制文本
               </button>
-              <div className="mx-3 my-0.5 border-t border-slate-100" />
+              <div className="mx-3 my-0.5 border-t" style={{ borderColor: chrome.panelBorder }} />
               <button
                 type="button"
-                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-slate-700 transition hover:bg-slate-50/80 active:bg-slate-100/80"
+                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] transition text-[color:var(--note-menu-text)] hover:[background:var(--note-menu-hover-surface)] hover:text-[color:var(--note-menu-hover-text)] active:[background:var(--note-menu-active-surface)]"
                 onClick={() => { downloadNote(message.content, 'txt'); setShowExportMenu(false) }}
               >
                 <FileText size={13} strokeWidth={1.85} className="shrink-0" />
@@ -473,7 +488,7 @@ function StickyNoteCardFrame({
               </button>
               <button
                 type="button"
-                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-slate-700 transition hover:bg-slate-50/80 active:bg-slate-100/80"
+                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] transition text-[color:var(--note-menu-text)] hover:[background:var(--note-menu-hover-surface)] hover:text-[color:var(--note-menu-hover-text)] active:[background:var(--note-menu-active-surface)]"
                 onClick={() => { downloadNote(message.content, 'md'); setShowExportMenu(false) }}
               >
                 <FileDown size={13} strokeWidth={1.85} className="shrink-0" />
@@ -481,7 +496,7 @@ function StickyNoteCardFrame({
               </button>
               <button
                 type="button"
-                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-slate-700 transition hover:bg-slate-50/80 active:bg-slate-100/80"
+                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] transition text-[color:var(--note-menu-text)] hover:[background:var(--note-menu-hover-surface)] hover:text-[color:var(--note-menu-hover-text)] active:[background:var(--note-menu-active-surface)]"
                 onClick={() => { exportNoteAsImage(message.content, message.author, message.created_at); setShowExportMenu(false) }}
               >
                 <FileImage size={13} strokeWidth={1.85} className="shrink-0" />
