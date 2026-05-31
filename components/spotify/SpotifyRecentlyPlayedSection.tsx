@@ -33,7 +33,7 @@ export default function SpotifyRecentlyPlayedSection({
     >
       <div className="flex flex-col gap-4">
         <div className="w-full min-w-0">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground whitespace-nowrap">{copy.eyebrow}</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground whitespace-nowrap">{copy.eyebrow}</p>
           <div className="mt-1 flex items-start justify-between gap-4">
             <h3 className="text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h3>
             <div className="shrink-0">

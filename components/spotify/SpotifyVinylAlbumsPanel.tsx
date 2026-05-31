@@ -91,8 +91,8 @@ export default function SpotifyVinylAlbumsPanel({
     : `当前第 ${rangeStart} - ${rangeEnd} 张`
 
   return (
-    <section className="scroll-mt-24 rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60_rgba(0,0,0,0.05)] overflow-visible">
-      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{copy.eyebrow}</p>
+    <section className="scroll-mt-24 rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60px_rgba(0,0,0,0.05)] overflow-visible">
+      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{copy.eyebrow}</p>
       <h3 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
         {copy.description} {items.length > 0 ? `${rangeLabel}，共 ${total} 张。` : ''}

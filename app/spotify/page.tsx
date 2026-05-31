@@ -75,7 +75,7 @@ async function SpotifyDashboardLoader({
 function SpotifyDashboardSkeleton() {
   return (
     <div className="site-shell pt-4 pb-24">
-      <div className="h-48 rounded-[32px] border border-border/60 bg-card/60 animate-pulse" />
+      <div className="h-48 rounded-[28px] border border-border/60 bg-card/60 animate-pulse" />
       <div className="mt-6 h-96 rounded-[28px] border border-border/60 bg-card/60 animate-pulse" />
       <div className="mt-6 h-64 rounded-[28px] border border-border/60 bg-card/60 animate-pulse" />
     </div>

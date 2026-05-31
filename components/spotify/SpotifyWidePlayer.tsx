@@ -125,7 +125,7 @@ export default function SpotifyWidePlayer({ stats }: { stats?: SpotifyWidePlayer
               <Music2 className="h-8 w-8" strokeWidth={1.8} />
             </div>
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Spotify Player</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Spotify Player</p>
               <h2 className="mt-2 text-2xl font-semibold text-foreground">当前没有可展示的播放状态</h2>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
                 dashboard 已就绪；下一次刷新到有效播放数据后，这里会展示宽版播放器头图和最近播放预览。
