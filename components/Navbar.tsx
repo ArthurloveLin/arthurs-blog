@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useCallback, startTransition, useSyncExternalStore, useTransition, type CSSProperties, type MouseEvent } from 'react'
+import { useEffect, useCallback, useRef, startTransition, useSyncExternalStore, useTransition, type CSSProperties, type MouseEvent } from 'react'
+import gsap from 'gsap'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -61,7 +62,9 @@ const NAVBAR_BOTTOM_TRANSITION_STYLE: ViewTransitionStyle = {
 }
 
 function getDrawerButtonClass(isActive: boolean) {
-  return `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`
+  // Active background is drawn by the shared sliding pill in NavMobileBar; the
+  // button only owns its text color (+ a hover bg for the inactive ones).
+  return `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'}`
 }
 
 function getNavLinkClass(isActive: boolean) {
@@ -259,21 +262,64 @@ function NavMobileBar({
   activeDrawer: DrawerType
   toggleDrawer: (drawer: Exclude<DrawerType, null>) => void
 }) {
+  const rowRef = useRef<HTMLDivElement>(null)
+  const pillRef = useRef<HTMLSpanElement>(null)
+
+  // Slide a shared pill to the active tab (desktop already has an active
+  // indicator; this brings the mobile dock to parity). Position is measured
+  // from layout (getBoundingClientRect relative to the row) so dividers/nesting
+  // don't throw it off; text-primary on the active button is the fallback if the
+  // pill is ever mid-flight. No active drawer → fade out. reduced-motion → snap.
+  useEffect(() => {
+    const row = rowRef.current
+    const pill = pillRef.current
+    if (!row || !pill) return
+
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const active = row.querySelector<HTMLElement>('[data-dock-active="true"]')
+
+    if (!active) {
+      gsap.to(pill, { autoAlpha: 0, duration: reduce ? 0 : 0.18, ease: 'power2.out' })
+      return
+    }
+
+    const rowBox = row.getBoundingClientRect()
+    const box = active.getBoundingClientRect()
+    gsap.to(pill, {
+      x: box.left - rowBox.left,
+      y: box.top - rowBox.top,
+      width: box.width,
+      height: box.height,
+      autoAlpha: 1,
+      duration: reduce ? 0 : 0.34,
+      ease: 'power3.out',
+    })
+  }, [activeDrawer])
+
   return (
-    <div 
+    <div
       className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[var(--z-header)] md:hidden"
       style={NAVBAR_BOTTOM_TRANSITION_STYLE}
     >
-      <div className={
-        "flex items-center gap-0.5 px-2 py-1.5 " +
+      <div
+        ref={rowRef}
+        className={
+        "relative flex items-center gap-0.5 px-2 py-1.5 " +
         "bg-card/94 border border-border backdrop-blur-none " +
         "rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.32)]"
       }>
+        <span
+          ref={pillRef}
+          aria-hidden
+          style={{ opacity: 0 }}
+          className="pointer-events-none absolute left-0 top-0 z-0 rounded-full bg-primary/10"
+        />
         {mobileDrawerItems.map(({ key, label, Icon }, index) => (
-          <div key={key} className="flex items-center">
+          <div key={key} className="relative z-10 flex items-center">
             {index > 0 && <div className="w-px h-5 bg-border/60 mx-0.5" />}
             <button
               onClick={() => toggleDrawer(key)}
+              data-dock-active={activeDrawer === key ? 'true' : undefined}
               className={getDrawerButtonClass(activeDrawer === key)}
               aria-label={label}
             >
@@ -301,6 +347,8 @@ function NavbarContent() {
     toggleDrawer: toggleDrawerInternal,
     isSearching,
   } = useNavbarUiState()
+
+  const mobileMenuRef = useRef<HTMLElement>(null)
 
   const isPWA = useSyncExternalStore(
     (notify) => {
@@ -404,6 +452,30 @@ function NavbarContent() {
       }
     }
   }, [])
+
+  // Mobile menu entrance: stagger the rows down on open instead of the old
+  // hard mount. Opacity/transform only (no height measurement), scoped via
+  // gsap.context so it self-reverts on close/unmount; reduced-motion skips it.
+  // Close stays an instant unmount — the reveal is where the delight lives.
+  useEffect(() => {
+    if (!isMobileMenuOpen) return
+    const el = mobileMenuRef.current
+    if (!el) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const ctx = gsap.context(() => {
+      gsap.from(el, { autoAlpha: 0, y: -6, duration: 0.2, ease: 'power2.out' })
+      gsap.from('[data-mobile-nav-item]', {
+        autoAlpha: 0,
+        y: -8,
+        duration: 0.28,
+        ease: 'power2.out',
+        stagger: 0.035,
+        delay: 0.04,
+      })
+    }, el)
+    return () => ctx.revert()
+  }, [isMobileMenuOpen])
 
   const toggleDrawer = useCallback((drawer: Exclude<DrawerType, null>) => {
     startTransition(() => {
@@ -534,12 +606,13 @@ function NavbarContent() {
 
         {/* ── Mobile Menu ─────────────────────────────────────────── */}
         {isMobileMenuOpen && (
-          <nav className="md:hidden pb-4 pt-2 border-t border-border bg-card">
+          <nav ref={mobileMenuRef} className="md:hidden pb-4 pt-2 border-t border-border bg-card">
             <div className="space-y-0.5">
               {navLinks.map((link) =>
                 link.external ? (
                   <a
                     key={link.href}
+                    data-mobile-nav-item
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -551,6 +624,7 @@ function NavbarContent() {
                 ) : (
                   <Link
                     key={link.href}
+                    data-mobile-nav-item
                     href={link.href === '/' ? homeHref : link.href}
                     onClick={() => {
                       if (link.href === '/') handleHomeClick()
@@ -562,7 +636,7 @@ function NavbarContent() {
                   </Link>
                 )
               )}
-              <div className="px-4 py-2.5 space-y-3">
+              <div data-mobile-nav-item className="px-4 py-2.5 space-y-3">
                 <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">外观</div>
                 <div className="flex gap-1 p-1 rounded-lg bg-muted">
                   <button

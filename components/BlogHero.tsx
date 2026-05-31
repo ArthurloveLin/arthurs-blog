@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import useSWR from 'swr'
 import type { StickyStackPreviewMessage } from '@/components/note-board/views/StickyStackPreview'
 import { NoteColorThemeProvider } from '@/components/note-board/contexts/NoteColorThemeContext'
@@ -60,6 +60,24 @@ function trimPreviewMessage(message: StickyStackPreviewMessage): StickyStackPrev
 export default function BlogHero({ guestbookBoard, initialGuestbookMessages, slogan }: BlogHeroProps) {
   const siteConfig = useSiteConfig()
   const [isWelcomeActive, setIsWelcomeActive] = useState(true)
+  // The two blob ornaments run an infinite 7s transform loop on desktop. Pause
+  // them while the hero is off-screen so they stop burning GPU on long pages —
+  // purely an optimization, so if IntersectionObserver is unavailable they just
+  // keep animating (the prior behavior). Mobile/reduced-motion already opt out
+  // via the `animate-blob` media query.
+  const heroRef = useRef<HTMLDivElement>(null)
+  const [blobsPaused, setBlobsPaused] = useState(false)
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      ([entry]) => setBlobsPaused(!entry.isIntersecting),
+      { rootMargin: '0px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+  const blobPauseClass = blobsPaused ? '[animation-play-state:paused]' : ''
   const guestbookPreviewFallback = useMemo(
     () => initialGuestbookMessages.slice(0, guestbookBoard.previewLimit).map(trimPreviewMessage),
     [guestbookBoard.previewLimit, initialGuestbookMessages],
@@ -107,10 +125,10 @@ export default function BlogHero({ guestbookBoard, initialGuestbookMessages, slo
   )
 
   return (
-    <div className="relative border-b border-border bg-background overflow-hidden">
+    <div ref={heroRef} className="relative border-b border-border bg-background overflow-hidden">
       {/* Blob Ornaments */}
-      <div className="absolute top-0 left-1/4 w-72 h-72 bg-blob-1 rounded-full filter blur-2xl opacity-40 animate-blob pointer-events-none"></div>
-      <div className="absolute -top-10 right-1/4 w-72 h-72 bg-blob-2 rounded-full filter blur-2xl opacity-40 animate-blob animation-delay-2000 pointer-events-none"></div>
+      <div className={`absolute top-0 left-1/4 w-72 h-72 bg-blob-1 rounded-full filter blur-2xl opacity-40 animate-blob pointer-events-none ${blobPauseClass}`}></div>
+      <div className={`absolute -top-10 right-1/4 w-72 h-72 bg-blob-2 rounded-full filter blur-2xl opacity-40 animate-blob animation-delay-2000 pointer-events-none ${blobPauseClass}`}></div>
 
       <div className="site-shell-triad relative z-10 pt-14 pb-12 lg:pt-20 lg:pb-16">
         <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[100px] md:inset-0 md:h-full flex items-center justify-center">

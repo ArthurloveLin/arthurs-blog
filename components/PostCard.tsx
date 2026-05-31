@@ -65,6 +65,12 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
           ) : (
             <div className="h-full w-full default-cover-bg transition-transform duration-500 group-hover:scale-105" />
           )}
+          {/* Hover depth: a bottom-up scrim fades in so the cover reads as lifting
+              toward the viewer alongside the card's -translate-y. Pure CSS, inert. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-black/0 to-black/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+          />
         </div>
       </ViewTransition>
 
