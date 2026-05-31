@@ -49,7 +49,7 @@ export default function SessionHeader({ session, templateConfig }: SessionHeader
 
   if (isEditing) {
     return (
-      <div className="bg-white/45 border border-black/10 rounded-[18px] p-6 shadow-xl mb-6 animate-in fade-in slide-in-from-top-2 duration-200 ring-2 ring-primary/20">
+      <div className="bg-card border border-border rounded-[18px] p-6 shadow-xl mb-6 animate-in fade-in slide-in-from-top-2 duration-200 ring-2 ring-primary/20">
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2">
@@ -60,7 +60,7 @@ export default function SessionHeader({ session, templateConfig }: SessionHeader
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={`例如：2024 ${templateConfig?.name || '新'}评价清单`}
-                className="w-full px-4 py-2.5 bg-white/55 border border-black/10 rounded-xl text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-medium"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-medium"
               />
             </div>
             <div className="col-span-1">
@@ -70,7 +70,7 @@ export default function SessionHeader({ session, templateConfig }: SessionHeader
                 value={budget}
                 onChange={(e) => setBudget(e.target.value)}
                 placeholder="无限制"
-                className="w-full px-4 py-2.5 bg-white/55 border border-black/10 rounded-xl text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-medium"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-medium"
               />
             </div>
           </div>
@@ -81,20 +81,20 @@ export default function SessionHeader({ session, templateConfig }: SessionHeader
               onChange={(e) => setNote(e.target.value)}
               placeholder="添加一些背景信息或评价标准..."
               rows={2}
-              className="w-full px-4 py-2.5 bg-white/55 border border-black/10 rounded-xl text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all resize-none font-medium"
+              className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all resize-none font-medium"
             />
           </div>
           <div className="flex gap-3 pt-2">
             <button
               onClick={() => setIsEditing(false)}
-              className="flex-1 py-2.5 text-sm font-bold text-muted-foreground bg-muted hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-xl transition-colors uppercase tracking-wider"
+              className="flex-1 py-2.5 text-sm font-bold text-muted-foreground bg-muted hover:bg-muted-foreground/15 rounded-xl transition-colors uppercase tracking-wider"
             >
               取消
             </button>
             <button
               disabled={loading}
               onClick={handleSave}
-              className="flex-1 py-2.5 text-sm font-bold text-white bg-slate-900 hover:opacity-90 rounded-xl transition-opacity shadow-lg shadow-black/5 disabled:bg-slate-300 disabled:opacity-50 uppercase tracking-wider"
+              className="flex-1 py-2.5 text-sm font-bold text-primary-foreground bg-primary hover:opacity-90 rounded-xl transition-opacity shadow-lg shadow-black/5 disabled:opacity-50 uppercase tracking-wider"
             >
               {loading ? '保存中...' : '确认保存'}
             </button>

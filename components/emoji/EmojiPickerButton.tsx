@@ -138,10 +138,10 @@ export default function EmojiPickerButton({
         title={title}
         onClick={() => setOpen((current) => !current)}
         className={[
-          'inline-flex items-center justify-center rounded-full border text-slate-700 transition hover:text-slate-950',
+          'inline-flex items-center justify-center rounded-full border text-muted-foreground transition hover:text-foreground',
           triggerVariant === 'bare'
-            ? 'border-transparent bg-transparent hover:bg-black/5'
-            : 'border-black/10 bg-white/70 hover:bg-white',
+            ? 'border-transparent bg-transparent hover:bg-foreground/5'
+            : 'border-border bg-card hover:bg-muted',
           size === 'sm' ? 'h-6 w-6' : 'h-8 w-8',
           triggerClassName,
         ].filter(Boolean).join(' ')}
@@ -152,14 +152,14 @@ export default function EmojiPickerButton({
       {open && canUsePortal && panelStyle ? createPortal(
         <div
           ref={panelRef}
-          className="fixed z-[260] overflow-hidden rounded-[24px] border border-black/10 bg-white/92 shadow-[0_22px_60px_-24px_rgba(15,23,42,0.45)] backdrop-blur-xl"
+          className="fixed z-[260] overflow-hidden rounded-[24px] border border-border bg-card shadow-[0_22px_60px_-24px_rgba(15,23,42,0.45)]"
           style={{
             bottom: panelStyle.bottom,
             left: panelStyle.left,
             width: panelStyle.width,
           }}
         >
-          <div className="border-b border-black/6 px-3 py-3">
+          <div className="border-b border-border px-3 py-3">
             <label htmlFor={searchId} className="sr-only">搜索 emoji</label>
             <input
               id={searchId}
@@ -169,18 +169,18 @@ export default function EmojiPickerButton({
                 setCurrentPage(0)
               }}
               placeholder="搜索表情、关键词或分类…"
-              className="w-full rounded-full border border-black/10 bg-white/70 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-full border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
           {!emojiSections ? (
-            <div className="flex items-center justify-center py-10 text-sm text-slate-400">
+            <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
               加载中…
             </div>
           ) : (
             <>
               {!isSearching && sections.length > 0 ? (
-                <div className="border-b border-black/6 px-3 py-2">
+                <div className="border-b border-border px-3 py-2">
                   <div className="flex flex-wrap gap-1 pb-1">
                     {sections.map((section) => (
                       <button
@@ -193,8 +193,8 @@ export default function EmojiPickerButton({
                         className={[
                           'rounded-full px-3 py-1.5 text-[11px] font-medium transition',
                           activeSection?.id === section.id
-                            ? 'bg-slate-900 text-white shadow-[0_10px_24px_-18px_rgba(15,23,42,0.9)]'
-                            : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900',
+                            ? 'bg-primary text-primary-foreground shadow-[0_10px_24px_-18px_rgba(15,23,42,0.9)]'
+                            : 'bg-muted text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground',
                         ].join(' ')}
                       >
                         {section.label}
@@ -209,10 +209,10 @@ export default function EmojiPickerButton({
                   {visibleItems.length > 0 ? (
                     <section>
                       <div className="mb-2 flex items-center justify-between px-1">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                           {isSearching ? '搜索结果' : activeSection?.label}
                         </p>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-[11px] text-muted-foreground">
                           {visiblePage + 1} / {totalPages}
                         </p>
                       </div>
@@ -222,7 +222,7 @@ export default function EmojiPickerButton({
                             key={`${item.categoryId}-${item.id}`}
                             type="button"
                             title={`${item.emoji} ${item.name}`}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-transparent text-[22px] transition hover:border-black/6 hover:bg-slate-100 focus:border-primary/20 focus:bg-slate-100 focus:outline-none"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-transparent text-[22px] transition hover:border-border hover:bg-muted focus:border-primary/20 focus:bg-muted focus:outline-none"
                             onClick={() => {
                               onSelect(item.emoji)
                               setOpen(false)
@@ -234,7 +234,7 @@ export default function EmojiPickerButton({
                         ))}
                       </div>
                       {isSearching ? (
-                        <div className="mt-3 rounded-[18px] bg-slate-50/80 px-3 py-2 text-[11px] text-slate-500">
+                        <div className="mt-3 rounded-[18px] bg-muted px-3 py-2 text-[11px] text-muted-foreground">
                           当前结果覆盖 {sections.length} 个分类。
                         </div>
                       ) : null}
@@ -242,29 +242,29 @@ export default function EmojiPickerButton({
                   ) : null}
 
                   {visibleItems.length === 0 ? (
-                    <div className="rounded-[20px] border border-dashed border-black/10 bg-slate-50/70 px-4 py-6 text-center text-sm text-slate-500">
+                    <div className="rounded-[20px] border border-dashed border-border bg-muted/50 px-4 py-6 text-center text-sm text-muted-foreground">
                       没找到匹配的 emoji。
                     </div>
                   ) : null}
 
                   {visibleItems.length > 0 && totalPages > 1 ? (
-                    <div className="flex items-center justify-between gap-3 rounded-[18px] border border-black/6 bg-slate-50/80 px-2 py-2">
+                    <div className="flex items-center justify-between gap-3 rounded-[18px] border border-border bg-muted px-2 py-2">
                       <button
                         type="button"
                         onClick={() => setCurrentPage(Math.max(0, visiblePage - 1))}
                         disabled={visiblePage === 0}
-                        className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-black/8 bg-white px-2 text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-35"
+                        className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-border bg-card px-2 text-muted-foreground transition disabled:cursor-not-allowed disabled:opacity-35"
                       >
                         <ChevronLeft size={14} strokeWidth={1.9} />
                       </button>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-[11px] text-muted-foreground">
                         {isSearching ? `第 ${visiblePage + 1} 页，共 ${searchItems.length} 个结果` : `本类第 ${visiblePage + 1} 页`}
                       </p>
                       <button
                         type="button"
                         onClick={() => setCurrentPage(Math.min(totalPages - 1, visiblePage + 1))}
                         disabled={visiblePage >= totalPages - 1}
-                        className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-black/8 bg-white px-2 text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-35"
+                        className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-border bg-card px-2 text-muted-foreground transition disabled:cursor-not-allowed disabled:opacity-35"
                       >
                         <ChevronRight size={14} strokeWidth={1.9} />
                       </button>

@@ -171,7 +171,7 @@ function renderInlineFormattedText(text: string, keyPrefix: string): ReactNode[]
     }
 
     if (token.startsWith('**') && token.endsWith('**')) {
-      nodes.push(<strong key={`${keyPrefix}-strong-${index}`} className="font-semibold text-slate-900">{token.slice(2, -2)}</strong>)
+      nodes.push(<strong key={`${keyPrefix}-strong-${index}`} className="font-semibold text-foreground">{token.slice(2, -2)}</strong>)
     } else if (token.startsWith('*') && token.endsWith('*')) {
       nodes.push(<em key={`${keyPrefix}-em-${index}`} className="italic">{token.slice(1, -1)}</em>)
     } else if (token.startsWith('==') && token.endsWith('==')) {
@@ -199,7 +199,7 @@ function CommentComposerShell({
   actionBar: ReactNode
   onSubmit?: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
-  const className = 'overflow-hidden rounded-[18px] border border-black/10 bg-white/45 transition-all focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20'
+  const className = 'overflow-hidden rounded-[18px] border border-border bg-card transition-all focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20'
 
   if (onSubmit) {
     return (
@@ -272,7 +272,7 @@ function CommentEditorForm({
               </button>
               <button
                 type="button"
-                className="rounded-full bg-slate-900 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white transition hover:opacity-90 disabled:bg-slate-300"
+                className="rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
                 onClick={onSave}
                 disabled={isSaving || !value.trim()}
               >
@@ -296,7 +296,7 @@ function CommentEditorForm({
           已输入 {value.length} 字，还剩 {Math.max(COMMENT_MAX_LENGTH - value.length, 0)} 字
         </span>
       </div>
-      {error ? <p className="px-3 pb-3 text-xs text-rose-600">{error}</p> : null}
+      {error ? <p className="px-3 pb-3 text-xs text-destructive">{error}</p> : null}
     </CommentComposerShell>
   )
 }
@@ -329,8 +329,8 @@ function CommentIconButton({
       title={label}
       onClick={onClick}
       className={[
-        'inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white/65 text-slate-500 transition-all duration-200 hover:-translate-y-px hover:bg-white',
-        tone === 'danger' ? 'hover:border-rose-200 hover:text-rose-600' : 'hover:border-slate-300 hover:text-slate-900',
+        'inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-all duration-200 hover:-translate-y-px hover:bg-muted',
+        tone === 'danger' ? 'hover:border-destructive/30 hover:text-destructive' : 'hover:border-border hover:text-foreground',
       ].join(' ')}
     >
       {children}
@@ -392,9 +392,9 @@ function CommentCard({ comment }: { comment: Comment }) {
 
   return (
     <div className={['flex gap-2 items-start', comment.optimistic ? 'animate-in fade-in slide-in-from-bottom-2 duration-300' : ''].filter(Boolean).join(' ')}>
-      <div className="flex-1 rounded-[18px] border border-black/5 bg-white/35 px-3.5 py-3 shadow-[0_4px_12px_-6px_rgba(0,0,0,0.06)] transition-all hover:bg-white/50">
+      <div className="flex-1 rounded-[18px] border border-border bg-muted/40 px-3.5 py-3 shadow-[0_4px_12px_-6px_rgba(0,0,0,0.06)] transition-all hover:bg-muted/60">
         <div className="mb-2 flex items-start justify-between gap-3">
-          <span className="pt-1 text-[10px] font-bold uppercase tracking-tight text-slate-800">{comment.author}</span>
+          <span className="pt-1 text-[10px] font-bold uppercase tracking-tight text-foreground">{comment.author}</span>
           <div className="flex min-h-8 items-center justify-end gap-1.5">
             {editable && !isEditing ? (
               confirmDelete ? (
@@ -432,7 +432,7 @@ function CommentCard({ comment }: { comment: Comment }) {
             error={error}
           />
         ) : (
-          <div className="w-full whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-800">
+          <div className="w-full whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
             {comment.content.split('\n').map((line, index) => (
               <p key={`${comment.id}-l-${index}`}>
                 {line.length > 0 ? renderInlineFormattedText(line, `${comment.id}-${index}`) : <span>&nbsp;</span>}
@@ -448,7 +448,7 @@ function CommentCard({ comment }: { comment: Comment }) {
           />
         ) : null}
         <div className="mt-3 flex items-end justify-between gap-3">
-          <div className="inline-flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+          <div className="inline-flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
             <Clock3 size={12} strokeWidth={1.9} />
             <span>{formatCommentTimeLabel(comment.created_at, comment.updated_at)}</span>
           </div>
@@ -601,9 +601,9 @@ function CommentThreadComposer() {
             )}
             trailing={(
               error ? (
-                <span className="flex items-center gap-1.5 text-[11px] text-rose-500">
+                <span className="flex items-center gap-1.5 text-[11px] text-destructive">
                   <span className="max-w-[200px] truncate">{error}</span>
-                  <button type="button" className="shrink-0 transition hover:text-rose-700" onClick={onClearError}>
+                  <button type="button" className="shrink-0 transition hover:opacity-70" onClick={onClearError}>
                     <X size={12} />
                   </button>
                 </span>
@@ -611,7 +611,7 @@ function CommentThreadComposer() {
                 <button
                   type="submit"
                   disabled={submitting || !draft.trim()}
-                  className="rounded-full bg-slate-900 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white transition-all hover:opacity-90 disabled:opacity-30 disabled:bg-slate-400"
+                  className="rounded-full bg-primary px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-primary-foreground transition-all hover:opacity-90 disabled:opacity-30"
                 >
                   {submitting ? '发送中' : '发送'}
                 </button>
