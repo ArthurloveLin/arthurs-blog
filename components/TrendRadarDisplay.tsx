@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { Clock } from "lucide-react";
 import type {
   TrendRadarData,
   HotKeyword,
@@ -566,10 +567,7 @@ export default function TrendRadarDisplay({
                       : "bg-muted/40 text-muted-foreground border-transparent",
                   )}
                 >
-                  <svg className="w-3 h-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <Clock className="w-3 h-3 opacity-60" strokeWidth={2} />
                   {item.date} {item.time}
                 </a>
               );
@@ -700,19 +698,7 @@ export default function TrendRadarDisplay({
                             : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                         )}
                       >
-                        <svg
-                          className="w-3 h-3 mt-0.5 shrink-0 opacity-60"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
+                        <Clock className="w-3 h-3 mt-0.5 shrink-0 opacity-60" strokeWidth={2} />
                         <div className="min-w-0">
                           <div className="text-[11px] lg:text-[13px] font-mono font-medium">{item.date}</div>
                           <div className="text-[10px] lg:text-[12px] font-mono opacity-60">{item.time}</div>
