@@ -8,6 +8,7 @@ import type { SpotifyTimeRange, SpotifyTopArtist } from '@/lib/spotify-types'
 import { spotifyImg } from '@/lib/spotify-img'
 import SpotifyTimeRangeTabs from './SpotifyTimeRangeTabs'
 import styles from './SpotifyTopArtistsPanel.module.css'
+import { EYEBROW } from '@/components/cardSurface'
 
 function chunkArtists(arr: SpotifyTopArtist[], size: number): SpotifyTopArtist[][] {
   const groups: SpotifyTopArtist[][] = []
@@ -122,7 +123,7 @@ export default function SpotifyTopArtistsPanel({
     <section className="rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60px_rgba(0,0,0,0.05)]">
       <div className="flex flex-col gap-4">
         <div className="w-full">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{copy.eyebrow}</p>
+          <p className={`${EYEBROW} text-[11px]`}>{copy.eyebrow}</p>
           <div className="mt-1 flex items-center justify-between gap-4">
             <h3 className="text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h3>
             <div className="shrink-0">

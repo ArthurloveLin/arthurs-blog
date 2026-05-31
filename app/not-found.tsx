@@ -21,7 +21,7 @@ export default function NotFound() {
       />
 
       <div className="relative z-10 flex flex-col items-center">
-        <p className={`${EYEBROW} mb-6`}>Error · 404</p>
+        <p className={`${EYEBROW} text-[10px] mb-6`}>Error · 404</p>
         <h1 className="text-gradient-primary text-7xl font-bold leading-none tracking-tight sm:text-8xl">
           404
         </h1>

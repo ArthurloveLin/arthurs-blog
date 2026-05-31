@@ -61,7 +61,7 @@ export default function TableOfContents({ content }: { content: string }) {
 
   return (
     <div className={`${CARD_SURFACE} p-5`}>
-      <h3 className={`${EYEBROW} mb-4`}>
+      <h3 className={`${EYEBROW} text-[10px] mb-4`}>
         目录
       </h3>
       <nav className="max-h-[60vh] overflow-y-auto custom-scrollbar">

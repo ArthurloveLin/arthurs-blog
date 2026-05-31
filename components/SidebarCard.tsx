@@ -13,7 +13,7 @@ import { CARD_SURFACE, EYEBROW } from './cardSurface'
 
 const CARD_CLASS = `${CARD_SURFACE} p-5`
 
-const TITLE_CLASS = EYEBROW
+const TITLE_CLASS = `${EYEBROW} text-[10px]`
 
 interface SidebarCardProps {
   title?: ReactNode

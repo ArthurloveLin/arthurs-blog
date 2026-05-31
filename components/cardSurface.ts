@@ -21,6 +21,11 @@ export const CARD_SURFACE_STATIC = SURFACE_BASE
 /**
  * Canonical mono-uppercase eyebrow / section label. Replaces the ~16 different
  * letter-spacing values that the same label pattern had drifted into.
+ *
+ * Size-free on purpose (like the typo-* roles): the same eyebrow ships at 10px
+ * (sidebar / TOC) and 11px (hero / spotify panels), so the caller appends the
+ * size — `${EYEBROW} text-[11px]`. Don't bake a size back in; that reintroduces
+ * the text-size conflict this split removed.
  */
 export const EYEBROW =
-  'font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground'
+  'font-mono uppercase tracking-[0.18em] text-muted-foreground'

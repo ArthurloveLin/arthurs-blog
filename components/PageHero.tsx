@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import HandwrittenSloganClient from '@/components/HandwrittenSloganClient'
+import { EYEBROW } from '@/components/cardSurface'
 
 const SLOGAN_SIGNATURE_SEPARATOR = '::'
 
@@ -60,7 +61,7 @@ export default function PageHero({
 
         <div className="relative z-10">
           {subtitle && (
-             <p className={`mb-4 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-opacity duration-700 ${isSloganActive ? 'max-md:opacity-0' : 'max-md:opacity-100'}`}>
+             <p className={`mb-4 ${EYEBROW} text-[11px] transition-opacity duration-700 ${isSloganActive ? 'max-md:opacity-0' : 'max-md:opacity-100'}`}>
                {subtitle}
              </p>
           )}

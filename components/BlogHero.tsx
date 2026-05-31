@@ -10,6 +10,7 @@ import { createCommentRecord, type Comment } from '@/lib/comments'
 import { fetchEngagementPublicApi } from '@/lib/engagement-public-api'
 import { createGuestbookMessagesFromComments } from '@/lib/guestbook-comments'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
+import { EYEBROW } from '@/components/cardSurface'
 
 const StickyStackPreview = dynamic(
   () => import('@/components/note-board/views/StickyStackPreview').then((m) => ({ default: m.StickyStackPreview })),
@@ -136,7 +137,7 @@ export default function BlogHero({ guestbookBoard, initialGuestbookMessages, slo
         </div>
 
         <div className="relative z-10">
-          <p className={`mb-5 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-opacity duration-700 ${isWelcomeActive ? 'max-md:opacity-0' : 'max-md:opacity-100'}`}>
+          <p className={`mb-5 ${EYEBROW} text-[11px] transition-opacity duration-700 ${isWelcomeActive ? 'max-md:opacity-0' : 'max-md:opacity-100'}`}>
             {siteConfig.site_subtitle || 'Arthur & Grace · Journal'}
           </p>
           <h1 className="max-w-lg text-[2.25rem] font-bold leading-[1.2] tracking-tight text-foreground lg:text-[2.75rem]">

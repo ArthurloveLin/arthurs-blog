@@ -9,6 +9,7 @@ import type { SpotifySavedAlbum } from '@/lib/spotify-types'
 import { spotifyImg } from '@/lib/spotify-img'
 import { formatStableDate } from '@/lib/date-format'
 import styles from './SpotifyVinylAlbumsPanel.module.css'
+import { EYEBROW } from '@/components/cardSurface'
 
 const DEFAULT_PAGE_SIZE = 6
 
@@ -92,7 +93,7 @@ export default function SpotifyVinylAlbumsPanel({
 
   return (
     <section className="scroll-mt-24 rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60px_rgba(0,0,0,0.05)] overflow-visible">
-      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{copy.eyebrow}</p>
+      <p className={`${EYEBROW} text-[11px]`}>{copy.eyebrow}</p>
       <h3 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
         {copy.description} {items.length > 0 ? `${rangeLabel}，共 ${total} 张。` : ''}

@@ -32,6 +32,7 @@ import {
 import type { MemoHabitItemDetail, MemoHabitOverview } from '@/lib/memo-habits'
 import type { MemoAgendaItem, NoteMessage } from '@/lib/note-boards'
 import { getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
+import { EYEBROW } from '@/components/cardSurface'
 export { StickyStackPreview } from '@/components/note-board/views/StickyStackPreview'
 
 const MemosStreamView = dynamic(
@@ -647,7 +648,7 @@ function NoteBoardEditorSection({ autoFocusOnEdit = false }: { autoFocusOnEdit?:
     <section ref={bindEditorSection} className="rounded-[28px] border border-border/60 bg-card/95 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)]">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{state.editorSectionLabel}</p>
+          <p className={`${EYEBROW} text-[11px]`}>{state.editorSectionLabel}</p>
         </div>
         <p className="text-xs text-muted-foreground">当前身份：{state.loadingIdentity ? '加载中…' : state.viewerIdentity}</p>
       </div>

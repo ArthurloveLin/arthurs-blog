@@ -29,7 +29,7 @@ export default function Error({
       />
 
       <div className="relative z-10 flex flex-col items-center">
-        <p className={`${EYEBROW} mb-6`}>Error · 500</p>
+        <p className={`${EYEBROW} text-[10px] mb-6`}>Error · 500</p>
         <h1 className="text-gradient-primary text-6xl font-bold leading-none tracking-tight sm:text-7xl">
           出错了
         </h1>

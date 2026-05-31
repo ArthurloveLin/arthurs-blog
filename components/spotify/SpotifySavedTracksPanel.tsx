@@ -8,6 +8,7 @@ import { formatStableDate } from '@/lib/date-format'
 import { getSpotifyPublicApiUrl } from '@/lib/spotify-public-api'
 import SpotifyTrackWall from './SpotifyTrackWallLazy'
 import { useSpotifyCollectionPagination } from './useSpotifyCollectionPagination'
+import { EYEBROW } from '@/components/cardSurface'
 
 function formatLocalDateTime(iso: string) {
   return formatStableDate(iso, {
@@ -96,7 +97,7 @@ function SpotifySavedTracksPanelContent({
     <section id="saved-tracks" className="scroll-mt-24 rounded-[28px] border border-border/60 bg-card/95 p-4 sm:p-6 shadow-[0_18px_60px_rgba(0,0,0,0.05)]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{copy.eyebrow}</p>
+          <p className={`${EYEBROW} text-[11px]`}>{copy.eyebrow}</p>
           <div className="mt-1 flex items-center gap-3">
             <h3 className="text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h3>
             <span className="rounded-full bg-foreground px-2.5 py-0.5 text-xs font-medium text-background shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
