@@ -25,6 +25,7 @@ import {
 const ThemeToggle = dynamic(() => import('./ThemeToggle'), { ssr: false })
 const MarkdownThemePicker = dynamic(() => import('./MarkdownThemePicker'), { ssr: false })
 const SiteThemePicker = dynamic(() => import('./SiteThemePicker'), { ssr: false })
+const HeroVariantPicker = dynamic(() => import('./HeroVariantPicker'), { ssr: false })
 import MobileDrawers, { preloadMobileDrawerModules } from './MobileDrawers'
 import { NavbarUiStateProvider, useNavbarUiState, type DrawerType } from './NavbarUiState'
 import { ChangelogBadge } from './ChangelogBadge'
@@ -668,6 +669,8 @@ function NavbarContent() {
                 <SiteThemePicker />
                 <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">文字主题</div>
                 <MarkdownThemePicker />
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">首页样式</div>
+                <HeroVariantPicker />
               </div>
               <NavMobileAuthSection onClose={closeMobileNavigation} />
             </div>

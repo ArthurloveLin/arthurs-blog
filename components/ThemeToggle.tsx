@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic'
 
 const MarkdownThemePicker = dynamic(() => import('@/components/MarkdownThemePicker'), { ssr: false })
 const SiteThemePicker = dynamic(() => import('@/components/SiteThemePicker'), { ssr: false })
+const HeroVariantPicker = dynamic(() => import('@/components/HeroVariantPicker'), { ssr: false })
 
 export default function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
@@ -87,6 +88,14 @@ export default function ThemeToggle() {
               文字主题
             </p>
             <MarkdownThemePicker />
+          </div>
+
+          {/* Homepage hero layout */}
+          <div className="mt-1 pt-1 border-t border-border/60">
+            <p className="px-3 pt-0.5 pb-0.5 text-[10px] font-medium text-muted-foreground/70 uppercase tracking-widest">
+              首页样式
+            </p>
+            <HeroVariantPicker />
           </div>
         </div>
       )}

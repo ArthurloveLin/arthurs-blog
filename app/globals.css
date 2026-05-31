@@ -1473,6 +1473,66 @@ html {
   animation-delay: 4s;
 }
 
+/* ── Terminal hero variant ────────────────────────────────────────────
+   Theme-token driven so it works under every site-theme hue × light/dark.
+   Rows fade up in sequence; ASCII command text types in with steps();
+   the prompt caret blinks. All disabled under prefers-reduced-motion. */
+.hero-term-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--border) 60%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--border) 60%, transparent) 1px, transparent 1px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 100%);
+          mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 100%);
+  opacity: 0.5;
+}
+
+@keyframes hero-term-line {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+.hero-term-line {
+  animation: hero-term-line 0.4s ease-out backwards;
+}
+
+/* `from { width: 0 }` only — the row's natural Nch width is the implicit `to`.
+   backwards fill keeps it collapsed through animation-delay so it never flashes
+   full before typing. Timing-function steps(N) is set inline per element. */
+@keyframes hero-term-type {
+  from { width: 0; }
+}
+.hero-term-typed {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  animation-name: hero-term-type;
+  animation-duration: 0.5s;
+  animation-fill-mode: backwards;
+}
+
+@keyframes hero-term-caret {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.hero-term-caret {
+  animation: hero-term-caret 1s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-term-line,
+  .hero-term-typed {
+    animation: none !important;
+  }
+  .hero-term-typed {
+    width: auto !important;
+  }
+  .hero-term-caret {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* Duel Animations */
 @keyframes slide-in-left {
   from { transform: translateX(-100%) rotate(-5deg); opacity: 0; }
