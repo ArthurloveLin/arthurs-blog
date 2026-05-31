@@ -85,6 +85,12 @@ Use Claude's execution speed as the reference — not human hours. A task that t
 
 Before implementing, **state your interpretation** if a request could be read multiple ways. Don't pick silently — present the options and confirm. (See also: High-Blast-Radius Zones in `AGENT.md`.)
 
+### No dev/build servers, no self-driven visual verification
+
+**Do not start `npm run dev`, `npm run build`, or any server/browser yourself** (no headless Chromium, screenshots, `next dev/start`, etc.). The user runs the app and owns visual verification — leave it to them. On this machine these are also costly: the filesystem is slow (cold compiles take minutes) and Turbopack panics under rapid route churn, and ports 3000/3001 belong to the user's own long-running services.
+
+To verify your work, rely on **static checks only**: `npx tsc --noEmit` and `npx eslint <changed files>` (or `npm run check`). If a change genuinely needs runtime/visual confirmation, **hand it to the user** with exact steps rather than launching anything. If you ever truly must run a server, ask first and use an explicit isolated port (e.g. `next dev -p 4010`).
+
 ### Worktree creation (Claude only)
 
 **Do not create a git worktree by default.** Work directly in the current checkout. Only create one when the user **explicitly** asks (e.g., "用 worktree", "新建 worktree", "in a worktree"). Spawning a sub-agent does not by itself imply a worktree.

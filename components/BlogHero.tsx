@@ -1,14 +1,15 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import HeroAurora from '@/components/hero/HeroAurora'
+import HeroTerminal from '@/components/hero/HeroTerminal'
 import type { HeroVariantProps } from '@/components/hero/hero-props'
 import { useHeroVariant } from '@/hooks/useHeroVariant'
 
-// Aurora is the SSR/LCP default (statically imported so it renders server-side).
-// Terminal is the opt-in variant — ssr:false, so its code only ships once a
-// visitor has actually selected it.
-const HeroTerminal = dynamic(() => import('@/components/hero/HeroTerminal'), { ssr: false })
+// Both skins are statically imported (no ssr:false): the heavy, optional parts
+// (Live2D, the Spotify now-playing chip) are lazy *inside* HeroTerminal, so the
+// skin module itself is light. Importing it directly makes the post-hydration
+// swap instant — previously ssr:false left the hero blank while its chunk (which
+// drags in SpotifyProvider) downloaded, which read as a load hang.
 
 export type BlogHeroProps = HeroVariantProps
 
