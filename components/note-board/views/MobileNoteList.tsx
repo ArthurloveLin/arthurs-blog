@@ -38,7 +38,7 @@ function MobileNoteListItem({ item }: { item: NoteCardViewModel }) {
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">{message.author}</span>
           {message.visibility === 'admin_only' ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
               <Lock size={9} strokeWidth={2.2} />
               仅管理员
             </span>

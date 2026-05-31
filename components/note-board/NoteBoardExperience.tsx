@@ -493,7 +493,7 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
                   className={[
                     'relative flex aspect-square w-full items-center justify-center rounded-[0.55rem] text-[0.78rem] font-medium transition-all',
                     isSelected
-                      ? 'bg-slate-900 font-bold text-white shadow-[0_4px_10px_rgba(15,23,42,0.22)]'
+                      ? 'bg-primary font-bold text-primary-foreground shadow-[0_4px_10px_rgba(15,23,42,0.22)]'
                       : isToday
                         ? 'font-bold text-foreground ring-1 ring-border hover:bg-accent'
                         : isPast
@@ -567,7 +567,7 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
                     className={[
                       'rounded-full border px-2.5 py-0.5 text-[11px] transition-all',
                       repeatMode === opt.value
-                        ? 'border-slate-900 bg-slate-900 text-white'
+                        ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border/60 text-muted-foreground hover:bg-muted/40',
                     ].join(' ')}
                   >
@@ -588,7 +588,7 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
                         )}
                         className={[
                           'flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-medium transition-all',
-                          active ? 'bg-slate-900 text-white' : 'border border-border/60 text-muted-foreground hover:bg-muted/40',
+                          active ? 'bg-primary text-primary-foreground' : 'border border-border/60 text-muted-foreground hover:bg-muted/40',
                         ].join(' ')}
                       >
                         {lbl}
@@ -622,7 +622,7 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
               type="button"
               disabled={!selectedDay || (repeatMode === 'custom' && customDays.length === 0)}
               onClick={handleInsert}
-              className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-[11px] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+              className="rounded-full border border-primary bg-primary px-3 py-1 text-[11px] text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
             >
               插入提醒
             </button>

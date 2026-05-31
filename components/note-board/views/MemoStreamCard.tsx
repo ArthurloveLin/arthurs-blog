@@ -139,7 +139,7 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
           <div className="flex items-center gap-2">
             <p className="text-[14px] font-medium leading-none text-[color:var(--memo-local-card-text)]">{message.author}</p>
             {message.visibility === 'admin_only' ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
                 <Lock size={9} strokeWidth={2.2} />
                 仅管理员
               </span>
@@ -292,10 +292,10 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
           <div className={[
             'mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
             variant === 'overdue'
-              ? 'bg-red-100/80 text-red-600'
+              ? 'bg-red-500/15 text-red-600 dark:text-red-400'
               : variant === 'soon'
-                ? 'bg-amber-100/80 text-amber-600'
-                : 'bg-slate-100/80 text-slate-500',
+                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                : 'bg-slate-500/15 text-slate-500 dark:text-slate-400',
           ].join(' ')}>
             <AlarmClock size={10} strokeWidth={2} />
             {label}
