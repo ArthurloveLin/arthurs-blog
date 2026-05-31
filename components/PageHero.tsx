@@ -42,8 +42,8 @@ export default function PageHero({
 
   return (
     <div className="relative border-b border-border bg-background overflow-hidden">
-      <div className={`absolute top-0 left-1/4 w-72 h-72 ${blobColors[0]} rounded-full filter blur-2xl opacity-50 animate-blob pointer-events-none`}></div>
-      <div className={`absolute -top-10 right-1/4 w-72 h-72 ${blobColors[1]} rounded-full filter blur-2xl opacity-50 animate-blob animation-delay-2000 pointer-events-none`}></div>
+      <div className={`absolute top-0 left-1/4 w-72 h-72 ${blobColors[0]} rounded-full filter blur-2xl opacity-40 animate-blob pointer-events-none`}></div>
+      <div className={`absolute -top-10 right-1/4 w-72 h-72 ${blobColors[1]} rounded-full filter blur-2xl opacity-40 animate-blob animation-delay-2000 pointer-events-none`}></div>
 
       <div className={`${containerClass} relative pt-14 pb-12 lg:pt-20 lg:pb-16 z-10`}>
         {slogan && (

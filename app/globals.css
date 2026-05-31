@@ -606,11 +606,9 @@
 }
 .text-gradient-primary {
   background: var(--gradient-primary);
-  background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: animate-gradient 5s ease infinite;
 }
 
 .icon-glow-bg {

@@ -59,10 +59,10 @@ export default function BlogFeedSection({
   return (
     <section className="min-w-0 md:col-span-8 lg:col-span-1">
       {/* Feed header / Category filter banner */}
-      <div className="flex items-center justify-between mb-5 px-4 py-3 rounded-xl bg-card border border-border shadow-[3px_5px_30px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[3px_8px_36px_rgba(0,0,0,0.12)]">
+      <div className="flex items-center justify-between mb-5 px-4 py-3 rounded-xl bg-card border border-border/60 dark:border-white/10 shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-none">
         {activeCategory || activeTags.length > 0 || activeYear ? (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase">
+            <span className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase">
               {activeCategory ? '分类' : activeTags.length > 0 ? '标签' : '归档'}
             </span>
             <span className="text-sm font-medium text-foreground">
