@@ -6,7 +6,6 @@ import rehypeSlug from 'rehype-slug'
 import rehypeKatex from 'rehype-katex'
 import Image from 'next/image'
 import CodeBlock from '@/components/CodeBlock'
-import 'highlight.js/styles/github-dark.css'
 import 'katex/dist/katex.min.css'
 
 const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/

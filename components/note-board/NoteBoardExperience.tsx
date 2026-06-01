@@ -770,25 +770,37 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
       const noteStates = states[item.memoId]
       if (!noteStates) return item
 
-      const completedStates = Object.values(noteStates).filter((state) => state.status === 'completed')
+      const allStates = Object.values(noteStates)
       const itemTimeKey = getShanghaiTimeKey(item.dueAt)
+
+      // Case 1: completed today — keep the dot pinned to today until Shanghai midnight
+      const completedStates = allStates.filter((state) => state.status === 'completed')
       const matchedCompleted = completedStates.find(
         (state) => state.label === item.label && getShanghaiTimeKey(state.dueAt) === itemTimeKey,
       ) ?? completedStates.find((state) => state.label === item.label)
 
-      if (!matchedCompleted) {
-        return item
+      if (matchedCompleted && getShanghaiDateKey(matchedCompleted.dueAt) === todayKey) {
+        return { ...item, dueAt: matchedCompleted.dueAt, isNotified: true }
       }
 
-      if (getShanghaiDateKey(matchedCompleted.dueAt) !== todayKey) {
-        return item
+      // Case 2: a pending/scheduled/delayed occurrence exists on a different day than
+      // the @due tag (e.g. user postponed to 6.1 but the cron already advanced the tag
+      // to 6.2). Show the dot on the actual occurrence date so the calendar is correct.
+      const openStates = allStates.filter(
+        (state) => state.status === 'pending' || state.status === 'scheduled' || state.status === 'delayed',
+      )
+      const matchedOpen = openStates.find(
+        (state) => state.label === item.label && getShanghaiTimeKey(state.dueAt) === itemTimeKey,
+      ) ?? openStates.find((state) => state.label === item.label)
+
+      if (matchedOpen) {
+        const openDateKey = getShanghaiDateKey(matchedOpen.dueAt)
+        if (openDateKey !== getShanghaiDateKey(item.dueAt)) {
+          return { ...item, dueAt: matchedOpen.dueAt }
+        }
       }
 
-      return {
-        ...item,
-        dueAt: matchedCompleted.dueAt,
-        isNotified: true,
-      }
+      return item
     })
   }, [agendaItems, habitOverview])
 

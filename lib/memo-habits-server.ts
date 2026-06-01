@@ -718,6 +718,25 @@ export async function markSupersededMemoHabitOccurrencesAsMissed(noteId: string,
 }
 
 export async function upsertMemoHabitOccurrenceForReminder(note: MemoHabitNoteRow, item: MemoHabitChecklistItem, reminderSentAt: string) {
+  // For repeating habits, check if there is already an open (pending/delayed) occurrence
+  // on the same Shanghai calendar day. This prevents the cron from creating a duplicate
+  // when the user postponed to a different time on the same day — e.g. "明天同一时间"
+  // creates a row at 20:00, but the reminder's item.dueAt is 11:00 on the same day.
+  if (item.repeatMode !== 'once') {
+    const dayKey = toShanghaiDateKey(item.dueAt)
+    const { data: openRows } = await supabaseAdmin
+      .from('memo_habit_occurrences')
+      .select('id, due_at')
+      .eq('note_id', note.id)
+      .eq('item_key', item.itemKey)
+      .in('status', ['pending', 'delayed'])
+      .limit(20)
+
+    if ((openRows ?? []).some((row: { due_at: string }) => toShanghaiDateKey(row.due_at) === dayKey)) {
+      return
+    }
+  }
+
   const { data: existing } = await supabaseAdmin
     .from('memo_habit_occurrences')
     .select('id, status')

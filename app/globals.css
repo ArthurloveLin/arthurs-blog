@@ -1383,17 +1383,81 @@ html {
   --md-link: #22d3ee;
 }
 
-/* Always-dark code blocks — single visual layer */
+/* ── highlight.js theme tokens — light (github) / dark (github-dark)
+   Both themes are inlined here so they switch with the .dark class on <html>.
+   The github-dark.css import was removed from MarkdownRenderer to enable this. */
+
+/* Shared structural base */
+pre code.hljs { display: block; overflow-x: auto; padding: 1em; }
+code.hljs     { padding: 3px 5px; }
+
+/* Light mode tokens (github theme) */
+.hljs { color: #24292e; background: #f6f8fa; }
+.hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword,
+.hljs-template-tag, .hljs-template-variable, .hljs-type,
+.hljs-variable.language_                                  { color: #d73a49; }
+.hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__,
+.hljs-title.function_                                     { color: #6f42c1; }
+.hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta,
+.hljs-number, .hljs-operator, .hljs-variable,
+.hljs-selector-attr, .hljs-selector-class,
+.hljs-selector-id                                         { color: #005cc5; }
+.hljs-regexp, .hljs-string, .hljs-meta .hljs-string       { color: #032f62; }
+.hljs-built_in, .hljs-symbol                              { color: #e36209; }
+.hljs-comment, .hljs-code, .hljs-formula                  { color: #6a737d; }
+.hljs-name, .hljs-quote, .hljs-selector-tag,
+.hljs-selector-pseudo                                     { color: #22863a; }
+.hljs-subst                                               { color: #24292e; }
+.hljs-section                                             { color: #005cc5; font-weight: bold; }
+.hljs-bullet                                              { color: #735c0f; }
+.hljs-emphasis                                            { color: #24292e; font-style: italic; }
+.hljs-strong                                              { color: #24292e; font-weight: bold; }
+.hljs-addition                                            { color: #22863a; background-color: #f0fff4; }
+.hljs-deletion                                            { color: #b31d28; background-color: #ffeef0; }
+
+/* Dark mode tokens (github-dark theme) */
+.dark .hljs { color: #c9d1d9; background: #0d1117; }
+.dark .hljs-doctag, .dark .hljs-keyword,
+.dark .hljs-meta .hljs-keyword, .dark .hljs-template-tag,
+.dark .hljs-template-variable, .dark .hljs-type,
+.dark .hljs-variable.language_                            { color: #ff7b72; }
+.dark .hljs-title, .dark .hljs-title.class_,
+.dark .hljs-title.class_.inherited__,
+.dark .hljs-title.function_                               { color: #d2a8ff; }
+.dark .hljs-attr, .dark .hljs-attribute, .dark .hljs-literal,
+.dark .hljs-meta, .dark .hljs-number, .dark .hljs-operator,
+.dark .hljs-variable, .dark .hljs-selector-attr,
+.dark .hljs-selector-class, .dark .hljs-selector-id      { color: #79c0ff; }
+.dark .hljs-regexp, .dark .hljs-string,
+.dark .hljs-meta .hljs-string                             { color: #a5d6ff; }
+.dark .hljs-built_in, .dark .hljs-symbol                 { color: #ffa657; }
+.dark .hljs-comment, .dark .hljs-code, .dark .hljs-formula { color: #8b949e; }
+.dark .hljs-name, .dark .hljs-quote,
+.dark .hljs-selector-tag, .dark .hljs-selector-pseudo    { color: #7ee787; }
+.dark .hljs-subst                                         { color: #c9d1d9; }
+.dark .hljs-section                                       { color: #1f6feb; font-weight: bold; }
+.dark .hljs-bullet                                        { color: #f2cc60; }
+.dark .hljs-emphasis                                      { color: #c9d1d9; font-style: italic; }
+.dark .hljs-strong                                        { color: #c9d1d9; font-weight: bold; }
+.dark .hljs-addition                                      { color: #aff5b4; background-color: #033a16; }
+.dark .hljs-deletion                                      { color: #ffdcd7; background-color: #67060c; }
+
+/* Code block wrapper — light/dark adaptive */
 .code-block-wrapper {
   position: relative;
   margin: 1.25em 0;
   border-radius: 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  background: #161b22;
+  background: #f6f8fa;
 }
 
-/* Strip prose/tailwind defaults from pre so only code.hljs shows */
+.dark .code-block-wrapper {
+  background: #0d1117;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Strip prose/Tailwind typography defaults from pre */
 .code-block-wrapper pre {
   margin: 0 !important;
   padding: 0 !important;
@@ -1402,15 +1466,15 @@ html {
   border-radius: 0 !important;
 }
 
-/* Override github-dark.css's #0d1117 so there's no inner/outer color mismatch */
+/* Pin hljs background to match the wrapper in each mode */
 .code-block-wrapper pre code.hljs {
-  background: #161b22 !important;
+  background: #f6f8fa !important;
   border-radius: 0;
 }
 
-/* Dark mode override no longer needed — always dark */
-:where([class~="dark"]) .prose pre {
-  background-color: #161b22;
+.dark .code-block-wrapper pre code.hljs {
+  background: #0d1117 !important;
+  border-radius: 0;
 }
 
 /* Blob animations */
