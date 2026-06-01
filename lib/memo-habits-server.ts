@@ -59,6 +59,23 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const HISTORY_WINDOW_DAYS = 90
 const STALE_PENDING_MS = DAY_MS
 
+function getShanghaiDayOfWeek(ts: number): number {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Shanghai',
+    weekday: 'short',
+  }).formatToParts(new Date(ts))
+  const weekday = parts.find((p) => p.type === 'weekday')?.value ?? 'Sun'
+  return ({ Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 } as Record<string, number>)[weekday] ?? 0
+}
+
+function isScheduledOnDay(repeatMode: string | null | undefined, repeatDays: number[] | null | undefined, dow: number): boolean {
+  if (!repeatMode || repeatMode === 'once') return true
+  if (repeatMode === 'daily') return true
+  if (repeatMode === 'weekdays') return dow >= 1 && dow <= 5
+  if (repeatMode === 'custom') return (repeatDays ?? []).includes(dow)
+  return true
+}
+
 /**
  * For a repeating habit whose original due_at encodes a specific time-of-day
  * in Shanghai timezone, compute the ISO timestamp that represents that same
@@ -90,6 +107,26 @@ function computeTodayDueAt(originalDueAt: string, now: number): string {
 
   // Construct the datetime in Shanghai (+08:00) then convert to UTC ISO
   return new Date(`${year}-${month}-${day}T${hh}:${mm}:${ss}+08:00`).toISOString()
+}
+
+/**
+ * Returns the due_at for the next scheduled occurrence at or after `now`.
+ * Skips non-scheduled days (weekdays/custom repeat modes) so that a synthetic
+ * state never lands on a day the habit isn't meant to run.
+ */
+function computeNextScheduledDueAt(
+  originalDueAt: string,
+  repeatMode: string | null | undefined,
+  repeatDays: number[] | null | undefined,
+  now: number,
+): string {
+  for (let offset = 0; offset <= 7; offset++) {
+    const candidate = now + offset * DAY_MS
+    if (isScheduledOnDay(repeatMode, repeatDays, getShanghaiDayOfWeek(candidate))) {
+      return computeTodayDueAt(originalDueAt, candidate)
+    }
+  }
+  return computeTodayDueAt(originalDueAt, now)
 }
 
 function toShanghaiDateKey(ts: string) {
@@ -196,12 +233,12 @@ function buildCurrentState(noteId: string, item: CurrentStateSeed, rows: MemoHab
     }
   }
 
-  // No current-period completion: compute today's expected due_at for repeating
-  // habits (preserves the original Shanghai time-of-day on today's date), or
-  // fall back to the content's static dueAt for one-off habits.
+  // No current-period completion: compute the next scheduled due_at for repeating
+  // habits, skipping days not in the repeat schedule so a synthetic state never
+  // appears on a day the habit isn't meant to run.
   // Mark as synthetic so callers can tell there is no real DB occurrence row.
   const dueAt = isRepeating && item.dueAt
-    ? computeTodayDueAt(item.dueAt, now)
+    ? computeNextScheduledDueAt(item.dueAt, item.repeatMode, item.repeatDays, now)
     : (item.dueAt ?? latest?.due_at ?? new Date(now).toISOString())
   return {
     noteId,

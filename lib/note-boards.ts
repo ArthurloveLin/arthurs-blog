@@ -16,7 +16,7 @@ import { getCurrentUser, getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { extractMemoHabitChecklistItems, updateMemoHabitChecklistLine } from '@/lib/memo-habits'
-import { getShanghaiWeekday, parseInlineDueTags } from '@/lib/memo-due-tags'
+import { getShanghaiWeekday, hasInlineDueTags, parseInlineDueTags } from '@/lib/memo-due-tags'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export type NoteVisibility = 'public' | 'admin_only'
@@ -266,7 +266,9 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
   // Primary: inline @due tags in content
   for (const row of inlineData ?? []) {
     const notifiedDues: string[] = Array.isArray(row.notified_dues) ? row.notified_dues as string[] : []
-    for (const tag of parseInlineDueTags(row.content as string)) {
+    const habitItems = extractMemoHabitChecklistItems(row.content as string)
+    const habitTagSignatures = new Set(habitItems.map((item) => `${item.label}|${item.dueAt}`))
+    for (const tag of parseInlineDueTags(row.content as string).filter((t) => !habitTagSignatures.has(`${t.label.trim() || '截止'}|${t.iso}`))) {
       // Single: show always (including overdue) until notified, then show as done; Repeat: show current ISO (next occurrence)
       const isNotified = tag.repeatMode === 'once' && notifiedDues.includes(tag.iso)
       const label = tag.label.trim() || '截止'
@@ -276,7 +278,10 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
   }
 
   // Legacy: column-based due_at
+  // Skip notes that use inline @due tags — their column due_at is stale from
+  // migration and the inline path is the authoritative source for those notes.
   for (const row of columnData ?? []) {
+    if (hasInlineDueTags(row.content as string)) continue
     if (seenKeys.has(`${row.id as string}|${row.due_at as string}`)) continue
     const repeatMode = (row.repeat_mode as string | null) ?? 'once'
     const dueAt = row.due_at as string
