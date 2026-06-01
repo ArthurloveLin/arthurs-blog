@@ -55,24 +55,16 @@ export default function HeroTerminal({ guestbookBoard, initialGuestbookMessages 
       {/* Scanline texture */}
       <div className="hero-term-grid pointer-events-none absolute inset-0 z-0" aria-hidden />
 
-      {/* Decoration layer: z-30 keeps Live2D and StickyStackPreview above the terminal card (z-20)
-          so they can be dragged over any part of the hero. The center column is pointer-events-none
-          to avoid blocking terminal interactions; left/right keep default auto for dragging. */}
+      {/* Decoration layer: absolute inset-0, z-30 (above terminal z-20).
+          Spans the full hero so StickyStackPreview's useElementSize measures
+          the full hero and Live2D's parentElement rect = full hero — both can
+          be dragged freely across the entire hero area.
+          pointer-events-none on the shell; each component re-enables internally. */}
       <div className="absolute inset-0 z-30 hidden lg:block pointer-events-none">
-        <div className="site-shell-triad h-full grid gap-6 grid-cols-[minmax(15rem,16rem)_minmax(0,48rem)_minmax(15rem,16rem)] justify-center">
-          {/* Left: Live2D — draggable, above terminal */}
-          <div className="relative pointer-events-auto">
-            <Live2D />
-          </div>
-          {/* Center: pointer-events-none so terminal card beneath remains interactive */}
-          <div />
-          {/* Right: StickyStackPreview — draggable, above terminal */}
-          <div className="pointer-events-auto">
-            <NoteColorThemeProvider>
-              <StickyStackPreview board={guestbookBoard} messages={previewMessages} />
-            </NoteColorThemeProvider>
-          </div>
-        </div>
+        <NoteColorThemeProvider>
+          <StickyStackPreview board={guestbookBoard} messages={previewMessages} />
+        </NoteColorThemeProvider>
+        <Live2D />
       </div>
 
       {/* Terminal card: z-20, below the decoration layer (z-30). */}

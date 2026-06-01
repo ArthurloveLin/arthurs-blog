@@ -64,7 +64,7 @@ export default function Live2D() {
   const canvasWidth = Number(config.live2d_canvas_width) || 280
   const canvasHeight = Number(config.live2d_canvas_height) || 240
 
-  const defaultPosition = { left: 50, bottom: 0 }
+  const defaultPosition = { left: 8, bottom: 0 }
   const [pos, setPos] = useState(() => {
     if (typeof window === 'undefined') {
       return defaultPosition
@@ -77,8 +77,13 @@ export default function Live2D() {
 
     try {
       const parsed = JSON.parse(savedPos)
-      // Migration: if it's the old format with 'top', discard it and use default
+      // Migration: if it's the old format with 'top', discard it and use default.
+      // v2 migration: coordinates changed from column-relative to full-hero-relative;
+      // any left > 30 is almost certainly a stale column-relative value, discard it.
       if (parsed.top !== undefined && parsed.bottom === undefined) {
+        return defaultPosition
+      }
+      if (typeof parsed.left === 'number' && parsed.left > 30) {
         return defaultPosition
       }
       return parsed
