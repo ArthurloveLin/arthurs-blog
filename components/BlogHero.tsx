@@ -29,7 +29,7 @@ export default function BlogHero(props: BlogHeroProps) {
 
   return (
     <div key={variant} className="animate-[fade-in_0.35s_ease-out]">
-      {variant === 'terminal' ? <HeroTerminal /> : <HeroAurora {...props} />}
+      {variant === 'terminal' ? <HeroTerminal {...props} /> : <HeroAurora {...props} />}
     </div>
   )
 }

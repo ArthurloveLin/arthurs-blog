@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useSyncExternalStore } from 'react'
 import type { HeroVariantId } from '@/lib/hero-variants'
 import { DEFAULT_HERO_VARIANT, HERO_VARIANT_IDS } from '@/lib/hero-variants'
 
@@ -47,6 +47,13 @@ function getServerSnapshot(): HeroVariantId {
  */
 export function useHeroVariant() {
   const variant = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+
+  // After the stored preference is adopted (post-hydration), remove the
+  // data-hero-variant attribute set by the layout inline script. This re-enables
+  // terminal animations for user-triggered switches in the same session.
+  useEffect(() => {
+    document.documentElement.removeAttribute('data-hero-variant')
+  }, [])
 
   const setVariant = useCallback((id: HeroVariantId) => {
     try {

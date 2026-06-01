@@ -1533,6 +1533,24 @@ html {
   }
 }
 
+/* When terminal is the stored hero preference:
+   1. Hide the aurora root immediately (data-hero-variant set before React hydrates) so
+      the ISR-rendered aurora never flashes before the terminal variant appears.
+   2. Skip per-row reveal/typing delays so terminal content appears at once rather than
+      trickling in for 2s — the 0.35s container fade-in (BlogHero) provides the transition.
+   useHeroVariant removes the attribute after hydration, re-enabling animations for
+   subsequent user-triggered switches within the same page session. */
+html[data-hero-variant="terminal"] .hero-aurora-root {
+  display: none;
+}
+html[data-hero-variant="terminal"] .hero-term-line,
+html[data-hero-variant="terminal"] .hero-term-typed {
+  animation: none !important;
+}
+html[data-hero-variant="terminal"] .hero-term-typed {
+  width: auto !important;
+}
+
 /* Duel Animations */
 @keyframes slide-in-left {
   from { transform: translateX(-100%) rotate(-5deg); opacity: 0; }

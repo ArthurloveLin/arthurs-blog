@@ -9,6 +9,41 @@ import type { CSSProperties, ReactNode } from 'react'
 // green elsewhere). Reveal/typing/caret animations live in globals.css and are
 // disabled under prefers-reduced-motion.
 
+/** Just the rounded card: traffic-light title bar + monospace body. */
+export function TerminalCard({
+  windowTitle = '~/arthur-grace — zsh',
+  className = '',
+  children,
+}: {
+  windowTitle?: string
+  /** Extra classes applied to the outer rounded card div (e.g. centering, max-width). */
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <div className={`${className} overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-foreground/5`}>
+      {/* Title bar */}
+      <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
+        <span className="flex shrink-0 items-center gap-1.5" aria-hidden>
+          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: '#ff5f56' }} />
+          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: '#ffbd2e' }} />
+          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: '#27c93f' }} />
+        </span>
+        <span className="flex-1 truncate text-center font-mono text-xs text-muted-foreground">
+          {windowTitle}
+        </span>
+        <span className="w-[52px] shrink-0" aria-hidden />
+      </div>
+
+      {/* Body */}
+      <div className="px-5 py-6 font-mono text-[13px] leading-7 text-foreground sm:px-7 sm:py-7 sm:text-sm">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+/** Full-page section wrapper used by PageHeroTerminal. */
 export function TerminalWindow({
   windowTitle = '~/arthur-grace — zsh',
   containerClass = 'site-shell',
@@ -30,25 +65,9 @@ export function TerminalWindow({
       <div className="hero-term-grid pointer-events-none absolute inset-0 z-0" aria-hidden />
 
       <div className={`${containerClass} relative z-10 pt-14 pb-12 lg:pt-20 lg:pb-16`}>
-        <div className={`${windowClassName} overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-foreground/5`}>
-          {/* Title bar */}
-          <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
-            <span className="flex shrink-0 items-center gap-1.5" aria-hidden>
-              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: '#ff5f56' }} />
-              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: '#ffbd2e' }} />
-              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: '#27c93f' }} />
-            </span>
-            <span className="flex-1 truncate text-center font-mono text-xs text-muted-foreground">
-              {windowTitle}
-            </span>
-            <span className="w-[52px] shrink-0" aria-hidden />
-          </div>
-
-          {/* Body */}
-          <div className="px-5 py-6 font-mono text-[13px] leading-7 text-foreground sm:px-7 sm:py-7 sm:text-sm">
-            {children}
-          </div>
-        </div>
+        <TerminalCard windowTitle={windowTitle} className={windowClassName}>
+          {children}
+        </TerminalCard>
       </div>
 
       {corner}
@@ -71,7 +90,7 @@ export function OutMark() {
 
 // A typed ASCII command. width:Nch + steps(N) gives the per-character reveal;
 // backwards fill (in CSS) holds it at width:0 through the delay so it doesn't
-// flash full. Only use for ASCII — CJK glyphs aren't 1ch wide.
+// flash full before typing. Only use for ASCII — CJK glyphs aren't 1ch wide.
 export function Typed({ text, delay }: { text: string; delay: number }) {
   return (
     <span

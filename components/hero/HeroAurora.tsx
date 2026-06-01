@@ -118,7 +118,7 @@ export default function HeroAurora({ guestbookBoard, initialGuestbookMessages, s
   )
 
   return (
-    <div ref={heroRef} className="relative border-b border-border bg-background overflow-hidden">
+    <div ref={heroRef} className="hero-aurora-root relative border-b border-border bg-background overflow-hidden">
       {/* Blob Ornaments */}
       <div className={`absolute top-0 left-1/4 w-72 h-72 bg-blob-1 rounded-full filter blur-2xl opacity-40 animate-blob pointer-events-none ${blobPauseClass}`}></div>
       <div className={`absolute -top-10 right-1/4 w-72 h-72 bg-blob-2 rounded-full filter blur-2xl opacity-40 animate-blob animation-delay-2000 pointer-events-none ${blobPauseClass}`}></div>

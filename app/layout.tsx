@@ -85,6 +85,11 @@ export default async function RootLayout({
               the dark class so next-themes' body script is not the sole gatekeeper
               for dark mode — preventing a flash when Suspense defers body effects. */}
           <script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement,s=localStorage.getItem('site-theme'),m=localStorage.getItem('theme'),L={ocean:'tide',sunset:'amber',forest:'sage'};if(!s&&L[m]){s=L[m];localStorage.setItem('site-theme',s);localStorage.setItem('theme','light');}d.setAttribute('data-site-theme',s||'mono');if(m==='dark'){d.classList.add('dark');}}catch(e){}` }} />
+          {/* Inline script: set data-hero-variant before first paint so the ISR-default
+              aurora hero is hidden immediately for terminal users, preventing a flash.
+              useHeroVariant clears this attribute after hydration to re-enable animations
+              for subsequent user-triggered switches within the same session. */}
+          <script dangerouslySetInnerHTML={{ __html: `try{var h=localStorage.getItem('hero-variant');if(h)document.documentElement.setAttribute('data-hero-variant',h);}catch(e){}` }} />
         </head>
         <body className="antialiased pb-24 md:pb-0">
           <MarkdownThemeInitializer />
