@@ -83,7 +83,7 @@ export function useNoteEditor({
     // matches the post-send centering.
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
-        editorSectionElement?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        editorSectionElement?.scrollIntoView({ behavior: 'instant', block: 'center' })
       })
     })
   }, [editorSectionElement])

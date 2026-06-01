@@ -72,16 +72,15 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
   // Scroll back to this card when edit session ends (save or cancel)
   useEffect(() => {
     if (wasEditingRef.current && !isEditing) {
-      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      cardRef.current?.scrollIntoView({ behavior: 'instant', block: 'nearest' })
     }
     wasEditingRef.current = isEditing
   }, [isEditing])
 
-  // Scroll to this card when it is freshly published — center it in the viewport
-  // (block:'nearest' barely moved when the card was already partly on screen).
+  // Jump to this card when it is freshly published — center it in the viewport.
   useEffect(() => {
     if (isFresh) {
-      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      cardRef.current?.scrollIntoView({ behavior: 'instant', block: 'center' })
     }
   }, [isFresh])
 
