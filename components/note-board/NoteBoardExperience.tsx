@@ -793,9 +793,15 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
         (state) => state.label === item.label && getShanghaiTimeKey(state.dueAt) === itemTimeKey,
       ) ?? openStates.find((state) => state.label === item.label)
 
-      if (matchedOpen) {
+      // Only apply the date override when the state comes from a real DB occurrence
+      // row (not a synthesised virtual-today state). A synthesised state always has
+      // dueAt=today even when the @due tag is in the future, which would
+      // incorrectly pull a normally-planned future task into today's schedule.
+      // Also guard against stale past-date rows that the reconciler hasn't cleaned
+      // up yet: never move an item backwards onto a historical date.
+      if (matchedOpen && !matchedOpen.synthetic) {
         const openDateKey = getShanghaiDateKey(matchedOpen.dueAt)
-        if (openDateKey !== getShanghaiDateKey(item.dueAt)) {
+        if (openDateKey !== getShanghaiDateKey(item.dueAt) && openDateKey >= todayKey) {
           return { ...item, dueAt: matchedOpen.dueAt }
         }
       }
