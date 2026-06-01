@@ -266,9 +266,7 @@ export const getMemoAgendaItems = cache(async (ownerUserId: string, showAdminOnl
   // Primary: inline @due tags in content
   for (const row of inlineData ?? []) {
     const notifiedDues: string[] = Array.isArray(row.notified_dues) ? row.notified_dues as string[] : []
-    const habitItems = extractMemoHabitChecklistItems(row.content as string)
-    const habitTagSignatures = new Set(habitItems.map((item) => `${item.label}|${item.dueAt}`))
-    for (const tag of parseInlineDueTags(row.content as string).filter((t) => !habitTagSignatures.has(`${t.label.trim() || '截止'}|${t.iso}`))) {
+    for (const tag of parseInlineDueTags(row.content as string)) {
       // Single: show always (including overdue) until notified, then show as done; Repeat: show current ISO (next occurrence)
       const isNotified = tag.repeatMode === 'once' && notifiedDues.includes(tag.iso)
       const label = tag.label.trim() || '截止'
