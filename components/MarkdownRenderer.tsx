@@ -57,7 +57,14 @@ export default function MarkdownRenderer({
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[[rehypeHighlight, { detect: true }], rehypeSlug, rehypeKatex]}
         components={{
-          p: ({ children }) => {
+          p: ({ node, children }) => {
+            // A paragraph wrapping only an image is a block figure, not a text
+            // paragraph — skip the counter so skipFirstParagraph never hides it,
+            // and drop the <p> wrapper (block inside inline is invalid HTML).
+            const c = (node as unknown as { children?: Array<{ tagName?: string }> })?.children
+            if (c?.length === 1 && c[0]?.tagName === 'img') {
+              return <>{children}</>
+            }
             paragraphCount++;
             if (skipFirstParagraph && paragraphCount === 1) {
               return null;
