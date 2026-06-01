@@ -51,7 +51,7 @@ export default function HeroTerminal({ guestbookBoard, initialGuestbookMessages 
   )
 
   return (
-    <div className="relative overflow-hidden border-b border-border bg-background">
+    <div className="hero-term-root relative overflow-hidden border-b border-border bg-background">
       {/* Scanline texture */}
       <div className="hero-term-grid pointer-events-none absolute inset-0 z-0" aria-hidden />
 

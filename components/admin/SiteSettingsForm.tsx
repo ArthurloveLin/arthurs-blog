@@ -62,6 +62,7 @@ interface ConfigData {
   spotify_hero_description?: string
   spotify_slogan_1?: string
   spotify_slogan_2?: string
+  hero_default_variant?: string
   live2d_model_url?: string
   live2d_engine_js_url?: string
   live2d_canvas_width?: string
@@ -1017,6 +1018,32 @@ export default function SiteSettingsForm({ initialData }: { initialData: Record<
           openFilePicker={openFilePicker}
           uploading={uploading}
         />
+
+        {/* ── 首页 Hero 默认样式 ── */}
+        <div className="bg-card text-card-foreground border border-border shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-6 md:p-8">
+          <h2 className="text-sm font-bold tracking-widest text-muted-foreground uppercase mb-6">首页 Hero 默认样式 (Home Hero Default)</h2>
+          <p className="text-xs text-muted-foreground mb-4">决定 ISR 预渲染的 Hero 样式，也是新访客（无本地偏好）首次看到的样式。保存后需等待 ISR 缓存刷新（约 30 分钟）或手动重新部署生效。</p>
+          <div className="flex gap-3">
+            {(['terminal', 'aurora'] as const).map((v) => {
+              const isActive = (data.hero_default_variant ?? 'terminal') === v
+              const label = v === 'terminal' ? '▮ 终端' : '🌈 光斑'
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setData(prev => ({ ...prev, hero_default_variant: v }))}
+                  className={`flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-medium border transition-all duration-150 ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                      : 'bg-background text-muted-foreground border-border hover:border-ring hover:text-foreground'
+                  }`}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
 
         {/* ── 首页文案模块 ── */}
         <HeroSettingsGroup title="首页头图文案 (Home Hero)" prefix="site" data={data} onChange={handleChange} />

@@ -1444,7 +1444,6 @@ code.hljs     { padding: 3px 5px; }
 
 /* Code block wrapper — light/dark adaptive */
 .code-block-wrapper {
-  position: relative;
   margin: 1.25em 0;
   border-radius: 0.5rem;
   border: 1px solid rgba(0, 0, 0, 0.08);
@@ -1466,10 +1465,12 @@ code.hljs     { padding: 3px 5px; }
   border-radius: 0 !important;
 }
 
-/* Pin hljs background to match the wrapper in each mode */
+/* Pin hljs background to match the wrapper in each mode; reduce top padding since
+   the header row already provides visual separation from the top of the block */
 .code-block-wrapper pre code.hljs {
   background: #f6f8fa !important;
   border-radius: 0;
+  padding-top: 0.5em !important;
 }
 
 .dark .code-block-wrapper pre code.hljs {
@@ -1600,22 +1601,15 @@ code.hljs     { padding: 3px 5px; }
   }
 }
 
-/* When terminal is the stored hero preference:
-   1. Hide the aurora root immediately (data-hero-variant set before React hydrates) so
-      the ISR-rendered aurora never flashes before the terminal variant appears.
-   2. Skip per-row reveal/typing delays so terminal content appears at once rather than
-      trickling in for 2s — the 0.35s container fade-in (BlogHero) provides the transition.
-   useHeroVariant removes the attribute after hydration, re-enabling animations for
-   subsequent user-triggered switches within the same page session. */
-html[data-hero-variant="terminal"] .hero-aurora-root {
+/* Bidirectional hero flash prevention: the inline script sets data-hero-variant only
+   when the visitor's stored preference differs from the ISR-rendered server default.
+   Each rule hides the *server-rendered* hero for visitors whose preference is the other.
+   useHeroVariant removes the attribute after the correct variant is committed to DOM. */
+html[data-hero-variant="aurora"] .hero-term-root {
   display: none;
 }
-html[data-hero-variant="terminal"] .hero-term-line,
-html[data-hero-variant="terminal"] .hero-term-typed {
-  animation: none !important;
-}
-html[data-hero-variant="terminal"] .hero-term-typed {
-  width: auto !important;
+html[data-hero-variant="terminal"] .hero-aurora-root {
+  display: none;
 }
 
 /* Duel Animations */

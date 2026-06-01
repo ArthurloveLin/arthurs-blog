@@ -1,15 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react'
 import type { HeroVariantId } from '@/lib/hero-variants'
 import { DEFAULT_HERO_VARIANT, HERO_VARIANT_IDS } from '@/lib/hero-variants'
+import { useSiteConfig } from '@/components/SiteDataProvider'
 
 const STORAGE_KEY = 'hero-variant'
 // Same-tab notifier: the native `storage` event only fires in *other* tabs, so
 // setVariant dispatches this to tell subscribers in the current tab to re-read.
 const CHANGE_EVENT = 'hero-variant-change'
 
-function isHeroVariantId(value: string | null): value is HeroVariantId {
+function isHeroVariantId(value: string | null | undefined): value is HeroVariantId {
   return value != null && (HERO_VARIANT_IDS as readonly string[]).includes(value)
 }
 
@@ -22,38 +23,47 @@ function subscribe(onStoreChange: () => void) {
   }
 }
 
-function getSnapshot(): HeroVariantId {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    return isHeroVariantId(stored) ? stored : DEFAULT_HERO_VARIANT
-  } catch {
-    return DEFAULT_HERO_VARIANT
-  }
-}
-
-function getServerSnapshot(): HeroVariantId {
-  return DEFAULT_HERO_VARIANT
-}
-
 /**
  * Homepage hero variant preference, persisted in localStorage.
  *
- * Backed by useSyncExternalStore so it is hydration-safe without a manual mount
- * gate: server and the hydrating client both read getServerSnapshot (DEFAULT),
- * matching the ISR-prerendered HTML, then React re-renders with the stored value
- * right after hydration. (A variant changes rendered DOM, not just a CSS
- * attribute like site-theme, so reading localStorage during render would trip a
- * hydration mismatch.) The subscribe wiring also keeps every open tab in sync.
+ * The server-rendered default is read from site_config (hero_default_variant),
+ * falling back to DEFAULT_HERO_VARIANT when not configured. This drives both
+ * getServerSnapshot (hydration safety) and getSnapshot (fallback for new visitors).
+ *
+ * The subscribe wiring keeps every open tab in sync.
  */
 export function useHeroVariant() {
+  const config = useSiteConfig()
+  const serverDefault: HeroVariantId = isHeroVariantId(config.hero_default_variant)
+    ? config.hero_default_variant
+    : DEFAULT_HERO_VARIANT
+
+  // Both snapshot functions use serverDefault so new visitors and hydration always
+  // reflect the DB-configured default, not the hardcoded compile-time constant.
+  const getSnapshot = useCallback((): HeroVariantId => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      return isHeroVariantId(stored) ? stored : serverDefault
+    } catch {
+      return serverDefault
+    }
+  }, [serverDefault])
+
+  const getServerSnapshot = useCallback((): HeroVariantId => serverDefault, [serverDefault])
+
   const variant = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
-  // After the stored preference is adopted (post-hydration), remove the
-  // data-hero-variant attribute set by the layout inline script. This re-enables
-  // terminal animations for user-triggered switches in the same session.
+  // Remove the CSS gate only after the stored preference is committed to the DOM.
+  // DEFAULT is 'terminal', so this only matters for aurora users: skip Render 1 (the
+  // ISR-rendered default) and remove the gate on Render 2 (after aurora is shown).
+  const mountedRef = useRef(false)
   useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true
+      return
+    }
     document.documentElement.removeAttribute('data-hero-variant')
-  }, [])
+  }, [variant])
 
   const setVariant = useCallback((id: HeroVariantId) => {
     try {

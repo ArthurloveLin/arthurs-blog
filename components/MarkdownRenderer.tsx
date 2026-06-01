@@ -4,9 +4,30 @@ import remarkMath from 'remark-math'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeSlug from 'rehype-slug'
 import rehypeKatex from 'rehype-katex'
+import { visit } from 'unist-util-visit'
+import type { Root, Element } from 'hast'
 import Image from 'next/image'
 import CodeBlock from '@/components/CodeBlock'
 import 'katex/dist/katex.min.css'
+
+// Preserve the original fence language identifier before rehype-highlight normalises
+// aliases (e.g. 'js' → 'javascript'). CodeBlock reads data-lang to show the label
+// exactly as written in the markdown source, matching Obsidian's display convention.
+function rehypePreserveLang() {
+  return (tree: Root) => {
+    visit(tree, 'element', (node: Element) => {
+      if (node.tagName !== 'code') return
+      const classes = Array.isArray(node.properties?.className)
+        ? (node.properties.className as string[])
+        : []
+      const langClass = classes.find(c => typeof c === 'string' && c.startsWith('language-'))
+      if (langClass) {
+        node.properties = node.properties ?? {}
+        node.properties['data-lang'] = langClass.slice('language-'.length)
+      }
+    })
+  }
+}
 
 const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/
 const CSS_VAR_COLOR_RE = /^var\(--[a-zA-Z0-9_-]+\)$/
@@ -55,7 +76,7 @@ export default function MarkdownRenderer({
     <div className="prose prose-gray max-w-none">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[[rehypeHighlight, { detect: true }], rehypeSlug, rehypeKatex]}
+        rehypePlugins={[rehypePreserveLang, [rehypeHighlight, { detect: true }], rehypeSlug, rehypeKatex]}
         components={{
           p: ({ node, children }) => {
             // A paragraph wrapping only an image is a block figure, not a text

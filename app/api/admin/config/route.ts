@@ -75,7 +75,8 @@ export async function POST(request: NextRequest) {
       'live2d_model_url',
       'live2d_engine_js_url',
       'live2d_canvas_width',
-      'live2d_canvas_height'
+      'live2d_canvas_height',
+      'hero_default_variant',
     ]
 
     for (const key of allowedKeys) {

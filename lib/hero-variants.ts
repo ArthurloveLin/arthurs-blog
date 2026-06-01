@@ -16,12 +16,13 @@ export interface HeroVariant {
   icon: string
 }
 
-// 'aurora' is the original blob + gradient + guestbook hero (the default).
 export const HERO_VARIANTS: readonly HeroVariant[] = [
   { id: 'aurora', name: '光斑', icon: '🌈' },
   { id: 'terminal', name: '终端', icon: '▮' },
 ] as const
 
-export const DEFAULT_HERO_VARIANT: HeroVariantId = 'aurora'
+// Terminal is the ISR-prerendered default. Visitors without a stored preference see
+// terminal; aurora users get a gate-then-swap (mirror of the old terminal behaviour).
+export const DEFAULT_HERO_VARIANT: HeroVariantId = 'terminal'
 
 export const HERO_VARIANT_IDS = HERO_VARIANTS.map((v) => v.id) as readonly HeroVariantId[]
