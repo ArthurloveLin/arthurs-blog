@@ -78,7 +78,7 @@ export default function HeroTerminal({ guestbookBoard, initialGuestbookMessages 
       {/* Terminal card: centered column with top/bottom padding, above decoration layer */}
       <div className="site-shell-triad relative z-20 pt-14 pb-12 lg:pt-20 lg:pb-16">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,48rem)_minmax(15rem,16rem)] lg:justify-center">
-          <div className="hidden lg:block" />
+          <div className="pointer-events-none hidden lg:block" />
           <TerminalCard>
             <p className="hero-term-line flex items-center gap-2" style={row(D.cmd1)}>
               <Prompt />
@@ -131,7 +131,7 @@ export default function HeroTerminal({ guestbookBoard, initialGuestbookMessages 
               <Caret />
             </p>
           </TerminalCard>
-          <div className="hidden lg:block" />
+          <div className="pointer-events-none hidden lg:block" />
         </div>
       </div>
     </div>
