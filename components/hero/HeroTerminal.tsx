@@ -66,8 +66,8 @@ export default function HeroTerminal({ guestbookBoard, initialGuestbookMessages 
           </div>
           {/* Center: spacer — terminal card sits above this in z-20 */}
           <div />
-          {/* Right: sticky note preview */}
-          <div className="pointer-events-none">
+          {/* Right: sticky note preview — pointer-events-auto (default) so drag-to-reveal works */}
+          <div>
             <NoteColorThemeProvider>
               <StickyStackPreview board={guestbookBoard} messages={previewMessages} />
             </NoteColorThemeProvider>
@@ -75,9 +75,12 @@ export default function HeroTerminal({ guestbookBoard, initialGuestbookMessages 
         </div>
       </div>
 
-      {/* Terminal card: centered column with top/bottom padding, above decoration layer */}
-      <div className="site-shell-triad relative z-20 pt-14 pb-12 lg:pt-20 lg:pb-16">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,48rem)_minmax(15rem,16rem)] lg:justify-center">
+      {/* Terminal card: centered column with top/bottom padding, above decoration layer.
+          Both this wrapper and the inner grid must be pointer-events-none so events in the
+          left/right columns fall through to the z-10 decoration layer (Live2D, StickyStackPreview).
+          TerminalCard and its descendants retain default pointer-events:auto so they still work. */}
+      <div className="site-shell-triad relative z-20 pt-14 pb-12 lg:pt-20 lg:pb-16 pointer-events-none">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,48rem)_minmax(15rem,16rem)] lg:justify-center pointer-events-none">
           <div className="pointer-events-none hidden lg:block" />
           <TerminalCard>
             <p className="hero-term-line flex items-center gap-2" style={row(D.cmd1)}>
