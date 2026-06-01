@@ -1478,13 +1478,16 @@ html {
    Rows fade up in sequence; ASCII command text types in with steps();
    the prompt caret blinks. All disabled under prefers-reduced-motion. */
 .hero-term-grid {
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--border) 60%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--border) 60%, transparent) 1px, transparent 1px);
-  background-size: 26px 26px;
-  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 100%);
-          mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 100%);
-  opacity: 0.5;
+  /* Horizontal scanlines — references CRT terminal screens, avoids the
+     orthogonal grid + radial-mask pattern common on AI product pages. */
+  background-image: repeating-linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--border) 90%, transparent) 0px,
+    color-mix(in srgb, var(--border) 90%, transparent) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  opacity: 0.3;
 }
 
 @keyframes hero-term-line {

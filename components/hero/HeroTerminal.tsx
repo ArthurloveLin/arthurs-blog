@@ -22,10 +22,8 @@ const StickyStackPreview = dynamic(
   { ssr: false },
 )
 
-// Cumulative reveal delays (seconds). Each row fades up; command rows also type
-// their ASCII text with a steps() animation. prefers-reduced-motion disables it.
-// On page load (when data-hero-variant="terminal" is set by the layout script),
-// globals.css overrides these to 0 so terminal content appears immediately.
+// Cumulative reveal delays (seconds). On page load when data-hero-variant="terminal"
+// is set by the layout script, globals.css overrides these to 0.
 const D = {
   cmd1: 0.05,
   out1: 0.5,
@@ -54,19 +52,33 @@ export default function HeroTerminal({ guestbookBoard, initialGuestbookMessages 
 
   return (
     <div className="relative overflow-hidden border-b border-border bg-background">
-      {/* Faint dotted-grid texture */}
+      {/* Scanline texture */}
       <div className="hero-term-grid pointer-events-none absolute inset-0 z-0" aria-hidden />
 
-      {/* Three-column layout matching the blog body grid */}
-      <div className="site-shell-triad relative z-10 pt-14 pb-12 lg:pt-20 lg:pb-16">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,48rem)_minmax(15rem,16rem)] lg:justify-center">
-
-          {/* Left column: Live2D widget (aligns with left sidebar below) */}
-          <div className="relative hidden lg:block">
+      {/* Decoration layer: fills full section height so Live2D and sticky notes
+          can hug bottom: 0 of the hero, independent of the terminal card height.
+          Uses the same grid template + gap as the terminal card layer below. */}
+      <div className="absolute inset-0 z-10 hidden lg:block">
+        <div className="site-shell-triad h-full grid gap-6 grid-cols-[minmax(15rem,16rem)_minmax(0,48rem)_minmax(15rem,16rem)] justify-center">
+          {/* Left: Live2D — absolute within this column, bottom:0% → section bottom */}
+          <div className="relative">
             <Live2D />
           </div>
+          {/* Center: spacer — terminal card sits above this in z-20 */}
+          <div />
+          {/* Right: sticky note preview */}
+          <div className="pointer-events-none">
+            <NoteColorThemeProvider>
+              <StickyStackPreview board={guestbookBoard} messages={previewMessages} />
+            </NoteColorThemeProvider>
+          </div>
+        </div>
+      </div>
 
-          {/* Center column: terminal window */}
+      {/* Terminal card: centered column with top/bottom padding, above decoration layer */}
+      <div className="site-shell-triad relative z-20 pt-14 pb-12 lg:pt-20 lg:pb-16">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,48rem)_minmax(15rem,16rem)] lg:justify-center">
+          <div className="hidden lg:block" />
           <TerminalCard>
             <p className="hero-term-line flex items-center gap-2" style={row(D.cmd1)}>
               <Prompt />
@@ -100,7 +112,7 @@ export default function HeroTerminal({ guestbookBoard, initialGuestbookMessages 
               <span className="max-w-xl">{description}</span>
             </p>
 
-            {/* Status bar — stats + live now-playing */}
+            {/* Status bar */}
             <div
               className="hero-term-line mt-5 flex flex-wrap items-center gap-2 border-t border-border/60 pt-4 text-[11px] sm:text-xs"
               style={row(D.status)}
@@ -113,20 +125,13 @@ export default function HeroTerminal({ guestbookBoard, initialGuestbookMessages 
               </span>
             </div>
 
-            {/* Live prompt with blinking caret */}
+            {/* Live prompt */}
             <p className="hero-term-line mt-4 flex items-center gap-2 text-muted-foreground/80" style={row(D.caret)}>
               <Prompt />
               <Caret />
             </p>
           </TerminalCard>
-
-          {/* Right column: sticky note preview (aligns with right sidebar below) */}
-          <div className="pointer-events-none hidden lg:block">
-            <NoteColorThemeProvider>
-              <StickyStackPreview board={guestbookBoard} messages={previewMessages} />
-            </NoteColorThemeProvider>
-          </div>
-
+          <div className="hidden lg:block" />
         </div>
       </div>
     </div>
