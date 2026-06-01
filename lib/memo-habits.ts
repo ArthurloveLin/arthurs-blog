@@ -28,6 +28,8 @@ export interface MemoHabitCurrentState {
   completedAt?: string | null
   delayedTo?: string | null
   completionSource?: MemoHabitCompletionSource | null
+  /** True when the state was synthesised from the note content (no real occurrence row in DB). */
+  synthetic?: boolean
 }
 
 export interface MemoHabitDaySummary {

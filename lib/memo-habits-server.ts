@@ -199,6 +199,7 @@ function buildCurrentState(noteId: string, item: CurrentStateSeed, rows: MemoHab
   // No current-period completion: compute today's expected due_at for repeating
   // habits (preserves the original Shanghai time-of-day on today's date), or
   // fall back to the content's static dueAt for one-off habits.
+  // Mark as synthetic so callers can tell there is no real DB occurrence row.
   const dueAt = isRepeating && item.dueAt
     ? computeTodayDueAt(item.dueAt, now)
     : (item.dueAt ?? latest?.due_at ?? new Date(now).toISOString())
@@ -210,6 +211,7 @@ function buildCurrentState(noteId: string, item: CurrentStateSeed, rows: MemoHab
     dueAt,
     status: Date.parse(dueAt) <= now ? 'pending' : 'scheduled',
     streak,
+    synthetic: true,
   }
 }
 
