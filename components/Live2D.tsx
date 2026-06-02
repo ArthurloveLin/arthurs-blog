@@ -64,7 +64,7 @@ export default function Live2D() {
   const canvasWidth = Number(config.live2d_canvas_width) || 280
   const canvasHeight = Number(config.live2d_canvas_height) || 240
 
-  const defaultPosition = { left: 8, bottom: 0 }
+  const defaultPosition = { left: 4, bottom: -2 }
   const [pos, setPos] = useState(() => {
     if (typeof window === 'undefined') {
       return defaultPosition

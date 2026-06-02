@@ -59,6 +59,10 @@ export interface NoteColorThemeChrome {
   filterText: string
   primarySurface: string
   primaryText: string
+  /** saturated base color for heatmap tint backgrounds (hex) */
+  heatmapBg: string
+  /** dark ink color for heatmap chip text — high contrast against heatmapBg tint (hex) */
+  heatmapInk: string
 }
 
 // ── Theme data ────────────────────────────────────────────────────────────────
@@ -209,6 +213,8 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     filterText: 'rgba(120,72,180,0.82)',
     primarySurface: 'linear-gradient(135deg, #a288c8 0%, #4a2878 100%)',
     primaryText: '#fff8f4',
+    heatmapBg: '#7c50c0',
+    heatmapInk: '#35166a',
   },
   vivid: {
     shellSurface: 'linear-gradient(165deg, rgba(245,250,255,0.98) 0%, rgba(236,245,252,0.96) 100%), radial-gradient(circle at 14% 12%, rgba(43,142,187,0.22) 0%, transparent 33%), radial-gradient(circle at 84% 16%, rgba(99,102,241,0.18) 0%, transparent 26%), radial-gradient(circle at 76% 84%, rgba(42,157,143,0.18) 0%, transparent 28%)',
@@ -241,6 +247,8 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     filterText: 'rgba(30,100,150,0.82)',
     primarySurface: 'linear-gradient(135deg, #2b8ebb 0%, #3a50b0 100%)',
     primaryText: '#f0f8ff',
+    heatmapBg: '#1e7aaa',
+    heatmapInk: '#082c42',
   },
   cream: {
     shellSurface: 'linear-gradient(180deg, rgba(255,251,243,0.98) 0%, rgba(249,243,229,0.96) 100%), radial-gradient(circle at 13% 16%, rgba(212,163,115,0.22) 0%, transparent 30%), radial-gradient(circle at 84% 14%, rgba(204,213,174,0.22) 0%, transparent 28%), repeating-linear-gradient(90deg, rgba(140,112,83,0.03) 0 1px, transparent 1px 18px)',
@@ -273,6 +281,8 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     filterText: 'rgba(167,116,67,0.82)',
     primarySurface: 'linear-gradient(135deg, #8b6a4c 0%, #5b4636 100%)',
     primaryText: '#fff9f1',
+    heatmapBg: '#8a6848',
+    heatmapInk: '#3c2010',
   },
   mono: {
     shellSurface: 'linear-gradient(180deg, rgba(248,246,242,0.98) 0%, rgba(238,234,228,0.95) 100%), repeating-linear-gradient(0deg, rgba(33,29,25,0.04) 0 1px, transparent 1px 24px), repeating-linear-gradient(90deg, rgba(33,29,25,0.03) 0 1px, transparent 1px 24px)',
@@ -305,6 +315,8 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     filterText: 'rgba(61,54,48,0.80)',
     primarySurface: 'linear-gradient(135deg, #2f3438 0%, #4a463f 100%)',
     primaryText: '#f8f4ee',
+    heatmapBg: '#58544e',
+    heatmapInk: '#1e1c18',
   },
   dusk: {
     shellSurface: 'linear-gradient(180deg, rgba(255,248,240,0.97) 0%, rgba(248,236,222,0.95) 100%), radial-gradient(circle at 14% 12%, rgba(214,93,40,0.22) 0%, transparent 30%), radial-gradient(circle at 86% 16%, rgba(200,80,80,0.18) 0%, transparent 28%), radial-gradient(circle at 72% 84%, rgba(232,165,48,0.16) 0%, transparent 24%)',
@@ -337,6 +349,8 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     filterText: 'rgba(180,70,28,0.82)',
     primarySurface: 'linear-gradient(135deg, #d65d28 0%, #a04020 100%)',
     primaryText: '#fff5ee',
+    heatmapBg: '#c84e24',
+    heatmapInk: '#4a1606',
   },
   linen: {
     shellSurface: 'linear-gradient(180deg, rgba(244,250,244,0.97) 0%, rgba(232,242,232,0.95) 100%), radial-gradient(circle at 15% 15%, rgba(74,136,56,0.18) 0%, transparent 32%), radial-gradient(circle at 87% 14%, rgba(138,112,96,0.16) 0%, transparent 28%), repeating-linear-gradient(90deg, rgba(60,80,48,0.03) 0 1px, transparent 1px 22px)',
@@ -369,6 +383,8 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     filterText: 'rgba(56,100,40,0.82)',
     primarySurface: 'linear-gradient(135deg, #4a8838 0%, #2a4a22 100%)',
     primaryText: '#f0f8ee',
+    heatmapBg: '#3a8040',
+    heatmapInk: '#102812',
   },
   // 06 · Sakura 樱花 — cherry blossom pink, rose, mauve chrome
   sakura: {
@@ -402,6 +418,8 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     filterText: 'rgba(160,60,90,0.82)',
     primarySurface: 'linear-gradient(135deg, #e85080 0%, #5a1a30 100%)',
     primaryText: '#fff8fc',
+    heatmapBg: '#c83a6c',
+    heatmapInk: '#480818',
   },
   // 07 · Night 紫夜 — deep violet, indigo, twilight purple chrome
   night: {
@@ -435,6 +453,8 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     filterText: 'rgba(60,44,160,0.82)',
     primarySurface: 'linear-gradient(135deg, #6448c8 0%, #1a1040 100%)',
     primaryText: '#f0ecff',
+    heatmapBg: '#5838b8',
+    heatmapInk: '#180840',
   },
   // 08 · Dark 暗色 — dark board chrome, dark sticky notes with light ink
   dark: {
@@ -468,6 +488,8 @@ const THEME_CHROME: Record<NoteColorThemeId, NoteColorThemeChrome> = {
     filterText: 'rgba(180,165,230,0.90)',
     primarySurface: 'linear-gradient(135deg, #7060c0 0%, #2a1e5a 100%)',
     primaryText: '#f0ecff',
+    heatmapBg: '#9070d0',
+    heatmapInk: '#3e2888',
   },
 }
 

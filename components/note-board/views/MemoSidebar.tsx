@@ -153,7 +153,7 @@ export interface SidebarCalendarProps {
 
 export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, sidebarModes, calendarMode, onCalendarModeChange }: SidebarCalendarProps) {
   const { theme } = useNoteColorTheme()
-  const heatColor = theme.shell[1]
+  const heatmapBg = theme.chrome.heatmapBg
   const today = useMemo(() => {
     const { year, month, day } = getShanghaDateParts(new Date())
     return { year, month, day, key: toDateKey(year, month, day) }
@@ -260,12 +260,12 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, si
                       ? 'text-foreground hover:bg-accent'
                       : 'cursor-default text-muted-foreground/55',
               ].join(' ')}
-              style={hasMemos && !isSelected ? { backgroundColor: `rgba(${hexToRgb(heatColor)},${heatOpacity})` } : undefined}
+              style={hasMemos && !isSelected ? { backgroundColor: `rgba(${hexToRgb(heatmapBg)},${heatOpacity})` } : undefined}
               title={hasMemos ? `${count} 条 Memo` : undefined}
             >
               {cell.day}
               {hasMemos && !isSelected ? (
-                <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full" style={{ backgroundColor: heatColor, opacity: 0.65 }} />
+                <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full" style={{ backgroundColor: heatmapBg, opacity: 0.75 }} />
               ) : null}
             </button>
           )
@@ -703,7 +703,8 @@ export interface SidebarHabitHistoryProps {
 
 export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect, sidebarModes, calendarMode, onCalendarModeChange, onFilterDay, selectedDate }: SidebarHabitHistoryProps) {
   const { theme } = useNoteColorTheme()
-  const heatColor = theme.shell[1]
+  const heatmapBg = theme.chrome.heatmapBg
+  const heatmapInk = theme.chrome.heatmapInk
 
   const today = useMemo(() => {
     const { year, month, day } = getShanghaDateParts(new Date())
@@ -853,11 +854,11 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
           const isToday = key === today.key
 
           const completedOpacity = summary && maxCompleted > 0 && summary.completed > 0
-            ? 0.25 + 0.65 * (summary.completed / maxCompleted) : 0
+            ? 0.32 + 0.60 * (summary.completed / maxCompleted) : 0
           const missedOpacity = summary && maxMissed > 0 && summary.missed > 0
-            ? 0.25 + 0.65 * (summary.missed / maxMissed) : 0
+            ? 0.32 + 0.60 * (summary.missed / maxMissed) : 0
           const delayedOpacity = summary && maxDelayed > 0 && summary.delayed > 0
-            ? 0.25 + 0.65 * (summary.delayed / maxDelayed) : 0
+            ? 0.32 + 0.60 * (summary.delayed / maxDelayed) : 0
 
           return (
             <button
@@ -889,10 +890,10 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
                 <div className="mt-auto flex w-full flex-col gap-px">
                   {summary.completed > 0 ? (
                     <span
-                      className="block truncate rounded-[3px] px-0.5 text-[9px] font-medium leading-[13px]"
+                      className="block truncate rounded-[3px] px-0.5 text-[9px] font-semibold leading-[13px]"
                       style={{
-                        backgroundColor: `rgba(${hexToRgb(heatColor)},${completedOpacity * 0.55})`,
-                        color: heatColor,
+                        backgroundColor: `rgba(${hexToRgb(heatmapBg)},${completedOpacity * 0.62})`,
+                        color: heatmapInk,
                       }}
                     >
                       完{summary.completed}
@@ -900,10 +901,10 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
                   ) : null}
                   {summary.delayed > 0 ? (
                     <span
-                      className="block truncate rounded-[3px] px-0.5 text-[9px] font-medium leading-[13px]"
+                      className="block truncate rounded-[3px] px-0.5 text-[9px] font-semibold leading-[13px]"
                       style={{
-                        backgroundColor: `rgba(59,130,246,${delayedOpacity * 0.45})`,
-                        color: 'rgba(30,64,175,0.9)',
+                        backgroundColor: `rgba(37,99,235,${delayedOpacity * 0.52})`,
+                        color: 'rgba(23,50,145,0.95)',
                       }}
                     >
                       延{summary.delayed}
@@ -911,10 +912,10 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
                   ) : null}
                   {summary.missed > 0 ? (
                     <span
-                      className="block truncate rounded-[3px] px-0.5 text-[9px] font-medium leading-[13px]"
+                      className="block truncate rounded-[3px] px-0.5 text-[9px] font-semibold leading-[13px]"
                       style={{
-                        backgroundColor: `rgba(220,38,38,${missedOpacity * 0.45})`,
-                        color: 'rgba(185,28,28,0.9)',
+                        backgroundColor: `rgba(220,38,38,${missedOpacity * 0.52})`,
+                        color: 'rgba(153,27,27,0.95)',
                       }}
                     >
                       错{summary.missed}
