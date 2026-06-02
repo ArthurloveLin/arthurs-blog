@@ -70,7 +70,19 @@ export default function HeroTerminal({ guestbookBoard, initialGuestbookMessages 
         <Live2D />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,48rem)_minmax(15rem,16rem)] lg:justify-center">
           <div className="hidden lg:block" />
-          <TerminalCard>
+          <TerminalCard statusBar={
+            <div className="hero-term-line flex w-full items-center gap-3" style={row(D.caret)}>
+              <span className="flex items-center gap-1">
+                <span className="text-primary" aria-hidden>●</span>
+                <span>branch:main</span>
+              </span>
+              <span aria-hidden>·</span>
+              <span>utf-8</span>
+              <span aria-hidden>·</span>
+              <span>markdown</span>
+              <span className="ml-auto">zsh</span>
+            </div>
+          }>
             <p className="hero-term-line flex items-center gap-2" style={row(D.cmd1)}>
               <Prompt />
               <Typed text="whoami" delay={D.cmd1} />

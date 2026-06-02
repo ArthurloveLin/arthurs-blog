@@ -7,20 +7,22 @@ import type { PageHeroProps } from '@/components/hero/page-hero-props'
 // than site config — no stats/now-playing/Live2D (those are homepage signatures).
 // `slogan` and `blobColors` are intentionally ignored: the handwriting/blob
 // ornaments don't belong in a terminal.
+
+// All secondary pages that use the terminal hero variant, shown in ls output.
+const LS_FILES = 'GUESTBOOK.md  MEMO.md  RECIPE.md  SPOTIFY.md  TREND_RADAR.md'
+
 const D = {
-  ls:     0.0,  // $ ls *.md        (Typed 0.5s → finishes at 0.5)
-  lsOut:  0.5,  // output line
-  cat:    0.7,  // $ cat FILE.md    (Typed 0.5s → finishes at 1.2)
-  title:  1.2,  // › h1 title
-  meta:   1.4,  // › metadata line
-  desc:   1.6,  // › description
-  status: 1.8,  // status bar
-  caret:  2.05, // $ █
+  ls:     0.0,   // $ ls *.md        (Typed 0.5s → finishes at 0.5)
+  lsOut:  0.5,   // ls output line
+  cat:    0.7,   // $ cat FILE.md    (Typed 0.5s → finishes at 1.2)
+  title:  1.2,   // › h1 title
+  desc:   1.4,   // › description
+  status: 1.6,   // status bar
+  caret:  1.85,  // $ █
 } as const
 
 export default function PageHeroTerminal({
   title,
-  subtitle,
   description,
   filename = 'README.md',
   containerClass = 'site-shell',
@@ -48,9 +50,9 @@ export default function PageHeroTerminal({
         <Prompt />
         <Typed text="ls *.md" delay={D.ls} />
       </p>
-      {/* ls output */}
+      {/* ls output: all secondary pages using this hero */}
       <p className="hero-term-line text-muted-foreground/55" style={row(D.lsOut)}>
-        {filename}{'  README.md'}
+        {LS_FILES}
       </p>
       {/* cat command */}
       <p className="hero-term-line mt-2 flex items-center gap-2" style={row(D.cat)}>
@@ -65,11 +67,6 @@ export default function PageHeroTerminal({
         <OutMark />
         <span>{title}</span>
       </h1>
-      {/* metadata (feat 2): front-matter style, uses subtitle if present */}
-      <p className="hero-term-line mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground/50 sm:text-xs" style={row(D.meta)}>
-        <OutMark />
-        <span>{subtitle ? `${subtitle}  ·  ` : ''}utf-8  ·  markdown</span>
-      </p>
       {/* description */}
       {description && (
         <p
