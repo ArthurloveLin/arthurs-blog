@@ -702,6 +702,9 @@ export interface SidebarHabitHistoryProps {
 }
 
 export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect, sidebarModes, calendarMode, onCalendarModeChange, onFilterDay, selectedDate }: SidebarHabitHistoryProps) {
+  const { theme } = useNoteColorTheme()
+  const heatColor = theme.shell[1]
+
   const today = useMemo(() => {
     const { year, month, day } = getShanghaDateParts(new Date())
     return { year, month, day, key: toDateKey(year, month, day) }
@@ -752,14 +755,21 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
     return map
   }, [overview.recentEvents])
 
-  const maxTotal = useMemo(() => {
+  const maxCompleted = useMemo(() => {
     let max = 0
-    for (const summary of overview.daySummaries) {
-      const total = summary.completed + summary.missed + summary.delayed
-      if (total > max) {
-        max = total
-      }
-    }
+    for (const s of overview.daySummaries) if (s.completed > max) max = s.completed
+    return max
+  }, [overview.daySummaries])
+
+  const maxMissed = useMemo(() => {
+    let max = 0
+    for (const s of overview.daySummaries) if (s.missed > max) max = s.missed
+    return max
+  }, [overview.daySummaries])
+
+  const maxDelayed = useMemo(() => {
+    let max = 0
+    for (const s of overview.daySummaries) if (s.delayed > max) max = s.delayed
     return max
   }, [overview.daySummaries])
 
@@ -783,7 +793,7 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
         {[
           { label: '今日完成', value: overview.summary.completedToday },
           { label: '当前连续', value: overview.summary.currentStreak },
-          { label: '7日完成率', value: `${overview.summary.completionRate7d}%` },
+          { label: '本周完成率', value: `${overview.summary.completionRate7d}%` },
           { label: '本周漏失/延后', value: `${overview.summary.missedThisWeek}/${overview.summary.delayedThisWeek}` },
         ].map((item) => (
           <div key={item.label} className="rounded-xl border border-border/40 bg-background/55 px-3 py-2">
@@ -840,9 +850,14 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
 
           const key = toDateKey(displayMonth.year, displayMonth.month, cell.day)
           const summary = daySummaryMap.get(key)
-          const total = summary ? summary.completed + summary.missed + summary.delayed : 0
           const isToday = key === today.key
-          const opacity = total > 0 && maxTotal > 0 ? 0.18 + 0.45 * (total / maxTotal) : 0
+
+          const completedOpacity = summary && maxCompleted > 0 && summary.completed > 0
+            ? 0.25 + 0.65 * (summary.completed / maxCompleted) : 0
+          const missedOpacity = summary && maxMissed > 0 && summary.missed > 0
+            ? 0.25 + 0.65 * (summary.missed / maxMissed) : 0
+          const delayedOpacity = summary && maxDelayed > 0 && summary.delayed > 0
+            ? 0.25 + 0.65 * (summary.delayed / maxDelayed) : 0
 
           return (
             <button
@@ -858,7 +873,6 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
                 'flex h-[60px] w-full flex-col rounded-sm p-1 text-left transition',
                 summary ? 'cursor-pointer hover:bg-accent' : 'cursor-default',
               ].join(' ')}
-              style={summary ? { backgroundColor: `rgba(${hexToRgb('#c0644a')},${opacity})` } : undefined}
               title={summary ? `完成 ${summary.completed} · 错过 ${summary.missed} · 延后 ${summary.delayed}` : undefined}
             >
               <span className={[
@@ -872,10 +886,25 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
                 {cell.day}
               </span>
               {summary ? (
-                <div className="mt-auto space-y-px text-[9px] leading-[11px] text-foreground/75">
-                  <span className="block truncate">完 {summary.completed}</span>
-                  {summary.missed > 0 ? <span className="block truncate text-red-700/80">错 {summary.missed}</span> : null}
-                  {summary.delayed > 0 ? <span className="block truncate text-blue-700/80">延 {summary.delayed}</span> : null}
+                <div className="mt-auto flex w-full flex-col gap-px">
+                  {completedOpacity > 0 ? (
+                    <div
+                      className="h-[4px] w-full rounded-sm"
+                      style={{ backgroundColor: `rgba(${hexToRgb(heatColor)},${completedOpacity})` }}
+                    />
+                  ) : null}
+                  {missedOpacity > 0 ? (
+                    <div
+                      className="h-[4px] w-full rounded-sm"
+                      style={{ backgroundColor: `rgba(220,38,38,${missedOpacity})` }}
+                    />
+                  ) : null}
+                  {delayedOpacity > 0 ? (
+                    <div
+                      className="h-[4px] w-full rounded-sm"
+                      style={{ backgroundColor: `rgba(59,130,246,${delayedOpacity})` }}
+                    />
+                  ) : null}
                 </div>
               ) : null}
             </button>

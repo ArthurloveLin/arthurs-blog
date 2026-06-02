@@ -59,6 +59,25 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const HISTORY_WINDOW_DAYS = 90
 const STALE_PENDING_MS = DAY_MS
 
+function getShanghaiWeekStartMs(): number {
+  const now = new Date()
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short',
+  }).formatToParts(now)
+  const year = parts.find((p) => p.type === 'year')?.value ?? ''
+  const month = parts.find((p) => p.type === 'month')?.value ?? ''
+  const day = parts.find((p) => p.type === 'day')?.value ?? ''
+  const weekday = parts.find((p) => p.type === 'weekday')?.value ?? 'Mon'
+  const dow = ({ Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 } as Record<string, number>)[weekday] ?? 0
+  // ISO week: Mon=first day; daysBack = distance back to Monday
+  const daysBack = dow === 0 ? 6 : dow - 1
+  return new Date(`${year}-${month}-${day}T00:00:00+08:00`).getTime() - daysBack * DAY_MS
+}
+
 function getShanghaiDayOfWeek(ts: number): number {
   const parts = new Intl.DateTimeFormat('en', {
     timeZone: 'Asia/Shanghai',
@@ -165,12 +184,13 @@ function computeCurrentStreak(rows: MemoHabitOccurrenceRow[]) {
     return 0
   }
 
-  if (rows[0]?.status === 'missed') {
+  // Missed and delayed both break the streak — delay is not a free pass
+  if (rows[0]?.status === 'missed' || rows[0]?.status === 'delayed') {
     return 0
   }
 
   let startIndex = 0
-  if (rows[0]?.status === 'pending' || rows[0]?.status === 'delayed') {
+  if (rows[0]?.status === 'pending') {
     startIndex = 1
   }
 
@@ -404,8 +424,8 @@ function buildDaySummaries(rows: MemoHabitOccurrenceRow[]): MemoHabitDaySummary[
 
 function buildSummary(currentStates: Record<string, Record<string, MemoHabitCurrentState>>, rows: MemoHabitOccurrenceRow[]) {
   const today = toShanghaiDateKey(new Date().toISOString())
-  const weekCutoff = Date.now() - 7 * DAY_MS
-  const recentRows = rows.filter((row) => row.status !== 'pending' && Date.parse(getOccurrenceEventTime(row)) >= weekCutoff)
+  const weekStartMs = getShanghaiWeekStartMs()
+  const recentRows = rows.filter((row) => row.status !== 'pending' && Date.parse(getOccurrenceEventTime(row)) >= weekStartMs)
 
   const completedToday = rows.filter((row) => row.status === 'completed' && toShanghaiDateKey(getOccurrenceEventTime(row)) === today).length
   const missedThisWeek = recentRows.filter((row) => row.status === 'missed').length
