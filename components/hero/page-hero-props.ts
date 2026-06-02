@@ -23,4 +23,6 @@ export interface PageHeroProps {
   blobColors?: [string, string]
   /** Container class — `site-shell` (single column) or `site-shell-triad` (3-col) */
   containerClass?: string
+  /** Filename shown in the terminal skin's `cat <filename>` command, e.g. "MEMO.md" */
+  filename?: string
 }

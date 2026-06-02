@@ -53,6 +53,7 @@ export default async function RecipePage() {
           </>
         }
         description={hero.description}
+        filename="RECIPE.md"
         slogan={hero.slogan1 ? { text1: hero.slogan1, text2: hero.slogan2 } : undefined}
         blobColors={['bg-orange-400/10', 'bg-amber-400/10']}
       />

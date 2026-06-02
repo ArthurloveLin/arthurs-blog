@@ -104,11 +104,12 @@ export default async function SpotifyPage() {
     <DirectionalTransition>
       <main className="min-h-screen bg-background">
         {/* ── Hero ── */}
-        <PageHero 
+        <PageHero
           title={titleNode}
           subtitle={spotifyCopy.hero.subtitle}
           description={spotifyCopy.hero.description}
-          slogan={{ 
+          filename="SPOTIFY.md"
+          slogan={{
             text1: spotifyCopy.hero.slogan1,
             text2: spotifyCopy.hero.slogan2,
           }}

@@ -98,6 +98,7 @@ export default async function TrendRadarPage({
             siteConfig.news_hero_description ||
             "多平台热榜聚合分析，挖掘隐藏在信息流中的焦点与变化。"
           }
+          filename="TREND_RADAR.md"
           slogan={{
             text1: siteConfig.news_slogan_1 || "Caught in the wake",
             text2: siteConfig.news_slogan_2 || "Freshly delivered",

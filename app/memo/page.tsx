@@ -122,6 +122,7 @@ export default async function MemoPage({
           title={titleNode}
           subtitle={siteConfig.memo_hero_subtitle || config?.title}
           description={siteConfig.memo_hero_description || config?.intro}
+          filename="MEMO.md"
           slogan={{
             text1: siteConfig.memo_slogan_1 || 'Capturing the spark',
             text2: siteConfig.memo_slogan_2 || 'Whispers of time',

@@ -55,20 +55,19 @@ export default function HeroTerminal({ guestbookBoard, initialGuestbookMessages 
       {/* Scanline texture */}
       <div className="hero-term-grid pointer-events-none absolute inset-0 z-0" aria-hidden />
 
-      {/* Decoration layer: absolute inset-0, z-30 (above terminal z-20).
-          Spans the full hero so StickyStackPreview's useElementSize measures
-          the full hero and Live2D's parentElement rect = full hero — both can
-          be dragged freely across the entire hero area.
-          pointer-events-none on the shell; each component re-enables internally. */}
-      <div className="absolute inset-0 z-30 hidden lg:block pointer-events-none">
-        <NoteColorThemeProvider>
-          <StickyStackPreview board={guestbookBoard} messages={previewMessages} />
-        </NoteColorThemeProvider>
-        <Live2D />
-      </div>
-
-      {/* Terminal card: z-20, below the decoration layer (z-30). */}
+      {/* Terminal card + decoration scoped inside site-shell-triad so
+          StickyStackPreview's useElementSize and Live2D's parentElement
+          both measure the content-zone width — initial positions land in
+          the left / right column areas instead of the full viewport edge. */}
       <div className="site-shell-triad relative z-20 pt-14 pb-12 lg:pt-20 lg:pb-16">
+        {/* StickyStack overlay: absolute within site-shell-triad, z-30 above card */}
+        <div className="pointer-events-none absolute inset-0 z-30 hidden lg:block">
+          <NoteColorThemeProvider>
+            <StickyStackPreview board={guestbookBoard} messages={previewMessages} />
+          </NoteColorThemeProvider>
+        </div>
+        {/* Live2D: internal absolute z-10; parentElement = site-shell-triad for drag bounds */}
+        <Live2D />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(15rem,16rem)_minmax(0,48rem)_minmax(15rem,16rem)] lg:justify-center">
           <div className="hidden lg:block" />
           <TerminalCard>

@@ -43,13 +43,14 @@ export default async function GuestbookPage({
     <DirectionalTransition>
       <main className="min-h-screen bg-background">
         {/* ── Hero ── */}
-        <PageHero 
+        <PageHero
           title={titleNode}
           subtitle={siteConfig.guestbook_hero_subtitle || config?.title}
           description={siteConfig.guestbook_hero_description || config?.intro}
-          slogan={{ 
-            text1: siteConfig.guestbook_slogan_1 || "Echoes from heart", 
-            text2: siteConfig.guestbook_slogan_2 || "Leave a trace" 
+          filename="GUESTBOOK.md"
+          slogan={{
+            text1: siteConfig.guestbook_slogan_1 || "Echoes from heart",
+            text2: siteConfig.guestbook_slogan_2 || "Leave a trace"
           }}
           blobColors={['bg-rose-400/10', 'bg-pink-400/10']}
         />

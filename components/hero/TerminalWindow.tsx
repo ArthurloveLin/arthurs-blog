@@ -13,11 +13,14 @@ import type { CSSProperties, ReactNode } from 'react'
 export function TerminalCard({
   windowTitle = '~/arthur-grace — zsh',
   className = '',
+  statusBar,
   children,
 }: {
   windowTitle?: string
   /** Extra classes applied to the outer rounded card div (e.g. centering, max-width). */
   className?: string
+  /** Optional bottom bar rendered below the body, flush with card edges (IDE status bar style). */
+  statusBar?: ReactNode
   children: ReactNode
 }) {
   return (
@@ -39,6 +42,13 @@ export function TerminalCard({
       <div className="px-5 py-6 font-mono text-[13px] leading-7 text-foreground sm:px-7 sm:py-7 sm:text-sm">
         {children}
       </div>
+
+      {/* Status bar — flush with card edges, below body padding */}
+      {statusBar && (
+        <div className="border-t border-border/50 bg-muted/30 px-5 sm:px-7 py-1.5 font-mono text-[11px] text-muted-foreground/55 flex items-center">
+          {statusBar}
+        </div>
+      )}
     </div>
   )
 }
@@ -49,6 +59,7 @@ export function TerminalWindow({
   containerClass = 'site-shell',
   windowClassName = 'mx-auto w-full max-w-3xl',
   corner,
+  statusBar,
   children,
 }: {
   windowTitle?: string
@@ -57,6 +68,8 @@ export function TerminalWindow({
   windowClassName?: string
   /** Absolutely-positioned decoration inside the section (e.g. Live2D). */
   corner?: ReactNode
+  /** Passed through to TerminalCard's bottom status bar slot. */
+  statusBar?: ReactNode
   children: ReactNode
 }) {
   return (
@@ -65,7 +78,7 @@ export function TerminalWindow({
       <div className="hero-term-grid pointer-events-none absolute inset-0 z-0" aria-hidden />
 
       <div className={`${containerClass} relative z-10 pt-14 pb-12 lg:pt-20 lg:pb-16`}>
-        <TerminalCard windowTitle={windowTitle} className={windowClassName}>
+        <TerminalCard windowTitle={windowTitle} className={windowClassName} statusBar={statusBar}>
           {children}
         </TerminalCard>
       </div>
@@ -91,13 +104,18 @@ export function OutMark() {
 // A typed ASCII command. width:Nch + steps(N) gives the per-character reveal;
 // backwards fill (in CSS) holds it at width:0 through the delay so it doesn't
 // flash full before typing. Only use for ASCII — CJK glyphs aren't 1ch wide.
+// The inner flex wrapper keeps the post-typing cursor flush against the text
+// regardless of the parent container's gap setting.
 export function Typed({ text, delay }: { text: string; delay: number }) {
   return (
-    <span
-      className="hero-term-typed"
-      style={{ width: `${text.length}ch`, animationTimingFunction: `steps(${text.length})`, animationDelay: `${delay}s` }}
-    >
-      {text}
+    <span className="inline-flex items-center">
+      <span
+        className="hero-term-typed"
+        style={{ width: `${text.length}ch`, animationTimingFunction: `steps(${text.length})`, animationDelay: `${delay}s` }}
+      >
+        {text}
+      </span>
+      <span className="hero-term-type-cursor" style={{ animationDelay: `${delay + 0.5}s` }} aria-hidden />
     </span>
   )
 }
