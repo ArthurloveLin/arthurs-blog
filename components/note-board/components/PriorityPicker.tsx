@@ -119,7 +119,7 @@ function PriorityPickerFrame({
   }
 
   const triggerClassName = trigger === 'tape'
-    ? 'inline-flex h-[26px] w-[52px] items-center justify-center rounded-[2px] border border-white/20 shadow-[0_1px_0_rgba(255,255,255,0.32)_inset,0_2px_5px_rgba(15,23,42,0.13)] disabled:cursor-default disabled:opacity-100'
+    ? 'inline-flex h-[26px] w-[52px] items-center justify-center rounded-[1px] border border-black/10 shadow-[0_1px_0_rgba(0,0,0,0.12)_inset,0_-1px_0_rgba(0,0,0,0.12)_inset,0_2px_7px_rgba(15,23,42,0.18)] disabled:cursor-default disabled:opacity-100'
     : 'inline-flex h-6 w-6 items-center justify-center rounded-full border border-black/10 bg-white/42 transition hover:-translate-y-0.5 hover:bg-white/58 disabled:cursor-default disabled:opacity-100'
 
   return (
@@ -140,7 +140,7 @@ function PriorityPickerFrame({
         style={trigger === 'tape'
           ? {
               backgroundColor: currentMeta.color,
-              backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.10) 45%, rgba(0,0,0,0.05) 100%)',
+              backgroundImage: 'repeating-linear-gradient(-55deg, transparent 0px, transparent 3px, rgba(255,255,255,0.07) 3px, rgba(255,255,255,0.07) 4px), linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(255,255,255,0.05) 35%, rgba(255,255,255,0.05) 65%, rgba(0,0,0,0.08) 100%)',
             }
           : undefined}
       >
