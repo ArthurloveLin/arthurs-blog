@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, use, useSyncExternalStore, type ReactNode } from 'react'
+import { createContext, use, useEffect, useSyncExternalStore, type ReactNode } from 'react'
 
 export type NoteColorThemeId = 'classic' | 'vivid' | 'cream' | 'mono' | 'dusk' | 'linen' | 'sakura' | 'night' | 'dark'
 
@@ -507,6 +507,11 @@ export const NOTE_COLOR_THEMES: readonly NoteColorThemeConfig[] = [
 
 const STORAGE_KEY = 'note-color-theme'
 const STORAGE_KEY_DARK = 'note-color-theme-dark'
+const COOKIE_KEY = 'note-color-theme'
+
+export function isValidNoteThemeId(value: unknown): value is NoteColorThemeId {
+  return typeof value === 'string' && VALID_IDS.has(value as NoteColorThemeId)
+}
 const DEFAULT_THEME = NOTE_COLOR_THEMES[0]
 
 interface NoteColorThemeContextValue {
@@ -549,23 +554,35 @@ function subscribeThemeChanges(callback: () => void): () => void {
   }
 }
 
-export function NoteColorThemeProvider({ children }: { children: ReactNode }) {
-  // useSyncExternalStore with an inline-script-primed server snapshot:
-  // layout.tsx writes data-note-theme to <html> before first paint so the
-  // server snapshot matches the client value — eliminating the hydration flash.
+export function NoteColorThemeProvider({
+  children,
+  initialThemeId,
+}: {
+  children: ReactNode
+  // Server-read cookie value — lets SSR render the correct theme from the start.
+  initialThemeId?: NoteColorThemeId
+}) {
+  // Server snapshot uses the cookie value so the SSR HTML already carries the
+  // correct CSS variable values. On the client, useSyncExternalStore re-reads
+  // localStorage on every render, so the picker stays reactive.
   const themeId = useSyncExternalStore(
     subscribeThemeChanges,
     getStoredThemeId,
-    () => {
-      if (typeof document === 'undefined') return 'classic' as NoteColorThemeId
-      const attr = document.documentElement.getAttribute('data-note-theme')
-      return (attr && VALID_IDS.has(attr as NoteColorThemeId) ? attr : 'classic') as NoteColorThemeId
-    },
+    () => initialThemeId ?? ('classic' as NoteColorThemeId),
   )
+
+  // Keep the cookie in sync so future SSR renders use the latest effective theme.
+  // This covers dark-mode toggles and first-visit localStorage→cookie migration.
+  useEffect(() => {
+    document.cookie = `${COOKIE_KEY}=${themeId}; path=/; max-age=31536000; SameSite=Lax`
+  }, [themeId])
 
   const handleSetThemeId = (id: NoteColorThemeId) => {
     const key = isDarkMode() ? STORAGE_KEY_DARK : STORAGE_KEY
     localStorage.setItem(key, id)
+    // Update cookie immediately (before the useEffect fires) so the next
+    // navigation to this page already has the right value in the cookie.
+    document.cookie = `${COOKIE_KEY}=${id}; path=/; max-age=31536000; SameSite=Lax`
     // Dispatch a synthetic storage event so the same-tab subscriber re-reads immediately
     window.dispatchEvent(new StorageEvent('storage', { key, newValue: id }))
   }

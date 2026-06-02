@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import DirectionalTransition from '@/components/DirectionalTransition'
 import { NoteBoardPage } from '@/components/note-board/NoteBoardExperience'
+import { isValidNoteThemeId } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { getNoteBoardConfig } from '@/lib/note-board-config'
 import { getBoardMessages } from '@/lib/note-boards'
 import { getSiteConfig } from '@/lib/blog'
@@ -21,6 +22,8 @@ export default async function GuestbookPage({
 }) {
   const config = getNoteBoardConfig('guestbook')
   const [params, cookieStore] = await Promise.all([searchParams, cookies()])
+  const rawTheme = cookieStore.get('note-color-theme')?.value
+  const initialThemeId = isValidNoteThemeId(rawTheme) ? rawTheme : undefined
   const { q } = params
   const initialQuery = typeof q === 'string' ? q.trim() : ''
   const initialViewMode = normalizeNoteBoardViewMode(
@@ -57,7 +60,7 @@ export default async function GuestbookPage({
 
         {/* ── Body ── */}
         <div className="site-shell py-12 pb-24">
-          <NoteBoardPage board={config} initialMessages={messages} initialQuery={initialQuery} initialViewMode={initialViewMode} />
+          <NoteBoardPage board={config} initialMessages={messages} initialQuery={initialQuery} initialViewMode={initialViewMode} initialThemeId={initialThemeId} />
         </div>
       </main>
 

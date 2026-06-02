@@ -21,7 +21,7 @@ import {
 } from '@/components/note-board/NoteBoardProvider'
 import { MemoBoardShell, useMemoBoardFilters, type MemoBoardFilters } from '@/components/note-board/views/MemoBoardShell'
 import { getStickyColorIndex, getStickyColorSeed } from '@/components/note-board/utils/board'
-import { NoteColorThemeProvider } from '@/components/note-board/contexts/NoteColorThemeContext'
+import { NoteColorThemeProvider, type NoteColorThemeId } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
 import {
@@ -54,6 +54,7 @@ interface NoteBoardPageProps {
   initialMessages: NoteMessage[]
   initialQuery?: string
   initialViewMode?: NoteBoardViewMode
+  initialThemeId?: NoteColorThemeId
 }
 
 function getShanghaiDateKey(value: string | Date): string {
@@ -979,7 +980,7 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
   )
 }
 
-export function NoteBoardPage({ board, initialMessages, initialQuery = '', initialViewMode = 'sticky' }: NoteBoardPageProps) {
+export function NoteBoardPage({ board, initialMessages, initialQuery = '', initialViewMode = 'sticky', initialThemeId }: NoteBoardPageProps) {
   const { data: externalTagsRaw } = useSWR<{ name: string; count: number }[]>(
     board.slug === 'memo' ? '/api/note-boards/memo/tags' : null,
     (url: string) => fetch(url).then((r) => r.json()),
@@ -987,7 +988,7 @@ export function NoteBoardPage({ board, initialMessages, initialQuery = '', initi
   )
 
   return (
-    <NoteColorThemeProvider>
+    <NoteColorThemeProvider initialThemeId={initialThemeId}>
       <NoteBoardProvider board={board} initialMessages={initialMessages} initialQuery={initialQuery} externalTags={externalTagsRaw ?? null}>
         <NoteBoardExperience initialViewMode={initialViewMode} />
       </NoteBoardProvider>

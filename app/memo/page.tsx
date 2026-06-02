@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { cookies } from 'next/headers'
 import DirectionalTransition from '@/components/DirectionalTransition'
 import { NoteBoardPage } from '@/components/note-board/NoteBoardExperience'
+import { isValidNoteThemeId, type NoteColorThemeId } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { getNoteBoardConfig, type NoteBoardViewConfig } from '@/lib/note-board-config'
 import { getBoardMessages } from '@/lib/note-boards'
 import { getSiteConfig } from '@/lib/blog'
@@ -57,10 +58,12 @@ async function MemoBoard({
   config,
   initialQuery,
   initialViewMode,
+  initialThemeId,
 }: {
   config: NoteBoardViewConfig
   initialQuery: string
   initialViewMode: NoteBoardViewMode
+  initialThemeId?: NoteColorThemeId
 }) {
   const currentUser = await getCurrentUser()
   const messages = await getBoardMessages(
@@ -81,6 +84,7 @@ async function MemoBoard({
       initialMessages={messages}
       initialQuery={initialQuery}
       initialViewMode={initialViewMode}
+      initialThemeId={initialThemeId}
     />
   )
 }
@@ -105,6 +109,8 @@ export default async function MemoPage({
   const initialViewMode = normalizeNoteBoardViewMode(
     cookieStore.get(getNoteBoardViewModeCookieName(config.slug))?.value,
   )
+  const rawTheme = cookieStore.get('note-color-theme')?.value
+  const initialThemeId = isValidNoteThemeId(rawTheme) ? rawTheme : undefined
 
   const titleNode = siteConfig.memo_hero_title_highlight || siteConfig.memo_hero_title_rest ? (
     <>
@@ -137,6 +143,7 @@ export default async function MemoPage({
               config={config}
               initialQuery={initialQuery}
               initialViewMode={initialViewMode}
+              initialThemeId={initialThemeId}
             />
           </Suspense>
         </div>
