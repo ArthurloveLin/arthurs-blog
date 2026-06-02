@@ -85,6 +85,8 @@ export default async function RootLayout({
               the dark class so next-themes' body script is not the sole gatekeeper
               for dark mode — preventing a flash when Suspense defers body effects. */}
           <script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement,s=localStorage.getItem('site-theme'),m=localStorage.getItem('theme'),L={ocean:'tide',sunset:'amber',forest:'sage'};if(!s&&L[m]){s=L[m];localStorage.setItem('site-theme',s);localStorage.setItem('theme','light');}d.setAttribute('data-site-theme',s||'mono');if(m==='dark'){d.classList.add('dark');}}catch(e){}` }} />
+          {/* Inline script: set data-note-theme before first paint to prevent note board color theme flash */}
+          <script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement,dk=window.matchMedia('(prefers-color-scheme:dark)').matches,k=dk?'note-color-theme-dark':'note-color-theme',v=['classic','vivid','cream','mono','dusk','linen','sakura','night','dark'],t=localStorage.getItem(k)||localStorage.getItem('note-color-theme');d.setAttribute('data-note-theme',t&&v.includes(t)?t:(dk?'dark':'classic'));}catch(e){}` }} />
           {/* Inline script: hide the ISR-rendered hero before first paint when the visitor's
               stored preference differs from the server default. sd = server-rendered default
               (from hero_default_variant in site_config). The gate is only set when

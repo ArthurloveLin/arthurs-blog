@@ -550,13 +550,17 @@ function subscribeThemeChanges(callback: () => void): () => void {
 }
 
 export function NoteColorThemeProvider({ children }: { children: ReactNode }) {
-  // useSyncExternalStore handles SSR/hydration correctly:
-  // server snapshot = 'classic', client snapshot = actual localStorage value
-  // (dark-mode-aware). No useEffect needed — React reconciles automatically.
+  // useSyncExternalStore with an inline-script-primed server snapshot:
+  // layout.tsx writes data-note-theme to <html> before first paint so the
+  // server snapshot matches the client value — eliminating the hydration flash.
   const themeId = useSyncExternalStore(
     subscribeThemeChanges,
     getStoredThemeId,
-    () => 'classic' as NoteColorThemeId,
+    () => {
+      if (typeof document === 'undefined') return 'classic' as NoteColorThemeId
+      const attr = document.documentElement.getAttribute('data-note-theme')
+      return (attr && VALID_IDS.has(attr as NoteColorThemeId) ? attr : 'classic') as NoteColorThemeId
+    },
   )
 
   const handleSetThemeId = (id: NoteColorThemeId) => {
