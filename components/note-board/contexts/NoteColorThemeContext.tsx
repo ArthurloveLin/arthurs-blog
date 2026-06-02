@@ -529,24 +529,49 @@ function isDarkMode(): boolean {
   }
 }
 
+// Reads data-note-theme (set by the head inline script from cookie before React
+// hydrates) so the client snapshot matches the SSR snapshot — no hydration flash.
 function getStoredThemeId(): NoteColorThemeId {
   try {
+    const attr = document.documentElement.getAttribute('data-note-theme')
+    if (isValidNoteThemeId(attr)) return attr as NoteColorThemeId
+  } catch {}
+  // Fallback: inline script didn't run (e.g. JS disabled, old cached page)
+  try {
     const dark = isDarkMode()
-    const key = dark ? STORAGE_KEY_DARK : STORAGE_KEY
-    const stored = localStorage.getItem(key)
-    if (isValidNoteThemeId(stored)) return stored
+    const stored = localStorage.getItem(dark ? STORAGE_KEY_DARK : STORAGE_KEY)
+    if (isValidNoteThemeId(stored)) return stored as NoteColorThemeId
     return dark ? 'dark' : 'classic'
   } catch {}
   return 'classic'
 }
 
+// Keep data-note-theme in sync with the current dark/light localStorage key so
+// getStoredThemeId() stays correct after dark-mode toggles or cross-tab changes.
+function syncThemeAttr(): void {
+  try {
+    const dark = isDarkMode()
+    const stored = localStorage.getItem(dark ? STORAGE_KEY_DARK : STORAGE_KEY)
+    const theme = (isValidNoteThemeId(stored) ? stored : dark ? 'dark' : 'classic') as NoteColorThemeId
+    document.documentElement.setAttribute('data-note-theme', theme)
+  } catch {}
+}
+
 function subscribeThemeChanges(callback: () => void): () => void {
-  window.addEventListener('storage', callback)
+  const handleStorage = (e: StorageEvent) => {
+    // Sync attr on cross-tab writes to either storage key
+    if (e.key === STORAGE_KEY || e.key === STORAGE_KEY_DARK) syncThemeAttr()
+    callback()
+  }
+  window.addEventListener('storage', handleStorage)
   // Watch .dark class toggles driven by next-themes
-  const observer = new MutationObserver(callback)
+  const observer = new MutationObserver((mutations) => {
+    if (mutations.some((m) => m.attributeName === 'class')) syncThemeAttr()
+    callback()
+  })
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
   return () => {
-    window.removeEventListener('storage', callback)
+    window.removeEventListener('storage', handleStorage)
     observer.disconnect()
   }
 }
@@ -568,19 +593,19 @@ export function NoteColorThemeProvider({
     () => initialThemeId ?? ('classic' as NoteColorThemeId),
   )
 
-  // Keep the cookie in sync so future SSR renders use the latest effective theme.
-  // This covers dark-mode toggles and first-visit localStorage→cookie migration.
+  // Keep cookie + data-note-theme in sync so SSR and getStoredThemeId() stay consistent.
   useEffect(() => {
     document.cookie = `${COOKIE_KEY}=${themeId}; path=/; max-age=31536000; SameSite=Lax`
+    document.documentElement.setAttribute('data-note-theme', themeId)
   }, [themeId])
 
   const handleSetThemeId = (id: NoteColorThemeId) => {
     const key = isDarkMode() ? STORAGE_KEY_DARK : STORAGE_KEY
     localStorage.setItem(key, id)
-    // Update cookie immediately (before the useEffect fires) so the next
-    // navigation to this page already has the right value in the cookie.
+    // Update cookie + attr immediately (before useEffect fires)
     document.cookie = `${COOKIE_KEY}=${id}; path=/; max-age=31536000; SameSite=Lax`
-    // Dispatch a synthetic storage event so the same-tab subscriber re-reads immediately
+    document.documentElement.setAttribute('data-note-theme', id)
+    // Synthetic storage event so the same-tab subscriber re-reads immediately
     window.dispatchEvent(new StorageEvent('storage', { key, newValue: id }))
   }
 
