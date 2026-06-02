@@ -62,6 +62,34 @@ function decodeIfEncoded(url: string) {
   }
 }
 
+// Strip the first top-level paragraph from raw markdown.
+// Any block element that would NOT render as a bare <p> is left untouched:
+// blockquotes, ATX/setext headings, all list types (- * +), fenced (``` ~~~)
+// and indented code blocks, tables, images, and raw HTML blocks.
+function stripFirstParagraph(content: string): string {
+  // Operate on the first non-blank line WITHOUT trimming leading whitespace,
+  // so indented code blocks (4 spaces / tab) are detected correctly.
+  const lines = content.split('\n')
+  const firstNonBlankIdx = lines.findIndex(l => l.length > 0)
+  if (firstNonBlankIdx === -1) return content
+  const firstLine = lines[firstNonBlankIdx]
+  const body = lines.slice(firstNonBlankIdx).join('\n')
+
+  // ATX heading, blockquote, fenced code (``` or ~~~), table, image, list (- * +), HTML block
+  if (/^[>#\-*+`~|!<]/.test(firstLine)) return body
+  // Ordered list
+  if (/^\d+[.)]\s/.test(firstLine)) return body
+  // Indented code block (4 spaces or tab) — checked before trimming
+  if (/^(?:    |\t)/.test(firstLine)) return body
+  // Setext heading: text line immediately followed by === or --- underline
+  const secondLine = lines[firstNonBlankIdx + 1] ?? ''
+  if (/^[=\-]{2,}[ \t]*$/.test(secondLine)) return body
+
+  // Strip the first paragraph (everything up to the first blank line)
+  const idx = body.indexOf('\n\n')
+  return idx === -1 ? '' : body.slice(idx).trimStart()
+}
+
 export default function MarkdownRenderer({
   content,
   skipFirstParagraph = false
@@ -70,7 +98,7 @@ export default function MarkdownRenderer({
   postId?: string;
   skipFirstParagraph?: boolean
 }) {
-  let paragraphCount = 0;
+  const processedContent = skipFirstParagraph ? stripFirstParagraph(content) : content
 
   return (
     <div className="prose prose-gray max-w-none">
@@ -80,15 +108,10 @@ export default function MarkdownRenderer({
         components={{
           p: ({ node, children }) => {
             // A paragraph wrapping only an image is a block figure, not a text
-            // paragraph — skip the counter so skipFirstParagraph never hides it,
-            // and drop the <p> wrapper (block inside inline is invalid HTML).
+            // paragraph — drop the <p> wrapper (block inside inline is invalid HTML).
             const c = (node as unknown as { children?: Array<{ tagName?: string }> })?.children
             if (c?.length === 1 && c[0]?.tagName === 'img') {
               return <>{children}</>
-            }
-            paragraphCount++;
-            if (skipFirstParagraph && paragraphCount === 1) {
-              return null;
             }
             return <p>{children}</p>;
           },
@@ -126,7 +149,7 @@ export default function MarkdownRenderer({
           }
         }}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   )
