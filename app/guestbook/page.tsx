@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import DirectionalTransition from '@/components/DirectionalTransition'
 import { NoteBoardPage } from '@/components/note-board/NoteBoardExperience'
-import { isValidNoteThemeId } from '@/components/note-board/contexts/NoteColorThemeContext'
+import { isValidNoteThemeId } from '@/lib/note-color-theme'
 import { getNoteBoardConfig } from '@/lib/note-board-config'
 import { getBoardMessages } from '@/lib/note-boards'
 import { getSiteConfig } from '@/lib/blog'

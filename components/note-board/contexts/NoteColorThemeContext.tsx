@@ -1,8 +1,9 @@
 'use client'
 
 import { createContext, use, useEffect, useSyncExternalStore, type ReactNode } from 'react'
+import { type NoteColorThemeId, isValidNoteThemeId } from '@/lib/note-color-theme'
 
-export type NoteColorThemeId = 'classic' | 'vivid' | 'cream' | 'mono' | 'dusk' | 'linen' | 'sakura' | 'night' | 'dark'
+export type { NoteColorThemeId }
 
 export interface NoteColorSlot {
   bg: string   // sticky note face background
@@ -59,8 +60,6 @@ export interface NoteColorThemeChrome {
   primarySurface: string
   primaryText: string
 }
-
-const VALID_IDS = new Set<NoteColorThemeId>(['classic', 'vivid', 'cream', 'mono', 'dusk', 'linen', 'sakura', 'night', 'dark'])
 
 // ── Theme data ────────────────────────────────────────────────────────────────
 
@@ -509,9 +508,7 @@ const STORAGE_KEY = 'note-color-theme'
 const STORAGE_KEY_DARK = 'note-color-theme-dark'
 const COOKIE_KEY = 'note-color-theme'
 
-export function isValidNoteThemeId(value: unknown): value is NoteColorThemeId {
-  return typeof value === 'string' && VALID_IDS.has(value as NoteColorThemeId)
-}
+export { isValidNoteThemeId }
 const DEFAULT_THEME = NOTE_COLOR_THEMES[0]
 
 interface NoteColorThemeContextValue {
@@ -537,7 +534,7 @@ function getStoredThemeId(): NoteColorThemeId {
     const dark = isDarkMode()
     const key = dark ? STORAGE_KEY_DARK : STORAGE_KEY
     const stored = localStorage.getItem(key)
-    if (stored && VALID_IDS.has(stored as NoteColorThemeId)) return stored as NoteColorThemeId
+    if (isValidNoteThemeId(stored)) return stored
     return dark ? 'dark' : 'classic'
   } catch {}
   return 'classic'
