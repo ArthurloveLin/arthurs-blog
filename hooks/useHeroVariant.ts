@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react'
+import { useCallback, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 import type { HeroVariantId } from '@/lib/hero-variants'
 import { DEFAULT_HERO_VARIANT, HERO_VARIANT_IDS } from '@/lib/hero-variants'
 import { useSiteConfig } from '@/components/SiteDataProvider'
@@ -53,14 +53,32 @@ export function useHeroVariant() {
 
   const variant = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
-  // Remove the CSS gate only after the stored preference is committed to the DOM.
-  // DEFAULT is 'terminal', so this only matters for aurora users: skip Render 1 (the
-  // ISR-rendered default) and remove the gate on Render 2 (after aurora is shown).
+  // Drive the data-hero-variant gate across the post-hydration swap.
+  //
+  // The inline <head> script sets data-hero-variant pre-paint ONLY when the stored variant
+  // differs from the ISR default — i.e. exactly when a load-time swap is pending. We record
+  // that on mount, then on the swap commit (Render 2) RE-ASSERT the attribute synchronously
+  // before the browser paints. The re-assert matters because React can strip the inline
+  // script's attribute during hydration (same reason SiteThemeInitializer exists); without
+  // it the gate + CSS intro-suppression would lapse and the swapped-in variant would replay
+  // its reveal animation — the flash this fixes. useLayoutEffect (not useEffect) guarantees
+  // it runs before paint. After paint we drop the attribute so later user-initiated switches
+  // animate normally.
   const mountedRef = useRef(false)
-  useEffect(() => {
+  const pendingLoadSwapRef = useRef(false)
+  useLayoutEffect(() => {
     if (!mountedRef.current) {
       mountedRef.current = true
+      pendingLoadSwapRef.current = document.documentElement.hasAttribute('data-hero-variant')
       return
+    }
+    if (pendingLoadSwapRef.current) {
+      pendingLoadSwapRef.current = false
+      document.documentElement.setAttribute('data-hero-variant', variant)
+      const id = requestAnimationFrame(() => {
+        document.documentElement.removeAttribute('data-hero-variant')
+      })
+      return () => cancelAnimationFrame(id)
     }
     document.documentElement.removeAttribute('data-hero-variant')
   }, [variant])

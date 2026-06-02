@@ -1628,6 +1628,30 @@ html[data-hero-variant="terminal"] .hero-aurora-root {
   display: none;
 }
 
+/* Intro-suppression during a load-time variant swap.
+   While data-hero-variant is present (the inline script sets it pre-paint for visitors
+   whose stored variant differs from the ISR default; useHeroVariant re-asserts it through
+   the swap commit, then drops it), the swapped-in variant must appear AT ONCE — replaying
+   the per-row reveal / typing / wrapper fade a second time is the "重放动画" flash.
+   The attribute is keyed bare (any value) so it works in both swap directions. It is gone
+   for user-initiated switches, which still animate. Re-adds the rule dropped in e93291a
+   when the gate was generalized to bidirectional. */
+html[data-hero-variant] .hero-variant-shell,
+html[data-hero-variant] .hero-term-line,
+html[data-hero-variant] .hero-term-typed {
+  animation: none !important;
+}
+html[data-hero-variant] .hero-term-typed {
+  width: auto !important;
+}
+html[data-hero-variant] .hero-term-type-cursor {
+  display: none;
+}
+html[data-hero-variant] .hero-term-caret {
+  animation: none;
+  opacity: 1;
+}
+
 /* Duel Animations */
 @keyframes slide-in-left {
   from { transform: translateX(-100%) rotate(-5deg); opacity: 0; }
