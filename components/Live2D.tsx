@@ -109,7 +109,7 @@ export default function Live2D() {
 
   useEffect(() => {
     // Initial fade in
-    const timer = setTimeout(() => setOpacity(1), 500)
+    const timer = setTimeout(() => setOpacity(1), 150)
     return () => clearTimeout(timer)
   }, [])
 
@@ -145,11 +145,13 @@ export default function Live2D() {
 
     void (async () => {
       try {
-        await ensureCubism2Core(engineUrl)
+        // Both are independent: core script download and library chunk import
+        // can race in parallel, saving one full network round-trip.
+        const [, { Live2DModel }] = await Promise.all([
+          ensureCubism2Core(engineUrl),
+          import('pixi-live2d-display/cubism2'),
+        ])
         if (cancelled || !canvasRef.current) return
-
-        // /cubism2 entry: pulls only the Cubism 2.1 runtime (no Cubism 4 bytes).
-        const { Live2DModel } = await import('pixi-live2d-display/cubism2')
         // Expose PIXI so the plugin can reference window.PIXI internals.
         window.PIXI = PIXI
 

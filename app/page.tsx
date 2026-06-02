@@ -3,7 +3,7 @@ import type { StickyStackPreviewMessage } from '@/components/note-board/views/St
 import { getStableYear } from '@/lib/date-format'
 import { getNoteBoardConfig } from '@/lib/note-board-config'
 import { getBoardMessages } from '@/lib/note-boards'
-import { getPostsByYear, type Post } from '@/lib/blog'
+import { getPostsByYear, getSiteConfig, type Post } from '@/lib/blog'
 
 export const revalidate = 1800
 
@@ -18,9 +18,10 @@ export default async function HomePage() {
   // Suspense skeleton has no cover element, which silently degraded morph-back
   // into a fade-in. ISR (revalidate) prerenders the whole page anyway, so
   // streaming the feed bought nothing. Matches archive/category/tag pages.
-  const [postsResult, guestbookResult] = await Promise.allSettled([
+  const [postsResult, guestbookResult, config] = await Promise.allSettled([
     getPostsByYear(currentYear, 50, 0),
     getBoardMessages('guestbook', guestbookConfig.previewLimit),
+    getSiteConfig(),
   ])
 
   const posts: Post[] = postsResult.status === 'fulfilled' ? postsResult.value : []
@@ -39,13 +40,22 @@ export default async function HomePage() {
     }))
   }
 
+  const siteConfig = config.status === 'fulfilled' ? config.value : {}
+  const live2dEngineUrl = siteConfig.live2d_engine_js_url || 'https://cdn.arthurlovegrace.top/js/live2d.js'
+
   return (
-    <BlogPage
-      posts={posts}
-      fetchError={fetchError}
-      currentYear={currentYear}
-      initialGuestbookMessages={guestbookMessages}
-      guestbookBoard={guestbookConfig}
-    />
+    <>
+      {/* Preload the Cubism 2 core script so the browser starts downloading it
+          during SSR/hydration rather than waiting for the Live2D component to mount. */}
+      <link rel="preconnect" href="https://cdn.arthurlovegrace.top" />
+      <link rel="preload" href={live2dEngineUrl} as="script" />
+      <BlogPage
+        posts={posts}
+        fetchError={fetchError}
+        currentYear={currentYear}
+        initialGuestbookMessages={guestbookMessages}
+        guestbookBoard={guestbookConfig}
+      />
+    </>
   )
 }
