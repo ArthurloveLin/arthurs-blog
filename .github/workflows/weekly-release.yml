@@ -116,14 +116,14 @@ jobs:
           echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
           echo "PREV_TAG=${PREV_TAG}" >> $GITHUB_ENV
           if [ -n "$PREV_TAG" ]; then
-            git log "${PREV_TAG}..HEAD" --format="* %s (%h)" | head -c 20000 > /tmp/git-log.txt
-            git diff "${PREV_TAG}..HEAD" --stat | head -c 8000 > /tmp/git-diff-stat.txt
+            git log "${PREV_TAG}..HEAD" --format="* %s (%h)" | head -c 30000 > /tmp/git-log.txt
+            git diff "${PREV_TAG}..HEAD" --stat | head -c 10000 > /tmp/git-diff-stat.txt
             git diff "${PREV_TAG}..HEAD" -- \
               '*.ts' '*.tsx' '*.js' '*.jsx' '*.css' \
               ':!*.min.*' ':!.next/**' ':!**/node_modules/**' \
-              | head -c 8000 > /tmp/git-diff-patch.txt
+              | head -c 24000 > /tmp/git-diff-patch.txt
           else
-            git log HEAD --format="* %s (%h)" | head -c 20000 > /tmp/git-log.txt
+            git log HEAD --format="* %s (%h)" | head -c 30000 > /tmp/git-log.txt
             echo "(首个版本，无 diff)" > /tmp/git-diff-stat.txt
             echo "" > /tmp/git-diff-patch.txt
           fi
@@ -216,16 +216,20 @@ jobs:
           )
           print(f"Uploaded changelog/latest.md ({len(new_entry)} bytes)")
 
-          # Fetch existing all.md and prepend new entry after the preamble
+          # Fetch existing all.md and prepend new entry after the preamble.
+          # If an entry with the same week_label already exists (e.g. re-run during debug),
+          # replace it rather than appending a duplicate.
           PREAMBLE = "# Changelog\n\n本文件由 CI 自动维护。\n\n"
+          SEPARATOR = "\n\n---\n\n"
           try:
               existing_obj = s3.get_object(Bucket=bucket, Key="changelog/all.md")
               existing = existing_obj["Body"].read().decode()
-              # Strip preamble if present so it stays at the top
               body_only = existing[len(PREAMBLE):] if existing.startswith(PREAMBLE) else existing
-              combined = PREAMBLE + new_entry.rstrip() + "\n\n---\n\n" + body_only.strip() + "\n"
-          except s3.exceptions.NoSuchKey:
-              combined = PREAMBLE + new_entry.rstrip() + "\n"
+              # Remove any existing chunk for this week to avoid duplicates on re-runs
+              chunks = body_only.split(SEPARATOR)
+              chunks = [c for c in chunks if not c.strip().startswith(f"## {week_label}")]
+              body_only = SEPARATOR.join(chunks).strip()
+              combined = PREAMBLE + new_entry.rstrip() + (SEPARATOR + body_only if body_only else "") + "\n"
           except Exception:
               combined = PREAMBLE + new_entry.rstrip() + "\n"
 
