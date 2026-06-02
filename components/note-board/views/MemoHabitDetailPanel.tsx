@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Trash2, X } from 'lucide-react'
-import { HABIT_DELAY_PRESETS, formatHabitTime, getHabitStatusClassName, getHabitStatusLabel, getHabitStreakLabel } from '@/components/note-board/utils/habit-ui'
+import { HABIT_DELAY_PRESETS, getHabitStatusClassName, getHabitStatusLabel, getHabitStreakLabel } from '@/components/note-board/utils/habit-ui'
+import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import type { MemoHabitItemDetail } from '@/lib/memo-habits'
 
 interface MemoHabitDetailPanelProps {
@@ -27,26 +28,38 @@ function formatDetailTimestamp(iso: string) {
   }).format(new Date(iso))
 }
 
-export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, onClose, onComplete, onDelay, onDeleteOccurrence }: MemoHabitDetailPanelProps) {
+const STATUS_DOT_CLASS: Record<string, string> = {
+  completed: 'bg-emerald-400',
+  missed: 'bg-red-400',
+  delayed: 'bg-sky-400',
+}
+
+const STATUS_TEXT_CLASS: Record<string, string> = {
+  completed: 'text-emerald-600 dark:text-emerald-400',
+  missed: 'text-red-500 dark:text-red-400',
+  delayed: 'text-sky-500 dark:text-sky-400',
+}
+
+const RECORDS_PER_PAGE = 6
+
+export function MemoHabitDetailPanel({
+  detail, isLoading, isMobile, anchorPos,
+  onClose, onComplete, onDelay, onDeleteOccurrence,
+}: MemoHabitDetailPanelProps) {
+  const { theme } = useNoteColorTheme()
   const cardRef = useRef<HTMLDivElement>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [completing, setCompleting] = useState(false)
   const [recordPage, setRecordPage] = useState(0)
 
-  const RECORDS_PER_PAGE = 5
-
-  // Reset to first page when the habit detail changes
   useEffect(() => { setRecordPage(0) }, [detail?.currentState?.itemKey])
 
   const visible = !!(detail || isLoading)
 
-  // Click-outside dismiss for PC card
   useEffect(() => {
     if (!visible || isMobile) return
     function handlePointerDown(e: PointerEvent) {
-      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
-        onClose()
-      }
+      if (cardRef.current && !cardRef.current.contains(e.target as Node)) onClose()
     }
     document.addEventListener('pointerdown', handlePointerDown)
     return () => document.removeEventListener('pointerdown', handlePointerDown)
@@ -57,97 +70,164 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
   const currentState = detail?.currentState ?? null
   const streakLabel = currentState ? getHabitStreakLabel(currentState.streak) : null
   const canComplete = currentState?.status === 'pending'
-  const canDelay = currentState != null && (currentState.status === 'pending' || currentState.status === 'scheduled' || currentState.status === 'delayed')
+  const canDelay = currentState != null && (
+    currentState.status === 'pending' ||
+    currentState.status === 'scheduled' ||
+    currentState.status === 'delayed'
+  )
+  const totalPages = detail ? Math.ceil(detail.recentOccurrences.length / RECORDS_PER_PAGE) : 1
 
   async function handleComplete() {
     if (completing) return
     setCompleting(true)
-    try {
-      await onComplete()
-    } finally {
-      setCompleting(false)
-    }
+    try { await onComplete() } finally { setCompleting(false) }
   }
 
   async function handleDeleteOccurrence(occurrenceId: string) {
     if (!onDeleteOccurrence || deletingId) return
     setDeletingId(occurrenceId)
-    try {
-      await onDeleteOccurrence(occurrenceId)
-    } finally {
-      setDeletingId(null)
-    }
+    try { await onDeleteOccurrence(occurrenceId) } finally { setDeletingId(null) }
   }
+
+  const c = theme.chrome
 
   const innerContent = (
     <>
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/50">重复任务详情</p>
-          <h3 className="mt-1 truncate text-[20px] font-semibold leading-tight text-foreground/90">
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          {/* eyebrow row */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p
+              className="text-[9.5px] font-semibold uppercase tracking-[0.22em]"
+              style={{ color: c.muted }}
+            >
+              重复任务
+            </p>
+            {currentState && !isLoading ? (
+              <span className={[
+                'inline-flex items-center rounded-full border px-2 py-px text-[10px] font-semibold',
+                getHabitStatusClassName(currentState.status),
+              ].join(' ')}>
+                {getHabitStatusLabel(currentState)}
+              </span>
+            ) : null}
+            {streakLabel && !isLoading ? (
+              <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-200/70 bg-amber-50/80 px-2 py-px text-[10px] font-semibold text-amber-600 dark:border-amber-700/40 dark:bg-amber-900/20 dark:text-amber-400">
+                🔥 {streakLabel}
+              </span>
+            ) : null}
+          </div>
+
+          {/* title */}
+          <h3
+            className="mt-1 text-[17px] font-semibold leading-snug"
+            style={{ color: c.heading }}
+          >
             {detail?.label ?? '加载中…'}
           </h3>
+
+          {/* subtitle */}
           {detail?.lineText ? (
-            <p className="mt-1 text-[12px] text-muted-foreground/65">{detail.lineText}</p>
+            <p
+              className="mt-0.5 line-clamp-2 text-[11.5px] leading-[1.5]"
+              style={{ color: c.summary }}
+            >
+              {detail.lineText}
+            </p>
+          ) : null}
+
+          {/* time meta */}
+          {currentState && !isLoading ? (
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]">
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="text-[9px] font-semibold uppercase tracking-[0.16em]"
+                  style={{ color: c.muted }}
+                >
+                  计划
+                </span>
+                <span className="tabular-nums font-medium" style={{ color: c.heading }}>
+                  {formatDetailTimestamp(currentState.dueAt)}
+                </span>
+              </span>
+              {detail?.nextDueAt ? (
+                <span className="flex items-center gap-1.5">
+                  <span
+                    className="text-[9px] font-semibold uppercase tracking-[0.16em]"
+                    style={{ color: c.muted }}
+                  >
+                    下次
+                  </span>
+                  <span className="tabular-nums" style={{ color: c.summary }}>
+                    {formatDetailTimestamp(detail.nextDueAt)}
+                  </span>
+                </span>
+              ) : null}
+            </p>
           ) : null}
         </div>
+
         <button
           type="button"
           onClick={onClose}
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition"
+          style={{ color: c.muted }}
+          aria-label="关闭"
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = c.panelMutedSurface }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '' }}
         >
-          <X size={15} />
+          <X size={13} />
         </button>
       </div>
 
+      {/* ── Divider ─────────────────────────────────────────────────────── */}
+      <div className="my-3 border-t" style={{ borderColor: c.panelBorder }} />
+
+      {/* ── Body ────────────────────────────────────────────────────────── */}
       {isLoading ? (
         <div className="space-y-3">
-          <div className="h-16 animate-pulse rounded-2xl bg-muted/30" />
-          <div className="h-24 animate-pulse rounded-2xl bg-muted/30" />
-          <div className="h-32 animate-pulse rounded-2xl bg-muted/30" />
+          {/* actions skeleton */}
+          <div className="flex gap-1.5">
+            <div className="h-7 w-20 animate-pulse rounded-full" style={{ background: c.panelMutedSurface }} />
+            <div className="h-7 w-16 animate-pulse rounded-full" style={{ background: c.panelMutedSurface, animationDelay: '60ms' }} />
+            <div className="h-7 w-16 animate-pulse rounded-full" style={{ background: c.panelMutedSurface, animationDelay: '120ms' }} />
+          </div>
+          <div className="border-t" style={{ borderColor: c.panelBorder }} />
+          {/* records skeleton */}
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div className="h-1.5 w-1.5 rounded-full" style={{ background: c.panelMutedSurface }} />
+              <div
+                className="h-4 animate-pulse rounded"
+                style={{ background: c.panelMutedSurface, animationDelay: `${i * 70}ms`, width: `${48 + i * 11}%` }}
+              />
+            </div>
+          ))}
         </div>
       ) : detail ? (
-        <div className="space-y-4 overflow-y-auto pr-1">
-          {currentState ? (
-            <div className="rounded-2xl border border-border/50 bg-background/60 px-4 py-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={[
-                  'inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium',
-                  getHabitStatusClassName(currentState.status),
-                ].join(' ')}>
-                  {getHabitStatusLabel(currentState)}
-                </span>
-                {streakLabel ? (
-                  <span className="inline-flex items-center rounded-full border border-border/60 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground/75">
-                    {streakLabel}
-                  </span>
-                ) : null}
-              </div>
+        <div className="space-y-4">
 
-              <div className="mt-3 grid grid-cols-2 gap-2 text-[12px] text-muted-foreground/70">
-                <div className="rounded-xl bg-background/80 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/45">计划时间</p>
-                  <p className="mt-1 text-foreground/80">{formatDetailTimestamp(currentState.dueAt)}</p>
-                </div>
-                <div className="rounded-xl bg-background/80 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/45">下次</p>
-                  <p className="mt-1 text-foreground/80">{detail.nextDueAt ? formatDetailTimestamp(detail.nextDueAt) : '无'}</p>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
+          {/* ── Actions ─────────────────────────────────────────────────── */}
           {(canComplete || canDelay) ? (
-            <div className="rounded-2xl border border-border/50 bg-background/60 px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/55">操作</p>
-              <div className="mt-3 flex flex-wrap gap-2">
+            <>
+              <div className="flex flex-wrap gap-1.5">
                 {canComplete ? (
                   <button
                     type="button"
                     onClick={() => void handleComplete()}
                     disabled={completing}
-                    className="inline-flex items-center rounded-full bg-foreground px-3 py-1.5 text-[12px] font-medium text-background transition hover:opacity-90 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-semibold transition active:scale-95 disabled:opacity-50"
+                    style={{ background: c.primarySurface, color: c.primaryText }}
                   >
+                    {completing ? (
+                      <span
+                        className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-t-transparent"
+                        style={{ borderColor: `${c.primaryText}40`, borderTopColor: c.primaryText }}
+                      />
+                    ) : (
+                      <span className="text-[11px] leading-none">✓</span>
+                    )}
                     记为完成
                   </button>
                 ) : null}
@@ -159,31 +239,61 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
                       const delayUntil = new Date(Date.now() + preset.minutes * 60 * 1000).toISOString()
                       void onDelay(delayUntil)
                     }}
-                    className="inline-flex items-center rounded-full border border-border/60 bg-background px-3 py-1.5 text-[12px] font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                    className="inline-flex items-center rounded-full border px-3 py-1.5 text-[11.5px] font-medium transition"
+                    style={{
+                      background: c.controlSurface,
+                      borderColor: c.controlBorder,
+                      color: c.controlText,
+                    }}
+                    onMouseEnter={(e) => {
+                      const el = e.currentTarget as HTMLButtonElement
+                      el.style.background = c.controlHoverSurface
+                      el.style.color = c.controlHoverText
+                    }}
+                    onMouseLeave={(e) => {
+                      const el = e.currentTarget as HTMLButtonElement
+                      el.style.background = c.controlSurface
+                      el.style.color = c.controlText
+                    }}
                   >
-                    延后 {preset.label}
+                    {preset.label}
                   </button>
                 )) : null}
               </div>
-            </div>
+
+              <div className="border-t" style={{ borderColor: c.panelBorder }} />
+            </>
           ) : null}
 
-          <div className="rounded-2xl border border-border/50 bg-background/60 px-4 py-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/55">最近记录</p>
-              {detail.recentOccurrences.length > 0 && (
-                <span className="text-[10px] text-muted-foreground/40">
-                  共 {detail.recentOccurrences.length} 条
+          {/* ── Records ─────────────────────────────────────────────────── */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <p
+                className="text-[9.5px] font-semibold uppercase tracking-[0.2em]"
+                style={{ color: c.muted }}
+              >
+                最近记录
+              </p>
+              {detail.recentOccurrences.length > 0 ? (
+                <span
+                  className="tabular-nums text-[9.5px]"
+                  style={{ color: c.muted }}
+                >
+                  {detail.recentOccurrences.length} 条
                 </span>
-              )}
+              ) : null}
             </div>
+
             {detail.recentOccurrences.length === 0 ? (
-              <div className="mt-3 rounded-xl bg-background/80 px-3 py-4 text-[12px] text-muted-foreground/55">
-                还没有历史记录。
-              </div>
+              <p
+                className="py-4 text-center text-[12px]"
+                style={{ color: c.muted }}
+              >
+                暂无历史记录
+              </p>
             ) : (
               <>
-                <div className="mt-3 max-h-[220px] overflow-y-auto space-y-2 pr-0.5">
+                <div className="space-y-px">
                   {detail.recentOccurrences
                     .slice(recordPage * RECORDS_PER_PAGE, (recordPage + 1) * RECORDS_PER_PAGE)
                     .map((event) => {
@@ -200,96 +310,136 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
                       } as const
                       const isDeleting = deletingId === event.occurrenceId
                       return (
-                        <div key={event.occurrenceId} className="flex items-start justify-between gap-2 rounded-xl bg-background/80 px-3 py-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[12px] font-medium text-foreground/80">{event.label}</p>
-                            <p className="mt-1 text-[11px] text-muted-foreground/55">{formatDetailTimestamp(event.occurredAt)}</p>
-                          </div>
-                          <div className="flex shrink-0 flex-col items-end gap-1">
-                            <span className={[
-                              'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium',
-                              getHabitStatusClassName(eventState.status),
-                            ].join(' ')}>
-                              {getHabitStatusLabel(eventState)}
+                        <div
+                          key={event.occurrenceId}
+                          className="group flex items-center gap-2 rounded-lg px-2 py-[5px] transition"
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = c.panelMutedSurface }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = '' }}
+                        >
+                          {/* status dot */}
+                          <span className={[
+                            'h-1.5 w-1.5 shrink-0 rounded-full',
+                            STATUS_DOT_CLASS[event.status] ?? 'bg-muted/40',
+                          ].join(' ')} />
+
+                          {/* timestamp */}
+                          <span
+                            className="flex-1 tabular-nums text-[11.5px]"
+                            style={{ color: c.summary }}
+                          >
+                            {formatDetailTimestamp(event.occurredAt)}
+                          </span>
+
+                          {/* status label */}
+                          <span className={[
+                            'shrink-0 text-[10.5px] font-medium',
+                            STATUS_TEXT_CLASS[event.status] ?? 'text-muted-foreground',
+                          ].join(' ')}>
+                            {getHabitStatusLabel(eventState)}
+                          </span>
+
+                          {/* source badge */}
+                          {event.completionSource === 'reminder_confirm' ? (
+                            <span
+                              className="shrink-0 rounded px-1 py-px text-[9px]"
+                              style={{ background: c.panelMutedSurface, color: c.muted }}
+                            >
+                              提醒
                             </span>
-                            {event.completionSource ? (
-                              <span className="text-[10px] text-muted-foreground/45">
-                                {event.completionSource === 'manual_check' ? '手动勾选' : '提醒确认'}
-                              </span>
-                            ) : null}
-                            {onDeleteOccurrence ? (
-                              <button
-                                type="button"
-                                disabled={isDeleting || !!deletingId}
-                                onClick={() => void handleDeleteOccurrence(event.occurrenceId)}
-                                className="mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] text-muted-foreground/50 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-950/40"
-                                title="删除此条记录"
-                              >
-                                <Trash2 size={9} />
-                                {isDeleting ? '删除中…' : '删除'}
-                              </button>
-                            ) : null}
-                          </div>
+                          ) : null}
+
+                          {/* delete */}
+                          {onDeleteOccurrence ? (
+                            <button
+                              type="button"
+                              disabled={isDeleting || !!deletingId}
+                              onClick={() => void handleDeleteOccurrence(event.occurrenceId)}
+                              className="shrink-0 opacity-0 transition hover:text-red-500 group-hover:opacity-100 disabled:pointer-events-none"
+                              style={{ color: c.muted }}
+                              title="删除"
+                            >
+                              {isDeleting ? (
+                                <span
+                                  className="inline-block h-2.5 w-2.5 animate-spin rounded-full border-2 border-t-transparent"
+                                  style={{ borderColor: `${c.muted}40`, borderTopColor: c.muted }}
+                                />
+                              ) : (
+                                <Trash2 size={10} />
+                              )}
+                            </button>
+                          ) : null}
                         </div>
                       )
-                  })}
+                    })}
                 </div>
-                {detail.recentOccurrences.length > RECORDS_PER_PAGE && (
-                  <div className="mt-2 flex items-center justify-between">
+
+                {/* pagination */}
+                {totalPages > 1 ? (
+                  <div
+                    className="mt-1.5 flex items-center justify-between border-t pt-1.5"
+                    style={{ borderColor: c.panelBorder }}
+                  >
                     <button
                       type="button"
                       disabled={recordPage === 0}
                       onClick={() => setRecordPage(p => p - 1)}
-                      className="rounded-lg px-2 py-1 text-[11px] text-muted-foreground/55 transition hover:bg-background/80 hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-30"
+                      className="px-1.5 py-1 text-[13px] transition disabled:pointer-events-none disabled:opacity-20"
+                      style={{ color: c.muted }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = c.heading }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = c.muted }}
                     >
-                      ← 上一页
+                      ←
                     </button>
-                    <span className="text-[11px] text-muted-foreground/45">
-                      {recordPage + 1} / {Math.ceil(detail.recentOccurrences.length / RECORDS_PER_PAGE)}
+                    <span className="tabular-nums text-[10px]" style={{ color: c.muted }}>
+                      {recordPage + 1} / {totalPages}
                     </span>
                     <button
                       type="button"
                       disabled={(recordPage + 1) * RECORDS_PER_PAGE >= detail.recentOccurrences.length}
                       onClick={() => setRecordPage(p => p + 1)}
-                      className="rounded-lg px-2 py-1 text-[11px] text-muted-foreground/55 transition hover:bg-background/80 hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-30"
+                      className="px-1.5 py-1 text-[13px] transition disabled:pointer-events-none disabled:opacity-20"
+                      style={{ color: c.muted }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = c.heading }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = c.muted }}
                     >
-                      下一页 →
+                      →
                     </button>
                   </div>
-                )}
+                ) : null}
               </>
             )}
           </div>
-
-          {detail.nextDueAt ? (
-            <div className="text-[12px] text-muted-foreground/60">
-              下次计划时间：{formatHabitTime(detail.nextDueAt)}
-            </div>
-          ) : null}
         </div>
       ) : null}
     </>
   )
 
-  // ── Mobile: bottom sheet drawer ───────────────────────────────────────────
+  // ── Mobile: bottom sheet ──────────────────────────────────────────────────
   if (isMobile) {
     return (
-      <div className="fixed inset-0 z-[var(--z-modal)] flex pointer-events-none items-end">
+      <div className="pointer-events-none fixed inset-0 z-[var(--z-modal)] flex items-end">
         <button
           type="button"
           aria-label="关闭详情"
-          className="absolute inset-0 bg-black/20 pointer-events-auto"
+          className="pointer-events-auto absolute inset-0 bg-black/20"
           onClick={onClose}
         />
-        <aside className="relative pointer-events-auto w-full max-h-[82vh] rounded-t-[28px] border border-border/60 bg-card shadow-[0_24px_80px_rgba(15,23,42,0.18)] px-5 pb-6 pt-4">
+        <aside
+          className="pointer-events-auto relative w-full max-h-[82vh] overflow-y-auto rounded-t-[28px] border px-5 pb-6 pt-4"
+          style={{
+            background: c.panelSurface,
+            borderColor: c.panelBorder,
+            boxShadow: '0 -12px 48px rgba(0,0,0,0.12)',
+          }}
+        >
           {innerContent}
         </aside>
       </div>
     )
   }
 
-  // ── Desktop: inline floating card, no dark overlay ────────────────────────
-  const CARD_W = 360
+  // ── Desktop: floating card ────────────────────────────────────────────────
+  const CARD_W = 340
   const MARGIN = 8
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1280
   const vh = typeof window !== 'undefined' ? window.innerHeight : 800
@@ -301,18 +451,27 @@ export function MemoHabitDetailPanel({ detail, isLoading, isMobile, anchorPos, o
     : 80
 
   return (
-    <div
-      ref={cardRef}
-      className="fixed z-[var(--z-modal)] w-[360px] max-h-[calc(100vh-6rem)] overflow-y-auto rounded-[28px] border border-border/60 bg-card p-5 shadow-[0_24px_80px_rgba(15,23,42,0.22)]"
-      style={{ left: cardLeft, top: cardTop, animation: 'memoHabitCardIn 0.18s ease-out' }}
-    >
+    <>
       <style>{`
         @keyframes memoHabitCardIn {
           from { opacity: 0; transform: translateY(-6px) scale(0.97); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
-      {innerContent}
-    </div>
+      <div
+        ref={cardRef}
+        className="fixed z-[var(--z-modal)] w-[340px] max-h-[calc(100vh-6rem)] overflow-y-auto rounded-[22px] border p-5"
+        style={{
+          left: cardLeft,
+          top: cardTop,
+          background: c.panelSurface,
+          borderColor: c.panelBorder,
+          boxShadow: c.panelShadow,
+          animation: 'memoHabitCardIn 0.18s ease-out',
+        }}
+      >
+        {innerContent}
+      </div>
+    </>
   )
 }
