@@ -497,7 +497,7 @@ function StickyNoteCardFrame({
               <button
                 type="button"
                 className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] transition text-[color:var(--note-menu-text)] hover:[background:var(--note-menu-hover-surface)] hover:text-[color:var(--note-menu-hover-text)] active:[background:var(--note-menu-active-surface)]"
-                onClick={() => { exportNoteAsImage(message.content, message.author, message.created_at); setShowExportMenu(false) }}
+                onClick={() => { exportNoteAsImage(message.content, message.author, message.created_at, noteSlot.tape); setShowExportMenu(false) }}
               >
                 <FileImage size={13} strokeWidth={1.85} className="shrink-0" />
                 导出为图片

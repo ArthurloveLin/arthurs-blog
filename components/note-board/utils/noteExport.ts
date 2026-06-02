@@ -18,7 +18,7 @@ export function stripMarkdown(content: string): string {
     .replace(/`([^`\n]+)`/g, '$1')
     .replace(/~~([^~\n]+)~~/g, '$1')
     .replace(/@due\[[^\]]*\]\([^)]*\)/g, '')
-    .replace(/#[\w\u4e00-\u9fff]+/g, (m) => m.slice(1))
+    .replace(/#[\w一-鿿]+/g, (m) => m.slice(1))
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .trim()
 }
@@ -28,7 +28,7 @@ export function fileNameFromContent(content: string): string {
     content
       .split('\n')[0]
       ?.replace(/^#+\s*/, '')
-      .replace(/[^\w\u4e00-\u9fff-]/g, ' ')
+      .replace(/[^\w一-鿿-]/g, ' ')
       .trim()
       .slice(0, 40) || 'memo'
   )
@@ -50,6 +50,8 @@ export function downloadNote(content: string, format: 'md' | 'txt'): void {
 
 // ─── PNG export (kami template) ──────────────────────────────────────────────
 
+const SERIF = 'Georgia,"Times New Roman",serif'
+
 const K = {
   parchment: '#f5f4ed',
   sand: '#e8e6dc',
@@ -57,120 +59,183 @@ const K = {
   nearBlack: '#141413',
   darkWarm: '#3d3d3a',
   stone: '#6b6a64',
+  tagPill: '#e2e0d6',
 
-  // Layout
   scale: 2,
   logicalW: 640,
   padH: 44,
   padTop: 46,
-  padBottom: 36,
+  padBottom: 38,
   topBarH: 3.5,
-  titleFontPx: 17,
-  titleLineH: 23,
-  bodyFontPx: 13,
-  bodyLineH: 20,
-  paraGap: 10,
+
+  h1Px: 18, h1LineH: 27,
+  h2Px: 15, h2LineH: 23,
+  h3Px: 13, h3LineH: 21,
+  bodyPx: 13, bodyLineH: 20,
+  tagPx: 10.5, tagLineH: 22,
+  paraGap: 8,
+  blockGap: 13,
+}
+
+type ContentBlock =
+  | { kind: 'heading'; level: 1 | 2 | 3; text: string }
+  | { kind: 'tags'; tags: string[] }
+  | { kind: 'paragraph'; text: string }
+  | { kind: 'blank' }
+
+function stripInline(line: string): string {
+  return line
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*\n]+)\*/g, '$1')
+    .replace(/==([^=\n]+)==/g, '$1')
+    .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/~~([^~\n]+)~~/g, '$1')
+    .replace(/@due\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/^[-*]\s+(?:\[[ x]\]\s+)?/, '')
+    .trim()
+}
+
+function parseBlocks(content: string): ContentBlock[] {
+  const raw: ContentBlock[] = []
+
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.replace(/@due\[[^\]]*\]\([^)]*\)/g, '').trim()
+
+    // Heading: # / ## / ###
+    const headingMatch = line.match(/^(#{1,3})\s+(.+)$/)
+    if (headingMatch) {
+      const level = Math.min(headingMatch[1].length, 3) as 1 | 2 | 3
+      const text = stripInline(headingMatch[2])
+      if (text) raw.push({ kind: 'heading', level, text })
+      continue
+    }
+
+    // Pure-tag line: every token is a #hashtag
+    const tagMatches = line.match(/#[\w一-鿿]+/g)
+    if (tagMatches && line.replace(/#[\w一-鿿]+/g, '').trim() === '') {
+      raw.push({ kind: 'tags', tags: tagMatches.map(t => t.slice(1)) })
+      continue
+    }
+
+    if (line === '') {
+      raw.push({ kind: 'blank' })
+      continue
+    }
+
+    // Paragraph — inline tags become plain text
+    const text = stripInline(line).replace(/#[\w一-鿿]+/g, m => m.slice(1))
+    if (text) raw.push({ kind: 'paragraph', text })
+  }
+
+  // Collapse consecutive blanks; trim leading/trailing
+  const out: ContentBlock[] = []
+  let prevBlank = false
+  for (const b of raw) {
+    if (b.kind === 'blank') { if (!prevBlank) out.push(b); prevBlank = true }
+    else { out.push(b); prevBlank = false }
+  }
+  while (out[0]?.kind === 'blank') out.shift()
+  while (out.at(-1)?.kind === 'blank') out.pop()
+  return out
 }
 
 /**
- * Wrap text to fit within maxWidth for a given canvas context.
- * Handles CJK (character-level split) and Latin (word-level split) together
- * by iterating character by character — safe for any script mix.
+ * Wrap text character-by-character (safe for CJK+Latin mix).
  */
-function wrapText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number,
-): string[] {
-  const result: string[] = []
-  for (const para of text.split('\n')) {
-    if (para.trim() === '') {
-      result.push('')
-      continue
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const lines: string[] = []
+  let cur = ''
+  for (const ch of text) {
+    const next = cur + ch
+    if (ctx.measureText(next).width > maxWidth && cur !== '') {
+      lines.push(cur)
+      cur = ch
+    } else {
+      cur = next
     }
-    let current = ''
-    for (const char of para) {
-      const test = current + char
-      if (ctx.measureText(test).width > maxWidth && current !== '') {
-        result.push(current)
-        current = char
-      } else {
-        current = test
-      }
-    }
-    if (current) result.push(current)
   }
-  return result
+  if (cur) lines.push(cur)
+  return lines.length > 0 ? lines : ['']
+}
+
+/**
+ * Compute the pixel height of a block (uses ctx only for font measurement).
+ */
+function blockHeight(ctx: CanvasRenderingContext2D, block: ContentBlock, contentW: number, padH: number, logicalW: number): number {
+  const { h1Px, h1LineH, h2Px, h2LineH, h3Px, h3LineH, bodyPx, bodyLineH, tagPx, tagLineH, paraGap } = K
+  switch (block.kind) {
+    case 'blank': return paraGap
+    case 'heading': {
+      const [px, lh, w] = block.level === 1 ? [h1Px, h1LineH, '600'] : block.level === 2 ? [h2Px, h2LineH, '500'] : [h3Px, h3LineH, '500']
+      ctx.font = `${w} ${px}px ${SERIF}`
+      const indent = block.level <= 2 ? 13 : 0
+      return wrapText(ctx, block.text, contentW - indent).length * lh
+    }
+    case 'tags': {
+      ctx.font = `400 ${tagPx}px ${SERIF}`
+      const pillPadX = 7
+      const endX = logicalW - padH
+      let x = padH
+      let rows = 1
+      for (const tag of block.tags) {
+        const pw = ctx.measureText(tag).width + pillPadX * 2
+        if (x + pw > endX && x > padH) { rows++; x = padH }
+        x += pw + 5
+      }
+      return rows * tagLineH
+    }
+    case 'paragraph': {
+      ctx.font = `400 ${bodyPx}px ${SERIF}`
+      return wrapText(ctx, block.text, contentW).length * bodyLineH
+    }
+  }
 }
 
 /**
  * Export the note as a kami-styled PNG card and trigger a browser download.
  *
  * Template anatomy (logical pixels, scaled 2× for retina):
- *   ▸ Full-width top accent bar in ink-blue
+ *   ▸ Full-width top accent bar in note accent color
  *   ▸ Eyebrow: "便签 · <formatted date>"
- *   ▸ Left accent bar + title (first non-empty line)
+ *   ▸ Blocks: H1/H2/H3 with left bar + size hierarchy; tags as pills; body text
  *   ▸ Horizontal rule (sand)
- *   ▸ Body text (remaining lines, markdown stripped)
- *   ▸ Horizontal rule
  *   ▸ Footer: "arthur's blog" left · author right
  */
 export function exportNoteAsImage(
   content: string,
   author: string,
   createdAt: string,
+  accentColor?: string,
 ): void {
-  const {
-    scale,
-    logicalW,
-    padH,
-    padTop,
-    padBottom,
-    topBarH,
-    titleFontPx,
-    titleLineH,
-    bodyFontPx,
-    bodyLineH,
-    paraGap,
-  } = K
-
-  const plainText = stripMarkdown(content)
+  const { scale, logicalW, padH, padTop, padBottom, topBarH, blockGap, h1Px, h1LineH, h2Px, h2LineH, h3Px, h3LineH, bodyPx, bodyLineH, tagPx, tagLineH, paraGap } = K
+  const accent = accentColor ?? K.brand
   const contentW = logicalW - padH * 2
+
+  const blocks = parseBlocks(content)
 
   // ── measure pass ──────────────────────────────────────────────────────────
   const mc = document.createElement('canvas')
   mc.width = logicalW * scale
-  mc.height = 3000 * scale
+  mc.height = 100 * scale
   const mCtx = mc.getContext('2d')!
   mCtx.scale(scale, scale)
 
-  const rawParagraphs = plainText.split('\n').filter(Boolean)
-  const titleLine = rawParagraphs[0] ?? ''
-  const bodyText = rawParagraphs.slice(1).join('\n').trim()
-
-  mCtx.font = `500 ${titleFontPx}px Georgia,"Times New Roman",serif`
-  const titleWrapped = wrapText(mCtx, titleLine, contentW - 14)
-  const titleBlockH = Math.max(titleWrapped.length, 1) * titleLineH
-
-  let bodyWrapped: string[] = []
-  let bodyBlockH = 0
-  if (bodyText) {
-    mCtx.font = `400 ${bodyFontPx}px Georgia,"Times New Roman",serif`
-    bodyWrapped = wrapText(mCtx, bodyText, contentW)
-    bodyBlockH = bodyWrapped.reduce(
-      (acc, l) => acc + (l === '' ? paraGap : bodyLineH),
-      0,
-    )
+  let contentHeight = 0
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]!
+    contentHeight += blockHeight(mCtx, block, contentW, padH, logicalW)
+    if (block.kind !== 'blank' && i < blocks.length - 1 && blocks[i + 1]?.kind !== 'blank') {
+      contentHeight += blockGap
+    }
   }
 
-  // ── layout constants ───────────────────────────────────────────────────────
+  // ── layout ─────────────────────────────────────────────────────────────────
   const eyebrowY = topBarH + padTop
-  const titleY = eyebrowY + 16 + 8
-  const sep1Y = titleY + titleBlockH + 20
-  const bodyY = sep1Y + 16
-  const sep2Y = bodyY + bodyBlockH + (bodyBlockH > 0 ? 24 : 0)
-  const footerY = sep2Y + 18
-  const totalH = Math.max(footerY + padBottom, 260)
+  const contentStartY = eyebrowY + 16 + 10
+  const sep1Y = contentStartY + contentHeight + 20
+  const footerY = sep1Y + 18
+  const totalH = Math.max(footerY + padBottom, 240)
 
   // ── draw ──────────────────────────────────────────────────────────────────
   const canvas = document.createElement('canvas')
@@ -184,33 +249,92 @@ export function exportNoteAsImage(
   ctx.fillRect(0, 0, logicalW, totalH)
 
   // Top accent bar
-  ctx.fillStyle = K.brand
+  ctx.fillStyle = accent
   ctx.fillRect(0, 0, logicalW, topBarH)
 
   // Eyebrow
-  const dateStr = new Date(createdAt).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-  ctx.font = `500 9.5px system-ui,-apple-system,sans-serif`
+  const dateStr = new Date(createdAt).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+  ctx.font = `400 9.5px ${SERIF}`
   ctx.fillStyle = K.stone
   ctx.fillText(`便签 · ${dateStr}`, padH, eyebrowY + 11)
 
-  // Title left bar
-  ctx.fillStyle = K.brand
-  ctx.beginPath()
-  ctx.roundRect(padH, titleY, 2.5, titleBlockH + 2, 1.5)
-  ctx.fill()
+  // ── blocks ─────────────────────────────────────────────────────────────────
+  let y = contentStartY
 
-  // Title text
-  ctx.font = `500 ${titleFontPx}px Georgia,"Times New Roman",serif`
-  ctx.fillStyle = K.nearBlack
-  titleWrapped.forEach((line, i) => {
-    ctx.fillText(line, padH + 13, titleY + i * titleLineH + titleFontPx - 1)
-  })
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]!
 
-  // Separator 1
+    if (block.kind === 'blank') {
+      y += paraGap
+      continue
+    }
+
+    if (block.kind === 'heading') {
+      const [px, lh, w] = block.level === 1 ? [h1Px, h1LineH, '600'] : block.level === 2 ? [h2Px, h2LineH, '500'] : [h3Px, h3LineH, '500']
+      const indent = block.level <= 2 ? 13 : 0
+      ctx.font = `${w} ${px}px ${SERIF}`
+      const lines = wrapText(ctx, block.text, contentW - indent)
+      const bh = lines.length * lh
+
+      if (block.level <= 2) {
+        const barW = block.level === 1 ? 2.5 : 2
+        ctx.fillStyle = accent
+        ctx.beginPath()
+        ctx.roundRect(padH, y, barW, bh + 2, 1.5)
+        ctx.fill()
+      }
+
+      ctx.fillStyle = K.nearBlack
+      lines.forEach((line, li) => ctx.fillText(line, padH + indent, y + li * lh + px - 1))
+      y += bh
+    }
+
+    else if (block.kind === 'tags') {
+      ctx.font = `400 ${tagPx}px ${SERIF}`
+      const pillPadX = 7
+      const pillPadY = 3
+      const pillH = tagPx + pillPadY * 2
+      const endX = logicalW - padH
+      let pillX = padH
+      let rowStart = y
+
+      for (const tag of block.tags) {
+        const tw = ctx.measureText(tag).width
+        const pw = tw + pillPadX * 2
+
+        if (pillX + pw > endX && pillX > padH) {
+          pillX = padH
+          rowStart += tagLineH
+        }
+
+        ctx.fillStyle = K.tagPill
+        ctx.beginPath()
+        ctx.roundRect(pillX, rowStart + (tagLineH - pillH) / 2, pw, pillH, pillH / 2)
+        ctx.fill()
+
+        ctx.fillStyle = K.stone
+        ctx.fillText(tag, pillX + pillPadX, rowStart + (tagLineH + tagPx) / 2 - 1)
+        pillX += pw + 5
+      }
+
+      y = rowStart + tagLineH
+    }
+
+    else if (block.kind === 'paragraph') {
+      ctx.font = `400 ${bodyPx}px ${SERIF}`
+      ctx.fillStyle = K.darkWarm
+      for (const line of wrapText(ctx, block.text, contentW)) {
+        ctx.fillText(line, padH, y + bodyPx - 1)
+        y += bodyLineH
+      }
+    }
+
+    if (i < blocks.length - 1 && blocks[i + 1]?.kind !== 'blank') {
+      y += blockGap
+    }
+  }
+
+  // Separator
   ctx.strokeStyle = K.sand
   ctx.lineWidth = 0.75
   ctx.beginPath()
@@ -218,38 +342,16 @@ export function exportNoteAsImage(
   ctx.lineTo(logicalW - padH, sep1Y)
   ctx.stroke()
 
-  // Body text
-  if (bodyWrapped.length > 0) {
-    ctx.font = `400 ${bodyFontPx}px Georgia,"Times New Roman",serif`
-    ctx.fillStyle = K.darkWarm
-    let yCursor = bodyY
-    for (const line of bodyWrapped) {
-      if (line === '') {
-        yCursor += paraGap
-      } else {
-        ctx.fillText(line, padH, yCursor + bodyFontPx - 1)
-        yCursor += bodyLineH
-      }
-    }
-  }
-
-  // Separator 2 (only when there's body content or we need footer spacing)
-  ctx.strokeStyle = K.sand
-  ctx.lineWidth = 0.75
-  ctx.beginPath()
-  ctx.moveTo(padH, sep2Y)
-  ctx.lineTo(logicalW - padH, sep2Y)
-  ctx.stroke()
-
   // Footer
-  ctx.font = `400 10px system-ui,-apple-system,sans-serif`
+  ctx.font = `400 10px ${SERIF}`
   ctx.fillStyle = K.stone
   ctx.fillText("arthur's blog", padH, footerY + 10)
   const authorW = ctx.measureText(author).width
   ctx.fillText(author, logicalW - padH - authorW, footerY + 10)
 
   // Download
-  const name = fileNameFromContent(plainText || titleLine)
+  const firstText = blocks.find(b => b.kind === 'heading' || b.kind === 'paragraph')
+  const name = fileNameFromContent(firstText && (firstText.kind === 'heading' || firstText.kind === 'paragraph') ? firstText.text : content)
   const url = canvas.toDataURL('image/png')
   const a = document.createElement('a')
   a.href = url

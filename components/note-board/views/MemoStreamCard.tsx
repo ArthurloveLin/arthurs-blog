@@ -257,7 +257,7 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
           <button
             type="button"
             className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-[color:var(--memo-local-card-text)] transition hover:bg-black/[0.03]"
-            onClick={() => { exportNoteAsImage(message.content, message.author, message.created_at); setShowExportMenu(false) }}
+            onClick={() => { exportNoteAsImage(message.content, message.author, message.created_at, accentColor); setShowExportMenu(false) }}
           >
             <FileImage size={13} strokeWidth={1.85} className="shrink-0 opacity-60" />
             导出为图片

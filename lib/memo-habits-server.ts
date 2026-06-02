@@ -179,7 +179,11 @@ function getOpenOccurrenceDueAt(row: Pick<MemoHabitOccurrenceRow, 'due_at' | 'de
   return row.delayed_to ?? row.due_at
 }
 
-function computeCurrentStreak(rows: MemoHabitOccurrenceRow[]) {
+function computeCurrentStreak(
+  rows: MemoHabitOccurrenceRow[],
+  repeatMode?: string | null,
+  repeatDays?: number[] | null,
+) {
   if (rows.length === 0) {
     return 0
   }
@@ -195,18 +199,42 @@ function computeCurrentStreak(rows: MemoHabitOccurrenceRow[]) {
   }
 
   let streak = 0
+  let prevCompletedDateKey: string | null = null
+
   for (let index = startIndex; index < rows.length; index += 1) {
-    if (rows[index]?.status !== 'completed') {
+    const row = rows[index]
+    if (row?.status !== 'completed') {
       break
     }
+
+    const currDateKey = toShanghaiDateKey(row.due_at)
+
+    // If there is a gap between the previous completed day and this one, check
+    // whether any scheduled day falls in the gap — if so, the streak is broken.
+    if (prevCompletedDateKey !== null) {
+      const prevMs = new Date(`${prevCompletedDateKey}T00:00:00+08:00`).getTime()
+      const currMs = new Date(`${currDateKey}T00:00:00+08:00`).getTime()
+      let gapHasScheduledDay = false
+      for (let dayMs = currMs + DAY_MS; dayMs < prevMs; dayMs += DAY_MS) {
+        if (isScheduledOnDay(repeatMode, repeatDays, getShanghaiDayOfWeek(dayMs))) {
+          gapHasScheduledDay = true
+          break
+        }
+      }
+      if (gapHasScheduledDay) {
+        break
+      }
+    }
+
     streak += 1
+    prevCompletedDateKey = currDateKey
   }
 
   return streak
 }
 
 function buildCurrentState(noteId: string, item: CurrentStateSeed, rows: MemoHabitOccurrenceRow[], now: number): MemoHabitCurrentState {
-  const streak = computeCurrentStreak(rows)
+  const streak = computeCurrentStreak(rows, item.repeatMode, item.repeatDays)
   const isRepeating = item.repeatMode && item.repeatMode !== 'once'
   const latestOpen = rows.find((row) => row.status === 'pending' || row.status === 'delayed') ?? null
 
