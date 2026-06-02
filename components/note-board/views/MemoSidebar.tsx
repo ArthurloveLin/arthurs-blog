@@ -887,23 +887,38 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
               </span>
               {summary ? (
                 <div className="mt-auto flex w-full flex-col gap-px">
-                  {completedOpacity > 0 ? (
-                    <div
-                      className="h-[4px] w-full rounded-sm"
-                      style={{ backgroundColor: `rgba(${hexToRgb(heatColor)},${completedOpacity})` }}
-                    />
+                  {summary.completed > 0 ? (
+                    <span
+                      className="block truncate rounded-[3px] px-0.5 text-[9px] font-medium leading-[13px]"
+                      style={{
+                        backgroundColor: `rgba(${hexToRgb(heatColor)},${completedOpacity * 0.55})`,
+                        color: heatColor,
+                      }}
+                    >
+                      完{summary.completed}
+                    </span>
                   ) : null}
-                  {missedOpacity > 0 ? (
-                    <div
-                      className="h-[4px] w-full rounded-sm"
-                      style={{ backgroundColor: `rgba(220,38,38,${missedOpacity})` }}
-                    />
+                  {summary.delayed > 0 ? (
+                    <span
+                      className="block truncate rounded-[3px] px-0.5 text-[9px] font-medium leading-[13px]"
+                      style={{
+                        backgroundColor: `rgba(59,130,246,${delayedOpacity * 0.45})`,
+                        color: 'rgba(30,64,175,0.9)',
+                      }}
+                    >
+                      延{summary.delayed}
+                    </span>
                   ) : null}
-                  {delayedOpacity > 0 ? (
-                    <div
-                      className="h-[4px] w-full rounded-sm"
-                      style={{ backgroundColor: `rgba(59,130,246,${delayedOpacity})` }}
-                    />
+                  {summary.missed > 0 ? (
+                    <span
+                      className="block truncate rounded-[3px] px-0.5 text-[9px] font-medium leading-[13px]"
+                      style={{
+                        backgroundColor: `rgba(220,38,38,${missedOpacity * 0.45})`,
+                        color: 'rgba(185,28,28,0.9)',
+                      }}
+                    >
+                      错{summary.missed}
+                    </span>
                   ) : null}
                 </div>
               ) : null}
