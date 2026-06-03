@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { ViewTransition, useState, useEffect } from 'react'
+import gsap from 'gsap'
+import { ViewTransition, useState, useEffect, useLayoutEffect, useRef } from 'react'
 import type { Post } from '@/lib/blog'
 import PostCard, { EagerPostCard } from '@/components/PostCard'
 import AdminOnly from '@/components/AdminOnly'
@@ -56,6 +57,64 @@ export default function BlogFeedSection({
   activeYear = null,
 }: BlogFeedSectionProps) {
   const returningPostSlug = useReturningPost()
+  // Stable ref so the GSAP effects can read the latest returning slug without
+  // it appearing in their dependency arrays (which would re-trigger the animation
+  // when the slug is cleared after 1200 ms).  Updated in a useEffect so the
+  // update doesn't happen during render (react-hooks/refs).
+  const returningPostSlugRef = useRef(returningPostSlug)
+  useEffect(() => {
+    returningPostSlugRef.current = returningPostSlug
+  })
+
+  const gridRef = useRef<HTMLDivElement>(null)
+
+  // Set initial hidden state synchronously before first paint so cards don't
+  // flash visible before GSAP animates them in.  We skip the card that is
+  // already being morphed back by ViewTransition.
+  useLayoutEffect(() => {
+    if (!gridRef.current || posts.length === 0) return
+    const cards = Array.from(gridRef.current.querySelectorAll('article'))
+    const returningSlug = returningPostSlugRef.current
+    const targets = returningSlug
+      ? cards.filter((el) => el.id !== `post-${returningSlug}`)
+      : cards
+    if (targets.length === 0) return
+    gsap.set(targets, { opacity: 0, y: 28, scale: 0.97 })
+  }, [posts])
+
+  // Stagger cards into view after the DOM settles.
+  useEffect(() => {
+    if (!gridRef.current || posts.length === 0) return
+    const cards = Array.from(gridRef.current.querySelectorAll('article'))
+    const returningSlug = returningPostSlugRef.current
+    const targets = returningSlug
+      ? cards.filter((el) => el.id !== `post-${returningSlug}`)
+      : cards
+    if (targets.length === 0) return
+
+    const mm = gsap.matchMedia()
+    mm.add(
+      {
+        reduceMotion: '(prefers-reduced-motion: reduce)',
+        fullMotion: '(prefers-reduced-motion: no-preference)',
+      },
+      (ctx) => {
+        const { reduceMotion } = ctx.conditions as { reduceMotion: boolean; fullMotion: boolean }
+        const tween = gsap.to(targets, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: reduceMotion ? 0.15 : 0.52,
+          stagger: reduceMotion ? 0 : 0.07,
+          ease: 'power3.out',
+          clearProps: 'opacity,transform',
+        })
+        return () => { tween.kill() }
+      },
+    )
+    return () => { mm.revert() }
+  }, [posts])
+
   return (
     <section className="min-w-0 md:col-span-8 lg:col-span-1">
       {/* Feed header / Category filter banner */}
@@ -108,7 +167,7 @@ export default function BlogFeedSection({
 
       {/* Post cards */}
       {posts.length > 0 && (
-        <div className="space-y-6">
+        <div ref={gridRef} className="space-y-6">
           {posts.map((post, index) => {
             const CardComponent = getPostCardComponent(returningPostSlug === post.slug)
 
