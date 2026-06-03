@@ -85,8 +85,21 @@ function AdminRoleBadge() {
   )
 }
 
+// Hydration-safe mount flag: getServerSnapshot returns false so SSR + the first
+// client render agree; it flips true only after hydration. The guest display name
+// comes from localStorage (getOrCreateGuestId), which is empty on the server and
+// populated on the client — rendering it during hydration changes the DOM shape
+// (<a> only → <span> + <a>) and triggers React #418, which regenerates the WHOLE
+// client tree. That regeneration is what was rebuilding the hero (animation replay)
+// and resetting <html data-site-theme> (hue flash). Gate it behind hydration.
+const subscribeNoop = () => () => {}
+function useHydrated() {
+  return useSyncExternalStore(subscribeNoop, () => true, () => false)
+}
+
 function GuestIdentity({ guestDisplayName }: { guestDisplayName: string }) {
-  if (!guestDisplayName) return null
+  const hydrated = useHydrated()
+  if (!hydrated || !guestDisplayName) return null
 
   return (
     <span className="text-xs text-muted-foreground font-mono">
@@ -130,13 +143,15 @@ function DesktopSignedInAuth({
 }
 
 function MobileGuestAuth({ guestDisplayName, onClose }: { guestDisplayName: string; onClose: () => void }) {
+  const hydrated = useHydrated()
+  const suffix = hydrated && guestDisplayName ? `（游客 ${guestDisplayName}）` : ''
   return (
     <Link
       href="/auth/login"
       className="block px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition duration-200"
       onClick={onClose}
     >
-      登录{guestDisplayName ? `（游客 ${guestDisplayName}）` : ''}
+      登录{suffix}
     </Link>
   )
 }
