@@ -3,7 +3,7 @@ import {
   getSpotifyNowPlayingCacheControl,
   getSpotifyNowPlayingErrorCacheControl,
 } from './now-playing-cache'
-import { getSpotifyNowPlayingData } from './spotify'
+import { getSpotifyAccessToken, getSpotifyNowPlayingData } from './spotify'
 
 function logError(message: string, error: unknown, fields: Record<string, unknown> = {}) {
   console.error(
@@ -89,6 +89,44 @@ const worker = {
     }
 
     const url = new URL(request.url)
+
+    if (url.pathname === '/health') {
+      const timestamp = new Date().toISOString()
+      const [tokenResult, r2Result] = await Promise.allSettled([
+        (async () => {
+          const t0 = Date.now()
+          await Promise.race([
+            getSpotifyAccessToken(env),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+          ])
+          return Date.now() - t0
+        })(),
+        (async () => {
+          const t0 = Date.now()
+          await Promise.race([
+            env.SPOTIFY_BUCKET.head('spotify/latest/dashboard.json'),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+          ])
+          return Date.now() - t0
+        })(),
+      ])
+      const spotifyTokenStatus = tokenResult.status === 'fulfilled' ? 'ok' : 'down'
+      const r2Status = r2Result.status === 'fulfilled' ? 'ok' : 'down'
+      const overallStatus = spotifyTokenStatus === 'ok' && r2Status === 'ok' ? 'ok' : 'degraded'
+      return json(
+        {
+          status: overallStatus,
+          service: 'spotify-now-playing',
+          timestamp,
+          components: {
+            spotify_token: { status: spotifyTokenStatus, latency_ms: tokenResult.status === 'fulfilled' ? tokenResult.value : 3000 },
+            r2_read: { status: r2Status, latency_ms: r2Result.status === 'fulfilled' ? r2Result.value : 3000 },
+          },
+        },
+        overallStatus === 'ok' ? 200 : 503,
+        { 'Cache-Control': 'no-store' },
+      )
+    }
 
     if (url.pathname !== '/api/now-playing' && url.pathname !== '/') {
       return json({ error: 'Not Found' }, 404, { 'Cache-Control': 'no-store' })

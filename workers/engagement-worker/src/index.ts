@@ -1736,7 +1736,24 @@ const worker = {
     }
 
     if (url.pathname === '/' || url.pathname === '/health') {
-      return jsonResponse({ ok: true, service: 'blog-engagement' })
+      const timestamp = new Date().toISOString()
+      let supabaseStatus: 'ok' | 'down' = 'ok'
+      const t0 = Date.now()
+      try {
+        const supabaseUrl = getSupabaseUrl(env)
+        const key = getSupabaseServiceRoleKey(env)
+        const res = await fetch(`${supabaseUrl}/rest/v1/comments?limit=1&select=id`, {
+          headers: { 'Authorization': `Bearer ${key}`, 'apikey': key },
+          signal: AbortSignal.timeout(3000),
+        })
+        if (!res.ok) supabaseStatus = 'down'
+      } catch { supabaseStatus = 'down' }
+      const latency_ms = Date.now() - t0
+      const status = supabaseStatus === 'ok' ? 'ok' : 'down'
+      return jsonResponse(
+        { status, service: 'blog-engagement', timestamp, components: { supabase: { status: supabaseStatus, latency_ms } } },
+        { status: status === 'ok' ? 200 : 503, headers: { 'Cache-Control': 'no-store' } },
+      )
     }
 
     if (url.pathname === '/api/comments' && request.method === 'GET') {

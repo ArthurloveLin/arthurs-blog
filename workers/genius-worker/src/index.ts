@@ -33,15 +33,24 @@ function isPublicQueryRequest(url: URL): boolean {
   return url.pathname === '/api/genius' || isLegacyQueryRequest(url)
 }
 
-function healthResponse(): Response {
+async function healthResponse(env: Env): Promise<Response> {
+  const timestamp = new Date().toISOString()
+  let kvStatus: 'ok' | 'down' = 'ok'
+  const t0 = Date.now()
+  try {
+    await Promise.race([
+      env.GENIUS_CACHE.get('__health__'),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('kv_timeout')), 2000)),
+    ])
+  } catch {
+    kvStatus = 'down'
+  }
+  const latency_ms = Date.now() - t0
+  const status = kvStatus === 'ok' ? 'ok' : 'down'
   return json(
-    {
-      status: 'ok',
-      service: 'genius-lyrics-worker',
-      queryPath: '/api/genius',
-    },
-    200,
-    { 'Cache-Control': 'no-store' }
+    { status, service: 'genius-lyrics-worker', timestamp, components: { kv_cache: { status: kvStatus, latency_ms } } },
+    status === 'ok' ? 200 : 503,
+    { 'Cache-Control': 'no-store' },
   )
 }
 
@@ -61,11 +70,11 @@ const worker = {
     }
 
     if (url.pathname === '/' && !isLegacyQueryRequest(url)) {
-      return healthResponse()
+      return healthResponse(env)
     }
 
     if (url.pathname === '/health') {
-      return healthResponse()
+      return healthResponse(env)
     }
 
     if (!isPublicQueryRequest(url)) {

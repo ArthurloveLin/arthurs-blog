@@ -8,6 +8,10 @@
 		{
 			"pattern": "img.arthurlovegrace.top/spotify*",
 			"zone_name": "arthurlovegrace.top"
+		},
+		{
+			"pattern": "img.arthurlovegrace.top/health",
+			"zone_name": "arthurlovegrace.top"
 		}
 	],
 

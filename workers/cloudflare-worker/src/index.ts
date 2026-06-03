@@ -6,6 +6,7 @@ import {
 import {
   generateAndSaveMusicReport,
   generateAndSaveStreamData,
+  getSpotifyAccessToken,
   getSpotifyNowPlayingData,
   listRecentlyPlayedDays,
   readRecentlyPlayedDayShard,
@@ -115,6 +116,48 @@ async function handlePublicRequest(request: Request, env: Env, ctx: ExecutionCon
   }
 
   const url = new URL(request.url)
+
+  if (url.pathname === '/health') {
+    const timestamp = new Date().toISOString()
+    const PROBE_KEY = '_health_probe_'
+    const [tokenResult, r2Result] = await Promise.allSettled([
+      (async () => {
+        const t0 = Date.now()
+        await Promise.race([
+          getSpotifyAccessToken(env),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+        ])
+        return Date.now() - t0
+      })(),
+      (async () => {
+        const t0 = Date.now()
+        await Promise.race([
+          (async () => {
+            await env.SPOTIFY_BUCKET.put(PROBE_KEY, '1', { httpMetadata: { contentType: 'text/plain' } })
+            await env.SPOTIFY_BUCKET.delete(PROBE_KEY)
+          })(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+        ])
+        return Date.now() - t0
+      })(),
+    ])
+    const spotifyTokenStatus = tokenResult.status === 'fulfilled' ? 'ok' : 'down'
+    const r2Status = r2Result.status === 'fulfilled' ? 'ok' : 'down'
+    const overallStatus = spotifyTokenStatus === 'ok' && r2Status === 'ok' ? 'ok' : 'degraded'
+    return json(
+      {
+        status: overallStatus,
+        service: 'spotify-sync',
+        timestamp,
+        components: {
+          spotify_token: { status: spotifyTokenStatus, latency_ms: tokenResult.status === 'fulfilled' ? tokenResult.value : 3000 },
+          r2_write: { status: r2Status, latency_ms: r2Result.status === 'fulfilled' ? r2Result.value : 3000 },
+        },
+      },
+      overallStatus === 'ok' ? 200 : 503,
+      { 'Cache-Control': 'no-store' },
+    )
+  }
 
   if (url.pathname === '/api/now-playing') {
     return respondFromEdgeCache(request, ctx, async () => {

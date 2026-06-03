@@ -93,7 +93,7 @@ function getSpotifyCredentials(env: Env) {
   }
 }
 
-async function getSpotifyAccessToken(env: Env): Promise<string> {
+export async function getSpotifyAccessToken(env: Env): Promise<string> {
   const now = Date.now()
 
   if (tokenCache && now < tokenCache.expiresAt) {

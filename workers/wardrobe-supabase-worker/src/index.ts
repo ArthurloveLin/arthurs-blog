@@ -84,6 +84,13 @@ const worker = {
       return new Response(null, { status: 204, headers: corsHeaders })
     }
 
+    if (incomingUrl.pathname === '/health') {
+      return new Response(
+        JSON.stringify({ status: 'ok', service: 'wardrobe-supabase-proxy', timestamp: new Date().toISOString(), components: {} }),
+        { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } },
+      )
+    }
+
     upstreamUrl.protocol = 'https:'
     upstreamUrl.hostname = supabaseHost
     upstreamUrl.port = ''

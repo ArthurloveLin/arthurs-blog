@@ -23,6 +23,13 @@ export default {
 
 		const url = new URL(request.url);
 
+		if (url.pathname === '/health') {
+			return new Response(
+				JSON.stringify({ status: 'ok', service: 'spotify-image-proxy', timestamp: new Date().toISOString(), components: {} }),
+				{ status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } },
+			);
+		}
+
 		if (url.pathname !== '/spotify') {
 			return new Response('Not Found', { status: 404 });
 		}
