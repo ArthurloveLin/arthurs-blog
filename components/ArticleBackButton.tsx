@@ -20,6 +20,7 @@ export default function ArticleBackButton({ returnHref = '/' }: ArticleBackButto
   return (
     <Link
       href={returnHref}
+      transitionTypes={['nav-back']}
       aria-label="返回上一页"
       className={[
         // Position: top-left of cover image

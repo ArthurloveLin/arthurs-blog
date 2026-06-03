@@ -45,42 +45,46 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
     >
 
       {/* ── Cover Image (Hero: Cover) ────────────────────────────────── */}
-      <ViewTransition name={`post-cover-${post.id}`} share="morph" default="none">
-        <div className="relative aspect-[2.4/1] w-full overflow-hidden bg-muted rounded-t-2xl">
-          {post.sticky > 0 && (
-            <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 dark:bg-black/90 backdrop-blur-md dark:backdrop-blur-none border border-black/5 dark:border-white/10 shadow-sm text-[10px] font-bold tracking-[0.1em] text-foreground/90 uppercase animate-in fade-in slide-in-from-top-1 duration-500 fill-mode-both">
-              <Star className="w-3 h-3 fill-yellow-400 text-yellow-500" strokeWidth={2.5} />
-              <span>PINNED</span>
-            </div>
-          )}
-          {coverSrc ? (
-            <Image
-              src={coverSrc}
-              alt={post.title}
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              priority={index === 0}
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <div className="h-full w-full default-cover-bg transition-transform duration-500 group-hover:scale-105" />
-          )}
-          {/* Hover depth: a bottom-up scrim fades in so the cover reads as lifting
-              toward the viewer alongside the card's -translate-y. Pure CSS, inert. */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-black/0 to-black/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-          />
-        </div>
-      </ViewTransition>
+      {/* Scrim lives in this wrapper, not inside the VT, so the transition
+          snapshot captures only the image — not the hover gradient overlay. */}
+      <div className="relative">
+        <ViewTransition name={`post-cover-${post.id}`} share="morph" default="none">
+          <div className="relative aspect-[2.4/1] w-full overflow-hidden bg-muted rounded-t-2xl">
+            {post.sticky > 0 && (
+              <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 dark:bg-black/90 backdrop-blur-md dark:backdrop-blur-none border border-black/5 dark:border-white/10 shadow-sm text-[10px] font-bold tracking-[0.1em] text-foreground/90 uppercase animate-in fade-in slide-in-from-top-1 duration-500 fill-mode-both">
+                <Star className="w-3 h-3 fill-yellow-400 text-yellow-500" strokeWidth={2.5} />
+                <span>PINNED</span>
+              </div>
+            )}
+            {coverSrc ? (
+              <Image
+                src={coverSrc}
+                alt={post.title}
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                priority={index === 0}
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            ) : (
+              <div className="h-full w-full default-cover-bg transition-transform duration-500 group-hover:scale-105" />
+            )}
+          </div>
+        </ViewTransition>
+        {/* Hover depth scrim — outside the VT so it is not baked into the
+            transition snapshot (avoids gradient flash at morph start). */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-t-2xl bg-gradient-to-t from-black/30 via-black/0 to-black/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+        />
+      </div>
 
       {/* ── Body ───────────────────────────────────────────────────── */}
       <div className="p-5 md:p-6 pb-6">
 
         {/* Hero: Title */}
-        <ViewTransition name={`post-title-${post.id}`} share="morph" default="none">
+        <ViewTransition name={`post-title-${post.id}`} share="text-morph" default="none">
           <h2 className="blog-hero-title mb-3 leading-tight group-hover:text-primary transition-colors duration-200">
-            <Link href={`/blog/${post.slug}`} className="after:absolute after:inset-0">
+            <Link href={`/blog/${post.slug}`} transitionTypes={['nav-forward']} className="after:absolute after:inset-0">
               {post.title}
             </Link>
           </h2>
@@ -88,7 +92,7 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
 
         {/* Excerpt */}
         {post.summary && (
-          <ViewTransition name={`post-first-p-${post.id}`} share="morph" default="none">
+          <ViewTransition name={`post-first-p-${post.id}`} share="text-morph" default="none">
             <p className="text-foreground/80 dark:text-foreground/75 text-base line-clamp-3 leading-relaxed mb-5 font-normal">
               {post.summary}
             </p>
@@ -96,7 +100,7 @@ const PostCardContent = memo(function PostCardContent({ post, index = 0, renderM
         )}
 
         {/* Hero: Meta (Date · Category · Stats · Tags) */}
-        <ViewTransition name={`post-meta-${post.id}`} share="morph" default="none">
+        <ViewTransition name={`post-meta-${post.id}`} share="text-morph" default="none">
           <div className="blog-hero-meta flex flex-col gap-1.5 items-start">
             {/* Stats row: date · category · reading time · views */}
             <div className="flex flex-wrap items-center gap-x-1 gap-y-1 w-full">
