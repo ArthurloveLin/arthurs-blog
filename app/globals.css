@@ -1144,7 +1144,6 @@ html {
 
 /* Mono defaults — light */
 :root {
-  --duration-move: 400ms;
   --md-h1: #111111;
   --md-h2: #1e1e1e;
   --md-h3: #2d2d2d;
@@ -1753,37 +1752,6 @@ html[data-hero-variant="terminal"] .hero-aurora-root {
 /* Custom styles for Hero images to prevent 'ghosting' */
 ::view-transition-image-pair(*) {
   isolation: isolate;
-}
-
-/* ── Shared element: cover image morph ── */
-/* via-blur adds a brief blur at the midpoint so the cross-fade reads as
-   a smooth material transition rather than a flat ghosting cross-dissolve. */
-::view-transition-group(.morph) {
-  animation-duration: var(--duration-move);
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-::view-transition-image-pair(.morph) {
-  animation-name: via-blur;
-}
-@keyframes via-blur {
-  30% { filter: blur(2px); }
-}
-
-/* ── Shared element: text morph ── */
-/* Hides the raster-scaled old snapshot (which looks ghostly for text at
-   different container widths) and renders the new text at native resolution
-   as the group container glides from card position to detail position. */
-::view-transition-group(.text-morph) {
-  animation-duration: var(--duration-move);
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-::view-transition-old(.text-morph) {
-  display: none;
-}
-::view-transition-new(.text-morph) {
-  animation: none;
-  object-fit: none;
-  object-position: left top;
 }
 
 /* ── Directional nav transitions (nav-forward / nav-back) ── */

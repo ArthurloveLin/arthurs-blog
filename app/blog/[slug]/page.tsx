@@ -193,14 +193,14 @@ export default async function BlogPostPage({
                 {/* Hero Text Content - Padded to match PostCard Body padding (p-5 md:p-6) */}
                 <div className="p-5 md:p-6">
                   {/* Hero: Title */}
-                  <ViewTransition name={`post-title-${post.id}`} share="text-morph" default="none">
+                  <ViewTransition name={`post-title-${post.id}`} share="morph" default="none">
                     <h1 className="blog-hero-title mb-2">
                       {post.title}
                     </h1>
                   </ViewTransition>
 
                   {/* Hero: Meta (Date · Category · Stats · Tags) */}
-                  <ViewTransition name={`post-meta-${post.id}`} share="text-morph" default="none">
+                  <ViewTransition name={`post-meta-${post.id}`} share="morph" default="none">
                     <div className="blog-hero-meta mt-4 flex flex-col gap-1.5 items-start text-left">
                       {/* Stats row */}
                       <div className="flex flex-wrap items-center gap-x-1 gap-y-1 w-full">
@@ -224,7 +224,7 @@ export default async function BlogPostPage({
                   {/* Hero: Immediate First Paragraph (Transition Target) */}
                   {post.summary && (
                     <div className="mt-6 prose prose-gray dark:prose-invert max-w-none">
-                      <ViewTransition name={`post-first-p-${post.id}`} share="text-morph" default="none">
+                      <ViewTransition name={`post-first-p-${post.id}`} share="morph" default="none">
                         <p>{post.summary}</p>
                       </ViewTransition>
                     </div>
