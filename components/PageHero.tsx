@@ -21,7 +21,7 @@ export default function PageHero(props: PageHeroProps) {
   const { variant } = useHeroVariant()
 
   return (
-    <div key={variant} className="hero-variant-shell animate-[fade-in_0.35s_ease-out]">
+    <div key={variant} className="animate-[fade-in_0.35s_ease-out]">
       {variant === 'terminal' ? <PageHeroTerminal {...props} /> : <PageHeroAurora {...props} />}
     </div>
   )

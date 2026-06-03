@@ -28,7 +28,7 @@ export default function BlogHero(props: BlogHeroProps) {
   const { variant } = useHeroVariant()
 
   return (
-    <div key={variant} className="hero-variant-shell animate-[fade-in_0.35s_ease-out]">
+    <div key={variant} className="animate-[fade-in_0.35s_ease-out]">
       {variant === 'terminal' ? <HeroTerminal {...props} /> : <HeroAurora {...props} />}
     </div>
   )

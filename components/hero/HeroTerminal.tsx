@@ -22,9 +22,8 @@ const StickyStackPreview = dynamic(
   { ssr: false },
 )
 
-// Cumulative reveal delays (seconds). On a load-time variant swap (data-hero-variant
-// present), globals.css suppresses these reveal animations entirely so the swapped-in
-// terminal appears at once instead of re-typing — see the html[data-hero-variant] rules.
+// Cumulative reveal delays (seconds). On page load when data-hero-variant="terminal"
+// is set by the layout script, globals.css overrides these to 0.
 const D = {
   cmd1: 0.05,
   out1: 0.5,
