@@ -80,6 +80,10 @@ export default async function RootLayout({
           <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.1.0/style.css" precedence="optional" />
           {/* Inline script: set data-md-theme before first paint to prevent flash */}
           <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('md-theme');document.documentElement.setAttribute('data-md-theme',t||'mono');}catch(e){}` }} />
+          {/* TEMP DIAGNOSTIC — theme/hero-flash timeline probe. Remove after capture.
+              Logs data-site-theme/class mutations + hero DOM mount count, then
+              console.table()s the timeline ~1.5s after load. */}
+          <script dangerouslySetInnerHTML={{ __html: `(function(){var d=document.documentElement,log=[];function snap(t){log.push({t:performance.now().toFixed(1),tag:t,hue:d.getAttribute('data-site-theme'),mode:d.className.indexOf('dark')>-1?'dark':'light'});}snap('inline-before');try{new MutationObserver(function(ms){ms.forEach(function(m){snap('mutate:'+m.attributeName);});}).observe(d,{attributes:true,attributeFilter:['data-site-theme','class']});var heroSeen=0;new MutationObserver(function(){var t=d.querySelector('.hero-term-typed,.hero-aurora-root,.hero-term-root');if(t&&!t.__seen){t.__seen=1;heroSeen++;snap('hero-mount#'+heroSeen);}}).observe(d,{childList:true,subtree:true});}catch(e){snap('err:'+e.message);}window.__themeLog=log;addEventListener('load',function(){setTimeout(function(){console.table(window.__themeLog);},1500);});})();` }} />
           {/* Inline script: set data-site-theme before first paint, migrate legacy
               ocean/sunset/forest next-themes values to (hue + light mode), and apply
               the dark class so next-themes' body script is not the sole gatekeeper
