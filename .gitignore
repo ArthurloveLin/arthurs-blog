@@ -85,3 +85,6 @@ __pycache__/
 allure-results/
 tests/perf/results*
 tests/ai_hooks/report.json
+
+# Local Playwright debug harness (not part of the app build)
+scripts/debug/

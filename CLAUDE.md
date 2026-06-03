@@ -91,6 +91,24 @@ Before implementing, **state your interpretation** if a request could be read mu
 
 To verify your work, rely on **static checks only**: `npx tsc --noEmit` and `npx eslint <changed files>` (or `npm run check`). If a change genuinely needs runtime/visual confirmation, **hand it to the user** with exact steps rather than launching anything. If you ever truly must run a server, ask first and use an explicit isolated port (e.g. `next dev -p 4010`).
 
+### Runtime verification with Playwright (opt-in escalation — ask first)
+
+The static-checks rule above is the default. But some bugs are **invisible** to tsc/eslint/grep because they only exist at runtime: hydration mismatches (React #418), DOM rebuilds (CSS animation replay), theme-attribute timing (flash), View-Transition behavior, anything timing- or browser-state-dependent. For these, pure code reading leads to **repeated misdiagnosis** — the theme-flash bug was "fixed" 6 times by editing hero/theme code before Playwright revealed the real cause was a Navbar guest-name `#418` that regenerated the whole tree (commit `e9b625a`). When you hit a class of bug like that, propose this escalation instead of guessing.
+
+**Both paths below require explicit user confirmation before running. Never touch the user's VSCode (`.vscode-server`) processes or the 3000/3001 production servers — those are not yours to kill.**
+
+**Path A — dev server + Playwright (preferred; needs RAM).** Gives **non-minified** React errors (the full hydration diff naming the exact node/attribute). Gate on memory: run `free -m`; only take this path if **available ≳ 1500 MB** (dev + Turbopack compile is heavy on this slow-FS box).
+1. `npx next dev -p 4010 --turbopack > /tmp/dev.log 2>&1 &` (isolated port 4010 — never 3000/3001). Wait for `:4010` to listen.
+2. Probe: `NODE_PATH=$(npm root -g) node scripts/debug/hydration-probe.cjs http://localhost:4010/ <siteTheme>`
+3. **Always kill it when done**: `lsof -ti:4010 | xargs -r kill` (precise — do not `pkill -f`, which can hit unrelated procs).
+
+**Path B — production URL + Playwright (when RAM is tight).** No dev server, zero local compile. Errors are **minified** (`#418` + `args[]`) but still pinpoint the failure class, and the timeline (hero remount count, `data-site-theme` churn) is fully visible. Just point the same probe at prod:
+`NODE_PATH=$(npm root -g) node scripts/debug/hydration-probe.cjs https://arthurlovegrace.top/ <siteTheme>`
+
+**The harness** lives at `scripts/debug/hydration-probe.cjs` (gitignored). It launches headless Chromium, injects an observer before first paint, and reports: hydration-error count, hero (re)mount count (`>1` = DOM rebuilt = animation replay), and the `<html>` theme-attribute timeline. It auto-resolves a cached chromium under `~/.cache/ms-playwright`. Extend it for the case at hand rather than writing one-offs in `/tmp`.
+
+**Environment (already configured):** global `playwright` (`npm i -g playwright`, requires `NODE_PATH=$(npm root -g)` because ESM ignores NODE_PATH — the harness is `.cjs`/`require` for this reason) + cached `chromium-1134`. Drive it against the **deployed** site or an **isolated-port** dev server — this does not violate the "no self-driven servers" rule, which is about not hijacking the user's 3000/3001 dev loop.
+
 ### Worktree creation (Claude only)
 
 **Do not create a git worktree by default.** Work directly in the current checkout. Only create one when the user **explicitly** asks (e.g., "用 worktree", "新建 worktree", "in a worktree"). Spawning a sub-agent does not by itself imply a worktree.
