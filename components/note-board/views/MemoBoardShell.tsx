@@ -434,8 +434,8 @@ export function useMemoBoardFilters(
   // the API-backed baseDateFilter, which is not set in that mode.
   const effectiveSelectedDate = historySelectedDate ?? baseDateFilter
 
-  // Date counts come from the resident working set of the current view (active vs
-  // archived), keyed on created_at to match the calendar's own basis.
+  // Date counts (keyed on created_at to match the calendar's basis) are computed from
+  // the current view's resident set...
   const computedDateCounts = useMemo(() => {
     const counts = new Map<string, number>()
     for (const item of allItems) {
@@ -444,6 +444,21 @@ export function useMemoBoardFilters(
     }
     return counts
   }, [allItems])
+
+  // ...but memoDateCounts stays anchored to the ACTIVE working set even while the
+  // archived view is open. It drives the calendar heatmap and the "全部便签"/"今日创建"
+  // quick-filter counts, which are active-view metrics (clicking them switches archive
+  // OFF). Without this, opening the archived view would flip "全部便签" to the archived
+  // subset count. allItems reflects the current view, so snapshot the counts while active
+  // and reuse the snapshot once archived (the tag cloud, by contrast, intentionally tracks
+  // the current view — see NoteBoardProvider allTags).
+  // React's "adjust state during render" pattern: keep the snapshot in sync with the
+  // live active counts (no effect, no ref), and freeze it while archived.
+  const [activeDateCountsSnapshot, setActiveDateCountsSnapshot] = useState(computedDateCounts)
+  if (!state.showArchived && activeDateCountsSnapshot !== computedDateCounts) {
+    setActiveDateCountsSnapshot(computedDateCounts)
+  }
+  const memoDateCounts = state.showArchived ? activeDateCountsSnapshot : computedDateCounts
 
   const filterItems = useCallback((items: NoteCardViewModel[]) => {
     let result = items
@@ -486,7 +501,7 @@ export function useMemoBoardFilters(
   }, [])
 
   return {
-    memoDateCounts: computedDateCounts,
+    memoDateCounts,
     selectedDate: state.activeDate,
     effectiveSelectedDate,
     isFilterMode: Boolean(state.searchQuery || state.activeTags.length > 0 || effectiveSelectedDate || state.activeDueDate || historyNoteIds !== null),
