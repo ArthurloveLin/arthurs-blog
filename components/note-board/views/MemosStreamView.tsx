@@ -45,7 +45,7 @@ export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitO
   const meta = useNoteBoardMeta()
   const sentinelRef = useRef<HTMLDivElement>(null)
   const filteredItems = useMemo(() => {
-    const byDate = filters.filterItemsByDate(state.allNoteItems)
+    const byDate = filters.filterItems(state.allNoteItems)
     if (!state.activeDueDate || !agendaItems?.length) return byDate
     const matchingIds = new Set(
       agendaItems

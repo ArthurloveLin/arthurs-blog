@@ -99,13 +99,47 @@ currently unused; the live preview is the standalone file.
 
 ### Filter state flow
 `useMemoBoardFilters` (defined in `MemoBoardShell.tsx`) is the single source
-of truth for date filtering. It is instantiated in the view (e.g. `MemosStreamView`)
+of truth for client-side filtering. It is instantiated in the view (e.g. `MemosStreamView`)
 and passed down into `MemoBoardShell` via the `filters` prop. The shell reads it
-for display; the view calls `filters.filterItemsByDate(items)` before rendering.
+for display; the view calls `filters.filterItems(items)` before rendering.
 
 Provider-level state (`useNoteBoardBoardState`) owns search query, active tag,
 sort mode, and archive toggle. Date selection lives in the view's local state
 and is surfaced through `useMemoBoardFilters`.
+
+### Where filtering happens: resident memo (client) vs. server
+This is the **non-obvious** part — do not assume all boards filter the same way.
+
+**Active (non-archived) memo = fully-resident working set.** It loads in ONE fetch
+(`initialPageLimit: 500` in `lib/note-board-config.ts` — a safety cap, not pagination)
+and filters **entirely client-side**: tag/search/date/due are applied in-memory by
+`filters.filterItems(...)`. Crucially, `getBoardQueryKey` (`useBoardData.ts`) OMITS
+tag/search/date from the SWR key when `isResidentMemo` (`slug === 'memo' && !showArchived`),
+so changing a filter does NOT trigger a network re-fetch — that round-trip was the
+old source of the "click tag → nothing → results pop in" lag. The SWR fetcher also
+forces `q=''/tags=[]/date=null` for resident memo so the server returns the full set.
+
+**Archived memo + guestbook = server-side filtering + pagination.** They keep
+tag/search in the SWR key and re-fetch on change. `filterItems` applies tag/search
+ONLY when `slug === 'memo' && !showArchived`; for archived/guestbook it is a no-op
+for those dims. **This `!showArchived` guard is a correctness requirement, not an
+optimization:** the server uses case-insensitive `ilike` over the *full* dataset,
+while client `includes()` is case-sensitive and only sees *loaded* rows — double-filtering
+archived would wrongly drop valid matches (e.g. `#Work` under a `work` query) and miss
+unloaded pages. Client search is therefore `toLowerCase`d to mirror `ilike`.
+
+**Sidebar counts come from dedicated full-dataset endpoints** (`/memo/tags`,
+`/memo/dates`, `/memo/agenda`), so the tag cloud / calendar heatmap stay accurate
+regardless of what the board list has loaded or filtered.
+
+**Date semantics: `created_at`.** Calendar counts (`getMemoDateCounts`) and the client
+date filter both key off `created_at`. The old server date filter used `updated_at`;
+removing it (client-only now) unified the two — keep date filtering on `created_at`.
+
+In the sticky board view (`BoardStickyView`), any active filter pulls from
+`state.allNoteItems` (the full resident set) instead of the paginated `state.noteItems`,
+gated on `filters.isFilterMode` — otherwise client tag/search would only see the
+current desktop page of 10.
 
 ### Color theming
 `NoteColorThemeContext` provides a `theme` object with a `colors` array.

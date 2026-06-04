@@ -66,6 +66,10 @@ async function MemoBoard({
   initialThemeId?: NoteColorThemeId
 }) {
   const currentUser = await getCurrentUser()
+  // Load the full active working set (no server-side search). Active memos are
+  // resident on the client and filtered in-memory; initialQuery (?q=) is applied
+  // client-side via filterItems, so SSR must not pre-filter or it would ship a
+  // partial set that the client then can't expand without a refetch.
   const messages = await getBoardMessages(
     'memo',
     config.initialPageLimit,
@@ -74,7 +78,7 @@ async function MemoBoard({
     'time',
     'desc',
     null,
-    initialQuery || null,
+    null,
     [],
     currentUser?.id ?? null,
   )

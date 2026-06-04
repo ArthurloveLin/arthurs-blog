@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, Filter, Layers, LayoutList, Palette, Plus, Search, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, Filter, Layers, LayoutList, Loader2, Palette, Plus, Search, X } from 'lucide-react'
 import {
   useNoteBoardActions,
   useNoteBoardBoardState,
@@ -12,6 +12,7 @@ import { SidebarAgendaCalendar, SidebarCalendar, SidebarHabitHistory, SidebarTag
 import type { MemoHabitOverview } from '@/lib/memo-habits'
 import type { MemoAgendaItem } from '@/lib/note-boards'
 import { NOTE_COLOR_THEMES, useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
+import { parseHashtags } from '@/components/note-board/utils/editor'
 import type { NoteSortMode } from '@/lib/note-priority'
 
 const CONTROL_BUTTON_CLASS = 'flex h-[34px] w-[34px] items-center justify-center rounded-full border transition [border-color:var(--memo-control-border)] [background:var(--memo-control-surface)] text-[color:var(--memo-control-text)] hover:[background:var(--memo-control-hover-surface)] hover:text-[color:var(--memo-control-hover-text)]'
@@ -407,7 +408,7 @@ export interface MemoBoardFilters {
   setSelectedDate: (key: string | null) => void
   setHistoryFilter: (date: string | null, ids: string[] | null) => void
   clearDateFilter: () => void
-  filterItemsByDate: (items: NoteCardViewModel[]) => NoteCardViewModel[]
+  filterItems: (items: NoteCardViewModel[]) => NoteCardViewModel[]
 }
 
 export function useMemoBoardFilters(
@@ -416,6 +417,12 @@ export function useMemoBoardFilters(
 ): MemoBoardFilters {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
+  const meta = useNoteBoardMeta()
+  // Tag/search are filtered client-side ONLY for the resident memo working set.
+  // The archived view and guestbook filter server-side over the full dataset; doing
+  // it here too would double-filter and could wrongly drop valid matches (client
+  // includes() is case-sensitive vs the server's case-insensitive ilike).
+  const clientFilter = meta.board.slug === 'memo' && !state.showArchived
   const baseDateFilter = state.searchQuery || state.activeTags.length > 0 ? null : state.activeDate
 
   // historySelectedDate tracks the date selected in the history view for UI purposes
@@ -438,18 +445,40 @@ export function useMemoBoardFilters(
     return counts
   }, [allItems, externalDateCounts])
 
-  const filterItemsByDate = useCallback((items: NoteCardViewModel[]) => {
+  const filterItems = useCallback((items: NoteCardViewModel[]) => {
+    let result = items
+
+    // Tag / search — resident memo only (see clientFilter rationale above). Tag and
+    // search are mutually exclusive in the UI (handlers clear each other), but applying
+    // both guards is harmless. Search is case-insensitive to mirror the server ilike.
+    if (clientFilter) {
+      if (state.searchQuery.trim()) {
+        const tokens = state.searchQuery.trim().toLowerCase().split(/[\s　]+/).filter(Boolean)
+        if (tokens.length > 0) {
+          result = result.filter((item) => {
+            const content = item.message.content.toLowerCase()
+            return tokens.every((token) => content.includes(token))
+          })
+        }
+      } else if (state.activeTags.length > 0) {
+        result = result.filter((item) => {
+          const tags = parseHashtags(item.message.content)
+          return state.activeTags.every((tag) => tags.includes(tag.toLowerCase()))
+        })
+      }
+    }
+
     // History filter: filter by note IDs client-side without touching the API query.
     // Must be checked before effectiveSelectedDate so that switching dates in the
     // history view does not trigger an API re-fetch (which would return notes filtered
     // by creation date, losing habit-event notes that were created on other dates).
     if (historyNoteIds !== null) {
       const idSet = new Set(historyNoteIds)
-      return items.filter((item) => idSet.has(item.message.id))
+      return result.filter((item) => idSet.has(item.message.id))
     }
-    if (!effectiveSelectedDate) return items
-    return items.filter((item) => getItemDateKey(item) === effectiveSelectedDate)
-  }, [effectiveSelectedDate, historyNoteIds])
+    if (!effectiveSelectedDate) return result
+    return result.filter((item) => getItemDateKey(item) === effectiveSelectedDate)
+  }, [clientFilter, effectiveSelectedDate, historyNoteIds, state.activeTags, state.searchQuery])
 
   const setHistoryFilter = useCallback((date: string | null, ids: string[] | null) => {
     setHistorySelectedDate(date)
@@ -464,7 +493,7 @@ export function useMemoBoardFilters(
     setSelectedDate: actions.handleDateFilter,
     setHistoryFilter,
     clearDateFilter: () => { actions.handleDateFilter(null); setHistoryNoteIds(null); setHistorySelectedDate(null) },
-    filterItemsByDate,
+    filterItems,
   }
 }
 
@@ -645,6 +674,12 @@ export function MemoBoardShell({
                   <X size={9} className="shrink-0 opacity-75" />
                 </button>
               </>
+            ) : null}
+            {/* Refetch indicator — server-filtered boards (guestbook, archived view)
+                still round-trip on filter changes; resident memo filters in-memory and
+                rarely enters this state. */}
+            {state.isRefreshingBoard ? (
+              <Loader2 size={12} className="shrink-0 animate-spin text-[color:var(--memo-shell-muted)]" aria-label="加载中" />
             ) : null}
           </div>
         </div>

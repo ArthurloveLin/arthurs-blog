@@ -19,8 +19,15 @@ function getBoardQueryKey(
   searchQuery: string,
   activeTags: string[],
   activeDate: string | null,
+  clientFiltered: boolean,
 ) {
-  return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:${direction}:q=${searchQuery}:tags=${[...activeTags].sort().join(',')}:date=${activeDate ?? ''}`
+  const base = `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:${direction}`
+  // When the board filters client-side (resident memo working set), tag/search/date
+  // must NOT enter the cache key — otherwise changing a filter mints a new key and
+  // triggers a full network re-fetch of data we already hold. Those dims are applied
+  // in-memory via filterItems instead.
+  if (clientFiltered) return base
+  return `${base}:q=${searchQuery}:tags=${[...activeTags].sort().join(',')}:date=${activeDate ?? ''}`
 }
 
 export interface UseBoardDataProps {
@@ -78,9 +85,13 @@ export function useBoardData({
   // Comparing by reference lets us skip that window and prevent a spurious
   // resetBoardSurface that would revert the optimistic update.
   const lastBoardPayloadRef = useRef<typeof boardPayload | undefined>(undefined)
+  // Active (non-archived) memo notes are a fully-resident working set: loaded once
+  // and filtered entirely client-side. The archived view (and guestbook) keep
+  // server-side filtering + pagination, so tag/search/date stay in their cache key.
+  const isResidentMemo = board.slug === 'memo' && !showArchived
   const activeBoardQueryKey = useMemo(
-    () => getBoardQueryKey(board.slug, showArchived, sortMode, sortDirection, searchQuery, activeTags, activeDate) + `:${reactionIdentity || 'anon'}`,
-    [activeDate, activeTags, board.slug, reactionIdentity, searchQuery, showArchived, sortDirection, sortMode],
+    () => getBoardQueryKey(board.slug, showArchived, sortMode, sortDirection, searchQuery, activeTags, activeDate, isResidentMemo) + `:${reactionIdentity || 'anon'}`,
+    [activeDate, activeTags, board.slug, isResidentMemo, reactionIdentity, searchQuery, showArchived, sortDirection, sortMode],
   )
   const initialBoardQueryKeyRef = useRef<string | null>(null)
   if (initialBoardQueryKeyRef.current === null) {
@@ -218,11 +229,27 @@ export function useBoardData({
     mutate: mutateBoardPayload,
   } = useSWR<NoteBoardListPayload>(
     activeBoardQueryKey,
-    () => fetchBoardMessages(showArchived, sortMode, sortDirection),
+    async () => {
+      // Resident memo always fetches the full active set (no server-side filters);
+      // tag/search/date are applied client-side. Forcing empty filters here is
+      // required because fetchBoardMessages otherwise defaults to the closure's
+      // searchQuery/activeTags/activeDate, which would re-introduce server filtering.
+      const payload = isResidentMemo
+        ? await fetchBoardMessages(showArchived, sortMode, sortDirection, 0, board.initialPageLimit, '', [], null)
+        : await fetchBoardMessages(showArchived, sortMode, sortDirection)
+      if (process.env.NODE_ENV !== 'production' && isResidentMemo && payload.messages.length >= board.initialPageLimit) {
+        console.warn(
+          `[note-board] resident memo working set hit the ${board.initialPageLimit} cap — ` +
+          `client-side filtering now only covers loaded notes. Archive old notes or raise the cap / add windowing.`,
+        )
+      }
+      return payload
+    },
     {
       fallbackData: initialBoardPayload,
       revalidateOnMount: activeBoardQueryKey !== initialBoardQueryKeyRef.current,
       revalidateOnFocus: false,
+      keepPreviousData: true,
     },
   )
   const isRefreshingBoard = isBoardLoading || isBoardValidating

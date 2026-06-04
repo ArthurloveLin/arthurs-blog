@@ -89,13 +89,15 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
   const bindContainer = useCallback((node: HTMLDivElement | null) => {
     bindings.bindContainer(node)
   }, [bindings])
-  // When a date filter is active, pull from allNoteItems so items on page 2+
-  // are reachable. When no filter, keep the paginated noteItems.
-  const isFilterActive = !!(filters.effectiveSelectedDate || state.activeDueDate)
+  // When ANY filter is active (tag/search/date/due/history), pull from allNoteItems so
+  // matches on page 2+ of the resident set are reachable — otherwise client-side
+  // tag/search would only see the current paginated page. When unfiltered, keep the
+  // paginated noteItems.
+  const isFilterActive = filters.isFilterMode
   const shouldReflowLayout = isFilterActive
   const filteredNoteItems = useMemo(() => {
     const sourceItems = isFilterActive ? state.allNoteItems : state.noteItems
-    const byDate = filters.filterItemsByDate(sourceItems)
+    const byDate = filters.filterItems(sourceItems)
     if (!state.activeDueDate || !agendaItems?.length) return byDate
     const matchingIds = new Set(
       agendaItems

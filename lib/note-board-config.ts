@@ -41,8 +41,12 @@ const NOTE_BOARD_CONFIGS: Record<NoteBoardSlug, NoteBoardViewConfig> = {
     targetType: 'memo',
     targetId: 'a0000000-0000-0000-0000-000000000002',
     previewLimit: 12,
-    initialPageLimit: 9999,
-    pageSize: 9999,
+    // Active (non-archived) memos are a fully-resident working set: loaded in one
+    // shot and filtered entirely client-side. 500 is a real safety cap (a tripwire,
+    // not pagination) — useBoardData warns if a fetch hits it. pageSize is the
+    // load-more step for the ARCHIVED view, which stays paginated + server-filtered.
+    initialPageLimit: 500,
+    pageSize: 50,
   },
 }
 
