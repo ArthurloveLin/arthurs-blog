@@ -110,39 +110,47 @@ and is surfaced through `useMemoBoardFilters`.
 ### Where filtering happens: resident memo (client) vs. server
 This is the **non-obvious** part — do not assume all boards filter the same way.
 
-**Active (non-archived) memo = fully-resident working set.** It loads in ONE fetch
-(`initialPageLimit: 500` in `lib/note-board-config.ts` — a safety cap, not pagination)
-and derives **everything client-side**: tag/search/date/due via `filters.filterItems(...)`,
-and **sort/direction** in-memory too. `getBoardQueryKey` (`useBoardData.ts`) reduces the
-resident SWR key to just `note-board:memo:active` (+ identity) — it OMITS sort, direction,
-tag, search, and date when `isResidentMemo` (`slug === 'memo' && !showArchived`), so
-changing ANY of them does NOT trigger a network re-fetch. That round-trip was the old
-source of the "click tag/change sort → nothing → results pop in" lag. The SWR fetcher
-forces `q=''/tags=[]/date=null` for resident memo so the server returns the full set.
+**Memo (active AND archived) = fully-resident working sets.** Active and archived are
+two SEPARATE resident sets — each loads in ONE fetch (`initialPageLimit: 500` in
+`lib/note-board-config.ts` — a safety cap, not pagination) and derives **everything
+client-side**: tag/search/date/due via `filters.filterItems(...)`, and **sort/direction**
+in-memory too. `getBoardQueryKey` (`useBoardData.ts`) reduces a resident key to just
+`note-board:memo:{active|archived}` (+ identity) — it OMITS sort, direction, tag, search,
+and date when `isResidentMemo` (`slug === 'memo'`), so changing ANY of them does NOT
+trigger a network re-fetch (only switching active↔archived re-fetches the other set).
+That round-trip was the old source of the "click tag/change sort → nothing → results pop
+in" lag. The SWR fetcher (and `handleLoadMore`/`handleNextPage`) force `q=''/tags=[]/date=null`
+for resident memo so the server returns the unfiltered full set.
+
+Keeping archived resident too is what makes the **tag cloud behave identically in both
+views**: because `messages` is never replaced by a server-filtered subset, `allTags`
+(derived from `messages`) always shows ALL tags — selecting one filters the note list but
+never narrows the cloud. (When archived was server-filtered, clicking a tag re-fetched
+only matching notes, so the cloud silently shrank to co-occurring tags — inconsistent
+with active.)
 
 Because sort is out of the key, a dedicated effect re-sorts the resident set in place
 (`replaceMessages((c) => c, { sort: true, resetPositions: true })`) when sortMode/direction
-change — guarded to fire only on a real sort change while resident, never on mount or when
-`isResidentMemo` merely flips (the archived toggle re-fetches and resets the surface itself).
+change — guarded to fire only on a real sort change while resident, never on mount.
 
-**Archived memo + guestbook = server-side filtering + pagination.** They keep
-tag/search in the SWR key and re-fetch on change. `filterItems` applies tag/search
-ONLY when `slug === 'memo' && !showArchived`; for archived/guestbook it is a no-op
-for those dims. **This `!showArchived` guard is a correctness requirement, not an
-optimization:** the server uses case-insensitive `ilike` over the *full* dataset,
-while client `includes()` is case-sensitive and only sees *loaded* rows — double-filtering
-archived would wrongly drop valid matches (e.g. `#Work` under a `work` query) and miss
-unloaded pages. Client search is therefore `toLowerCase`d to mirror `ilike`.
+**Only guestbook = server-side filtering + pagination.** It keeps tag/search in the SWR
+key and re-fetches on change. `filterItems` applies tag/search ONLY when `slug === 'memo'`;
+for guestbook it is a no-op for those dims (guestbook only loads a page at a time, so
+client-filtering would miss unloaded rows). There is no longer any board that filters
+both server- and client-side, so the old case-sensitivity double-filter hazard is gone.
 
-**Sidebar tag/date counts are derived client-side from the resident `messages` of the
-CURRENT view** — `allTags` (`NoteBoardProvider`) and `computedDateCounts`
-(`useMemoBoardFilters`) both count over `messages`, so they reflect active vs archived
-correctly and stay reactive to optimistic create/delete. The old `/memo/tags` and
-`/memo/dates` endpoints (and `getMemoTagCounts`/`getMemoDateCounts`) were REMOVED: they
-hardcoded `archived: false`, so the tag cloud / calendar showed active counts even in
-the archived view. Counts compute over the full resident set (not the filtered view),
-so they stay stable while a filter is active. Only `/memo/agenda` (due items) remains a
-server endpoint. Note: counts are bounded by the 500 working-set cap, same as everything else.
+**Sidebar tag counts** are derived client-side from `messages` (`allTags` in
+`NoteBoardProvider`), so they reflect the current resident set (active vs archived) and
+stay reactive to optimistic create/delete. **Date counts** (`computedDateCounts` /
+`memoDateCounts` in `useMemoBoardFilters`) drive the calendar heatmap AND the
+"全部便签"/"今日创建" quick-filter counts, which are active-view metrics (clicking them
+switches archive OFF) — so memoDateCounts stays anchored to the ACTIVE set even while
+archived: it snapshots the active counts (React's adjust-state-during-render pattern) and
+freezes the snapshot while `showArchived`. Without this, opening archived would flip
+"全部便签" to the archived subset count. The old `/memo/tags` and `/memo/dates` endpoints
+(and `getMemoTagCounts`/`getMemoDateCounts`) were REMOVED (they hardcoded `archived: false`).
+Only `/memo/agenda` (due items) remains a server endpoint. Counts are bounded by the 500
+working-set cap.
 
 **Date semantics: `created_at`.** Both the calendar counts and the client date filter
 key off `created_at` (via `getItemDateKey`). The old server date filter used `updated_at`;

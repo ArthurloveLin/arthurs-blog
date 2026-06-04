@@ -417,11 +417,10 @@ export function useMemoBoardFilters(
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
   const meta = useNoteBoardMeta()
-  // Tag/search are filtered client-side ONLY for the resident memo working set.
-  // The archived view and guestbook filter server-side over the full dataset; doing
-  // it here too would double-filter and could wrongly drop valid matches (client
-  // includes() is case-sensitive vs the server's case-insensitive ilike).
-  const clientFilter = meta.board.slug === 'memo' && !state.showArchived
+  // Memo filters tag/search client-side in BOTH views (active and archived are each a
+  // resident working set), so the tag cloud and note list behave the same in both.
+  // Guestbook filters server-side over its paginated dataset, so it must NOT client-filter.
+  const clientFilter = meta.board.slug === 'memo'
   const baseDateFilter = state.searchQuery || state.activeTags.length > 0 ? null : state.activeDate
 
   // historySelectedDate tracks the date selected in the history view for UI purposes
@@ -465,7 +464,8 @@ export function useMemoBoardFilters(
 
     // Tag / search — resident memo only (see clientFilter rationale above). Tag and
     // search are mutually exclusive in the UI (handlers clear each other), but applying
-    // both guards is harmless. Search is case-insensitive to mirror the server ilike.
+    // both guards is harmless. Search and tag matching are case-insensitive (tag names
+    // are already lowercased by parseHashtags).
     if (clientFilter) {
       if (state.searchQuery.trim()) {
         const tokens = state.searchQuery.trim().toLowerCase().split(/[\s　]+/).filter(Boolean)

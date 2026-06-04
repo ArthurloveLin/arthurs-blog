@@ -25,7 +25,9 @@ function getBoardQueryKey(
   // tag/search/date must NOT enter the cache key — otherwise changing any of them mints
   // a new key and triggers a full network re-fetch of data we already hold. Sort is
   // re-applied in-memory (see the resident re-sort effect); tag/search/date via filterItems.
-  if (clientFiltered) return `note-board:${boardSlug}:active`
+  // Active and archived are separate resident sets (separate keys), but within each,
+  // sort/tag/search/date never change the key.
+  if (clientFiltered) return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}`
   return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:${direction}:q=${searchQuery}:tags=${[...activeTags].sort().join(',')}:date=${activeDate ?? ''}`
 }
 
@@ -84,10 +86,12 @@ export function useBoardData({
   // Comparing by reference lets us skip that window and prevent a spurious
   // resetBoardSurface that would revert the optimistic update.
   const lastBoardPayloadRef = useRef<typeof boardPayload | undefined>(undefined)
-  // Active (non-archived) memo notes are a fully-resident working set: loaded once
-  // and filtered entirely client-side. The archived view (and guestbook) keep
-  // server-side filtering + pagination, so tag/search/date stay in their cache key.
-  const isResidentMemo = board.slug === 'memo' && !showArchived
+  // Memo notes (active AND archived) are fully-resident working sets: each loads once
+  // (up to the 500 cap) and is filtered entirely client-side, so the tag cloud and note
+  // list stay consistent between the two views. Only guestbook keeps server-side
+  // filtering + pagination. Active and archived are separate SWR keys; switching between
+  // them re-fetches, but tag/search/date/sort never do.
+  const isResidentMemo = board.slug === 'memo'
   const activeBoardQueryKey = useMemo(
     () => getBoardQueryKey(board.slug, showArchived, sortMode, sortDirection, searchQuery, activeTags, activeDate, isResidentMemo) + `:${reactionIdentity || 'anon'}`,
     [activeDate, activeTags, board.slug, isResidentMemo, reactionIdentity, searchQuery, showArchived, sortDirection, sortMode],
@@ -455,7 +459,12 @@ export function useBoardData({
     const requestKey = activeBoardQueryKeyRef.current
 
     try {
-      const payload = await fetchBoardMessages(showArchived, sortMode, sortDirection, nextOffset, board.pageSize)
+      // Resident memo grows its working set with the UNFILTERED continuation (filters are
+      // applied client-side), matching the initial full-set load. Only guestbook paginates
+      // with server-side filters.
+      const payload = isResidentMemo
+        ? await fetchBoardMessages(showArchived, sortMode, sortDirection, nextOffset, board.pageSize, '', [], null)
+        : await fetchBoardMessages(showArchived, sortMode, sortDirection, nextOffset, board.pageSize)
       if (requestKey !== activeBoardQueryKeyRef.current) {
         return
       }
@@ -470,7 +479,7 @@ export function useBoardData({
         setError('更多便签加载失败，请稍后重试。')
       }
     }
-  }, [board.pageSize, fetchBoardMessages, hasMore, isPending, isRefreshingBoard, nextOffset, replaceMessages, setError, showArchived, sortDirection, sortMode])
+  }, [board.pageSize, fetchBoardMessages, hasMore, isPending, isRefreshingBoard, isResidentMemo, nextOffset, replaceMessages, setError, showArchived, sortDirection, sortMode])
 
   const handlePreviousPage = useCallback(() => {
     if (!isDesktopViewport || currentPageIndex === 0 || isPending || isRefreshingBoard) {
@@ -505,7 +514,9 @@ export function useBoardData({
     const requestKey = activeBoardQueryKeyRef.current
 
     try {
-      const payload = await fetchBoardMessages(showArchived, sortMode, sortDirection, nextOffset, board.pageSize)
+      const payload = isResidentMemo
+        ? await fetchBoardMessages(showArchived, sortMode, sortDirection, nextOffset, board.pageSize, '', [], null)
+        : await fetchBoardMessages(showArchived, sortMode, sortDirection, nextOffset, board.pageSize)
       if (requestKey !== activeBoardQueryKeyRef.current) {
         return
       }
@@ -525,7 +536,7 @@ export function useBoardData({
         setError('下一页便签加载失败，请稍后重试。')
       }
     }
-  }, [board.pageSize, currentPageIndex, fetchBoardMessages, hasMore, isDesktopViewport, isPending, isRefreshingBoard, loadedDesktopPageCount, nextOffset, replaceMessages, setError, showArchived, sortDirection, sortMode])
+  }, [board.pageSize, currentPageIndex, fetchBoardMessages, hasMore, isDesktopViewport, isPending, isRefreshingBoard, isResidentMemo, loadedDesktopPageCount, nextOffset, replaceMessages, setError, showArchived, sortDirection, sortMode])
 
   useEffect(() => {
     messagesRef.current = messages
