@@ -210,8 +210,6 @@ export function useBoardMutations({
             : current,
           { revalidate: true },
         )
-        void globalMutate('/api/note-boards/memo/dates')
-        void globalMutate('/api/note-boards/memo/tags')
       }
     } catch (archiveError) {
       if (snapshot) {

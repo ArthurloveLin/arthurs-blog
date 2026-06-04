@@ -134,12 +134,18 @@ while client `includes()` is case-sensitive and only sees *loaded* rows — doub
 archived would wrongly drop valid matches (e.g. `#Work` under a `work` query) and miss
 unloaded pages. Client search is therefore `toLowerCase`d to mirror `ilike`.
 
-**Sidebar counts come from dedicated full-dataset endpoints** (`/memo/tags`,
-`/memo/dates`, `/memo/agenda`), so the tag cloud / calendar heatmap stay accurate
-regardless of what the board list has loaded or filtered.
+**Sidebar tag/date counts are derived client-side from the resident `messages` of the
+CURRENT view** — `allTags` (`NoteBoardProvider`) and `computedDateCounts`
+(`useMemoBoardFilters`) both count over `messages`, so they reflect active vs archived
+correctly and stay reactive to optimistic create/delete. The old `/memo/tags` and
+`/memo/dates` endpoints (and `getMemoTagCounts`/`getMemoDateCounts`) were REMOVED: they
+hardcoded `archived: false`, so the tag cloud / calendar showed active counts even in
+the archived view. Counts compute over the full resident set (not the filtered view),
+so they stay stable while a filter is active. Only `/memo/agenda` (due items) remains a
+server endpoint. Note: counts are bounded by the 500 working-set cap, same as everything else.
 
-**Date semantics: `created_at`.** Calendar counts (`getMemoDateCounts`) and the client
-date filter both key off `created_at`. The old server date filter used `updated_at`;
+**Date semantics: `created_at`.** Both the calendar counts and the client date filter
+key off `created_at` (via `getItemDateKey`). The old server date filter used `updated_at`;
 removing it (client-only now) unified the two — keep date filtering on `created_at`.
 
 In the sticky board view (`BoardStickyView`), any active filter pulls from

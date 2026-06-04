@@ -733,19 +733,11 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
   const viewModeStorageKey = getNoteBoardViewModeStorageKey(meta.board.slug)
   const viewModeCookieName = getNoteBoardViewModeCookieName(meta.board.slug)
 
-  const { data: dateCountsRaw } = useSWR<{ date: string; count: number }[]>(
-    meta.board.slug === 'memo' ? '/api/note-boards/memo/dates' : null,
-    (url: string) => fetch(url).then((r) => r.json()),
-    { revalidateOnFocus: false, dedupingInterval: 120_000 },
-  )
-  const externalDateCounts = useMemo(() => {
-    if (!dateCountsRaw) return null
-    const map = new Map<string, number>()
-    for (const { date, count } of dateCountsRaw) map.set(date, count)
-    return map
-  }, [dateCountsRaw])
-
-  const filters = useMemoBoardFilters(state.allNoteItems, externalDateCounts)
+  // Date counts are derived client-side from the resident working set (see
+  // useMemoBoardFilters), so they reflect the CURRENT view — active vs archived.
+  // The old /memo/dates endpoint hardcoded archived:false and showed active counts
+  // even in the archived view.
+  const filters = useMemoBoardFilters(state.allNoteItems)
 
   const { data: agendaItems, mutate: mutateAgendaItems } = useSWR<import('@/lib/note-boards').MemoAgendaItem[]>(
     meta.board.slug === 'memo' ? '/api/note-boards/memo/agenda' : null,
@@ -983,15 +975,9 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
 }
 
 export function NoteBoardPage({ board, initialMessages, initialQuery = '', initialViewMode = 'sticky', initialThemeId }: NoteBoardPageProps) {
-  const { data: externalTagsRaw } = useSWR<{ name: string; count: number }[]>(
-    board.slug === 'memo' ? '/api/note-boards/memo/tags' : null,
-    (url: string) => fetch(url).then((r) => r.json()),
-    { revalidateOnFocus: false, dedupingInterval: 120_000 },
-  )
-
   return (
     <NoteColorThemeProvider initialThemeId={initialThemeId}>
-      <NoteBoardProvider board={board} initialMessages={initialMessages} initialQuery={initialQuery} externalTags={externalTagsRaw ?? null}>
+      <NoteBoardProvider board={board} initialMessages={initialMessages} initialQuery={initialQuery}>
         <NoteBoardExperience initialViewMode={initialViewMode} />
       </NoteBoardProvider>
     </NoteColorThemeProvider>

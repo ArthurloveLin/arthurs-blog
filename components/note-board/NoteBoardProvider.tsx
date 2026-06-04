@@ -37,7 +37,6 @@ interface NoteBoardProviderProps {
   board: NoteBoardViewConfig
   initialMessages: NoteMessage[]
   initialQuery?: string
-  externalTags?: { name: string; count: number }[] | null
   children: ReactNode
 }
 
@@ -213,7 +212,7 @@ function useRequiredContext<T>(context: React.Context<T | null>, name: string) {
   return value
 }
 
-export function NoteBoardProvider({ board, initialMessages, initialQuery = '', externalTags, children }: NoteBoardProviderProps) {
+export function NoteBoardProvider({ board, initialMessages, initialQuery = '', children }: NoteBoardProviderProps) {
   const { identity, identityAliases, isAdmin, loading, publicIdentity } = useAuth()
   
   const [error, setError] = useState<string | null>(null)
@@ -404,8 +403,11 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', e
     setEditPriority,
   })
 
+  // Tag counts are derived from the resident `messages` of the CURRENT view, so they
+  // reflect active vs archived correctly. (The old /memo/tags endpoint hardcoded
+  // archived:false and showed active counts even in the archived view.) Computing from
+  // messages also keeps counts reactive to optimistic create/delete.
   const allTags = useMemo<{ name: string; count: number }[]>(() => {
-    if (externalTags) return externalTags
     const counts = new Map<string, number>()
     for (const message of messages) {
       for (const tag of parseHashtags(message.content)) {
@@ -415,7 +417,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', e
     return [...counts.entries()]
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-  }, [externalTags, messages])
+  }, [messages])
 
   const { noteItems: allNoteItems } = useBoardNoteItems({
     visibleMessages: messages,

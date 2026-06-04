@@ -413,7 +413,6 @@ export interface MemoBoardFilters {
 
 export function useMemoBoardFilters(
   allItems: NoteCardViewModel[],
-  externalDateCounts: Map<string, number> | null,
 ): MemoBoardFilters {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
@@ -435,15 +434,16 @@ export function useMemoBoardFilters(
   // the API-backed baseDateFilter, which is not set in that mode.
   const effectiveSelectedDate = historySelectedDate ?? baseDateFilter
 
+  // Date counts come from the resident working set of the current view (active vs
+  // archived), keyed on created_at to match the calendar's own basis.
   const computedDateCounts = useMemo(() => {
-    if (externalDateCounts) return externalDateCounts
     const counts = new Map<string, number>()
     for (const item of allItems) {
       const key = getItemDateKey(item)
       counts.set(key, (counts.get(key) ?? 0) + 1)
     }
     return counts
-  }, [allItems, externalDateCounts])
+  }, [allItems])
 
   const filterItems = useCallback((items: NoteCardViewModel[]) => {
     let result = items
