@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { extractMemoHabitChecklistItems, updateMemoHabitChecklistLine } from '@/lib/memo-habits'
 import {
   markSupersededMemoHabitOccurrencesAsMissed,
+  reconcileStaleMemoHabitOccurrences,
   upsertMemoHabitOccurrenceForReminder,
 } from '@/lib/memo-habits-server'
 import { getShanghaiWeekday, parseInlineDueTags, stripInlineDueTags } from '@/lib/memo-due-tags'
@@ -308,6 +309,17 @@ export async function POST(req: NextRequest) {
       errors.push(e instanceof Error ? e.message : String(e))
     }
   }
+
+  // Proactively reconcile stale occurrences for every user touched this tick so
+  // that missed habits are closed at midnight even without a page load.
+  const uniqueUserIds = [...new Set(memos.map((m) => m.user_id as string).filter(Boolean))]
+  await Promise.allSettled(
+    uniqueUserIds.map((uid) =>
+      reconcileStaleMemoHabitOccurrences(uid).catch((err) => {
+        errors.push(`reconcile failed for user ${uid}: ${err instanceof Error ? err.message : String(err)}`)
+      }),
+    ),
+  )
 
   return NextResponse.json({ sent, errors: errors.length > 0 ? errors : undefined })
 }

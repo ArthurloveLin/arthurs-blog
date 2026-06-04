@@ -57,7 +57,6 @@ interface CurrentStateSeed {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const HISTORY_WINDOW_DAYS = 90
-const STALE_PENDING_MS = DAY_MS
 
 function getShanghaiWeekStartMs(): number {
   const now = new Date()
@@ -236,7 +235,15 @@ function computeCurrentStreak(
 function buildCurrentState(noteId: string, item: CurrentStateSeed, rows: MemoHabitOccurrenceRow[], now: number): MemoHabitCurrentState {
   const streak = computeCurrentStreak(rows, item.repeatMode, item.repeatDays)
   const isRepeating = item.repeatMode && item.repeatMode !== 'once'
-  const latestOpen = rows.find((row) => row.status === 'pending' || row.status === 'delayed') ?? null
+  const nowKey = toShanghaiDateKey(new Date(now).toISOString())
+  // Only surface an open occurrence if its effective due date is today or in the future.
+  // Past-day open rows are stale (pending reconciliation) — skip them so a non-scheduled
+  // day doesn't show yesterday's overdue occurrence instead of the correct next-due state.
+  const latestOpen = rows.find((row) => {
+    if (row.status !== 'pending' && row.status !== 'delayed') return false
+    const dueAt = getOpenOccurrenceDueAt(row)
+    return toShanghaiDateKey(dueAt) >= nowKey
+  }) ?? null
 
   if (latestOpen) {
     const dueAt = getOpenOccurrenceDueAt(latestOpen)
@@ -260,7 +267,6 @@ function buildCurrentState(noteId: string, item: CurrentStateSeed, rows: MemoHab
     // For repeating habits compare Shanghai dates: if the latest completion is
     // from today (Shanghai), show completed; otherwise it's a new day → pending.
     // For one-off habits retain the legacy exact due_at match.
-    const nowKey = toShanghaiDateKey(new Date(now).toISOString())
     const completionKey = toShanghaiDateKey(latest.due_at)
     const isCurrentPeriod = isRepeating ? completionKey === nowKey : latest.due_at === item.dueAt
 
@@ -358,7 +364,7 @@ async function fetchVisibleOccurrences(ownerUserId: string, showAdminOnly: boole
   return (data ?? []) as MemoHabitOccurrenceRow[]
 }
 
-async function reconcileStaleMemoHabitOccurrences(ownerUserId: string) {
+export async function reconcileStaleMemoHabitOccurrences(ownerUserId: string) {
   const { data, error } = await supabaseAdmin
     .from('memo_habit_occurrences')
     .select('id, due_at, delayed_to, status')
@@ -370,9 +376,15 @@ async function reconcileStaleMemoHabitOccurrences(ownerUserId: string) {
     throw new Error(error.message)
   }
 
-  const now = Date.now()
+  // Stale = the occurrence's effective Shanghai calendar day has already passed.
+  // Using a midnight boundary (not a 24-hour rolling window) ensures that a habit
+  // due at 22:10 is correctly marked missed right after midnight, not 22 hours later.
+  const todayKey = toShanghaiDateKey(new Date().toISOString())
   const staleIds = (data ?? [])
-    .filter((row) => Date.parse(getOpenOccurrenceDueAt(row as Pick<MemoHabitOccurrenceRow, 'due_at' | 'delayed_to'>)) <= now - STALE_PENDING_MS)
+    .filter((row) => {
+      const dueAt = getOpenOccurrenceDueAt(row as Pick<MemoHabitOccurrenceRow, 'due_at' | 'delayed_to'>)
+      return toShanghaiDateKey(dueAt) < todayKey
+    })
     .map((row) => row.id as string)
 
   if (staleIds.length === 0) {
@@ -476,7 +488,13 @@ function buildSummary(currentStates: Record<string, Record<string, MemoHabitCurr
 }
 
 export async function getMemoHabitOverview(ownerUserId: string, showAdminOnly = false): Promise<MemoHabitOverview> {
-  after(() => reconcileStaleMemoHabitOccurrences(ownerUserId))
+  after(async () => {
+    try {
+      await reconcileStaleMemoHabitOccurrences(ownerUserId)
+    } catch (err) {
+      console.error('[memo-habits] reconcile failed in getMemoHabitOverview:', err)
+    }
+  })
 
   const [notes, rows] = await Promise.all([
     fetchVisibleMemoNotes(ownerUserId, showAdminOnly),
@@ -516,7 +534,13 @@ function buildItemDetail(noteId: string, item: CurrentStateSeed, rows: MemoHabit
 }
 
 export async function getMemoHabitItemDetail(noteId: string, itemKey: string, ownerUserId: string, showAdminOnly = false): Promise<MemoHabitItemDetail> {
-  after(() => reconcileStaleMemoHabitOccurrences(ownerUserId))
+  after(async () => {
+    try {
+      await reconcileStaleMemoHabitOccurrences(ownerUserId)
+    } catch (err) {
+      console.error('[memo-habits] reconcile failed in getMemoHabitItemDetail:', err)
+    }
+  })
 
   const config = getNoteBoardConfig('memo')
   const { data: note, error } = await supabaseAdmin
@@ -608,7 +632,14 @@ async function resolveOrCreateOccurrence(note: MemoHabitNoteRow, item: MemoHabit
     : item.dueAt
 
   const rows = await fetchLatestOccurrences(note.id, item.itemKey)
-  const latest = rows.find((row) => row.status === 'pending' || row.status === 'delayed')
+  // Mirror the same past-day filter used in buildCurrentState: skip open rows whose
+  // Shanghai calendar day has already passed so we act on today's occurrence, not a
+  // stale one that reconciliation will soon close.
+  const nowKey = toShanghaiDateKey(nowIso)
+  const latest = rows.find((row) => {
+    if (row.status !== 'pending' && row.status !== 'delayed') return false
+    return toShanghaiDateKey(getOpenOccurrenceDueAt(row)) >= nowKey
+  })
   if (latest) {
     return latest
   }
@@ -716,24 +747,9 @@ export async function delayMemoHabitOccurrence(noteId: string, itemKey: string, 
     return getMemoHabitItemDetail(note.id, itemKey, note.user_id, true)
   }
 
-  // Cross-day postpones close today's occurrence as missed.
-  // A recurring habit can only run once per day, so only insert a new occurrence
-  // for the target date when no active occurrence already exists for that date.
-  // If the target date already has a scheduled/pending/delayed occurrence (e.g. the
-  // natural recurrence for that day), treat the current attempt as a plain miss.
-  const { error: markMissedError } = await supabaseAdmin
-    .from('memo_habit_occurrences')
-    .update({
-      status: 'missed',
-      delayed_to: null,
-      updated_at: nowIso,
-    })
-    .eq('id', occurrence.id)
-
-  if (markMissedError) {
-    throw new Error(markMissedError.message)
-  }
-
+  // Cross-day postpones close today's occurrence as missed and (optionally) open a
+  // new one on the target date. INSERT before PATCH so that a PATCH failure leaves
+  // two open rows (self-healing via reconcile) rather than a lost task.
   const delayDateKey = toShanghaiDateKey(delayUntil)
   const { data: targetDateRows, error: targetDateError } = await supabaseAdmin
     .from('memo_habit_occurrences')
@@ -770,6 +786,20 @@ export async function delayMemoHabitOccurrence(noteId: string, itemKey: string, 
     if (insertNextError) {
       throw new Error(insertNextError.message)
     }
+  }
+
+  // Mark the current occurrence missed only after the successor row is safely written.
+  const { error: markMissedError } = await supabaseAdmin
+    .from('memo_habit_occurrences')
+    .update({
+      status: 'missed',
+      delayed_to: null,
+      updated_at: nowIso,
+    })
+    .eq('id', occurrence.id)
+
+  if (markMissedError) {
+    throw new Error(markMissedError.message)
   }
 
   return getMemoHabitItemDetail(note.id, itemKey, note.user_id, true)
