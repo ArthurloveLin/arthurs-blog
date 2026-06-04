@@ -21,13 +21,12 @@ function getBoardQueryKey(
   activeDate: string | null,
   clientFiltered: boolean,
 ) {
-  const base = `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:${direction}`
-  // When the board filters client-side (resident memo working set), tag/search/date
-  // must NOT enter the cache key — otherwise changing a filter mints a new key and
-  // triggers a full network re-fetch of data we already hold. Those dims are applied
-  // in-memory via filterItems instead.
-  if (clientFiltered) return base
-  return `${base}:q=${searchQuery}:tags=${[...activeTags].sort().join(',')}:date=${activeDate ?? ''}`
+  // When the board filters client-side (resident memo working set), sort/direction AND
+  // tag/search/date must NOT enter the cache key — otherwise changing any of them mints
+  // a new key and triggers a full network re-fetch of data we already hold. Sort is
+  // re-applied in-memory (see the resident re-sort effect); tag/search/date via filterItems.
+  if (clientFiltered) return `note-board:${boardSlug}:active`
+  return `note-board:${boardSlug}:${archived ? 'archived' : 'active'}:${sort}:${direction}:q=${searchQuery}:tags=${[...activeTags].sort().join(',')}:date=${activeDate ?? ''}`
 }
 
 export interface UseBoardDataProps {
@@ -535,6 +534,23 @@ export function useBoardData({
   useEffect(() => {
     activeBoardQueryKeyRef.current = activeBoardQueryKey
   }, [activeBoardQueryKey])
+
+  // Resident memo re-sorts in-memory: sort/direction are out of its SWR key, so
+  // changing them no longer re-fetches. Re-sort the existing working set and relayout
+  // instead. Only fires when sort actually CHANGED while resident — not on mount (initial
+  // data is already sorted) and not when isResidentMemo merely flips (the archived toggle
+  // re-fetches and resets the surface on its own). replaceMessages mutates the SWR cache
+  // to the re-sorted order, so the sync effect below stays a no-op.
+  const prevResidentSortRef = useRef({ sortMode, sortDirection })
+  useEffect(() => {
+    const prev = prevResidentSortRef.current
+    const sortChanged = prev.sortMode !== sortMode || prev.sortDirection !== sortDirection
+    prevResidentSortRef.current = { sortMode, sortDirection }
+    if (!isResidentMemo || !sortChanged) return
+    startTransition(() => {
+      replaceMessages((current) => current, { sort: true, resetPositions: true })
+    })
+  }, [sortMode, sortDirection, isResidentMemo, replaceMessages])
 
   useEffect(() => {
     if (!isDesktopViewport) {

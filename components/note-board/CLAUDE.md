@@ -112,12 +112,18 @@ This is the **non-obvious** part — do not assume all boards filter the same wa
 
 **Active (non-archived) memo = fully-resident working set.** It loads in ONE fetch
 (`initialPageLimit: 500` in `lib/note-board-config.ts` — a safety cap, not pagination)
-and filters **entirely client-side**: tag/search/date/due are applied in-memory by
-`filters.filterItems(...)`. Crucially, `getBoardQueryKey` (`useBoardData.ts`) OMITS
-tag/search/date from the SWR key when `isResidentMemo` (`slug === 'memo' && !showArchived`),
-so changing a filter does NOT trigger a network re-fetch — that round-trip was the
-old source of the "click tag → nothing → results pop in" lag. The SWR fetcher also
+and derives **everything client-side**: tag/search/date/due via `filters.filterItems(...)`,
+and **sort/direction** in-memory too. `getBoardQueryKey` (`useBoardData.ts`) reduces the
+resident SWR key to just `note-board:memo:active` (+ identity) — it OMITS sort, direction,
+tag, search, and date when `isResidentMemo` (`slug === 'memo' && !showArchived`), so
+changing ANY of them does NOT trigger a network re-fetch. That round-trip was the old
+source of the "click tag/change sort → nothing → results pop in" lag. The SWR fetcher
 forces `q=''/tags=[]/date=null` for resident memo so the server returns the full set.
+
+Because sort is out of the key, a dedicated effect re-sorts the resident set in place
+(`replaceMessages((c) => c, { sort: true, resetPositions: true })`) when sortMode/direction
+change — guarded to fire only on a real sort change while resident, never on mount or when
+`isResidentMemo` merely flips (the archived toggle re-fetches and resets the surface itself).
 
 **Archived memo + guestbook = server-side filtering + pagination.** They keep
 tag/search in the SWR key and re-fetch on change. `filterItems` applies tag/search
