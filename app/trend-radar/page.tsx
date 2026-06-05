@@ -123,7 +123,7 @@ export default async function TrendRadarPage({
         <footer className="border-t border-border mt-6">
           <div className="site-shell-triad py-7">
             <p className="font-mono text-[11px] text-muted-foreground text-center sm:text-left">
-              © {new Date().getFullYear()} Arthur & Grace · TrendRadar Module
+              © {new Date().getFullYear()} Arthur&apos;s Blog · TrendRadar Module
             </p>
           </div>
         </footer>

@@ -10,7 +10,7 @@ const openSans = Open_Sans({
 
 export const metadata: Metadata = {
   title: 'Now Watching',
-  description: 'Arthur & Grace 最近看过的电影海报流',
+  description: "Arthur's Blog 最近看过的电影海报流",
 }
 
 export const revalidate = 3600

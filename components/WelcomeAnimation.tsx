@@ -42,7 +42,7 @@ export default function WelcomeAnimation({ onFinish }: WelcomeAnimationProps) {
     >
       <HandwrittenSloganClient 
         text1={siteConfig.site_slogan_1 || "Welcome to my Blog"}
-        text2={siteConfig.site_slogan_2 || "Arthur & Grace"}
+        text2={siteConfig.site_slogan_2 || "Arthur's Blog"}
         onComplete={startFadeOut}
         className="welcome-slogan-wrapper"
         // We do not pass size1/size2 because we will override them with !important

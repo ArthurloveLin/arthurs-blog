@@ -38,7 +38,7 @@ export default function HeroTerminal({ guestbookBoard, initialGuestbookMessages 
   const config = useSiteConfig()
   const stats = useSiteStats()
 
-  const subtitle = config.site_subtitle || 'Arthur & Grace · Journal'
+  const subtitle = config.site_subtitle || "Arthur's Blog · Journal"
   const titleHighlight = config.site_title_highlight || '技术、生活与创意'
   const titleHighlight2 = config.site_title_highlight_2 || ''
   const titleRest = config.site_title_rest || '的记录与分享'

@@ -39,7 +39,7 @@ interface DrawerToggleItem {
 const navLinks = [
   { href: '/', label: 'Home', tooltip: '首页 - 返回网站主页', external: false },
   { href: '/life-gallery', label: 'Life Gallery', tooltip: '生活画廊 - 我的生活图像轮播', external: false },
-  { href: '/wardrobe', label: 'Life Lens', tooltip: 'Life Lens - 记录真实评价的决策系统', external: false },
+  { href: '/memo', label: 'Memo', tooltip: 'Memo - 记录每日灵感', external: false },
   { href: '/trend-radar', label: 'News', tooltip: '趋势雷达 - 获取最新的趋势资讯', external: false },
   { href: '/guestbook', label: 'Message', tooltip: '留言板 - 留下你的印记', external: false },
   { href: '/spotify', label: 'Music Library', tooltip: 'Music Library - Spotify 数据仪表盘', external: false },
@@ -562,7 +562,7 @@ function NavbarContent() {
               </div>
             </div>
             <span className="text-gradient-primary font-bold text-lg sm:text-xl tracking-tight">
-              {isMemoStandalone ? 'Memo' : 'Arthur & Grace'}
+              {isMemoStandalone ? 'Memo' : "Arthur's Blog"}
             </span>
           </Link>
           <ChangelogBadge />

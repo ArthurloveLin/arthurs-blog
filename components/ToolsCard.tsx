@@ -7,7 +7,7 @@ import SidebarCard from './SidebarCard'
 import { SpotifyProvider } from './SpotifyProvider'
 import SpotifyNowPlaying from './SpotifyNowPlaying'
 import { useAuth } from './AuthProvider'
-import { ShoppingBag, Newspaper, BarChart2, ExternalLink, Camera, NotebookText, MessageSquareText, Clapperboard, ChefHat, FlaskConical } from 'lucide-react'
+import { Newspaper, BarChart2, ExternalLink, Camera, NotebookText, MessageSquareText, Clapperboard, ChefHat, FlaskConical } from 'lucide-react'
 
 const AnalyticsDashboard = dynamic(() => import('./AnalyticsDashboard'), { ssr: false })
 
@@ -30,13 +30,6 @@ const tools = [
     label: 'Life Gallery',
     description: '我的生活画廊与轮播图集',
     icon: <Camera className="w-4 h-4" strokeWidth={1.75} />,
-    external: false,
-  },
-  {
-    href: '/wardrobe',
-    label: 'Life Lens',
-    description: '记录对事物的真实评价',
-    icon: <ShoppingBag className="w-4 h-4" strokeWidth={1.75} />,
     external: false,
   },
   {

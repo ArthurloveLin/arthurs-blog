@@ -138,7 +138,7 @@ const SearchSuggestionsList = memo(({
             <>
               <div className="h-px bg-border/40 my-4 animate-apple-fade-in-right" style={{ animationDelay: `${baseDelay + staggerDelay * 4}ms`, animationFillMode: 'both' }} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {['Life Gallery', 'Life Lens', 'News'].map((tag, index) => (
+                {['Life Gallery', 'Memo', 'News'].map((tag, index) => (
                   <QuickLinkItem
                     key={`suggestion-${tag}`}
                     item={tag}

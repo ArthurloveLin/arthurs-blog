@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin/", "/api/", "/auth/", "/session/"],
+      disallow: ["/admin/", "/api/", "/auth/", "/session/", "/wardrobe"],
     },
     sitemap: "https://arthurlovegrace.top/sitemap.xml",
   };

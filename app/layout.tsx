@@ -41,8 +41,8 @@ import ContactChat from '@/components/ContactChat';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 
 export const metadata: Metadata = {
-  title: "Arthur & Grace",
-  description: "Arthur & Grace 的个人博客与工具合集",
+  title: "Arthur's Blog",
+  description: "Arthur's Blog 的个人博客与工具合集",
 };
 
 export default async function RootLayout({

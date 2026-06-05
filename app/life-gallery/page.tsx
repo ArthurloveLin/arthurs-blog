@@ -6,8 +6,8 @@ import { getLifeGalleryRound } from '@/lib/life-gallery'
 export const revalidate = 3600
 
 export const metadata: Metadata = {
-  title: 'Life Gallery | Arthur & Grace',
-  description: 'Arthur & Grace 的生活画廊，基于 R2 图库随机轮换展示。',
+  title: "Life Gallery | Arthur's Blog",
+  description: "Arthur's Blog 的生活画廊，基于 R2 图库随机轮换展示。",
 }
 
 export default async function LifeGalleryPage() {

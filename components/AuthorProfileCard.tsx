@@ -39,7 +39,7 @@ const AuthorProfileCardBody = memo(function AuthorProfileCardBody({ variant = 'd
   const isCompact = variant === 'compact'
 
   const {
-    author_name: name = 'Arthur & Grace',
+    author_name: name = "Arthur's Blog",
     author_bio: bio = '技术、生活与创意的记录者',
     author_avatar_url: avatarUrl,
     author_role: role,
