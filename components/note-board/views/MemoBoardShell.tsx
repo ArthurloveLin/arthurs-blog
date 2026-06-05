@@ -630,10 +630,14 @@ export function MemoBoardShell({
       calendarMode: resolvedCalendarMode,
       onCalendarModeChange: (m: 'heatmap' | 'agenda' | 'history') => setCalendarMode(m),
     }
-    if (resolvedCalendarMode === 'agenda' && agendaItems != null) {
+    if (resolvedCalendarMode === 'agenda') {
+      // Render the agenda calendar base immediately even before agendaItems (async
+      // SWR) resolves — passing [] shows the empty schedule grid and the due dots
+      // fill in on arrival. Previously this branch was gated on `agendaItems != null`,
+      // so the heatmap fallback below flashed first on every load.
       return (
         <SidebarAgendaCalendar
-          agendaItems={agendaItems}
+          agendaItems={agendaItems ?? []}
           onAfterSelect={isMobilePanel ? () => setMobileCalendarOpen(false) : undefined}
           {...modeProps}
         />
