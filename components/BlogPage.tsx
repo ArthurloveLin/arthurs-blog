@@ -80,11 +80,11 @@ export default function BlogPage({
       <footer className="border-t border-border mt-6">
         <div className="site-shell-triad py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="font-mono text-[11px] text-muted-foreground">
-            © {currentYear} Arthur &amp; Grace
+            © {currentYear} Arthur&apos;s Blog
           </p>
           <nav className="lg:hidden flex items-center gap-5 font-mono text-[11px] text-muted-foreground">
-            <Link href="/wardrobe" className="hover:text-foreground transition-colors">
-              Life Lens
+            <Link href="/memo" className="hover:text-foreground transition-colors">
+              Memo
             </Link>
             <a
               href="https://trendradar.arthurlovegrace.top"

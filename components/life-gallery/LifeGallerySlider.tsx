@@ -704,7 +704,7 @@ export default function LifeGallerySlider({ initialRound }: { initialRound: Life
           <ArrowLeft className={styles.sliderMenuIcon} strokeWidth={2.2} />
           <span>返回</span>
         </button>
-        <span className={styles.sliderLabel}>Life Gallery - Arthur and Grace</span>
+        <span className={styles.sliderLabel}>Life Gallery - Arthur&apos;s Blog</span>
       </div>
 
       <div className={styles.sliderBody}>

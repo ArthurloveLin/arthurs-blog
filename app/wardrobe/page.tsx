@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { unstable_cache } from 'next/cache'
@@ -5,6 +6,11 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import SessionList from '@/components/SessionList'
 import AdminOnly from '@/components/AdminOnly'
 import BfcacheRefresh from '@/components/BfcacheRefresh'
+
+// Life Lens 软归档：保留功能可访问，但从搜索引擎中下线（无站内入口 + noindex）
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 const getSessionsList = unstable_cache(
   async () => {

@@ -7,7 +7,7 @@ import { normalizeSearchQuery, SEARCH_MIN_QUERY_LENGTH } from '@/lib/blog-search
 const PAGE_SIZE = 12
 
 export const metadata: Metadata = {
-  title: '博客搜索 | Arthur & Grace',
+  title: "博客搜索 | Arthur's Blog",
   description: '搜索文章标题、正文、标签和分类',
   robots: {
     index: false,

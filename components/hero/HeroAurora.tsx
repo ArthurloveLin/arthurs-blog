@@ -149,7 +149,7 @@ export default function HeroAurora({ guestbookBoard, initialGuestbookMessages, s
 
         <div className="relative z-10">
           <p className={`mb-5 ${EYEBROW} text-[11px] transition-opacity duration-700 ${isWelcomeActive ? 'max-md:opacity-0' : 'max-md:opacity-100'}`}>
-            {siteConfig.site_subtitle || 'Arthur & Grace · Journal'}
+            {siteConfig.site_subtitle || "Arthur's Blog · Journal"}
           </p>
           <h1 className="max-w-lg text-[2.25rem] font-bold leading-[1.2] tracking-tight text-foreground lg:text-[2.75rem]">
             <span className="block sm:inline text-gradient-primary">{siteConfig.site_title_highlight || '技术、生活与创意'}</span>

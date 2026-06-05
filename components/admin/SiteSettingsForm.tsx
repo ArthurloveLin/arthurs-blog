@@ -425,7 +425,7 @@ function ProfileSettingsGroup({
                 name="author_name"
                 value={data.author_name || ''}
                 onChange={handleChange}
-                placeholder="Arthur & Grace"
+                placeholder="Arthur's Blog"
                 className="w-full bg-background border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
               />
             </div>
