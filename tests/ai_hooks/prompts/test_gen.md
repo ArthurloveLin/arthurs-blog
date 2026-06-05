@@ -19,9 +19,12 @@ files for the API coverage gaps listed in the Coverage Gaps Report below.
    # tested-source: <path>
    ```
    where `<path>` is the source file path from the gap report
-   (e.g., `# tested-source: app/api/changelog/route.ts` or `# tested-source: lib/ntfy.ts`).
-   For library modules with no HTTP endpoint, use the `lib/` path.
+   (e.g., `# tested-source: app/api/changelog/route.ts`).
+   The gap report only contains `app/api/` routes with a real HTTP surface.
    This line is machine-read by the nightly prune job to detect stale tests.
+
+   If a gap somehow has no testable HTTP endpoint, do NOT emit a skip-only
+   placeholder file — produce no file for that gap at all.
 
 ## Available fixtures (from tests/ai_generated/conftest.py)
 

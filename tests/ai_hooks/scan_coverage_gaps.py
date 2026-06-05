@@ -22,10 +22,14 @@ from pathlib import Path
 MAX_FILES = 5
 MAX_DIFF_BYTES = 3072  # 3 KB per file
 
-# Only scan API routes and server-side library modules.
-# UI components (components/) and page files (app/<route>/page.tsx) require
-# Playwright E2E tests, not httpx API tests — skip them here.
-SOURCE_DIRS = ("app/api/", "lib/")
+# Only scan API routes. This generator emits httpx-based API tests, which can
+# only exercise HTTP endpoints under app/api/.
+#   - lib/ modules have no HTTP surface, so every lib gap previously produced a
+#     dead `pytest.skip("No HTTP endpoint exists...")` file. They belong in a
+#     unit-test harness, not here — excluded to stop that daily skip-noise.
+#   - UI components (components/) and page files (app/<route>/page.tsx) require
+#     Playwright E2E tests, not httpx API tests — also out of scope here.
+SOURCE_DIRS = ("app/api/",)
 SOURCE_EXTS = {".ts", ".tsx"}
 EXCLUDE_PATTERNS = (
     ".test.", ".spec.",
