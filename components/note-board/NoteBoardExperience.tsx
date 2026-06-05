@@ -224,30 +224,29 @@ function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview
             )}
           </div>
 
-          {state.hasPreviousPage || state.hasNextPage ? (
-            <>
-              <button
-                type="button"
-                aria-label="上一页"
-                className="group absolute left-1 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 sm:left-2"
-                style={{ top: 400 }}
-                onClick={actions.handlePreviousPage}
-                disabled={!state.hasPreviousPage || state.isPending || state.isRefreshingBoard}
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <button
-                type="button"
-                aria-label="下一页"
-                className="group absolute right-0 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 sm:-right-3"
-                style={{ top: 400 }}
-                onClick={() => void actions.handleNextPage()}
-                disabled={!state.hasNextPage || state.isPending || state.isRefreshingBoard}
-              >
-                <ChevronRight size={20} />
-              </button>
-            </>
-          ) : null}
+          {/* Pagination arrows are always rendered; disabled state greys them out
+              (opacity-30) rather than hiding them, so "greyed vs bright" is the
+              affordance for whether a page exists in that direction. */}
+          <button
+            type="button"
+            aria-label="上一页"
+            className="group absolute left-1 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-30 sm:left-2"
+            style={{ top: 400 }}
+            onClick={actions.handlePreviousPage}
+            disabled={!state.hasPreviousPage || state.isPending || state.isRefreshingBoard}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            type="button"
+            aria-label="下一页"
+            className="group absolute right-0 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-30 sm:-right-3"
+            style={{ top: 400 }}
+            onClick={() => void actions.handleNextPage()}
+            disabled={!state.hasNextPage || state.isPending || state.isRefreshingBoard}
+          >
+            <ChevronRight size={20} />
+          </button>
         </div>
       )}
 
