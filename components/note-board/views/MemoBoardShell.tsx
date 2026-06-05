@@ -453,11 +453,18 @@ export function useMemoBoardFilters(
   // the current view — see NoteBoardProvider allTags).
   // React's "adjust state during render" pattern: keep the snapshot in sync with the
   // live active counts (no effect, no ref), and freeze it while archived.
+  // The `!isRefreshingBoard` gate is essential: SWR uses keepPreviousData, so on an
+  // archived→active switch `showArchived` flips to false while `allItems` still holds
+  // the stale archived resident set for one+ renders. Without the gate, that stale set
+  // would pollute the snapshot and flash "全部便签" to the archived page size (~50)
+  // before the active set lands. While the board is mid-fetch we neither update nor use
+  // computedDateCounts — the frozen active snapshot stays on screen.
+  const boardReflectsActive = !state.showArchived && !state.isRefreshingBoard
   const [activeDateCountsSnapshot, setActiveDateCountsSnapshot] = useState(computedDateCounts)
-  if (!state.showArchived && activeDateCountsSnapshot !== computedDateCounts) {
+  if (boardReflectsActive && activeDateCountsSnapshot !== computedDateCounts) {
     setActiveDateCountsSnapshot(computedDateCounts)
   }
-  const memoDateCounts = state.showArchived ? activeDateCountsSnapshot : computedDateCounts
+  const memoDateCounts = boardReflectsActive ? computedDateCounts : activeDateCountsSnapshot
 
   const filterItems = useCallback((items: NoteCardViewModel[]) => {
     let result = items
