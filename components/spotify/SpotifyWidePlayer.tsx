@@ -9,6 +9,7 @@ import { useSpotify } from '@/components/SpotifyProvider'
 import { spotifyImg } from '@/lib/spotify-img'
 import { formatStableDate } from '@/lib/date-format'
 import { EYEBROW } from '@/components/cardSurface'
+import { useAlbumWash } from './useAlbumWash'
 
 function formatRelativeTime(playedAt: string) {
   const date = new Date(playedAt)
@@ -162,6 +163,7 @@ function SpotifyWidePlayerContent({
   stats?: SpotifyWidePlayerStats
 }) {
   const [localProgress, setLocalProgress] = useState(() => data.progressMs ?? 0)
+  const albumWash = useAlbumWash(data.albumImageUrl ? spotifyImg(data.albumImageUrl) : null)
 
   useEffect(() => {
     let animationFrameId: number
@@ -200,23 +202,13 @@ function SpotifyWidePlayerContent({
   return (
     <div className="relative flex min-h-[300px] flex-col justify-center overflow-hidden rounded-[28px] border border-emerald-500/15 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.1),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.8),rgba(240,253,248,0.7))] p-5 sm:p-7 dark:bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_30%),linear-gradient(135deg,rgba(10,20,15,0.7),rgba(5,15,10,0.7))] shadow-[0_15px_40px_rgba(16,185,129,0.22),0_4px_16px_rgba(16,185,129,0.12)]">
       {data.albumImageUrl && (
-        <div className="animate-in fade-in duration-1000 mix-blend-multiply dark:mix-blend-screen pointer-events-none absolute inset-0 overflow-hidden opacity-30 dark:opacity-20 transform-gpu">
-          {/* 1px layout → scale(3000) GPU transform: extracts the image's average color as
-              a zero-cost color wash, replacing filter:blur(80px). */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={spotifyImg(data.albumImageUrl)!}
-            alt=""
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              width: '1px',
-              height: '1px',
-              transform: 'translate(-50%, -50%) scale(3000)',
-              filter: 'saturate(1.5)',
-            }}
-          />
+        <div
+          className="animate-in fade-in duration-1000 mix-blend-multiply dark:mix-blend-screen pointer-events-none absolute inset-0 overflow-hidden opacity-30 dark:opacity-20"
+          style={{ background: albumWash }}
+        >
+          {/* Static CSS gradient built from the cover's dominant colors (see
+              useAlbumWash). Replaces the fragile 1px <img> → scale(3000) hack,
+              which leaked the recognizable cover through as a 底图. */}
         </div>
       )}
 

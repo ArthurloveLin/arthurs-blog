@@ -488,6 +488,12 @@ function NavbarContent() {
         ease: 'power2.out',
         stagger: 0.035,
         delay: 0.04,
+        // Hand opacity/visibility/transform back to CSS on finish so nothing
+        // lingers half-applied. (The rows must NOT carry a Tailwind `transition`
+        // on opacity/transform, or that CSS transition fights these per-frame
+        // writes and the later-staggered rows never settle — they strand near
+        // opacity:0. They use `transition-colors` for exactly this reason.)
+        clearProps: 'opacity,visibility,transform',
       })
     }, el)
     return () => ctx.revert()
@@ -632,7 +638,7 @@ function NavbarContent() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`block px-4 py-2.5 text-sm font-medium rounded-lg transition duration-200 ${isNavLinkActive(pathname, link.href) ? 'text-primary bg-primary/10' : 'text-foreground/70 hover:text-foreground hover:bg-foreground/5'}`}
+                    className={`block px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${isNavLinkActive(pathname, link.href) ? 'text-primary bg-primary/10' : 'text-foreground/70 hover:text-foreground hover:bg-foreground/5'}`}
                     onClick={closeMobileNavigation}
                   >
                     {link.label}
@@ -646,7 +652,7 @@ function NavbarContent() {
                       if (link.href === '/') handleHomeClick()
                       closeMobileNavigation()
                     }}
-                    className={`block px-4 py-2.5 text-sm font-medium rounded-lg transition duration-200 ${isNavLinkActive(pathname, link.href) ? 'text-primary bg-primary/10' : 'text-foreground/70 hover:text-foreground hover:bg-foreground/5'}`}
+                    className={`block px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${isNavLinkActive(pathname, link.href) ? 'text-primary bg-primary/10' : 'text-foreground/70 hover:text-foreground hover:bg-foreground/5'}`}
                   >
                     {link.label}
                   </Link>
