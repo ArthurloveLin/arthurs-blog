@@ -2,7 +2,6 @@
 """API integration tests for the memo check-reminders endpoint."""
 
 import allure
-import httpx
 import pytest
 
 
