@@ -1201,6 +1201,15 @@ html {
 .prose :is(ul),
 .prose :is(ol) { color: var(--foreground); }
 
+/* Heading rhythm — tighten the heading→body gap (Typography's default leaves
+   the following block's margin-top ~1.25em, which reads as too airy). Keep the
+   generous space ABOVE a heading; pull the body it introduces in close. */
+.prose :is(h1) { margin-bottom: 0.4em; }
+.prose :is(h2) { margin-bottom: 0.4em; }
+.prose :is(h3) { margin-bottom: 0.35em; }
+.prose :is(h4) { margin-bottom: 0.3em; }
+.prose :is(h1, h2, h3, h4, h5, h6) + * { margin-top: 0; }
+
 /* ── Spectral (光谱) — ROYGBIV by heading level ── */
 [data-md-theme="spectral"] {
   --md-h1: #b91c1c;

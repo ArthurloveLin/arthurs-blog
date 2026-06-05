@@ -166,25 +166,27 @@ const OL_PATTERN = /^\d+\.\s+(.+)$/
 // Board / preview variant: em-relative so they scale with the sticky note font (1.05rem body).
 // Ratios mirror the stream px scheme: h4=1.0em (body-size, weight-only distinction),
 // h1/h2 clearly above, h5/h6 sub-body labels.
+// Margin-driven rhythm: more space above a heading than below, so the heading
+// binds to the body it introduces (proximity). first:mt-0 avoids a leading gap.
 const HEADING_CLASS_NOTE: Record<number, string> = {
-  1: 'text-[1.22em] font-bold leading-snug',
-  2: 'text-[1.12em] font-bold leading-snug',
-  3: 'text-[1.06em] font-semibold leading-snug',
-  4: 'text-[1.0em] font-semibold',
-  5: 'text-[0.88em] font-semibold',
-  6: 'text-[0.82em] font-medium',
+  1: 'text-[1.22em] font-bold leading-snug mt-[0.85em] mb-[0.28em] first:mt-0',
+  2: 'text-[1.12em] font-bold leading-snug mt-[0.75em] mb-[0.25em] first:mt-0',
+  3: 'text-[1.06em] font-semibold leading-snug mt-[0.65em] mb-[0.22em] first:mt-0',
+  4: 'text-[1.0em] font-semibold mt-[0.55em] mb-[0.18em] first:mt-0',
+  5: 'text-[0.88em] font-semibold mt-[0.5em] mb-[0.15em] first:mt-0',
+  6: 'text-[0.82em] font-medium mt-[0.5em] mb-[0.15em] first:mt-0',
 }
 
 // Stream variant: absolute px anchored to 15 px body (set in MemoStreamCard wrapper).
 // Scale inspired by usememos/memos, compressed for card context.
 // h4 = same size as body, heavier weight; h5–h6 sub-body labels.
 const HEADING_CLASS_STREAM: Record<number, string> = {
-  1: 'text-[19px] font-bold leading-tight tracking-tight border-b border-border pb-1.5 mt-6 mb-3',
-  2: 'text-[17px] font-bold leading-tight mt-5 mb-2',
-  3: 'text-[16px] font-semibold leading-snug mt-4 mb-1',
-  4: 'text-[15px] font-semibold mt-3 mb-0.5',
-  5: 'text-[13px] font-semibold mt-2',
-  6: 'text-[12px] font-medium mt-2',
+  1: 'text-[19px] font-bold leading-tight tracking-tight border-b border-border pb-1.5 mt-6 mb-1.5 first:mt-0',
+  2: 'text-[17px] font-bold leading-tight mt-5 mb-1 first:mt-0',
+  3: 'text-[16px] font-semibold leading-snug mt-4 mb-0.5 first:mt-0',
+  4: 'text-[15px] font-semibold mt-3 mb-0.5 first:mt-0',
+  5: 'text-[13px] font-semibold mt-2 first:mt-0',
+  6: 'text-[12px] font-medium mt-2 first:mt-0',
 }
 
 function renderTableRows(rows: string[], keyPrefix: string, notifiedDues?: string[] | null): ReactNode {
@@ -523,6 +525,18 @@ function NoteContentComponent({ content, variant, onToggleChecklistItem, checkli
       // Non-list line flushes any open list/checklist
       flushList()
       flushChecklist()
+
+      // Blank line: collapse it when it sits directly above or below a heading —
+      // the heading's own margin already owns that gap, so an empty paragraph
+      // there reads as too much space. Elsewhere keep it as an authored spacer.
+      if (line.trim() === '') {
+        const prevIsHeading = HEADING_PATTERN.test((lines[i - 1] ?? '').trim())
+        const nextIsHeading = HEADING_PATTERN.test((lines[i + 1] ?? '').trim())
+        if (!prevIsHeading && !nextIsHeading) {
+          result.push(<p key={`sp-${i}`} className="w-full"><span>&nbsp;</span></p>)
+        }
+        continue
+      }
 
       // Heading
       const headingMatch = line.match(HEADING_PATTERN)
