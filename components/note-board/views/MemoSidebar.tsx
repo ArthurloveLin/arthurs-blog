@@ -48,8 +48,8 @@ function SidebarModeButtons({ sidebarModes, calendarMode, onCalendarModeChange }
           className={[
             'rounded-full p-1.5 transition',
             calendarMode === mode.key
-              ? 'bg-foreground/10 text-foreground'
-              : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              ? '[background:var(--memo-control-active-surface)] text-[color:var(--memo-control-active-text)]'
+              : 'text-[color:var(--memo-control-text)] hover:[background:var(--memo-control-hover-surface)] hover:text-[color:var(--memo-control-hover-text)]',
           ].join(' ')}
         >
           {SIDEBAR_MODE_ICONS[mode.key]}
@@ -205,7 +205,7 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, si
         >
           <ChevronLeft size={15} />
         </button>
-        <span className="text-[14px] font-semibold text-foreground/80">{monthLabel}</span>
+        <span className="text-[14px] font-semibold text-[color:var(--memo-shell-summary)]">{monthLabel}</span>
         <div className="flex items-center gap-0.5">
           {sidebarModes && calendarMode && onCalendarModeChange ? (
             <SidebarModeButtons
@@ -228,7 +228,7 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, si
       {/* 星期标题 */}
       <div className="grid grid-cols-7 text-center">
         {WEEKDAY_LABELS.map((lbl) => (
-          <span key={lbl} className="text-[12px] text-muted-foreground/35">{lbl}</span>
+          <span key={lbl} className="text-[12px] text-[color:var(--memo-shell-muted)] opacity-50">{lbl}</span>
         ))}
       </div>
 
@@ -236,7 +236,7 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, si
       <div className="grid grid-cols-7 gap-y-1 text-center">
         {cells.map((cell, i) => {
           if (cell.kind !== 'current') {
-            return <span key={i} className="py-1 text-[13px] text-muted-foreground/18">{cell.day}</span>
+            return <span key={i} className="py-1 text-[13px] text-[color:var(--memo-shell-muted)] opacity-30">{cell.day}</span>
           }
           const key = toDateKey(displayMonth.year, displayMonth.month, cell.day)
           const hasMemos = memoDateCounts.has(key)
@@ -257,8 +257,8 @@ export function SidebarCalendar({ memoDateCounts, selectedDate, onSelectDate, si
                   : isToday
                     ? 'bg-foreground/10 font-semibold text-foreground ring-1 ring-foreground/25'
                     : hasMemos
-                      ? 'text-foreground hover:bg-accent'
-                      : 'cursor-default text-muted-foreground/55',
+                      ? 'text-[color:var(--memo-shell-heading)] hover:bg-accent'
+                      : 'cursor-default text-[color:var(--memo-shell-muted)] opacity-60',
               ].join(' ')}
               style={hasMemos && !isSelected ? { backgroundColor: `rgba(${hexToRgb(heatmapBg)},${heatOpacity})` } : undefined}
               title={hasMemos ? `${count} 条 Memo` : undefined}
@@ -479,7 +479,7 @@ export function SidebarAgendaCalendar({ agendaItems, onAfterSelect, sidebarModes
         >
           <ChevronLeft size={15} />
         </button>
-        <span className="text-[14px] font-semibold text-foreground/80">{monthLabel}</span>
+        <span className="text-[14px] font-semibold text-[color:var(--memo-shell-summary)]">{monthLabel}</span>
         <div className="flex items-center gap-0.5">
           {sidebarModes && calendarMode && onCalendarModeChange ? (
             <SidebarModeButtons
@@ -798,8 +798,8 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
           { label: '本周漏失/延后', value: `${overview.summary.missedThisWeek}/${overview.summary.delayedThisWeek}` },
         ].map((item) => (
           <div key={item.label} className="rounded-xl border border-border/40 bg-background/55 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/55">{item.label}</p>
-            <p className="mt-1 text-[18px] font-semibold leading-none text-foreground/85">{item.value}</p>
+            <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--memo-shell-muted)] opacity-70">{item.label}</p>
+            <p className="mt-1 text-[18px] font-semibold leading-none text-[color:var(--memo-shell-heading)]">{item.value}</p>
           </div>
         ))}
       </div>
@@ -813,7 +813,7 @@ export function SidebarHabitHistory({ overview, onOpenItemDetail, onAfterSelect,
         >
           <ChevronLeft size={15} />
         </button>
-        <span className="text-[14px] font-semibold text-foreground/80">{monthLabel}</span>
+        <span className="text-[14px] font-semibold text-[color:var(--memo-shell-summary)]">{monthLabel}</span>
         <div className="flex items-center gap-0.5">
           {sidebarModes && calendarMode && onCalendarModeChange ? (
             <SidebarModeButtons
@@ -944,7 +944,7 @@ export function SidebarTagCloud() {
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
-        <p className="flex items-center gap-1.5 text-[12.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <p className="flex items-center gap-1.5 text-[12.5px] font-semibold uppercase tracking-[0.12em] text-[color:var(--memo-shell-muted)]">
           <Tag size={11} />
           标签
         </p>

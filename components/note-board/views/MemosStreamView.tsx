@@ -170,7 +170,7 @@ export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitO
           ))}
         </div>
       ) : isEmpty ? (
-        <div className="flex min-h-[240px] items-center justify-center rounded-[20px] border border-dashed border-border/60 text-sm text-muted-foreground">
+        <div className="flex min-h-[240px] items-center justify-center rounded-[20px] border border-dashed border-border/60 text-sm text-[color:var(--memo-shell-muted)]">
           {state.showArchived ? '还没有已归档便签。' : filters.isFilterMode ? '没有匹配的内容。' : meta.board.emptyLabel}
         </div>
       ) : (
@@ -180,25 +180,25 @@ export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitO
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 {group.kind === 'date' && group.dateHeader ? (
                   <div className="flex shrink-0 items-stretch gap-3">
-                    <span className="flex items-end text-[38px] font-semibold leading-[0.82] tracking-[-0.06em] text-foreground/95 sm:text-[46px]">
+                    <span className="flex items-end text-[38px] font-semibold leading-[0.82] tracking-[-0.06em] text-[color:var(--memo-shell-heading)] sm:text-[46px]">
                       {group.dateHeader.dayLabel}
                     </span>
                     <div className={`flex ${DATE_META_BLOCK_HEIGHT_CLASS} flex-col justify-between py-[1px]`}>
-                      <p className="text-[15px] font-medium leading-none text-foreground/80 sm:text-[17px]">
+                      <p className="text-[15px] font-medium leading-none text-[color:var(--memo-shell-summary)] sm:text-[17px]">
                         {group.dateHeader.weekdayLabel}
                       </p>
-                      <p className="text-[11px] leading-none tracking-[0.16em] text-muted-foreground/70 sm:text-[12px]">
+                      <p className="text-[11px] leading-none tracking-[0.16em] text-[color:var(--memo-shell-muted)] sm:text-[12px]">
                         {group.dateHeader.monthYearLabel}
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <span className="shrink-0 text-[12px] font-medium tracking-[0.18em] text-muted-foreground">
+                  <span className="shrink-0 text-[12px] font-medium tracking-[0.18em] text-[color:var(--memo-shell-muted)]">
                     {group.label}
                   </span>
                 )}
                 <div className="h-px min-w-[96px] flex-1 bg-border/40" />
-                <span className="inline-flex h-8 items-center rounded-full border border-border/50 bg-background/80 px-3 text-[12px] font-medium text-muted-foreground shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+                <span className="inline-flex h-8 items-center rounded-full border border-border/50 bg-background/80 px-3 text-[12px] font-medium text-[color:var(--memo-shell-muted)] shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
                   {group.items.length}条
                 </span>
               </div>
@@ -223,7 +223,7 @@ export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitO
               ) : null}
             </div>
           ) : (
-            <p className="py-8 text-center text-xs text-muted-foreground/50">
+            <p className="py-8 text-center text-xs text-[color:var(--memo-shell-muted)] opacity-70">
               · 已加载全部内容 ·
             </p>
           )}
