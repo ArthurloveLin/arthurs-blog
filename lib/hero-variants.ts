@@ -8,7 +8,7 @@
  * React-rendered structure, so it is gated behind a mount in BlogHero rather
  * than an inline <head> script — see hooks/useHeroVariant.ts.
  */
-export type HeroVariantId = 'aurora' | 'terminal'
+export type HeroVariantId = 'aurora' | 'terminal' | 'editorial'
 
 export interface HeroVariant {
   id: HeroVariantId
@@ -19,6 +19,7 @@ export interface HeroVariant {
 export const HERO_VARIANTS: readonly HeroVariant[] = [
   { id: 'aurora', name: '光斑', icon: '🌈' },
   { id: 'terminal', name: '终端', icon: '▮' },
+  { id: 'editorial', name: '刊头', icon: '¶' },
 ] as const
 
 // Terminal is the ISR-prerendered default. Visitors without a stored preference see
