@@ -4,9 +4,12 @@ API tests for /api/note-boards/* endpoints.
 Endpoints covered:
   GET /api/note-boards/memo          — list memo notes
   GET /api/note-boards/memo/search   — full-text search (GIN trigram index)
-  GET /api/note-boards/memo/tags     — tag counts
-  GET /api/note-boards/memo/dates    — date hierarchy for calendar sidebar
   GET /api/note-boards/memo/agenda   — notes with upcoming due dates
+
+Note: there are no /memo/tags or /memo/dates endpoints — tag counts and the
+date hierarchy are derived client-side from the full memo list (MemoBoardShell
++ parseHashtags). The earlier server routes (feat d5de245) were removed when
+memo switched to full-dataset client-side filtering.
   GET /api/note-boards/guestbook     — 410 Gone (migrated to /api/comments)
   POST /api/note-boards/guestbook    — 410 Gone (migrated to /api/comments)
   GET /api/note-boards/<invalid>     — 404 Not Found
@@ -90,33 +93,6 @@ class TestMemoSearch:
         resp = client.get("/api/note-boards/memo/search", params={"q": "test"})
         # This endpoint is private (user-specific content)
         assert "private" in resp.headers.get("cache-control", "")
-
-
-@allure.feature("Note Boards")
-@allure.story("Memo Tags")
-class TestMemoTags:
-
-    def test_tags_returns_array(self, client):
-        resp = client.get("/api/note-boards/memo/tags")
-        assert resp.status_code == 200
-        assert isinstance(resp.json(), list)
-
-    def test_tags_have_name_and_count(self, client):
-        data = client.get("/api/note-boards/memo/tags").json()
-        for tag in data:
-            assert "tag" in tag or "name" in tag
-
-
-@allure.feature("Note Boards")
-@allure.story("Memo Dates")
-class TestMemoDates:
-
-    def test_dates_returns_200(self, client):
-        resp = client.get("/api/note-boards/memo/dates")
-        assert resp.status_code == 200
-
-    def test_dates_response_is_array(self, client):
-        assert isinstance(client.get("/api/note-boards/memo/dates").json(), list)
 
 
 @allure.feature("Note Boards")
