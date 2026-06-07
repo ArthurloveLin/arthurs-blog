@@ -13,16 +13,40 @@ concurrency:
 #
 # Job graph:
 #
-#   setup → api-tests ─────────────────────────────┐
-#         → infra-tests ──────────────────────────  ┼ → teardown (always)
-#         → ai-generated-tests (continue-on-error) ─┤
-#         → api-tests → e2e-tests ─────────────────┘
-#                           ├→ report (always)   → notify (always)
+#   js-tests (unit + worker + DO, container-free, parallel) ─────┐
+#   setup → api-tests ─────────────────────────────┐            │
+#         → infra-tests ──────────────────────────  ┼ → teardown │
+#         → ai-generated-tests (continue-on-error) ─┤  (always)  │
+#         → api-tests → e2e-tests ─────────────────┘            │
+#                           ├→ report (always)   → notify (always, incl. js-tests)
 #                           └→ perf-tests ───────┘
 #
 #   ai-analysis (on failure/success)
 
 jobs:
+
+# ─── 0. Unit & Worker tests (no container needed) ──────────────────────────────
+#
+# Container-free JS/TS tests; runs in parallel with the container suite.
+  js-tests:
+    name: Unit & Worker Tests
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Unit tests (lib + CF-type-free worker logic)
+        run: npm run test:unit
+      - name: Worker pure-logic tests (SSRF/CORS, genius)
+        run: npm run test:workers
+      - name: Install engagement-worker deps
+        run: npm --prefix workers/engagement-worker ci
+      - name: DurableObject tests (workerd via pool-workers)
+        run: npm --prefix workers/engagement-worker test
 
 # ─── 1. Start test container ───────────────────────────────────────────────────
   setup:
@@ -441,12 +465,13 @@ jobs:
 # ─── 8. Notify Result ─────────────────────────────────────────────────────────
   notify:
     name: Notify Result
-    needs: [api-tests, infra-tests, e2e-tests, ai-generated-tests, report, perf-tests]
+    needs: [js-tests, api-tests, infra-tests, e2e-tests, ai-generated-tests, report, perf-tests]
     runs-on: ubuntu-latest
     if: always() && github.event_name != 'schedule'
     steps:
       - name: Send result notification
         env:
+          JS_RESULT: ${{ needs.js-tests.result }}
           API_RESULT: ${{ needs.api-tests.result }}
           INFRA_RESULT: ${{ needs.infra-tests.result }}
           E2E_RESULT: ${{ needs.e2e-tests.result }}
@@ -456,9 +481,9 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           fmt() { [ "$1" = "success" ] && echo "✅" || echo "❌"; }
-          ALL_PASS=$([[ "$API_RESULT" == "success" && "$INFRA_RESULT" == "success" && "$E2E_RESULT" == "success" ]] && echo true || echo false)
+          ALL_PASS=$([[ "$JS_RESULT" == "success" && "$API_RESULT" == "success" && "$INFRA_RESULT" == "success" && "$E2E_RESULT" == "success" ]] && echo true || echo false)
           TITLE=$([ "$ALL_PASS" = "true" ] && echo "✅ Nightly Tests Passed" || echo "❌ Nightly Tests Failed")
-          SUMMARY="API $(fmt $API_RESULT)  Infra $(fmt $INFRA_RESULT)  E2E $(fmt $E2E_RESULT)  AI-Gen $(fmt $AI_GEN_RESULT)  Perf $(fmt $PERF_RESULT)"
+          SUMMARY="Unit $(fmt $JS_RESULT)  API $(fmt $API_RESULT)  Infra $(fmt $INFRA_RESULT)  E2E $(fmt $E2E_RESULT)  AI-Gen $(fmt $AI_GEN_RESULT)  Perf $(fmt $PERF_RESULT)"
           curl -fsS -X POST \
             -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
             -H "Content-Type: application/json" \

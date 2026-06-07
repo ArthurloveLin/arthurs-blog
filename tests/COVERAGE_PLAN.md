@@ -122,4 +122,4 @@ Three test runners now in play:
 **Harness notes for the future:**
 - New worker pure-logic tests go in `workers/<w>/test/` (outside tsconfig `src`, so `check:workers` is unaffected) and run via the root `test:workers` config.
 - The DO test uses `vitest.config.mts` (ESM — pool-workers 0.16 is ESM-only) + the `cloudflareTest()` plugin. `test:workers` excludes engagement-worker so its pool-only test isn't run in the node harness.
-- CI wiring (run these three in push-CI / nightly) is a Week-3 pipeline item — not yet added to the workflows.
+- CI wiring **done (nightly only, by design)**: `nightly-tests.yml` has a container-free `js-tests` job running all three runners (unit + workers + DO), wired into the result notification. `ci.yml` is intentionally left as the fast `check → docker → deploy` path — heavy/comprehensive testing is deliberately offloaded to nightly so deploys aren't blocked by the full suite.
