@@ -9,5 +9,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['workers/*/test/**/*.test.ts'],
+    // engagement-worker runs its DO test under @cloudflare/vitest-pool-workers
+    // (its own vitest.config.mts) — not in this node-env harness.
+    exclude: ['workers/engagement-worker/**', '**/node_modules/**'],
   },
 })
