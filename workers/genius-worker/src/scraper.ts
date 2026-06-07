@@ -6,7 +6,7 @@ const BROWSER_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractData(preloadedState: string): any {
+export function extractData(preloadedState: string): any {
   // POC-proven approach: take from first { to last }, then unescape Genius's
   // JS-string escaping (the JSON is serialized as JSON.parse('...') in the page).
   const startPos = preloadedState.indexOf('{')
@@ -58,7 +58,7 @@ async function fetchInternalLyrics(songId: number): Promise<string | null> {
   }
 }
 
-function cleanLyrics(text: string): string {
+export function cleanLyrics(text: string): string {
   if (!text) return ''
 
   let cleaned = text

@@ -1,6 +1,6 @@
 const ALLOWED_HOSTNAMES = ['.scdn.co', '.spotifycdn.com'];
 
-function isAllowedHostname(hostname: string): boolean {
+export function isAllowedHostname(hostname: string): boolean {
 	return ALLOWED_HOSTNAMES.some((suffix) => hostname === suffix.slice(1) || hostname.endsWith(suffix));
 }
 
