@@ -1,3 +1,4 @@
+# tested-source: app/api/memo/check-reminders/route.ts
 """
 API tests for memo dispatch endpoints.
 

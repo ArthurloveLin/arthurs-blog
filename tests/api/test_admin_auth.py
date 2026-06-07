@@ -1,3 +1,6 @@
+# tested-source: app/api/sessions/route.ts
+# tested-source: app/api/sessions/[token]/route.ts
+# tested-source: app/api/revalidate/route.ts
 """
 Auth-enforcement tests for admin-gated and secret-gated endpoints.
 

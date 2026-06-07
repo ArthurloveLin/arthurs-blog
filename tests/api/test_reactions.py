@@ -1,3 +1,7 @@
+# tested-source: app/api/posts/[id]/reaction/route.ts
+# tested-source: app/api/posts/[id]/emoji/route.ts
+# tested-source: app/api/comments/[id]/reaction/route.ts
+# tested-source: app/api/comments/[id]/emoji/route.ts
 """
 API tests for the anonymous reaction / emoji endpoints (posts + comments).
 

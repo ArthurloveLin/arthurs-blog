@@ -123,3 +123,20 @@ Three test runners now in play:
 - New worker pure-logic tests go in `workers/<w>/test/` (outside tsconfig `src`, so `check:workers` is unaffected) and run via the root `test:workers` config.
 - The DO test uses `vitest.config.mts` (ESM — pool-workers 0.16 is ESM-only) + the `cloudflareTest()` plugin. `test:workers` excludes engagement-worker so its pool-only test isn't run in the node harness.
 - CI wiring **done (nightly only, by design)**: `nightly-tests.yml` has a container-free `js-tests` job running all three runners (unit + workers + DO), wired into the result notification. `ci.yml` is intentionally left as the fast `check → docker → deploy` path — heavy/comprehensive testing is deliberately offloaded to nightly so deploys aren't blocked by the full suite.
+
+---
+
+## Week 3 — Generator overhaul (2026-06-07)
+
+The leverage point (§5). `scan_coverage_gaps.py` rewritten + a new assert-gate, all unit-tested (`pytest tests/ai_hooks` — 11 tests):
+
+| § | Fix | Where |
+|---|---|---|
+| #1 full-surface | `--all-routes` mode enumerates every `app/api` route (not just git-changed); nightly runs it as a backfill when the delta lane is quiet (5/run, whittles down over time) | `scan_coverage_gaps.py`, nightly scan step |
+| #2 count ai_generated | coverage index reads `# tested-source:` headers across api+e2e+**ai_generated**, so memo/health/changelog stop being regenerated (the 5x/3x duplicate cause) | `build_coverage_index` |
+| #3 assert-gate | `validate_test_asserts.py` rejects files whose tests assert nothing (caught the 8 existing placeholders); wired before push | `validate_test_asserts.py`, nightly gate step |
+| #4 exact keying | coverage keyed by exact route path (header) with a domain-word fallback; dropped the lossy `startswith` fuzzy match; `# tested-source:` header now mandatory on generated files | `scan_coverage_gaps.py`, gate step |
+
+Headers added to the hand-written API tests (test_reactions/habits/memo/admin_auth) so the new exact index reflects reality (uncovered routes dropped 15→8). §5 #5 (lib/component generators) still deferred.
+
+**Remaining (Week-3 pipeline L-items, not yet done):** migrations-apply job, security scanning (`npm audit`/`pip-audit`/Trivy), a11y/visual-regression. These are additive workflow jobs — separate from the generator overhaul.

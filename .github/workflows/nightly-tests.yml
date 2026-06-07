@@ -795,10 +795,21 @@ jobs:
         run: |
           # Remove stale tmp files from previous runs — /tmp persists on self-hosted runners.
           rm -f /tmp/coverage-gaps.md /tmp/test-gen-prompt.md /tmp/agy-gen-start
+          # Fast daily lane: routes changed in the last 24h with no test.
           python3 tests/ai_hooks/scan_coverage_gaps.py \
             --since "24 hours ago" \
             --repo . \
             --output /tmp/coverage-gaps.md
+          # Backfill: if nothing changed, target never-covered routes (full surface,
+          # 5/run). Combined with the daily branch idempotency this whittles down
+          # the absolute coverage gap over time instead of only chasing diffs.
+          if [ ! -f /tmp/coverage-gaps.md ]; then
+            echo "No recent changes uncovered — running full-surface backfill."
+            python3 tests/ai_hooks/scan_coverage_gaps.py \
+              --all-routes \
+              --repo . \
+              --output /tmp/coverage-gaps.md
+          fi
           if [ -f /tmp/coverage-gaps.md ]; then
             echo "gaps_found=true" >> "$GITHUB_OUTPUT"
           else
@@ -893,8 +904,30 @@ jobs:
             echo "collected=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Validate — assert gate + tested-source header
+        if: steps.validate_collect.outputs.collected == 'true'
+        id: validate_asserts
+        run: |
+          GENERATED=$(find tests/ai_generated -name "test_*.py" -newer /tmp/agy-gen-start 2>/dev/null)
+          if [ -z "$GENERATED" ]; then
+            echo "asserts=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Every generated file must declare its source so the scanner's coverage
+          # index dedups it (no more 5x test_memo). Mandatory header.
+          MISSING=0
+          for f in $GENERATED; do
+            grep -q "tested-source:" "$f" || { echo "Missing '# tested-source:' header in $f"; MISSING=1; }
+          done
+          # Reject assertion-free placeholders that py_compile + collect-only pass.
+          if [ "$MISSING" -eq 0 ] && python3 tests/ai_hooks/validate_test_asserts.py $GENERATED; then
+            echo "asserts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "asserts=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create branch and push
-        if: steps.validate_syntax.outputs.valid == 'true' && steps.validate_collect.outputs.collected == 'true'
+        if: steps.validate_syntax.outputs.valid == 'true' && steps.validate_collect.outputs.collected == 'true' && steps.validate_asserts.outputs.asserts == 'true'
         id: push
         run: |
           TODAY=$(date -u +%Y%m%d)
