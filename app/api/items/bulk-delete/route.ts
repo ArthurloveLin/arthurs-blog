@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { deleteR2Object } from '@/lib/r2'
+import { isAdminRequest } from '@/lib/auth'
 
 const WARDROBE_BUCKET = process.env.R2_WARDROBE_BUCKET!
 
 export async function POST(request: NextRequest) {
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { ids } = await request.json() as { ids?: unknown }
   if (!Array.isArray(ids) || ids.length === 0) {
     return NextResponse.json({ error: 'ids required' }, { status: 400 })

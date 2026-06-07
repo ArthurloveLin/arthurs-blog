@@ -1,14 +1,14 @@
 """
 API tests for PUT /api/ratings.
 
-The route validates required fields before any DB write, so the 400 cases are
-fully non-destructive. It has NO auth check and writes via supabaseAdmin; that
-security gap is captured as a strict xfail that stays non-destructive because the
-bogus item_id violates the ratings→items foreign key, so the upsert is rejected
-(500) and no row persists.
+This is a PUBLIC anonymous voting endpoint (session-share MultiDimRating, author
+is a self-declared name) — intentionally not auth-gated. The author-spoofing risk
+is inherent to anonymous voting; instead the route is hardened to reject
+malformed input at the app layer (400) rather than reaching the DB (500) or
+polluting the scores jsonb. The rating scale is 1–5.
 
-Deferred (needs a seeded item + cleanup, not feasible without admin multipart
-upload): the happy upsert path and onConflict idempotency.
+All cases below are validation-only (400 before any DB write), so non-destructive.
+Deferred (needs a seeded item + cleanup): the happy upsert + onConflict idempotency.
 """
 
 import allure
@@ -22,12 +22,13 @@ ZERO_UUID = "00000000-0000-0000-0000-000000000000"
 class TestRatingsValidation:
 
     def test_missing_item_id_returns_400(self, client):
-        resp = client.put("/api/ratings", json={"author": "pytest"})
-        assert resp.status_code == 400
+        assert client.put("/api/ratings", json={"author": "pytest"}).status_code == 400
+
+    def test_non_string_item_id_returns_400(self, client):
+        assert client.put("/api/ratings", json={"item_id": 123, "author": "p"}).status_code == 400
 
     def test_missing_author_returns_400(self, client):
-        resp = client.put("/api/ratings", json={"item_id": ZERO_UUID})
-        assert resp.status_code == 400
+        assert client.put("/api/ratings", json={"item_id": ZERO_UUID}).status_code == 400
 
     @pytest.mark.smoke
     def test_missing_score_returns_400(self, client):
@@ -37,22 +38,29 @@ class TestRatingsValidation:
 
 
 @allure.feature("Ratings")
-@allure.story("Auth Enforcement")
-class TestRatingsAuthEnforcement:
+@allure.story("Input Hardening")
+class TestRatingsHardening:
+    """The endpoint is public by design; these guard against garbage/abuse."""
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "SECURITY GAP: PUT /api/ratings has no isAdminRequest() guard, so any "
-            "anonymous caller can upsert/overwrite scores. The bogus item_id FK "
-            "violation keeps this non-destructive (reaches the DB → 500, no row). "
-            "When a guard is added this flips to xpass — remove the marker and "
-            "assert 403."
-        ),
-    )
-    def test_rating_write_should_require_auth(self, client):
+    @pytest.mark.smoke
+    def test_out_of_range_score_returns_400(self, client):
+        # 99 is outside the 1–5 scale → rejected at the app layer (was a 500 / bad row).
         resp = client.put(
             "/api/ratings",
-            json={"item_id": ZERO_UUID, "author": "pytest", "score": 5},
+            json={"item_id": ZERO_UUID, "author": "pytest", "appearance_score": 99},
         )
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 400
+
+    def test_below_range_score_returns_400(self, client):
+        resp = client.put(
+            "/api/ratings",
+            json={"item_id": ZERO_UUID, "author": "pytest", "appearance_score": 0},
+        )
+        assert resp.status_code == 400
+
+    def test_author_too_long_returns_400(self, client):
+        resp = client.put(
+            "/api/ratings",
+            json={"item_id": ZERO_UUID, "author": "a" * 100, "appearance_score": 3},
+        )
+        assert resp.status_code == 400

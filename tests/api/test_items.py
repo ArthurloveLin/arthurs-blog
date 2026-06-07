@@ -6,14 +6,11 @@ Endpoints covered:
   GET    /api/items/[id]               — does NOT exist (405)
   DELETE /api/items/[id]               (admin)
   PATCH  /api/items/[id]               (admin)
-  POST   /api/items/bulk-delete        (no auth check — application-level gap)
+  POST   /api/items/bulk-delete        (admin — isAdminRequest guard)
   POST   /api/items/reorder            (admin)
 
 Note: POST /api/items is multipart (file upload), so write tests are skipped.
 GET /api/items does not exist — items are accessed through sessions.
-POST /api/items/bulk-delete has no server-side auth check (uses supabaseAdmin
-directly); its validation + no-op safety are covered below, and the missing auth
-guard is captured as a strict xfail so a future fix flips it to a real assertion.
 """
 
 import allure
@@ -55,39 +52,33 @@ class TestItemsAdminAccess:
 @allure.feature("Wardrobe Items")
 @allure.story("Bulk Delete")
 class TestItemsBulkDelete:
-    """POST /api/items/bulk-delete — validation + non-destructive safety.
+    """POST /api/items/bulk-delete — admin-gated (isAdminRequest runs first).
 
-    Every test uses only ZERO_UUID, which is a valid UUID shape that matches no
-    row, so the handler fetches 0 items and deletes nothing (204). This keeps the
-    suite non-destructive even though the route has no server-side auth check.
+    Unauthenticated callers are rejected with 403 before any body parsing.
+    Validation cases require admin and use only ZERO_UUID (matches no row →
+    fetch 0, delete 0 → 204), keeping the authenticated cases non-destructive.
     """
 
-    def test_empty_ids_returns_400(self, client):
-        resp = client.post("/api/items/bulk-delete", json={"ids": []})
-        assert resp.status_code == 400
-
-    def test_missing_ids_returns_400(self, client):
-        resp = client.post("/api/items/bulk-delete", json={})
-        assert resp.status_code == 400
-
-    def test_non_array_ids_returns_400(self, client):
-        resp = client.post("/api/items/bulk-delete", json={"ids": "not-an-array"})
-        assert resp.status_code == 400
-
     @pytest.mark.smoke
-    def test_bogus_uuid_is_noop_204(self, client):
-        # Valid UUID shape matching no row → fetch 0, delete 0 → 204 No Content.
-        resp = client.post("/api/items/bulk-delete", json={"ids": [ZERO_UUID]})
-        assert resp.status_code == 204
-
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "SECURITY GAP: bulk-delete calls supabaseAdmin with no isAdminRequest() "
-            "guard, so an unauthenticated caller can delete items. When the guard is "
-            "added this xfail flips to xpass — remove the marker and assert 403."
-        ),
-    )
-    def test_bulk_delete_should_require_admin_auth(self, client):
+    def test_requires_admin_auth(self, client):
+        # No session → 403 before the request body is even read.
         resp = client.post("/api/items/bulk-delete", json={"ids": [ZERO_UUID]})
         assert resp.status_code in (401, 403)
+
+    @pytest.mark.admin
+    def test_empty_ids_returns_400(self, admin_client):
+        assert admin_client.post("/api/items/bulk-delete", json={"ids": []}).status_code == 400
+
+    @pytest.mark.admin
+    def test_missing_ids_returns_400(self, admin_client):
+        assert admin_client.post("/api/items/bulk-delete", json={}).status_code == 400
+
+    @pytest.mark.admin
+    def test_non_array_ids_returns_400(self, admin_client):
+        assert admin_client.post("/api/items/bulk-delete", json={"ids": "not-an-array"}).status_code == 400
+
+    @pytest.mark.admin
+    def test_bogus_uuid_is_noop_204(self, admin_client):
+        # Valid UUID shape matching no row → fetch 0, delete 0 → 204 No Content.
+        resp = admin_client.post("/api/items/bulk-delete", json={"ids": [ZERO_UUID]})
+        assert resp.status_code == 204

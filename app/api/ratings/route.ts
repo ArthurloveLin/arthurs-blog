@@ -1,39 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
+// Public anonymous voting endpoint (session-share MultiDimRating). Intentionally
+// not auth-gated, but hardened so malformed input is rejected at the app layer
+// (400) instead of reaching the DB (500) or polluting the `scores` jsonb. The
+// rating scale is 1–5 (mirrors the ratings_*_score CHECK constraints).
+const MIN_SCORE = 1
+const MAX_SCORE = 5
+const MAX_AUTHOR_LEN = 64
+const MAX_DIMENSIONS = 12
+
 export async function PUT(req: NextRequest) {
-  const body = await req.json() as Record<string, unknown>
+  const body = await req.json().catch(() => ({})) as Record<string, unknown>
   const { item_id, author, score, ...restScores } = body
 
-  if (!item_id || !author) {
-    return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+  if (typeof item_id !== 'string' || !item_id.trim()) {
+    return NextResponse.json({ error: 'Missing or invalid item_id' }, { status: 400 })
+  }
+  if (typeof author !== 'string' || !author.trim()) {
+    return NextResponse.json({ error: 'Missing or invalid author' }, { status: 400 })
+  }
+  const authorName = author.trim()
+  if (authorName.length > MAX_AUTHOR_LEN) {
+    return NextResponse.json({ error: 'Author too long' }, { status: 400 })
   }
 
-  // 这里的 restScores 可能包含 appearance_score, taste_score 等等
-  // 我们统一存入 scores 字段，并同步更新旧有的三维字段（为了向前兼容）
-  const scores = { ...restScores }
-  
-  // 从 scores 中提取所有数值并计算平均分作为最终综合分
-  const scoreValues = Object.values(scores).filter((v) => typeof v === 'number') as number[]
-  let finalScore = score
+  // Keep only numeric dimension scores, each within the 1–5 scale. Non-numeric
+  // junk is dropped (not stored in jsonb); out-of-range values are rejected.
+  const dimEntries = Object.entries(restScores).filter(([, v]) => typeof v === 'number') as [string, number][]
+  if (dimEntries.length > MAX_DIMENSIONS) {
+    return NextResponse.json({ error: 'Too many score dimensions' }, { status: 400 })
+  }
+  for (const [, v] of dimEntries) {
+    if (!Number.isFinite(v) || v < MIN_SCORE || v > MAX_SCORE) {
+      return NextResponse.json(
+        { error: `Scores must be numbers between ${MIN_SCORE} and ${MAX_SCORE}` },
+        { status: 400 },
+      )
+    }
+  }
+  const scores: Record<string, number> = Object.fromEntries(dimEntries)
+
+  // Final composite: average of the dimension scores, else an explicit `score`.
+  let finalScore: number | null = null
+  const scoreValues = Object.values(scores)
   if (scoreValues.length > 0) {
     finalScore = Number((scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length).toFixed(1))
+  } else if (typeof score === 'number') {
+    finalScore = score
   }
 
   if (finalScore == null) {
     return NextResponse.json({ error: 'Missing score' }, { status: 400 })
   }
+  if (!Number.isFinite(finalScore) || finalScore < MIN_SCORE || finalScore > MAX_SCORE) {
+    return NextResponse.json(
+      { error: `Score must be between ${MIN_SCORE} and ${MAX_SCORE}` },
+      { status: 400 },
+    )
+  }
 
-  // 构建 upsert 数据，兼容旧字段
   const upsertData: Record<string, unknown> = {
     item_id,
-    author,
+    author: authorName,
     score: finalScore,
     scores,
-    // 向前兼容旧字段（如果存在于 scores 中）
-    appearance_score: scores.appearance_score || null,
-    practicality_score: scores.practicality_score || null,
-    value_score: scores.value_score || null,
+    // Forward-compat typed columns (only set when present among the dimensions).
+    appearance_score: scores.appearance_score ?? null,
+    practicality_score: scores.practicality_score ?? null,
+    value_score: scores.value_score ?? null,
   }
 
   const { data, error } = await supabaseAdmin
