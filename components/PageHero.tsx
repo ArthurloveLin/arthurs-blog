@@ -1,6 +1,7 @@
 'use client'
 
 import PageHeroAurora from '@/components/hero/PageHeroAurora'
+import PageHeroEditorial from '@/components/hero/PageHeroEditorial'
 import PageHeroTerminal from '@/components/hero/PageHeroTerminal'
 import type { PageHeroProps } from '@/components/hero/page-hero-props'
 import { useHeroVariant } from '@/hooks/useHeroVariant'
@@ -22,7 +23,13 @@ export default function PageHero(props: PageHeroProps) {
 
   return (
     <div key={variant} className="animate-[fade-in_0.35s_ease-out]">
-      {variant === 'terminal' ? <PageHeroTerminal {...props} /> : <PageHeroAurora {...props} />}
+      {variant === 'terminal' ? (
+        <PageHeroTerminal {...props} />
+      ) : variant === 'editorial' ? (
+        <PageHeroEditorial {...props} />
+      ) : (
+        <PageHeroAurora {...props} />
+      )}
     </div>
   )
 }
