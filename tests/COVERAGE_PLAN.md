@@ -96,3 +96,29 @@ Item #1 dropped (cron guards are by-design; VPS crontab fires `workflow_dispatch
 **Bug found by #7 — FIXED** — `parseRepeatSpec('custom:')` did NOT degrade to `once` as its own comment promised: `Number('') === 0` let an empty custom spec through as **day 0 (Sunday)**, a phantom weekly reminder (the "every-tick resend" class). Fixed in `lib/memo-due-tags.ts` by dropping empty tokens (`.filter(Boolean)`) before `Number()`; the test now asserts the degrade directly.
 
 **Run:** unit `npm run test:unit` · API (needs container) `pytest tests/api -q`. The strict xfails (bulk-delete + ratings auth) flip to xpass and fail loudly the moment a guard is added — that's the signal to delete the marker and assert 403.
+
+---
+
+## Week 2 — Progress (in flight, 2026-06-07)
+
+Unit suite now at **63 passing** across 9 files. Done so far:
+
+| Item | Status | Files |
+|---|---|---|
+| #14 spotify-history-utils | ✅ | `tests/unit/spotify-history-utils.test.ts` — Monday-anchor week, Sunday=7, hour-boundary segmenting, 今天/昨天 |
+| #16 blog-search + tag-analysis | ✅ | `tests/unit/blog-search.test.ts`, `tests/unit/spotify-tag-analysis.test.ts` — strip/snippet/highlight; aggregate merge+sort+cap |
+| #19 small validators | ✅ | `tests/unit/note-priority.test.ts`, `spotify-img.test.ts`, `comment-validators.test.ts` |
+| #9 now-playing cache | ✅ | `tests/unit/now-playing-cache.test.ts` — idle/standard/near-end TTL, SWR-disable, ceil+clamp (imported from worker; CF-type-free) |
+
+**Remaining Week-2 items split by cost:**
+
+*Cheap (no installs, verifiable here via `pytest --collect-only`; like Week 1):*
+- #13 habit mutation API (`memo/habits/complete|delay|occurrence/[id]`) — 403/validation/404
+- #17 anonymous-write API (`contact`, `posts|comments/[id]/reaction|emoji`) — identity/emoji validation, 404-not-500
+
+*Write-only (need the container + Playwright to run):*
+- #11 guestbook E2E journey, #12 memo-habit E2E journey, #20 auth-boundary E2E
+
+*Expensive (new per-worker harness and/or source edits):*
+- #8 rate-limiter DO — needs `@cloudflare/vitest-pool-workers` (downloads workerd) wired to engagement-worker's wrangler config
+- #10 SSRF/CORS, #15 genius lyric cleaning — the helpers (`isAllowedHostname`, `resolveCorsOrigin`, `cleanLyrics`, `extractData`) are **not exported** and live in CF-typed files, so they need a small `export` refactor + a per-worker vitest harness (the root tsconfig has no Cloudflare types)
