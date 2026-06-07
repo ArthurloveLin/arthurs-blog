@@ -10,7 +10,7 @@ const DEFAULT_ALLOWED_HEADERS = [
   'x-supabase-api-version',
 ]
 
-function createCorsHeaders(allowOrigin: string, requestedHeaders: string | null = null) {
+export function createCorsHeaders(allowOrigin: string, requestedHeaders: string | null = null) {
   const allowedHeaders = new Map(
     DEFAULT_ALLOWED_HEADERS.map((header) => [header.toLowerCase(), header])
   )
@@ -52,7 +52,7 @@ function logError(message: string, error: unknown, fields: Record<string, unknow
   )
 }
 
-function resolveCorsOrigin(request: Request, env: Cloudflare.Env) {
+export function resolveCorsOrigin(request: Request, env: Cloudflare.Env) {
   const configuredOrigin: string =
     env.CORS_ALLOW_ORIGIN || DEFAULT_CORS_ALLOW_ORIGIN
   const requestOrigin = request.headers.get('Origin')
