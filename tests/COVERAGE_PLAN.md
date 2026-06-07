@@ -99,26 +99,27 @@ Item #1 dropped (cron guards are by-design; VPS crontab fires `workflow_dispatch
 
 ---
 
-## Week 2 — Progress (in flight, 2026-06-07)
+## Week 2 — COMPLETE (2026-06-07)
 
-Unit suite now at **63 passing** across 9 files. Done so far:
+Three test runners now in play:
+- **`npm run test:unit`** — 63 lib + worker-pure unit tests (node, TZ=Asia/Shanghai)
+- **`npm run test:workers`** — 17 worker pure-logic tests (node, `workers/*/test/`)
+- **`npm --prefix workers/engagement-worker test`** — 6 DurableObject tests (workerd via pool-workers)
 
 | Item | Status | Files |
 |---|---|---|
 | #14 spotify-history-utils | ✅ | `tests/unit/spotify-history-utils.test.ts` — Monday-anchor week, Sunday=7, hour-boundary segmenting, 今天/昨天 |
-| #16 blog-search + tag-analysis | ✅ | `tests/unit/blog-search.test.ts`, `tests/unit/spotify-tag-analysis.test.ts` — strip/snippet/highlight; aggregate merge+sort+cap |
+| #16 blog-search + tag-analysis | ✅ | `tests/unit/blog-search.test.ts`, `spotify-tag-analysis.test.ts` |
 | #19 small validators | ✅ | `tests/unit/note-priority.test.ts`, `spotify-img.test.ts`, `comment-validators.test.ts` |
-| #9 now-playing cache | ✅ | `tests/unit/now-playing-cache.test.ts` — idle/standard/near-end TTL, SWR-disable, ceil+clamp (imported from worker; CF-type-free) |
+| #9 now-playing cache | ✅ | `tests/unit/now-playing-cache.test.ts` |
+| #13 habit mutation API | ✅ | `tests/api/test_habits.py` — validation 400 + ownership gate (403/404) |
+| #17 anonymous-write API | ✅ | `tests/api/test_reactions.py`, `test_contact.py` — identity/emoji validation, 404-not-500 |
+| #11/#12/#20 E2E | ✅ (structural) | `tests/e2e/test_guestbook.py`, `test_memo.py`, `test_auth_boundary.py` — full write-sims TODO'd for a live run |
+| #10 SSRF/CORS | ✅ | `workers/spotify-image-proxy/test/hostname.test.ts`, `workers/wardrobe-supabase-worker/test/cors.test.ts` (helpers exported) |
+| #15 genius lyrics | ✅ | `workers/genius-worker/test/scraper.test.ts` (cleanLyrics/extractData exported) |
+| #8 rate-limiter DO | ✅ | `workers/engagement-worker/test/rate-limiter.test.ts` (pool-workers, workerd) |
 
-**Remaining Week-2 items split by cost:**
-
-*Cheap (no installs, verifiable here via `pytest --collect-only`; like Week 1):*
-- #13 habit mutation API (`memo/habits/complete|delay|occurrence/[id]`) — 403/validation/404
-- #17 anonymous-write API (`contact`, `posts|comments/[id]/reaction|emoji`) — identity/emoji validation, 404-not-500
-
-*Write-only (need the container + Playwright to run):*
-- #11 guestbook E2E journey, #12 memo-habit E2E journey, #20 auth-boundary E2E
-
-*Expensive (new per-worker harness and/or source edits):*
-- #8 rate-limiter DO — needs `@cloudflare/vitest-pool-workers` (downloads workerd) wired to engagement-worker's wrangler config
-- #10 SSRF/CORS, #15 genius lyric cleaning — the helpers (`isAllowedHostname`, `resolveCorsOrigin`, `cleanLyrics`, `extractData`) are **not exported** and live in CF-typed files, so they need a small `export` refactor + a per-worker vitest harness (the root tsconfig has no Cloudflare types)
+**Harness notes for the future:**
+- New worker pure-logic tests go in `workers/<w>/test/` (outside tsconfig `src`, so `check:workers` is unaffected) and run via the root `test:workers` config.
+- The DO test uses `vitest.config.mts` (ESM — pool-workers 0.16 is ESM-only) + the `cloudflareTest()` plugin. `test:workers` excludes engagement-worker so its pool-only test isn't run in the node harness.
+- CI wiring (run these three in push-CI / nightly) is a Week-3 pipeline item — not yet added to the workflows.
