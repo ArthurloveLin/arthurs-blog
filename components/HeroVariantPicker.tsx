@@ -10,7 +10,7 @@ export default function HeroVariantPicker() {
   const { variant, setVariant } = useHeroVariant()
 
   return (
-    <div className="grid grid-cols-3 gap-1 p-1">
+    <div className="grid grid-cols-2 gap-1 p-1">
       {HERO_VARIANTS.map((v) => {
         const isActive = variant === v.id
         return (

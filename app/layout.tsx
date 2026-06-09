@@ -95,7 +95,7 @@ export default async function RootLayout({
               stored preference differs from the server default. sd = server-rendered default
               (from hero_default_variant in site_config). The gate is only set when
               stored !== sd, so users whose preference matches the default get zero overhead. */}
-          <script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement,sd='${(config.hero_default_variant==='aurora'||config.hero_default_variant==='terminal'||config.hero_default_variant==='editorial')?config.hero_default_variant:'terminal'}',h=localStorage.getItem('hero-variant');if(h&&h!==sd)d.setAttribute('data-hero-variant',h);}catch(e){}` }} />
+          <script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement,sd='${(config.hero_default_variant==='aurora'||config.hero_default_variant==='terminal')?config.hero_default_variant:'terminal'}',h=localStorage.getItem('hero-variant');if(h&&h!==sd)d.setAttribute('data-hero-variant',h);}catch(e){}` }} />
         </head>
         <body className="antialiased pb-24 md:pb-0">
           <MarkdownThemeInitializer />

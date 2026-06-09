@@ -1,7 +1,6 @@
 'use client'
 
 import HeroAurora from '@/components/hero/HeroAurora'
-import HeroEditorial from '@/components/hero/HeroEditorial'
 import HeroTerminal from '@/components/hero/HeroTerminal'
 import type { HeroVariantProps } from '@/components/hero/hero-props'
 import { useHeroVariant } from '@/hooks/useHeroVariant'
@@ -30,13 +29,7 @@ export default function BlogHero(props: BlogHeroProps) {
 
   return (
     <div key={variant} className="animate-[fade-in_0.35s_ease-out]">
-      {variant === 'terminal' ? (
-        <HeroTerminal {...props} />
-      ) : variant === 'editorial' ? (
-        <HeroEditorial {...props} />
-      ) : (
-        <HeroAurora {...props} />
-      )}
+      {variant === 'terminal' ? <HeroTerminal {...props} /> : <HeroAurora {...props} />}
     </div>
   )
 }
