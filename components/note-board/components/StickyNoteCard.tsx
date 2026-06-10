@@ -1,6 +1,6 @@
 'use client'
 
-import { Archive, ArchiveRestore, ArrowRight, Check, ChevronsDown, Copy, FileDown, FileImage, FileText, PencilLine, Share2, Trash2, X } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowRight, Check, ChevronsDown, Copy, FileDown, FileImage, FileText, Link2, PencilLine, Share2, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
@@ -27,6 +27,7 @@ import {
   PREVIEW_CARD_SIZE,
   PREVIEW_REVEAL_THRESHOLD,
 } from '@/components/note-board/utils/board'
+import { useNoteBoardMeta } from '@/components/note-board/NoteBoardProvider'
 import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { formatCommentTimeLabel, formatStableDate } from '@/lib/date-format'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
@@ -127,6 +128,7 @@ function StickyNoteCardFrame({
   const isInlineEditingRef = useRef(Boolean(inlineEditor))
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
   const [copied, setCopied] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [isOverflowing, setIsOverflowing] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
@@ -134,6 +136,7 @@ function StickyNoteCardFrame({
   const isPreview = variant === 'preview'
   const isInlineEditing = Boolean(inlineEditor)
   const { theme } = useNoteColorTheme()
+  const meta = useNoteBoardMeta()
   const chrome = theme.chrome
   const noteSlot = theme.slots[colorIndex % theme.slots.length] ?? theme.slots[0]
   const noteColor = noteSlot.bg
@@ -433,6 +436,27 @@ function StickyNoteCardFrame({
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => event.stopPropagation()}
             >
+              {meta.board.slug === 'memo' ? (
+                <>
+                  {/* 定位链接走 /memo?note= 深链（与 ntfy 提醒同一机制）。memo 按用户隔离，
+                      链接只对自己登录的设备有效 — 用于跨设备定位，不是对外分享。 */}
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] transition text-[color:var(--note-menu-text)] hover:[background:var(--note-menu-hover-surface)] hover:text-[color:var(--note-menu-hover-text)] active:[background:var(--note-menu-active-surface)]"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(`${window.location.origin}/memo?note=${message.id}`).then(() => {
+                        setCopiedLink(true)
+                        setTimeout(() => setCopiedLink(false), 1500)
+                        setShowExportMenu(false)
+                      })
+                    }}
+                  >
+                    {copiedLink ? <Check size={13} strokeWidth={2} className="text-green-600 shrink-0" /> : <Link2 size={13} strokeWidth={1.85} className="shrink-0" />}
+                    复制定位链接
+                  </button>
+                  <div className="mx-3 my-0.5 border-t" style={{ borderColor: chrome.panelBorder }} />
+                </>
+              ) : null}
               <button
                 type="button"
                 className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] transition text-[color:var(--note-menu-text)] hover:[background:var(--note-menu-hover-surface)] hover:text-[color:var(--note-menu-hover-text)] active:[background:var(--note-menu-active-surface)]"

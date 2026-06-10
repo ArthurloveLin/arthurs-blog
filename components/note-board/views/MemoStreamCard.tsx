@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
-import { Archive, ArchiveRestore, Check, Copy, FileDown, FileImage, FileText, Lock, MessageCircle, PencilLine, Share2, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Check, Copy, FileDown, FileImage, FileText, Link2, Lock, MessageCircle, PencilLine, Share2, Trash2 } from 'lucide-react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
@@ -12,6 +12,7 @@ import type { NoteCardViewModel } from '@/components/note-board/types'
 import { getStickyColorIndex, getStickyColorSeed, STICKY_COLORS } from '@/components/note-board/utils/board'
 import { downloadNote, exportNoteAsImage } from '@/components/note-board/utils/noteExport'
 import { NoteCommentPanel } from '@/components/note-board/components/NoteCommentPanel'
+import { useNoteBoardMeta } from '@/components/note-board/NoteBoardProvider'
 import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { formatCommentTimeLabel, formatStableDate } from '@/lib/date-format'
 import type { MemoHabitCurrentState } from '@/lib/memo-habits'
@@ -42,6 +43,7 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
   const [confirmingAction, setConfirmingAction] = useState<'archive' | 'delete' | null>(null)
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
   const [showComments, setShowComments] = useState(true)
   const [commentCountDelta, setCommentCountDelta] = useState(0)
   const [liveCommentCount, setLiveCommentCount] = useState<number | null>(null)
@@ -70,6 +72,7 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
   }, [actions.edit, boardActions])
 
   const { theme } = useNoteColorTheme()
+  const meta = useNoteBoardMeta()
   const colorIdx = getStickyColorIndex(getStickyColorSeed(message))
   const accentColor = theme.slots[colorIdx % theme.slots.length]?.tape ?? STICKY_COLORS[0]
   const cardThemeVars = {
@@ -203,6 +206,27 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
       {/* 导出/分享菜单 */}
       {showExportMenu ? (
         <div className="mb-3 overflow-hidden rounded-xl border [border-color:var(--memo-local-card-border)]">
+          {meta.board.slug === 'memo' ? (
+            <>
+              {/* 定位链接走 /memo?note= 深链（与 ntfy 提醒同一机制）。memo 按用户隔离，
+                  链接只对自己登录的设备有效 — 用于跨设备定位，不是对外分享。 */}
+              <button
+                type="button"
+                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-[color:var(--memo-local-card-text)] transition hover:bg-black/[0.03]"
+                onClick={() => {
+                  void navigator.clipboard.writeText(`${window.location.origin}/memo?note=${message.id}`).then(() => {
+                    setCopiedLink(true)
+                    setTimeout(() => setCopiedLink(false), 1500)
+                    setShowExportMenu(false)
+                  })
+                }}
+              >
+                {copiedLink ? <Check size={13} strokeWidth={2} className="shrink-0 text-green-600" /> : <Link2 size={13} strokeWidth={1.85} className="shrink-0 opacity-60" />}
+                复制定位链接
+              </button>
+              <div className="border-t [border-color:var(--memo-local-card-border)]" />
+            </>
+          ) : null}
           <button
             type="button"
             className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12px] text-[color:var(--memo-local-card-text)] transition hover:bg-black/[0.03]"
