@@ -17,16 +17,21 @@ views/
   MemosStreamView.tsx     — stream feed (date/priority groups → MemoStreamCard)
   MemoSidebar.tsx         — desktop sidebar: calendar, quick filters, tag cloud
   MemoStreamCard.tsx      — individual card in stream view
+  MemoHabitDetailPanel.tsx — habit occurrence detail popover (complete/delay/history)
   MobileNoteList.tsx      — card list used inside MobileStickyStack overlay
   MobileStickyStack.tsx   — draggable sticky-card stack (mobile sticky view)
   StickyStackPreview.tsx  — read-only preview strip on homepage
 
 components/
   StickyNoteCard.tsx      — full sticky note card (board + preview variants)
+  StickyNotePreviewCard.tsx — standalone homepage preview card (the LIVE preview path)
   NoteActionButton.tsx    — icon-only button with tooltip (MUST use for card actions)
   NoteContent.tsx         — markdown/checklist renderer
+  NoteCodeBlock.tsx       — fenced code block renderer (highlight.js + copy button)
+  NoteCommentPanel.tsx    — per-note comment thread panel
   NoteEditor.tsx          — textarea + submit form
   PriorityPicker.tsx      — priority dot control
+  VisibilityPicker.tsx    — public / admin_only visibility control
 
 hooks/
   useBoardData.ts         — initial load + pagination
@@ -35,6 +40,12 @@ hooks/
   useBoardSurface.ts      — desktop canvas drag state
   useNoteEditor.ts        — editor open/close + optimistic note
   useStickyNoteDrag.ts    — shared sticky-note drag physics (board + preview cards)
+  useNotifications.ts     — toast notice state
+  useElementSize.ts       — ResizeObserver-backed element size
+  useViewportDetection.ts — mobile/desktop viewport flag
+
+utils/
+  habit-ui.ts             — habit status labels/colors, delay presets (+ target resolver)
 
 contexts/
   NoteColorThemeContext.tsx — color palette switcher (persisted to localStorage)
@@ -237,6 +248,8 @@ VPS crontab (every minute)
         once   → send ntfy, push iso into comments.notified_dues
         repeat → send ntfy, rewrite the tag's iso to the next future occurrence
     → Path 2: habit checklist items (- [ ] … @due) → occurrence rows + content advance
+              (send is conditional: suppressed when the day is already completed /
+               postponed away — see "Memo Habits 状态机" below)
     → Path 3 (legacy): comments.due_at / repeat_mode columns
         once   → send ntfy, set notified_at
         repeat → send ntfy, advance due_at
@@ -258,8 +271,9 @@ The blog container is on `1panel-network` so it can reach ntfy by container name
 
 **Agenda view** (`getMemoAgendaItems` in `lib/note-boards.ts`):
 - Runs two parallel queries: inline `@due` tags + `due_at` column memos
-- Column memos: recurring ones always shown (next occurrence); one-time only if
-  `due_at > now` (unfired)
+- One-time dues (both paths) are ALWAYS returned — including overdue ones — with
+  `isNotified` set once fired (`notified_dues` / `notified_at`), so the UI renders
+  them as done instead of hiding them; recurring ones carry the next occurrence
 - Dedup by `(memoId, dueAt)`: inline wins only for an identical due instant; a memo
   carrying both an inline tag and a *distinct* column `due_at` shows both (keying on
   memo id alone would silently drop the column due)
