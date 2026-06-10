@@ -386,7 +386,10 @@ function DueDateInserter({ insertAtCursor }: { insertAtCursor: (text: string) =>
     if (repeatMode === 'custom' && customDays.length === 0) return
     const pad = (n: number) => String(n).padStart(2, '0')
     const dateStr = `${selectedDay.year}-${pad(selectedDay.month)}-${pad(selectedDay.day)}`
-    const iso = new Date(`${dateStr}T${pad(hour)}:${pad(minute)}`).toISOString()
+    // Anchor to Asia/Shanghai explicitly: everything downstream (reminders, habit
+    // occurrences, all display) is Shanghai-based, so a browser in another timezone
+    // must not shift the picked wall-clock time.
+    const iso = new Date(`${dateStr}T${pad(hour)}:${pad(minute)}:00+08:00`).toISOString()
     const repeatSpec = repeatMode === 'daily' ? ',daily'
       : repeatMode === 'weekly' ? ',weekly'
       : repeatMode === 'monthly' ? ',monthly'

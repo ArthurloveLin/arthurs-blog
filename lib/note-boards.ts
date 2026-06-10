@@ -520,9 +520,10 @@ export async function updateBoardMessage(
     const newKeySet = new Set(newItems.map((i) => i.itemKey))
     const oldKeySet = new Set(oldItems.map((i) => i.itemKey))
 
-    // Schedule signature mirrors getScheduleSignature() in memo-habits.ts (time-only for repeats).
+    // Schedule signature mirrors getScheduleSignature() in memo-habits.ts (time-only for
+    // repeats, normalised to UTC HH:mm so +08:00 and Z representations match).
     const scheduleSig = (item: { repeatMode: string; repeatDays: number[] | null; dueAt: string }) => {
-      const time = item.dueAt.length > 10 ? item.dueAt.slice(11, 16) : '00:00'
+      const time = item.dueAt.length > 10 ? new Date(item.dueAt).toISOString().slice(11, 16) : '00:00'
       return `${item.repeatMode}|${item.repeatDays?.join(',') ?? ''}|${time}`
     }
 
@@ -624,13 +625,14 @@ export async function updateBoardMessage(
           contentAdvanced = true
         }
 
-        // Migrate history to new key; drop stale scheduled rows.
+        // Migrate history (delayed is a terminal record, not an open row) to the
+        // new key; drop stale open rows.
         const { error: migrateHistoryError } = await supabaseAdmin
           .from('memo_habit_occurrences')
           .update({ item_key: matchedNew.itemKey })
           .eq('note_id', id)
           .eq('item_key', oldItem.itemKey)
-          .in('status', ['completed', 'missed'])
+          .in('status', ['completed', 'missed', 'delayed'])
         if (migrateHistoryError) {
           throw new Error(migrateHistoryError.message)
         }
@@ -640,7 +642,7 @@ export async function updateBoardMessage(
           .delete()
           .eq('note_id', id)
           .eq('item_key', oldItem.itemKey)
-          .in('status', ['pending', 'delayed'])
+          .eq('status', 'pending')
         if (deleteStaleError) {
           throw new Error(deleteStaleError.message)
         }

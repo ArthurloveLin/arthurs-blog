@@ -54,7 +54,18 @@ export function getHabitStreakLabel(streak: number) {
 }
 
 export const HABIT_DELAY_PRESETS = [
-  { label: '15 分钟', minutes: 15 },
-  { label: '1 小时', minutes: 60 },
-  { label: '明天同一时间', minutes: 24 * 60 },
+  { label: '15 分钟', kind: 'fromNow', minutes: 15 },
+  { label: '1 小时', kind: 'fromNow', minutes: 60 },
+  // Anchored to the occurrence's due time, NOT `now + 24h` — postponing an
+  // 08:00 task at 09:30 must land on tomorrow 08:00, not tomorrow 09:30.
+  { label: '明天同一时间', kind: 'nextDaySameTime', minutes: 0 },
 ] as const
+
+export type HabitDelayPreset = (typeof HABIT_DELAY_PRESETS)[number]
+
+export function resolveHabitDelayTarget(preset: HabitDelayPreset, dueAt: string): string {
+  if (preset.kind === 'nextDaySameTime') {
+    return new Date(Date.parse(dueAt) + 24 * 60 * 60 * 1000).toISOString()
+  }
+  return new Date(Date.now() + preset.minutes * 60 * 1000).toISOString()
+}

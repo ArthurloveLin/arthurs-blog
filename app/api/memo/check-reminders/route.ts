@@ -200,16 +200,20 @@ export async function POST(req: NextRequest) {
 
     for (const item of pendingHabitOnce) {
       try {
-        await upsertMemoHabitOccurrenceForReminder({
+        const { shouldNotify } = await upsertMemoHabitOccurrenceForReminder({
           id: memo.id as string,
           content: memo.content as string,
           visibility: memo.visibility as 'public' | 'admin_only',
           user_id: memo.user_id as string,
         }, item, nowIso)
-        const { title, body } = buildNotification({ label: item.label, iso: item.dueAt }, memo.content, now)
-        await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
+        if (shouldNotify) {
+          const { title, body } = buildNotification({ label: item.label, iso: item.dueAt }, memo.content, now)
+          await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
+          sent++
+        }
+        // Mark notified even when suppressed (already completed) so this once-item
+        // stops being re-evaluated every tick.
         notifiedDues.push(item.dueAt)
-        sent++
       } catch (e) {
         errors.push(e instanceof Error ? e.message : String(e))
       }
@@ -218,7 +222,7 @@ export async function POST(req: NextRequest) {
     for (const item of pendingHabitRepeat) {
       try {
         await markSupersededMemoHabitOccurrencesAsMissed(memo.id as string, item.itemKey, item.dueAt)
-        await upsertMemoHabitOccurrenceForReminder({
+        const { shouldNotify, effectiveDueAt } = await upsertMemoHabitOccurrenceForReminder({
           id: memo.id as string,
           content: memo.content as string,
           visibility: memo.visibility as 'public' | 'admin_only',
@@ -226,14 +230,18 @@ export async function POST(req: NextRequest) {
         }, item, nowIso)
         // Advance content before sending notification so that a ntfy failure
         // does not leave due_at un-advanced, causing an infinite retry loop.
+        // This must happen even when the notification is suppressed (already
+        // completed/postponed), otherwise the item re-triggers every tick.
         const nextIso = advanceDueAt(item.dueAt, item.repeatMode, item.repeatDays, now)
         updatedContent = updateMemoHabitChecklistLine(updatedContent, item.lineIndex, {
           checked: false,
           dueAt: nextIso,
         })
-        const { title, body } = buildNotification({ label: item.label, iso: item.dueAt }, memo.content, now, item.repeatMode)
-        await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
-        sent++
+        if (shouldNotify) {
+          const { title, body } = buildNotification({ label: item.label, iso: effectiveDueAt ?? item.dueAt }, memo.content, now, item.repeatMode)
+          await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
+          sent++
+        }
       } catch (e) {
         errors.push(e instanceof Error ? e.message : String(e))
       }

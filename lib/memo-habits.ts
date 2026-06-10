@@ -117,7 +117,13 @@ function getScheduleSignature(dueAt: string, repeatMode: MemoHabitRepeatMode, re
     return dueAt
   }
 
-  const timeSignature = dueAt.length > 10 ? dueAt.slice(11, 16) : '00:00'
+  // Normalise to UTC HH:mm via Date so equivalent instants in different ISO
+  // representations ("…T14:00:00.000Z" vs "…T22:00:00+08:00") produce the same
+  // signature. A raw slice would change the itemKey — and orphan all occurrence
+  // history — the first time the reminder cron rewrites a hand-written +08:00
+  // tag to UTC. For already-stored UTC strings this is byte-identical to the
+  // old slice, so existing itemKeys are unaffected.
+  const timeSignature = dueAt.length > 10 ? new Date(dueAt).toISOString().slice(11, 16) : '00:00'
   return `${repeatMode}|${repeatDays?.join(',') ?? ''}|${timeSignature}`
 }
 

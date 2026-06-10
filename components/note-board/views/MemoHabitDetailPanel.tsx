@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Trash2, X } from 'lucide-react'
-import { HABIT_DELAY_PRESETS, getHabitStatusClassName, getHabitStatusLabel, getHabitStreakLabel } from '@/components/note-board/utils/habit-ui'
+import { HABIT_DELAY_PRESETS, getHabitStatusClassName, getHabitStatusLabel, getHabitStreakLabel, resolveHabitDelayTarget } from '@/components/note-board/utils/habit-ui'
 import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import type { MemoHabitItemDetail } from '@/lib/memo-habits'
 
@@ -69,7 +69,9 @@ export function MemoHabitDetailPanel({
 
   const currentState = detail?.currentState ?? null
   const streakLabel = currentState ? getHabitStreakLabel(currentState.streak) : null
-  const canComplete = currentState?.status === 'pending'
+  // 'scheduled' is completable too (finish early) — the checklist checkbox already
+  // allows this; the panel must not be stricter than the checkbox.
+  const canComplete = currentState?.status === 'pending' || currentState?.status === 'scheduled'
   const canDelay = currentState != null && (
     currentState.status === 'pending' ||
     currentState.status === 'scheduled' ||
@@ -236,8 +238,7 @@ export function MemoHabitDetailPanel({
                     key={preset.label}
                     type="button"
                     onClick={() => {
-                      const delayUntil = new Date(Date.now() + preset.minutes * 60 * 1000).toISOString()
-                      void onDelay(delayUntil)
+                      void onDelay(resolveHabitDelayTarget(preset, currentState!.dueAt))
                     }}
                     className="inline-flex items-center rounded-full border px-3 py-1.5 text-[11.5px] font-medium transition"
                     style={{

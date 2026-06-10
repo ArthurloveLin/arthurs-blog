@@ -274,3 +274,56 @@ The blog container is on `1panel-network` so it can reach ntfy by container name
 - `notified_at` must always be reset to NULL when `due_at` changes; the API layer
   (`updateBoardMessage`) handles this via `'due_at' in input` check.
 - `patch` object in `updateBoardMessage` is typed `Record<string, string | boolean | number | number[] | null>` — the `number[]` is required for `repeat_days`; do not narrow it back to scalar-only.
+
+### Memo Habits（重复任务）状态机 — non-obvious semantics
+
+习惯系统横跨 `lib/memo-habits.ts`（纯解析，client-safe）、`lib/memo-habits-server.ts`
+（状态机 + Supabase）、`app/api/memo/check-reminders/route.ts`（cron 派发）、
+`app/api/note-boards/memo/habits/*`（complete/delay/occurrence API）。只读单个文件
+会做错以下决定：
+
+**状态语义 — `delayed` 是终态，不是 open 状态。**
+`memo_habit_occurrences.status` 四个落库值的含义：
+- `pending` — 唯一的 open 状态。reconcile / `buildCurrentState` / `resolveOrCreateOccurrence`
+  / `markSuperseded` 判 open 时只认 `pending`，不要把 `delayed` 加回去。
+- `completed` / `missed` — 终态。
+- `delayed` — 终态：记录"这一天被跨日推迟走了"（`delayed_to` = 目标时刻），后继的
+  open 状态由推迟时插入的新 `pending` 行承载。streak 把 delayed 视为断签
+  （"延后不是免罚"），周统计/热图把它与 missed 分开展示。
+
+**推迟语义按上海日历日分叉**（`delayMemoHabitOccurrence`）：
+- 同日推迟：原地改 `due_at`，仍 `pending`，统计上不留痕（15 分钟的小推不该有代价）。
+- 跨日推迟：先 INSERT 目标日新 `pending` 行、后把当前行标 `delayed`（INSERT-before-PATCH，
+  失败时宁可双 open 行自愈也不丢任务）。不要改回写 `missed` —— 那会把"推迟"算成
+  "错过"并让延后统计永远为 0（修复前的 bug）。
+
+**事件归因规则**（`getOccurrenceEventTime`）：`completed` → `completed_at`；
+`missed`/`delayed` → **`due_at`**（任务所属日），绝不能用 `updated_at` —— reconcile 在
+午夜后才把昨天的 pending 标 missed，用 `updated_at` 会把错过记到第二天/下一周
+（修复前的已知 bug）。日历热图、本周漏失、completionRate 全部依赖这条规则。
+
+**同日去重必须包含 completed/delayed**（`upsertMemoHabitOccurrenceForReminder`）：
+cron 在计划时间为 repeat 习惯建行前，检查当天（上海日）是否已有
+`pending`/`delayed`/`completed` 行 —— completed = 今天已提前完成（不建行、不发提醒）、
+delayed = 今天已被推迟走（同前）、pending = 同日改了时间（复用该行，提醒展示其实际
+`due_at`）。只查 open 行的旧逻辑会在"推迟到次日早上并完成"后于计划时间再建一行，
+午夜变 missed 并清零 streak。函数返回 `{ shouldNotify, effectiveDueAt }`，调用方
+据此决定是否发 ntfy；**content tag 的推进必须无条件执行**（否则该项每 tick 重触发）。
+
+**取 open 行永远取最早的**（`buildCurrentState` / `resolveOrCreateOccurrence`）：
+行按 `due_at` 降序，所以是数组**最后**一个匹配。取最晚会在"今天 + 推迟后继"双 open
+行并存时把完成操作打到未来的 occurrence、隐藏今天的 pending。
+
+**itemKey 的时间签名已规范化为 UTC HH:mm**（`getScheduleSignature`，及
+`note-boards.ts` 中镜像的 `scheduleSig` —— 两处必须同步改）：用
+`new Date(dueAt).toISOString().slice(11,16)` 而非原始字符串 slice，使 `+08:00` 与 `Z`
+两种写法得到同一 key（cron 首次推进会把手写 +08:00 重写成 UTC）。对已存量 UTC 数据
+key 不变。回归测试在 `tests/unit/memo-habits.test.ts`。
+
+**reconcile 在读之前 await**（`getMemoHabitOverview` / `getMemoHabitItemDetail`）：
+客户端在上海午夜恰好 refetch 一次（`scheduleMidnightRefresh`），若用 `after()` 后置
+reconcile，这次 refetch 拿到的就是未翻日的数据。reconcile 失败要吞掉降级为读。
+
+**已知死路径（勿当 bug 修，也勿依赖）**：同日推迟会把 `reminder_sent_at` 置 null，
+但没有任何派发器按 occurrence 行的时间发提醒（cron 只认 content tag 时间）——
+推迟后的新时刻不会有提醒，这是当前设计边界。
