@@ -89,7 +89,7 @@ Before implementing, **state your interpretation** if a request could be read mu
 
 **Do not start `npm run dev`, `npm run build`, or any server/browser yourself** (no headless Chromium, screenshots, `next dev/start`, etc.). The user runs the app and owns visual verification — leave it to them. On this machine these are also costly: the filesystem is slow (cold compiles take minutes) and Turbopack panics under rapid route churn, and ports 3000/3001 belong to the user's own long-running services.
 
-To verify your work, rely on **static checks only**: `npx tsc --noEmit` and `npx eslint <changed files>` (or `npm run check`). If a change genuinely needs runtime/visual confirmation, **hand it to the user** with exact steps rather than launching anything. If you ever truly must run a server, ask first and use an explicit isolated port (e.g. `next dev -p 4010`).
+To verify your work, rely on **static checks only**: `npx tsc --noEmit` and `npx eslint <changed files>` (or `npm run check`). 单元测试一律用 `npm run test:unit` —— 脚本钉死了 `TZ=Asia/Shanghai`，本机系统时区是 UTC，裸跑 `npx vitest run` 会让时区相关用例（如 spotify 时段分桶）假失败。 If a change genuinely needs runtime/visual confirmation, **hand it to the user** with exact steps rather than launching anything. If you ever truly must run a server, ask first and use an explicit isolated port (e.g. `next dev -p 4010`).
 
 ### Runtime verification with Playwright (opt-in escalation — ask first)
 
