@@ -410,10 +410,14 @@ export interface MemoBoardFilters {
   setHistoryFilter: (date: string | null, ids: string[] | null) => void
   clearDateFilter: () => void
   filterItems: (items: NoteCardViewModel[]) => NoteCardViewModel[]
+  /** Single-note focus from a ntfy deep link (/memo?note=<id>) — shows only that card. */
+  focusedNoteId: string | null
+  setFocusedNote: (id: string | null) => void
 }
 
 export function useMemoBoardFilters(
   allItems: NoteCardViewModel[],
+  initialFocusNoteId?: string | null,
 ): MemoBoardFilters {
   const state = useNoteBoardBoardState()
   const actions = useNoteBoardActions()
@@ -429,6 +433,16 @@ export function useMemoBoardFilters(
   // an API re-fetch by date. historyNoteIds holds the IDs to filter client-side.
   const [historyNoteIds, setHistoryNoteIds] = useState<string[] | null>(null)
   const [historySelectedDate, setHistorySelectedDate] = useState<string | null>(null)
+
+  // Single-note focus (ntfy deep link). Initialised synchronously from the URL param
+  // so the first paint already shows only the target card (no full-board flash).
+  // Any OTHER filter interaction releases the focus — without this, picking a tag or
+  // date while focused would silently intersect with the invisible single-note filter.
+  // Adjust-state-during-render pattern (same as activeDateCountsSnapshot below).
+  const [focusedNoteId, setFocusedNoteId] = useState<string | null>(initialFocusNoteId ?? null)
+  if (focusedNoteId && (state.searchQuery || state.activeTags.length > 0 || state.activeDate || state.activeDueDate)) {
+    setFocusedNoteId(null)
+  }
 
   // When in history mode, show historySelectedDate in the filter badge instead of
   // the API-backed baseDateFilter, which is not set in that mode.
@@ -470,6 +484,11 @@ export function useMemoBoardFilters(
   const filterItems = useCallback((items: NoteCardViewModel[]) => {
     let result = items
 
+    // Note focus wins over everything (other filters auto-release it, see effect above).
+    if (focusedNoteId !== null) {
+      return result.filter((item) => item.message.id === focusedNoteId)
+    }
+
     // Tag / search — resident memo only (see clientFilter rationale above). Tag and
     // search are mutually exclusive in the UI (handlers clear each other), but applying
     // both guards is harmless. Search and tag matching are case-insensitive (tag names
@@ -501,9 +520,10 @@ export function useMemoBoardFilters(
     }
     if (!effectiveSelectedDate) return result
     return result.filter((item) => getItemDateKey(item) === effectiveSelectedDate)
-  }, [clientFilter, effectiveSelectedDate, historyNoteIds, state.activeTags, state.searchQuery])
+  }, [clientFilter, effectiveSelectedDate, focusedNoteId, historyNoteIds, state.activeTags, state.searchQuery])
 
   const setHistoryFilter = useCallback((date: string | null, ids: string[] | null) => {
+    setFocusedNoteId(null)
     setHistorySelectedDate(date)
     setHistoryNoteIds(ids)
   }, [])
@@ -512,11 +532,13 @@ export function useMemoBoardFilters(
     memoDateCounts,
     selectedDate: state.activeDate,
     effectiveSelectedDate,
-    isFilterMode: Boolean(state.searchQuery || state.activeTags.length > 0 || effectiveSelectedDate || state.activeDueDate || historyNoteIds !== null),
+    isFilterMode: Boolean(state.searchQuery || state.activeTags.length > 0 || effectiveSelectedDate || state.activeDueDate || historyNoteIds !== null || focusedNoteId !== null),
     setSelectedDate: actions.handleDateFilter,
     setHistoryFilter,
-    clearDateFilter: () => { actions.handleDateFilter(null); setHistoryNoteIds(null); setHistorySelectedDate(null) },
+    clearDateFilter: () => { actions.handleDateFilter(null); setHistoryNoteIds(null); setHistorySelectedDate(null); setFocusedNoteId(null) },
     filterItems,
+    focusedNoteId,
+    setFocusedNote: setFocusedNoteId,
   }
 }
 
@@ -605,7 +627,9 @@ export function MemoBoardShell({
     '--memo-primary-text': theme.chrome.primaryText,
   } as CSSProperties
 
-  const filterPillLabel = state.searchQuery
+  const filterPillLabel = filters.focusedNoteId
+    ? `定位提醒便签 · ${filteredCount}${itemUnit}`
+    : state.searchQuery
     ? `"${state.searchQuery}" · ${filteredCount}${itemUnit}`
     : state.activeTags.length > 0
       ? `${state.activeTags.map((t) => `#${t}`).join(' ')} · ${filteredCount}${itemUnit}`
@@ -616,6 +640,7 @@ export function MemoBoardShell({
           : null
 
   const handleClearFilter = useCallback(() => {
+    if (filters.focusedNoteId) { filters.setFocusedNote(null); return }
     if (state.searchQuery) { actions.handleSearch(''); return }
     if (state.activeTags.length > 0) { actions.handleTagFilter(''); return }
     if (state.activeDueDate) { actions.handleDueDateFilter(null); return }

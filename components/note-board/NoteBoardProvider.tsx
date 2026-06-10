@@ -113,6 +113,7 @@ interface NoteBoardActions {
   handleTagFilter: (tag: string) => void
   handleDateFilter: (date: string | null) => void
   handleDueDateFilter: (date: string | null) => void
+  showToast: (message: string) => void
   updateEditorValue: (value: string) => void
   updateEditorPriority: (value: NotePriority) => void
   updateEditorVisibility: (value: NoteVisibility) => void
@@ -557,6 +558,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     handleTagFilter,
     handleDateFilter,
     handleDueDateFilter,
+    showToast,
     updateEditorValue: editingMessage ? setEditContent : setDraft,
     updateEditorPriority: editingMessage ? setEditPriority : setDraftPriority,
     updateEditorVisibility: editingMessage ? setEditVisibility : setDraftVisibility,
@@ -579,6 +581,7 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     handleTagFilter,
     handleDateFilter,
     handleDueDateFilter,
+    showToast,
     saveEditingNote,
     setCardPosition,
     setDraft,

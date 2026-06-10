@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
     for (const tag of pendingOnce) {
       try {
         const { title, body } = buildNotification(tag, memo.content, now)
-        await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
+        await sendNtfyReminder(title, body, `${SITE_URL}/memo?note=${memo.id}`)
         notifiedDues.push(tag.iso)
         sent++
       } catch (e) {
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
     for (const tag of pendingRepeat) {
       try {
         const { title, body } = buildNotification(tag, memo.content, now, tag.repeatMode)
-        await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
+        await sendNtfyReminder(title, body, `${SITE_URL}/memo?note=${memo.id}`)
         const nextIso = advanceDueAt(tag.iso, tag.repeatMode, tag.repeatDays, now)
         const newRawParens = nextIso + (tag.rawParens.includes(',') ? tag.rawParens.slice(tag.rawParens.indexOf(',')) : '')
         const newTag = `@due[${tag.label}](${newRawParens})`
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
         }, item, nowIso)
         if (shouldNotify) {
           const { title, body } = buildNotification({ label: item.label, iso: item.dueAt }, memo.content, now)
-          await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
+          await sendNtfyReminder(title, body, `${SITE_URL}/memo?note=${memo.id}`)
           sent++
         }
         // Mark notified even when suppressed (already completed) so this once-item
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
         })
         if (shouldNotify) {
           const { title, body } = buildNotification({ label: item.label, iso: effectiveDueAt ?? item.dueAt }, memo.content, now, item.repeatMode)
-          await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
+          await sendNtfyReminder(title, body, `${SITE_URL}/memo?note=${memo.id}`)
           sent++
         }
       } catch (e) {

@@ -59,11 +59,13 @@ async function MemoBoard({
   initialQuery,
   initialViewMode,
   initialThemeId,
+  initialFocusNoteId,
 }: {
   config: NoteBoardViewConfig
   initialQuery: string
   initialViewMode: NoteBoardViewMode
   initialThemeId?: NoteColorThemeId
+  initialFocusNoteId?: string
 }) {
   const currentUser = await getCurrentUser()
   // Load the full active working set (no server-side search). Active memos are
@@ -89,6 +91,7 @@ async function MemoBoard({
       initialQuery={initialQuery}
       initialViewMode={initialViewMode}
       initialThemeId={initialThemeId}
+      initialFocusNoteId={initialFocusNoteId}
     />
   )
 }
@@ -96,7 +99,7 @@ async function MemoBoard({
 export default async function MemoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>
+  searchParams: Promise<{ q?: string; note?: string }>
 }) {
   const config = getNoteBoardConfig('memo')
 
@@ -108,8 +111,10 @@ export default async function MemoPage({
     getSiteConfig(),
   ])
 
-  const { q } = params
+  const { q, note } = params
   const initialQuery = typeof q === 'string' ? q.trim() : ''
+  // ntfy deep link: open the board filtered to the reminder's note
+  const initialFocusNoteId = typeof note === 'string' && note.trim() ? note.trim() : undefined
   const initialViewMode = normalizeNoteBoardViewMode(
     cookieStore.get(getNoteBoardViewModeCookieName(config.slug))?.value,
   )
@@ -148,6 +153,7 @@ export default async function MemoPage({
               initialQuery={initialQuery}
               initialViewMode={initialViewMode}
               initialThemeId={initialThemeId}
+              initialFocusNoteId={initialFocusNoteId}
             />
           </Suspense>
         </div>

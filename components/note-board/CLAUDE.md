@@ -267,6 +267,16 @@ VPS crontab (every minute)
     → ntfy via lib/ntfy.ts (NTFY_INTERNAL_URL / NTFY_TOPIC)
 ```
 
+**Notification click deep-links to the note**: every ntfy send uses
+`/memo?note=<id>`. The page passes it down as `initialFocusNoteId`; the focus
+filter in `useMemoBoardFilters` initialises **synchronously** from it (no
+full-board flash) and shows ONLY that card — riding the existing client-side
+filter pipeline, so all four view combos (PC/mobile × stream/sticky) work
+without per-view code. A "定位提醒便签" pill clears it; any other filter
+interaction auto-releases it (adjust-state-during-render, not an effect);
+`?note` is stripped from the URL after validation; an archived/deleted note
+degrades to a toast + unfiltered board.
+
 **`advanceDueAt` advances to the next *future* occurrence**, not just +1 period: a
 back-filled or long-overdue repeat collapses into a single upcoming fire instead of
 replaying one notification per missed period every tick (bounded by an iteration cap).

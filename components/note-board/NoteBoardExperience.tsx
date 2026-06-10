@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { MemoHabitDetailPanel } from '@/components/note-board/views/MemoHabitDetailPanel'
 import { NoteEditor } from '@/components/note-board/components/NoteEditor'
@@ -55,6 +55,8 @@ interface NoteBoardPageProps {
   initialQuery?: string
   initialViewMode?: NoteBoardViewMode
   initialThemeId?: NoteColorThemeId
+  /** From /memo?note=<id> (ntfy deep link): board opens filtered to this note. */
+  initialFocusNoteId?: string | null
 }
 
 function BoardStickyView({ onToggleViewMode, filters, agendaItems, habitOverview, onOpenHabitDetail, onCompleteHabitItem, showSidebar }: { onToggleViewMode: () => void; filters: MemoBoardFilters; agendaItems?: import('@/lib/note-boards').MemoAgendaItem[] | null; habitOverview?: MemoHabitOverview | null; onOpenHabitDetail?: (noteId: string, itemKey: string, source?: 'sidebar' | 'note') => void; onCompleteHabitItem?: (noteId: string, itemKey: string) => void; showSidebar: boolean }) {
@@ -333,10 +335,11 @@ function NoteBoardToast() {
   )
 }
 
-function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?: NoteBoardViewMode }) {
+function NoteBoardExperience({ initialViewMode = 'sticky', initialFocusNoteId }: { initialViewMode?: NoteBoardViewMode; initialFocusNoteId?: string | null }) {
   const meta = useNoteBoardMeta()
   const state = useNoteBoardBoardState()
   const editorState = useNoteBoardEditorState()
+  const actions = useNoteBoardActions()
   const viewModeStorageKey = getNoteBoardViewModeStorageKey(meta.board.slug)
   const viewModeCookieName = getNoteBoardViewModeCookieName(meta.board.slug)
 
@@ -344,7 +347,27 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
   // useMemoBoardFilters), so they reflect the CURRENT view — active vs archived.
   // The old /memo/dates endpoint hardcoded archived:false and showed active counts
   // even in the archived view.
-  const filters = useMemoBoardFilters(state.allNoteItems)
+  const filters = useMemoBoardFilters(state.allNoteItems, initialFocusNoteId)
+
+  // Deep-link validation: the focus filter was applied synchronously from the URL,
+  // but the note may be archived/deleted (not in the active resident set). Validate
+  // once against the SSR-provided working set; release the filter with a toast when
+  // missing, and strip ?note from the URL either way so refresh/back doesn't re-apply.
+  const focusValidatedRef = useRef(false)
+  useEffect(() => {
+    if (focusValidatedRef.current || !initialFocusNoteId) return
+    focusValidatedRef.current = true
+    const exists = state.allNoteItems.some((item) => item.message.id === initialFocusNoteId)
+    if (!exists) {
+      filters.setFocusedNote(null)
+      actions.showToast('未找到提醒便签（可能已归档或删除）')
+    }
+    const url = new URL(window.location.href)
+    if (url.searchParams.has('note')) {
+      url.searchParams.delete('note')
+      window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
+    }
+  }, [actions, filters, initialFocusNoteId, state.allNoteItems])
 
   const {
     agendaItems: enrichedAgendaItems,
@@ -395,11 +418,11 @@ function NoteBoardExperience({ initialViewMode = 'sticky' }: { initialViewMode?:
   )
 }
 
-export function NoteBoardPage({ board, initialMessages, initialQuery = '', initialViewMode = 'sticky', initialThemeId }: NoteBoardPageProps) {
+export function NoteBoardPage({ board, initialMessages, initialQuery = '', initialViewMode = 'sticky', initialThemeId, initialFocusNoteId }: NoteBoardPageProps) {
   return (
     <NoteColorThemeProvider initialThemeId={initialThemeId}>
       <NoteBoardProvider board={board} initialMessages={initialMessages} initialQuery={initialQuery}>
-        <NoteBoardExperience initialViewMode={initialViewMode} />
+        <NoteBoardExperience initialViewMode={initialViewMode} initialFocusNoteId={initialFocusNoteId} />
       </NoteBoardProvider>
     </NoteColorThemeProvider>
   )
