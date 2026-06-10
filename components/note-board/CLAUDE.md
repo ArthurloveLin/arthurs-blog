@@ -208,31 +208,29 @@ guestbook config sets `allowPrioritySort={false}`.
 
 ### DDL reminder (due_at) — memo only
 
-Each memo note can carry an optional `due_at` ISO timestamp. The full data flow:
+Each memo note can carry reminders encoded **inline in `content`** as `@due` tags.
 
-**Storage**: `comments.due_at TIMESTAMPTZ NULL` + `comments.notified_at TIMESTAMPTZ NULL`
-(migration `20260518075249_memo_due_at.sql`). These columns are the **legacy** path;
-the active path encodes reminders inline in `content` (see below). When the column
-`due_at` is updated, `notified_at` is reset to NULL so a fresh notification fires.
+**Storage**: inline tags only. The legacy columns (`comments.due_at` / `notified_at` /
+`repeat_mode` / `repeat_days`, migration `20260518075249_memo_due_at.sql`) were
+**retired on 2026-06-10** — they still exist in the DB (historical data; dropping
+needs a migration) but NOTHING reads or writes them anymore. Do not re-introduce
+readers/writers: the editor used to mirror the earliest inline due into the column,
+which made the legacy cron path double-notify every inline reminder.
 
-**Editor UI**: `DueDateInserter` (inline component in `NoteBoardExperience.tsx`) renders
+**Editor UI**: `DueDateInserter` (`components/DueDateInserter.tsx`) renders
 as an `AlarmClock` icon in the editor toolbar, admin-only (rendered under the
 `state.isAdmin` block). It is purely a text-splicer — `handleInsert` builds the
 `@due[label](iso[,repeat])` string and calls `insertAtCursor(tag)`. It holds no
 provider/editor state; the tag lives in the note `content` like any other text.
 
 **Card display**: an inline `@due` tag inside content is rendered as `InlineDueChip`
-(defined in `components/note-board/components/NoteContent.tsx`). Separately, a legacy
-*column* `due_at` is shown as a standalone `AlarmClock` badge in `MemoStreamCard` /
-`StickyNoteCard`, but **only when the content has no inline `@due` tag**
-(`!hasInlineDueTags(message.content)`) so the two never double-render. Badge color:
-slate (>24h) / amber (≤24h) / red (overdue).
+(defined in `components/note-board/components/NoteContent.tsx`). The standalone
+column-due badge was removed with the legacy path.
 
 **There is no `memo_reminders` table and no `/api/note-boards/memo/reminders` route.**
 Reminders are not separate rows — they are encoded **inline in the memo's `content`**
-as `@due` tags. The only reminder columns are the legacy `comments.due_at` /
-`comments.repeat_mode` / `comments.repeat_days` / `comments.notified_at` /
-`comments.notified_dues`, and only the legacy path still reads `due_at`/`repeat_mode`.
+as `@due` tags. The only live reminder column is `comments.notified_dues`
+(delivery tracking for once-tags).
 
 **Inline `@due` tag format** (parsed by `lib/memo-due-tags.ts`):
 ```
@@ -247,7 +245,7 @@ A `custom:` spec with no valid weekday degrades to one-off (it could never advan
 `weekly`/`monthly` are reminder-only — they are **not** tracked as habits (the habit
 parser in `lib/memo-habits.ts` only recognises `daily`/`weekdays`/`custom`).
 
-**DueDateInserter** (inline component in `NoteBoardExperience.tsx`):
+**DueDateInserter** (`components/DueDateInserter.tsx`):
 - The calendar/time/repeat picker; `handleInsert` builds the `@due[...]` string and
   calls `insertAtCursor(tag)` to splice it into the editor textarea. That's it — there
   is no `PendingReminder`, no `addDraftReminder`, no POST to a reminders endpoint.
@@ -266,9 +264,6 @@ VPS crontab (every minute)
     → Path 2: habit checklist items (- [ ] … @due) → occurrence rows + content advance
               (send is conditional: suppressed when the day is already completed /
                postponed away — see "Memo Habits 状态机" below)
-    → Path 3 (legacy): comments.due_at / repeat_mode columns
-        once   → send ntfy, set notified_at
-        repeat → send ntfy, advance due_at
     → ntfy via lib/ntfy.ts (NTFY_INTERNAL_URL / NTFY_TOPIC)
 ```
 
@@ -276,41 +271,32 @@ VPS crontab (every minute)
 back-filled or long-overdue repeat collapses into a single upcoming fire instead of
 replaying one notification per missed period every tick (bounded by an iteration cap).
 
-**Path 3 retirement is proven safe (audited 2026-06-10).** A read-only DB audit
-found 9 memo rows with a column `due_at` — ALL also carry inline `@due` tags
-(migration leftovers, all `once`), every active one already has `notified_at`
-set, and nothing in the current UI writes the columns. Path 3 + the agenda
-column query + the column-due card badge can be removed in a dedicated change;
-until then they are dead weight, not live behavior.
-
-**`notified_at` belongs to Path 3 only.** Path 1 must not write it (it tracks delivery
-via `notified_dues` + content rewrite); writing it there would falsely mark a
-co-located column `due_at` as already notified. Weekday math for repeats uses the
-Asia/Shanghai calendar day (`getShanghaiWeekday`) on both the dispatcher and the
-habit-reschedule path in `updateBoardMessage`.
+**Legacy Path 3 was RETIRED on 2026-06-10** (cron column loop, agenda column query,
+column-due card badge, editor column mirroring, API `due_at`/`repeat_mode`/
+`repeat_days` inputs, server `dueDateFilter`). The pre-retirement audit found zero
+column-only rows, and the editor's inline→column mirroring meant Path 3
+double-notified every inline reminder — retiring it fixed that. Delivery tracking
+is `notified_dues` (once) + content rewrite (repeat); `notified_at` is dead.
+Weekday math for repeats uses the Asia/Shanghai calendar day (`getShanghaiWeekday`)
+on both the dispatcher and the habit-reschedule path in `updateBoardMessage`.
 
 The blog container is on `1panel-network` so it can reach ntfy by container name.
 `NTFY_INTERNAL_URL`, `NTFY_TOPIC`, `REMINDER_CHECK_TOKEN` are set in `.env.local`.
 
 **Agenda view** (`getMemoAgendaItems` in `lib/note-boards.ts`):
-- Runs two parallel queries: inline `@due` tags + `due_at` column memos
-- One-time dues (both paths) are ALWAYS returned — including overdue ones — with
-  `isNotified` set once fired (`notified_dues` / `notified_at`), so the UI renders
-  them as done instead of hiding them; recurring ones carry the next occurrence
-- Dedup by `(memoId, dueAt)`: inline wins only for an identical due instant; a memo
-  carrying both an inline tag and a *distinct* column `due_at` shows both (keying on
-  memo id alone would silently drop the column due)
+- Single query over inline `@due` tags (the column path is retired)
+- One-time dues are ALWAYS returned — including overdue ones — with `isNotified`
+  set once fired (`notified_dues`), so the UI renders them as done instead of
+  hiding them; recurring ones carry the next occurrence
 
 **Hard constraints**:
-- `due_at` is only settable/visible for memo, not guestbook (admin-only in practice).
+- `@due` reminders are memo-only, not guestbook (the inserter is admin-only).
 - Do not call `Date.now()` inline in JSX — React's `react-hooks/purity` lint will reject
   it. Even `useMemo(() => Date.now(), [])` is flagged. The correct pattern is
   `const [now] = useState(Date.now)` — pass the function reference, not the call result,
   so React invokes it as a lazy initializer internally (see `InlineDueChip` in
   `NoteContent.tsx` and `MemoStreamCard`).
-- `notified_at` must always be reset to NULL when `due_at` changes; the API layer
-  (`updateBoardMessage`) handles this via `'due_at' in input` check.
-- `patch` object in `updateBoardMessage` is typed `Record<string, string | boolean | number | number[] | null>` — the `number[]` is required for `repeat_days`; do not narrow it back to scalar-only.
+- `patch` object in `updateBoardMessage` is typed `Record<string, string | boolean | number | number[] | null>`.
 
 ### Memo Habits（重复任务）状态机 — non-obvious semantics
 

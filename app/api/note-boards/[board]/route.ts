@@ -37,12 +37,11 @@ export async function GET(
   const searchQuery = searchParams.get('q') ?? null
   const tagFilters = (searchParams.get('tag') ?? '').split(',').map((t) => t.trim()).filter(Boolean)
   const dateFilter = searchParams.get('date') ?? null
-  const dueDateFilter = searchParams.get('due_date') ?? null
 
   const currentUser = await getCurrentUser()
 
   try {
-    const messages = await getBoardMessages(board, limit, offset, archived, sort, sortDirection, identity, searchQuery, tagFilters, currentUser?.id ?? null, dateFilter, dueDateFilter)
+    const messages = await getBoardMessages(board, limit, offset, archived, sort, sortDirection, identity, searchQuery, tagFilters, currentUser?.id ?? null, dateFilter)
     return NextResponse.json({ messages, nextOffset: offset + messages.length, hasMore: messages.length === limit })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to load board' }, { status: 500 })
@@ -68,11 +67,6 @@ export async function POST(
   const rawPriority = body.priority
   const priority = rawPriority === undefined ? undefined : Number(rawPriority)
   const visibility = body.visibility === 'admin_only' ? 'admin_only' as const : 'public' as const
-  const dueAt = typeof body.due_at === 'string' && body.due_at ? body.due_at : null
-  const repeatMode = typeof body.repeat_mode === 'string' ? body.repeat_mode : null
-  const repeatDays = Array.isArray(body.repeat_days)
-    ? body.repeat_days.filter((v: unknown): v is number => typeof v === 'number')
-    : null
 
   if (!author.trim() || !content.trim()) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
@@ -85,7 +79,7 @@ export async function POST(
   const currentUser = await getCurrentUser()
 
   try {
-    const message = await createBoardMessage(board, author, content, priority, visibility, dueAt, currentUser?.id ?? null, repeatMode, repeatDays)
+    const message = await createBoardMessage(board, author, content, priority, visibility, currentUser?.id ?? null)
     return NextResponse.json(message, { status: 201 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create note'

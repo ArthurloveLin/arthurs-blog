@@ -193,10 +193,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // NOTE: do not write `notified_at` here. That column belongs solely to the
-    // legacy column-based path below; the inline path tracks delivery via
-    // `notified_dues` (once tags) and content rewrite (repeat tags). Writing it
-    // here would falsely mark a co-located column due_at as already notified.
+    // NOTE: delivery tracking is `notified_dues` (once tags) + content rewrite
+    // (repeat tags). The legacy column path (comments.due_at/notified_at) was
+    // retired 2026-06-10 — it double-notified memos whose inline due was
+    // mirrored into the column; the columns are no longer read or written.
     const patch: Record<string, unknown> = {}
     if (pendingOnce.length > 0 || pendingHabitOnce.length > 0) {
       // Prune notified_dues to only ISOs that still exist as once-tags in the
@@ -214,53 +214,6 @@ export async function POST(req: NextRequest) {
       // here means the same notifications resend next tick.
       const { error: updateError } = await supabaseAdmin.from('comments').update(patch).eq('id', memo.id)
       if (updateError) errors.push(`memo ${memo.id} state update failed: ${updateError.message}`)
-    }
-  }
-
-  // ── Legacy path: column-based due_at / repeat_mode on comments ───────────
-  const columnMemos: Array<{ id: string; content: string; due_at: string; notified_at: string | null; repeat_mode: string | null; repeat_days: unknown }> = []
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await supabaseAdmin
-      .from('comments')
-      .select('id, content, due_at, notified_at, repeat_mode, repeat_days')
-      .eq('target_type', 'memo')
-      .eq('archived', false)
-      .not('due_at', 'is', null)
-      .is('notified_at', null)
-      .lte('due_at', nowIso)
-      .order('id', { ascending: true })
-      .range(from, from + PAGE_SIZE - 1)
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-    if (!data || data.length === 0) break
-    columnMemos.push(...(data as typeof columnMemos))
-    if (data.length < PAGE_SIZE) break
-  }
-
-  for (const memo of columnMemos ?? []) {
-    const repeatMode: string = (memo.repeat_mode as string | null) ?? 'once'
-    const repeatDays: number[] | null = Array.isArray(memo.repeat_days) ? memo.repeat_days as number[] : null
-
-    try {
-      const { title, body } = buildNotification(
-        { label: '', iso: memo.due_at as string },
-        memo.content,
-        now,
-        repeatMode,
-      )
-      await sendNtfyReminder(title, body, `${SITE_URL}/memo`)
-
-      if (repeatMode !== 'once') {
-        const nextDueAt = advanceDueAt(memo.due_at as string, repeatMode, repeatDays, now)
-        await supabaseAdmin.from('comments').update({ due_at: nextDueAt }).eq('id', memo.id)
-      } else {
-        await supabaseAdmin.from('comments').update({ notified_at: nowIso }).eq('id', memo.id)
-      }
-      sent++
-    } catch (e) {
-      errors.push(e instanceof Error ? e.message : String(e))
     }
   }
 

@@ -6,7 +6,7 @@ import type { NoteMessage, NoteVisibility } from '@/lib/note-boards'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
 import { DEFAULT_NOTE_PRIORITY, type NotePriority } from '@/lib/note-priority'
 import type { NoteBoardViewConfig } from '@/lib/note-board-config'
-import { extractEarliestDueAt, toggleChecklistLine } from '@/components/note-board/utils/editor'
+import { toggleChecklistLine } from '@/components/note-board/utils/editor'
 
 function getResponseErrorMessage(payload: unknown) {
   if (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') {
@@ -56,16 +56,10 @@ export function useNoteEditor({
   const [draft, setDraft] = useState('')
   const [draftPriority, setDraftPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
   const [draftVisibility, setDraftVisibility] = useState<NoteVisibility>('public')
-  const [draftDueAt, setDraftDueAt] = useState<string | null>(null)
-  const [draftRepeatMode, setDraftRepeatMode] = useState<string>('once')
-  const [draftRepeatDays, setDraftRepeatDays] = useState<number[] | null>(null)
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [editPriority, setEditPriority] = useState<NotePriority>(DEFAULT_NOTE_PRIORITY)
   const [editVisibility, setEditVisibility] = useState<NoteVisibility>('public')
-  const [editDueAt, setEditDueAt] = useState<string | null>(null)
-  const [editRepeatMode, setEditRepeatMode] = useState<string>('once')
-  const [editRepeatDays, setEditRepeatDays] = useState<number[] | null>(null)
   const [isUpdatingNote, setIsUpdatingNote] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [updatingNoteIds, setUpdatingNoteIds] = useState<Record<string, boolean>>({})
@@ -93,9 +87,6 @@ export function useNoteEditor({
     setEditContent('')
     setEditPriority(DEFAULT_NOTE_PRIORITY)
     setEditVisibility('public')
-    setEditDueAt(null)
-    setEditRepeatMode('once')
-    setEditRepeatDays(null)
     setError(null)
   }, [setError])
 
@@ -104,9 +95,6 @@ export function useNoteEditor({
     setEditContent(message.content)
     setEditPriority(message.priority)
     setEditVisibility(message.visibility ?? 'public')
-    setEditDueAt(message.due_at ?? null)
-    setEditRepeatMode(message.repeat_mode ?? 'once')
-    setEditRepeatDays(message.repeat_days ?? null)
     setError(null)
 
     if (isMobileViewport) {
@@ -123,7 +111,7 @@ export function useNoteEditor({
       return
     }
 
-    async function commitNoteUpdate(message: NoteMessage, content: string, priority: NotePriority, visibility: NoteVisibility, dueAt: string | null, repeatMode: string, repeatDays: number[] | null) {
+    async function commitNoteUpdate(message: NoteMessage, content: string, priority: NotePriority, visibility: NoteVisibility) {
       const originalContent = message.content
       const originalPriority = message.priority
       const originalVisibility = message.visibility ?? 'public'
@@ -136,9 +124,6 @@ export function useNoteEditor({
           content,
           priority,
           visibility,
-          due_at: dueAt,
-          repeat_mode: repeatMode,
-          repeat_days: repeatDays,
         }
         : currentMessage), { resetPositions: false, sort: false })
 
@@ -170,7 +155,7 @@ export function useNoteEditor({
           const response = await fetch(`/api/note-boards/${board.slug}/${message.id}`, {
             method: 'PATCH',
             headers: await createEngagementRequestHeaders({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({ identity, identities: viewerIdentityAliases, content, priority, visibility, due_at: dueAt, repeat_mode: repeatMode, repeat_days: repeatDays }),
+            body: JSON.stringify({ identity, identities: viewerIdentityAliases, content, priority, visibility }),
           })
 
           if (!response.ok) {
@@ -215,24 +200,18 @@ export function useNoteEditor({
       }
     }
 
-    const snapshotRepeatMode = editRepeatMode
-    const snapshotRepeatDays = editRepeatDays
-
     setIsUpdatingNote(true)
     setEditingNoteId(null)
     setEditContent('')
     setEditPriority(DEFAULT_NOTE_PRIORITY)
     setEditVisibility('public')
-    setEditDueAt(null)
-    setEditRepeatMode('once')
-    setEditRepeatDays(null)
 
     try {
-      await commitNoteUpdate(editingMessage, nextContent, editPriority, editVisibility, extractEarliestDueAt(nextContent) ?? editDueAt, snapshotRepeatMode, snapshotRepeatDays)
+      await commitNoteUpdate(editingMessage, nextContent, editPriority, editVisibility)
     } finally {
       setIsUpdatingNote(false)
     }
-  }, [board.slug, editContent, editDueAt, editPriority, editRepeatDays, editRepeatMode, editVisibility, editingMessage, identity, isUpdatingNote, replaceMessages, setError, viewerIdentityAliases])
+  }, [board.slug, editContent, editPriority, editVisibility, editingMessage, identity, isUpdatingNote, replaceMessages, setError, viewerIdentityAliases])
 
   const toggleChecklistItem = useCallback((message: NoteMessage, lineIndex: number) => {
     if (!identity || editingNoteId === message.id || updatingNoteIds[message.id]) {
@@ -339,9 +318,6 @@ export function useNoteEditor({
     const draftValue = draft.trim()
     const draftPriorityValue = draftPriority
     const draftVisibilityValue = draftVisibility
-    const draftDueAtValue = extractEarliestDueAt(draftValue) ?? draftDueAt
-    const draftRepeatModeValue = draftRepeatMode
-    const draftRepeatDaysValue = draftRepeatDays
     const optimisticId = `optimistic-${crypto.randomUUID()}`
     const optimisticMessage: NoteMessage = {
       id: optimisticId,
@@ -360,9 +336,6 @@ export function useNoteEditor({
       viewer_emojis: [],
       sync_state: 'pending',
       visibility: draftVisibilityValue,
-      due_at: draftDueAtValue,
-      repeat_mode: draftRepeatModeValue !== 'once' ? draftRepeatModeValue : null,
-      repeat_days: draftRepeatDaysValue,
     }
 
     setIsSubmitting(true)
@@ -370,9 +343,6 @@ export function useNoteEditor({
     setDraft('')
     setDraftPriority(DEFAULT_NOTE_PRIORITY)
     setDraftVisibility('public')
-    setDraftDueAt(null)
-    setDraftRepeatMode('once')
-    setDraftRepeatDays(null)
     if (onDraftSubmitted) {
       onDraftSubmitted()
     }
@@ -418,7 +388,7 @@ export function useNoteEditor({
         const response = await fetch(`/api/note-boards/${board.slug}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ author: publicIdentity, content: draftValue, priority: draftPriorityValue, visibility: draftVisibilityValue, due_at: draftDueAtValue, repeat_mode: draftRepeatModeValue, repeat_days: draftRepeatDaysValue }),
+          body: JSON.stringify({ author: publicIdentity, content: draftValue, priority: draftPriorityValue, visibility: draftVisibilityValue }),
         })
 
         if (!response.ok) {
@@ -447,14 +417,11 @@ export function useNoteEditor({
       setDraft(draftValue)
       setDraftPriority(draftPriorityValue)
       setDraftVisibility(draftVisibilityValue)
-      setDraftDueAt(draftDueAtValue)
-      setDraftRepeatMode(draftRepeatModeValue)
-      setDraftRepeatDays(draftRepeatDaysValue)
       setError(submitError instanceof Error ? submitError.message : '便签保存失败，请稍后再试。')
     } finally {
       setIsSubmitting(false)
     }
-  }, [board.slug, board.targetId, board.targetType, canWrite, draft, draftDueAt, draftPriority, draftRepeatDays, draftRepeatMode, draftVisibility, hasMore, identity, isSubmitting, markMessageFresh, nextOffset, publicIdentity, replaceMessages, setError, onDraftSubmitted])
+  }, [board.slug, board.targetId, board.targetType, canWrite, draft, draftPriority, draftVisibility, hasMore, identity, isSubmitting, markMessageFresh, nextOffset, publicIdentity, replaceMessages, setError, onDraftSubmitted])
 
   useEffect(() => {
     if (!editingNoteId) return
@@ -477,12 +444,6 @@ export function useNoteEditor({
     setDraftPriority,
     draftVisibility,
     setDraftVisibility,
-    draftDueAt,
-    setDraftDueAt,
-    draftRepeatMode,
-    setDraftRepeatMode,
-    draftRepeatDays,
-    setDraftRepeatDays,
     editingNoteId,
     editContent,
     setEditContent,
@@ -490,12 +451,6 @@ export function useNoteEditor({
     setEditPriority,
     editVisibility,
     setEditVisibility,
-    editDueAt,
-    setEditDueAt,
-    editRepeatMode,
-    setEditRepeatMode,
-    editRepeatDays,
-    setEditRepeatDays,
     isUpdatingNote,
     isSubmitting,
     updatingNoteIds,

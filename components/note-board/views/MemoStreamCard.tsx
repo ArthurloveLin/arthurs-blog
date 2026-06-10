@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
-import { AlarmClock, Archive, ArchiveRestore, Check, Copy, FileDown, FileImage, FileText, Lock, MessageCircle, PencilLine, Share2, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Check, Copy, FileDown, FileImage, FileText, Lock, MessageCircle, PencilLine, Share2, Trash2 } from 'lucide-react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
 import ReactionToggleBar from '@/components/ReactionToggleBar'
 import { NoteActionButton } from '@/components/note-board/components/NoteActionButton'
@@ -10,31 +10,11 @@ import { PriorityPicker } from '@/components/note-board/components/PriorityPicke
 import { useNoteBoardActions } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
 import { getStickyColorIndex, getStickyColorSeed, STICKY_COLORS } from '@/components/note-board/utils/board'
-import { hasInlineDueTags } from '@/components/note-board/utils/editor'
 import { downloadNote, exportNoteAsImage } from '@/components/note-board/utils/noteExport'
 import { NoteCommentPanel } from '@/components/note-board/components/NoteCommentPanel'
 import { useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
 import { formatCommentTimeLabel, formatStableDate } from '@/lib/date-format'
 import type { MemoHabitCurrentState } from '@/lib/memo-habits'
-
-function formatDueLabel(dueAt: string): { label: string; variant: 'upcoming' | 'soon' | 'overdue' } {
-  const diff = Date.parse(dueAt) - Date.now()
-  const abs = Math.abs(diff)
-  const mins = Math.floor(abs / 60000)
-  const hours = Math.floor(abs / 3600000)
-  const days = Math.floor(abs / 86400000)
-
-  const fmt = (n: number, unit: string) => `${n}${unit}`
-
-  if (diff < 0) {
-    const label = days > 0 ? `超期 ${fmt(days, 'd')}` : hours > 0 ? `超期 ${fmt(hours, 'h')}` : `超期 ${fmt(mins || 1, 'm')}`
-    return { label, variant: 'overdue' }
-  }
-
-  const label = days > 0 ? `${fmt(days, 'd')}后截止` : hours > 0 ? `${fmt(hours, 'h')}后截止` : `${fmt(mins || 1, 'm')}后截止`
-  const variant = diff < 86400000 ? 'soon' : 'upcoming'
-  return { label, variant }
-}
 
 
 interface MemoStreamCardProps {
@@ -279,33 +259,6 @@ export function MemoStreamCard({ item, habitStates, onOpenHabitDetail, onComplet
         />
       </div>
 
-
-      {/* 截止时间（仅无 inline @due 标签时显示全局 badge） */}
-      {message.due_at && !hasInlineDueTags(message.content) ? (() => {
-        const { label, variant } = formatDueLabel(message.due_at)
-        const isRepeat = message.repeat_mode && message.repeat_mode !== 'once'
-        const repeatLabel = isRepeat
-          ? message.repeat_mode === 'daily' ? '每天'
-          : message.repeat_mode === 'weekdays' ? '周一至周五'
-          : '自定义'
-          : null
-        return (
-          <div className={[
-            'mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
-            variant === 'overdue'
-              ? 'bg-red-500/15 text-red-600 dark:text-red-400'
-              : variant === 'soon'
-                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                : 'bg-slate-500/15 text-slate-500 dark:text-slate-400',
-          ].join(' ')}>
-            <AlarmClock size={10} strokeWidth={2} />
-            {label}
-            {repeatLabel ? (
-              <span className="ml-0.5 opacity-70">· {repeatLabel}</span>
-            ) : null}
-          </div>
-        )
-      })() : null}
 
       {/* 表情反应 */}
       <EmojiReactionSummary

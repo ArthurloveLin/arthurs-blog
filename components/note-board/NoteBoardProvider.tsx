@@ -116,9 +116,6 @@ interface NoteBoardActions {
   updateEditorValue: (value: string) => void
   updateEditorPriority: (value: NotePriority) => void
   updateEditorVisibility: (value: NoteVisibility) => void
-  updateEditorDueAt: (value: string | null) => void
-  updateEditorRepeatMode: (value: string) => void
-  updateEditorRepeatDays: (value: number[] | null) => void
   submitEditor: () => Promise<void>
   cancelEditingNote: () => void
   scrollToEditor: () => void
@@ -172,9 +169,6 @@ interface NoteBoardEditorState {
   editorSaving: boolean
   editorPriority: NotePriority
   editorVisibility: NoteVisibility
-  editorDueAt: string | null
-  editorRepeatMode: string
-  editorRepeatDays: number[] | null
   editorSectionLabel: string
   editorPlaceholder: string
   editorSaveLabel: string
@@ -326,12 +320,6 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     setDraftPriority,
     draftVisibility,
     setDraftVisibility,
-    draftDueAt,
-    setDraftDueAt,
-    draftRepeatMode,
-    setDraftRepeatMode,
-    draftRepeatDays,
-    setDraftRepeatDays,
     editingNoteId,
     editContent,
     setEditContent,
@@ -339,12 +327,6 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     setEditPriority,
     editVisibility,
     setEditVisibility,
-    editDueAt,
-    setEditDueAt,
-    editRepeatMode,
-    setEditRepeatMode,
-    editRepeatDays,
-    setEditRepeatDays,
     isUpdatingNote,
     isSubmitting,
     updatingNoteIds,
@@ -533,9 +515,6 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     editorSaving: editingMessage ? isUpdatingNote : isSubmitting,
     editorPriority: editingMessage ? editPriority : draftPriority,
     editorVisibility: editingMessage ? editVisibility : draftVisibility,
-    editorDueAt: editingMessage ? editDueAt : draftDueAt,
-    editorRepeatMode: editingMessage ? editRepeatMode : draftRepeatMode,
-    editorRepeatDays: editingMessage ? editRepeatDays : draftRepeatDays,
     editorSectionLabel: editingMessage ? '便签编辑区' : (board.slug === 'guestbook' ? '留言区' : 'Memo 编辑区'),
     editorPlaceholder: editingMessage
       ? '直接修改这张便签的原始文本，checklist 状态也在这里编辑。'
@@ -547,16 +526,10 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     board.slug,
     canWrite,
     draft,
-    draftDueAt,
     draftPriority,
-    draftRepeatDays,
-    draftRepeatMode,
     draftVisibility,
     editContent,
-    editDueAt,
     editPriority,
-    editRepeatDays,
-    editRepeatMode,
     editVisibility,
     editingMessage,
     error,
@@ -587,9 +560,6 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     updateEditorValue: editingMessage ? setEditContent : setDraft,
     updateEditorPriority: editingMessage ? setEditPriority : setDraftPriority,
     updateEditorVisibility: editingMessage ? setEditVisibility : setDraftVisibility,
-    updateEditorDueAt: editingMessage ? setEditDueAt : setDraftDueAt,
-    updateEditorRepeatMode: editingMessage ? setEditRepeatMode : setDraftRepeatMode,
-    updateEditorRepeatDays: editingMessage ? setEditRepeatDays : setDraftRepeatDays,
     submitEditor: editingMessage ? saveEditingNote : submitDraft,
     cancelEditingNote,
     scrollToEditor,
@@ -612,16 +582,10 @@ export function NoteBoardProvider({ board, initialMessages, initialQuery = '', c
     saveEditingNote,
     setCardPosition,
     setDraft,
-    setDraftDueAt,
     setDraftPriority,
-    setDraftRepeatDays,
-    setDraftRepeatMode,
     setDraftVisibility,
     setEditContent,
-    setEditDueAt,
     setEditPriority,
-    setEditRepeatDays,
-    setEditRepeatMode,
     setEditVisibility,
     scrollToEditor,
     submitDraft,

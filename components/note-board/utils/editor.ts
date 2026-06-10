@@ -1,7 +1,6 @@
 import type { ChecklistItemDraft, TextEditResult } from '@/components/note-board/types'
 import { clamp } from '@/components/note-board/utils/board'
 export { hasInlineDueTags, parseInlineDueTags, parseRepeatSpec } from '@/lib/memo-due-tags'
-import { parseInlineDueTags } from '@/lib/memo-due-tags'
 
 function buildChecklistItem(text = '', checked = false, id?: string): ChecklistItemDraft {
   return {
@@ -98,12 +97,6 @@ export function insertLinePrefixSyntax(value: string, start: number, end: number
     ? lines.map((line) => line.slice(prefix.length)).join('\n')
     : lines.map((line) => `${prefix}${line}`).join('\n')
   return replaceRange(value, block.start, block.end, converted, block.start, block.start + converted.length)
-}
-
-export function extractEarliestDueAt(content: string): string | null {
-  const tags = parseInlineDueTags(content)
-  if (tags.length === 0) return null
-  return tags.reduce((earliest, t) => Date.parse(t.iso) < Date.parse(earliest) ? t.iso : earliest, tags[0].iso)
 }
 
 

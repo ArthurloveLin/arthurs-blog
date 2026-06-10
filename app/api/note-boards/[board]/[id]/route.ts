@@ -53,14 +53,6 @@ export async function PATCH(
     : undefined
   const priority = hasPriority && isNotePriority(rawPriority) ? normalizeNotePriority(rawPriority) : undefined
   const visibility = body.visibility === 'admin_only' ? 'admin_only' as const : body.visibility === 'public' ? 'public' as const : undefined
-  const hasDueAt = 'due_at' in body
-  const dueAt = hasDueAt ? (typeof body.due_at === 'string' && body.due_at ? body.due_at : null) : undefined
-  const hasRepeatMode = 'repeat_mode' in body
-  const repeatMode = hasRepeatMode ? (typeof body.repeat_mode === 'string' ? body.repeat_mode : null) : undefined
-  const hasRepeatDays = 'repeat_days' in body
-  const repeatDays = hasRepeatDays
-    ? (Array.isArray(body.repeat_days) ? body.repeat_days.filter((v: unknown): v is number => typeof v === 'number') : null)
-    : undefined
   const identities = Array.isArray(body.identities)
     ? body.identities.filter((value: unknown): value is string => typeof value === 'string')
     : undefined
@@ -69,7 +61,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Guestbook content edits moved to /api/comments/:id' }, { status: 410 })
   }
 
-  if (content === '' || (content === undefined && archived === undefined && priority === undefined && visibility === undefined && !hasDueAt && !hasRepeatMode && !hasRepeatDays)) {
+  if (content === '' || (content === undefined && archived === undefined && priority === undefined && visibility === undefined)) {
     return NextResponse.json({ error: content === '' ? 'Missing content' : 'Missing patch' }, { status: 400 })
   }
 
@@ -81,12 +73,7 @@ export async function PATCH(
     const message = await updateBoardMessage(
       board,
       id,
-      {
-        content, archived, priority, visibility,
-        ...(hasDueAt ? { due_at: dueAt } : {}),
-        ...(hasRepeatMode ? { repeat_mode: repeatMode } : {}),
-        ...(hasRepeatDays ? { repeat_days: repeatDays } : {}),
-      },
+      { content, archived, priority, visibility },
       identities ?? (body.identity as string | undefined),
     )
     return NextResponse.json(message)

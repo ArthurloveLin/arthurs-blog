@@ -1,6 +1,6 @@
 'use client'
 
-import { AlarmClock, Archive, ArchiveRestore, ArrowRight, Check, ChevronsDown, Copy, FileDown, FileImage, FileText, PencilLine, Share2, Trash2, X } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowRight, Check, ChevronsDown, Copy, FileDown, FileImage, FileText, PencilLine, Share2, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import EmojiReactionSummary from '@/components/emoji/EmojiReactionSummary'
@@ -9,7 +9,6 @@ import { NoteActionButton } from '@/components/note-board/components/NoteActionB
 import { NoteContent } from '@/components/note-board/components/NoteContent'
 import { useStickyNoteDrag } from '@/components/note-board/hooks/useStickyNoteDrag'
 import { downloadNote, exportNoteAsImage } from '@/components/note-board/utils/noteExport'
-import { hasInlineDueTags } from '@/components/note-board/utils/editor'
 import { NoteInlineEditor } from '@/components/note-board/components/NoteEditor'
 import { PriorityPicker } from '@/components/note-board/components/PriorityPicker'
 import styles from '@/components/note-board/styles/StickyNote.module.css'
@@ -86,35 +85,6 @@ interface StickyNoteCardFrameProps extends StickyNoteCardSharedProps {
   habitStates?: Record<string, MemoHabitCurrentState>
   onOpenHabitDetail?: (noteId: string, itemKey: string) => void
   onCompleteHabitItem?: (noteId: string, itemKey: string) => void
-}
-
-function StickyDueBadge({ dueAt }: { dueAt: string }) {
-  const [now] = useState(Date.now)
-  const diff = Date.parse(dueAt) - now
-  const abs = Math.abs(diff)
-  const days = Math.floor(abs / 86400000)
-  const hours = Math.floor(abs / 3600000)
-  const mins = Math.floor(abs / 60000)
-  const isOverdue = diff < 0
-  const label = isOverdue
-    ? `超期 ${days > 0 ? `${days}d` : hours > 0 ? `${hours}h` : `${mins || 1}m`}`
-    : `${days > 0 ? `${days}d` : hours > 0 ? `${hours}h` : `${mins || 1}m`}后截止`
-
-  return (
-    <div
-      onPointerDown={(e) => e.stopPropagation()}
-      className={[
-        'mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium',
-        isOverdue
-          ? 'bg-red-100/80 text-red-600'
-          : diff < 86400000
-            ? 'bg-amber-100/80 text-amber-600'
-            : 'bg-black/5 text-slate-500',
-      ].join(' ')}>
-      <AlarmClock size={9} strokeWidth={2} />
-      {label}
-    </div>
-  )
 }
 
 const RESTING_NOTE_SHADOW = '-1px 10px 5px -4px rgba(0, 0, 0, 0.2), inset 0 24px 30px -12px rgba(0, 0, 0, 0.3)'
@@ -566,9 +536,6 @@ function StickyNoteCardFrame({
               ) : null}
             </>
           )}
-          {!isPreview && message.due_at && !hasInlineDueTags(message.content) ? (
-            <StickyDueBadge dueAt={message.due_at} />
-          ) : null}
           {!isPreview && reactionControl ? (
             <div className="mt-auto pt-1" onPointerDown={(event) => event.stopPropagation()}>
               <EmojiReactionSummary
