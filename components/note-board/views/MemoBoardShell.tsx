@@ -8,7 +8,8 @@ import {
   useNoteBoardMeta,
 } from '@/components/note-board/NoteBoardProvider'
 import type { NoteCardViewModel } from '@/components/note-board/types'
-import { SidebarAgendaCalendar, SidebarCalendar, SidebarHabitHistory, SidebarTagCloud, getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
+import { SidebarAgendaCalendar, SidebarCalendar, SidebarHabitHistory, SidebarTagCloud } from '@/components/note-board/views/MemoSidebar'
+import { getShanghaiDateParts, toDateKey } from '@/lib/shanghai-time'
 import type { MemoHabitOverview } from '@/lib/memo-habits'
 import type { MemoAgendaItem } from '@/lib/note-boards'
 import { NOTE_COLOR_THEMES, useNoteColorTheme } from '@/components/note-board/contexts/NoteColorThemeContext'
@@ -23,7 +24,7 @@ const MENU_ITEM_IDLE_CLASS = 'text-[color:var(--memo-control-text)] hover:[backg
 const SIDEBAR_PANEL_CLASS = 'rounded-[24px] border p-4 [border-color:var(--memo-panel-border)] [background:var(--memo-panel-surface)] [box-shadow:var(--memo-panel-shadow)]'
 
 function getItemDateKey(item: NoteCardViewModel) {
-  const { year, month, day } = getShanghaDateParts(item.message.created_at)
+  const { year, month, day } = getShanghaiDateParts(item.message.created_at)
   return toDateKey(year, month, day)
 }
 
@@ -303,7 +304,7 @@ function SidebarQuickFilters({ filters, agendaItems }: { filters: MemoBoardFilte
   const meta = useNoteBoardMeta()
   const isGuestboard = meta.board.slug === 'guestbook'
   const today = useMemo(() => {
-    const { year, month, day } = getShanghaDateParts(new Date())
+    const { year, month, day } = getShanghaiDateParts(new Date())
     return toDateKey(year, month, day)
   }, [])
 
@@ -314,7 +315,7 @@ function SidebarQuickFilters({ filters, agendaItems }: { filters: MemoBoardFilte
   const todayDueCount = useMemo(() => {
     if (!agendaItems) return 0
     return agendaItems.filter((item) => {
-      const { year, month, day } = getShanghaDateParts(item.dueAt)
+      const { year, month, day } = getShanghaiDateParts(item.dueAt)
       return toDateKey(year, month, day) === today
     }).length
   }, [agendaItems, today])

@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
 
 import {
-  getShanghaiWeekday,
   hasInlineDueTags,
   parseInlineDueTags,
   parseRepeatSpec,
   stripInlineDueTags,
 } from '@/lib/memo-due-tags'
+import { getShanghaiWeekday } from '@/lib/shanghai-time'
 
 describe('parseRepeatSpec', () => {
   it('maps the simple modes', () => {

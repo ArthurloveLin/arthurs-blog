@@ -15,8 +15,9 @@ import {
 import { getCurrentUser, getUserRole, type UserRole } from '@/lib/auth'
 import { getNoteBoardConfig, isNoteBoardSlug, type NoteBoardSlug } from '@/lib/note-board-config'
 import { NOTE_MAX_LENGTH } from '@/lib/input-limits'
-import { extractMemoHabitChecklistItems, updateMemoHabitChecklistLine } from '@/lib/memo-habits'
-import { getShanghaiWeekday, hasInlineDueTags, parseInlineDueTags } from '@/lib/memo-due-tags'
+import { extractMemoHabitChecklistItems, getScheduleSignature, updateMemoHabitChecklistLine, type MemoHabitRepeatMode } from '@/lib/memo-habits'
+import { hasInlineDueTags, parseInlineDueTags } from '@/lib/memo-due-tags'
+import { getShanghaiWeekday } from '@/lib/shanghai-time'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export type NoteVisibility = 'public' | 'admin_only'
@@ -520,12 +521,8 @@ export async function updateBoardMessage(
     const newKeySet = new Set(newItems.map((i) => i.itemKey))
     const oldKeySet = new Set(oldItems.map((i) => i.itemKey))
 
-    // Schedule signature mirrors getScheduleSignature() in memo-habits.ts (time-only for
-    // repeats, normalised to UTC HH:mm so +08:00 and Z representations match).
-    const scheduleSig = (item: { repeatMode: string; repeatDays: number[] | null; dueAt: string }) => {
-      const time = item.dueAt.length > 10 ? new Date(item.dueAt).toISOString().slice(11, 16) : '00:00'
-      return `${item.repeatMode}|${item.repeatDays?.join(',') ?? ''}|${time}`
-    }
+    const scheduleSig = (item: { repeatMode: string; repeatDays: number[] | null; dueAt: string }) =>
+      getScheduleSignature(item.dueAt, item.repeatMode as MemoHabitRepeatMode, item.repeatDays)
 
     const normalizeSigText = (value: string) => value.trim().toLocaleLowerCase().replace(/\s+/g, ' ')
     const lineTextLabelSig = (item: { lineText: string; label: string }) => `${normalizeSigText(item.lineText)}|${normalizeSigText(item.label)}`

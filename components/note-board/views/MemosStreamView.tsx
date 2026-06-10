@@ -10,7 +10,7 @@ import { MemoBoardShell, type MemoBoardFilters } from '@/components/note-board/v
 import type { MemoHabitOverview } from '@/lib/memo-habits'
 import type { MemoAgendaItem } from '@/lib/note-boards'
 import { MemoStreamCard } from '@/components/note-board/views/MemoStreamCard'
-import { getShanghaDateParts, toDateKey } from '@/components/note-board/views/MemoSidebar'
+import { getShanghaiDateParts, toDateKey } from '@/lib/shanghai-time'
 import type { NoteCardViewModel } from '@/components/note-board/types'
 import { formatStableDate } from '@/lib/date-format'
 import { NOTE_PRIORITY_META } from '@/lib/note-priority'
@@ -50,7 +50,7 @@ export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitO
     const matchingIds = new Set(
       agendaItems
         .filter((a) => {
-          const { year, month, day } = getShanghaDateParts(a.dueAt)
+          const { year, month, day } = getShanghaiDateParts(a.dueAt)
           return toDateKey(year, month, day) === state.activeDueDate
         })
         .map((a) => a.memoId),
@@ -83,7 +83,7 @@ export function MemosStreamView({ onToggleViewMode, filters, agendaItems, habitO
 
     for (const item of filteredItems) {
       const ts = item.message.updated_at ?? item.message.created_at
-      const { year, month, day } = getShanghaDateParts(ts)
+      const { year, month, day } = getShanghaiDateParts(ts)
       const dateKey = toDateKey(year, month, day)
       if (dateKey !== currentKey) {
         currentKey = dateKey

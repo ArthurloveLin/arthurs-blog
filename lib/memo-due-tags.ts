@@ -1,6 +1,8 @@
 // Shared @due tag parser used by check-reminders (server), getMemoAgendaItems (server),
 // and editor utilities (client). Keep this file free of server-only imports.
 
+import { getShanghaiWeekday } from '@/lib/shanghai-time'
+
 export interface InlineDueTag {
   label: string
   iso: string
@@ -38,16 +40,62 @@ export function parseRepeatSpec(spec: string): { repeatMode: string; repeatDays:
   return { repeatMode: 'once', repeatDays: null }
 }
 
-// Calendar day-of-week (0=Sun … 6=Sat) in Asia/Shanghai. Shared by the reminder
-// dispatcher and the habit-reschedule logic so both agree on which weekday a due
-// time falls on — a task at 01:00 Shanghai (+08:00) is 17:00 UTC the previous day,
-// so getUTCDay() would return the wrong weekday for weekday/custom modes.
-export function getShanghaiWeekday(date: Date): number {
-  const abbr = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Shanghai',
-    weekday: 'short',
-  }).format(date)
-  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(abbr)
+// Hard cap on advance iterations (~10 years of daily steps). Guards against a
+// non-advancing repeat mode hanging the caller, and bounds back-fill catch-up.
+const MAX_ADVANCE_ITERATIONS = 3660
+
+// Advance ISO to the *next future* occurrence for the given repeat mode. We keep
+// stepping until the result is strictly after `now`, so a back-filled or long-
+// overdue task collapses into a single upcoming occurrence instead of replaying
+// one notification per missed period on every cron tick. UTC date arithmetic;
+// weekday checks are converted to the Asia/Shanghai calendar day.
+//
+// NOT the same as computeNextScheduledDueAt (lib/memo-habits-state.ts): this one
+// steps a CONTENT TAG's ISO forward period-by-period for the reminder dispatcher;
+// that one computes a synthetic occurrence due_at anchored to today's Shanghai date.
+export function advanceDueAt(dueAt: string, repeatMode: string, repeatDays: number[] | null, now: Date): string {
+  const due = new Date(dueAt)
+
+  // One step of the given mode. Returns false when the mode cannot advance,
+  // signalling the caller to leave dueAt untouched (no resend loop).
+  const stepOnce = (): boolean => {
+    if (repeatMode === 'daily') {
+      due.setUTCDate(due.getUTCDate() + 1)
+      return true
+    }
+    if (repeatMode === 'weekly') {
+      due.setUTCDate(due.getUTCDate() + 7)
+      return true
+    }
+    if (repeatMode === 'monthly') {
+      // JS rolls overflowing day-of-month into the next month (e.g. Jan 31 → Mar 3).
+      due.setUTCMonth(due.getUTCMonth() + 1)
+      return true
+    }
+    if (repeatMode === 'weekdays') {
+      do {
+        due.setUTCDate(due.getUTCDate() + 1)
+      } while ([0, 6].includes(getShanghaiWeekday(due)))
+      return true
+    }
+    if (repeatMode === 'custom' && repeatDays?.length) {
+      const sorted = [...repeatDays].sort((a, b) => a - b)
+      for (let i = 0; i < 7; i++) {
+        due.setUTCDate(due.getUTCDate() + 1)
+        if (sorted.includes(getShanghaiWeekday(due))) break
+      }
+      return true
+    }
+    return false
+  }
+
+  let iterations = 0
+  do {
+    if (!stepOnce()) return dueAt
+    iterations += 1
+  } while (due.getTime() <= now.getTime() && iterations < MAX_ADVANCE_ITERATIONS)
+
+  return due.toISOString()
 }
 
 // Tag format: @due[label](iso) or @due[label](iso,daily|weekly|monthly|weekdays|custom:0,1,2)

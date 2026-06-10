@@ -5,7 +5,7 @@ import {
   reconcileStaleMemoHabitOccurrences,
   upsertMemoHabitOccurrenceForReminder,
 } from '@/lib/memo-habits-server'
-import { getShanghaiWeekday, parseInlineDueTags, stripInlineDueTags } from '@/lib/memo-due-tags'
+import { advanceDueAt, parseInlineDueTags, stripInlineDueTags } from '@/lib/memo-due-tags'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendNtfyReminder } from '@/lib/ntfy'
 
@@ -48,60 +48,6 @@ function buildNotification(
   // 时间放首行，方便扫视；完整便签内容附后
   const body = noteText ? `截止：${timeStr}\n\n${noteText}` : `截止：${timeStr}`
   return { title, body }
-}
-
-// Hard cap on advance iterations (~10 years of daily steps). Guards against a
-// non-advancing repeat mode hanging the request, and bounds back-fill catch-up.
-const MAX_ADVANCE_ITERATIONS = 3660
-
-// Advance ISO to the *next future* occurrence for the given repeat mode. We keep
-// stepping until the result is strictly after `now`, so a back-filled or long-
-// overdue task collapses into a single upcoming occurrence instead of replaying
-// one notification per missed period on every cron tick. UTC date arithmetic;
-// weekday checks are converted to the Asia/Shanghai calendar day.
-function advanceDueAt(dueAt: string, repeatMode: string, repeatDays: number[] | null, now: Date): string {
-  const due = new Date(dueAt)
-
-  // One step of the given mode. Returns false when the mode cannot advance,
-  // signalling the caller to leave dueAt untouched (no resend loop).
-  const stepOnce = (): boolean => {
-    if (repeatMode === 'daily') {
-      due.setUTCDate(due.getUTCDate() + 1)
-      return true
-    }
-    if (repeatMode === 'weekly') {
-      due.setUTCDate(due.getUTCDate() + 7)
-      return true
-    }
-    if (repeatMode === 'monthly') {
-      // JS rolls overflowing day-of-month into the next month (e.g. Jan 31 → Mar 3).
-      due.setUTCMonth(due.getUTCMonth() + 1)
-      return true
-    }
-    if (repeatMode === 'weekdays') {
-      do {
-        due.setUTCDate(due.getUTCDate() + 1)
-      } while ([0, 6].includes(getShanghaiWeekday(due)))
-      return true
-    }
-    if (repeatMode === 'custom' && repeatDays?.length) {
-      const sorted = [...repeatDays].sort((a, b) => a - b)
-      for (let i = 0; i < 7; i++) {
-        due.setUTCDate(due.getUTCDate() + 1)
-        if (sorted.includes(getShanghaiWeekday(due))) break
-      }
-      return true
-    }
-    return false
-  }
-
-  let iterations = 0
-  do {
-    if (!stepOnce()) return dueAt
-    iterations += 1
-  } while (due.getTime() <= now.getTime() && iterations < MAX_ADVANCE_ITERATIONS)
-
-  return due.toISOString()
 }
 
 export async function POST(req: NextRequest) {

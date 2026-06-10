@@ -15,7 +15,13 @@ lib/note-boards.ts        — Supabase queries for board messages
 views/
   MemoBoardShell.tsx      — layout chrome (header, sidebar, filters UI)
   MemosStreamView.tsx     — stream feed (date/priority groups → MemoStreamCard)
-  MemoSidebar.tsx         — desktop sidebar: calendar, quick filters, tag cloud
+  MemoSidebar.tsx         — BARREL re-export; implementation lives in views/sidebar/
+  sidebar/
+    SidebarShared.tsx       — mode switcher, tag chip palette, calendar cell math
+    SidebarCalendar.tsx     — created-date calendar (memo counts heatmap)
+    SidebarAgendaCalendar.tsx — due-date dots + per-day timeline drill-in
+    SidebarHabitHistory.tsx — habit completed/missed/delayed heatmap + drill-in
+    SidebarTagCloud.tsx     — tag cloud from the resident message set
   MemoStreamCard.tsx      — individual card in stream view
   MemoHabitDetailPanel.tsx — habit occurrence detail popover (complete/delay/history)
   MobileNoteList.tsx      — card list used inside MobileStickyStack overlay
@@ -30,6 +36,7 @@ components/
   NoteCodeBlock.tsx       — fenced code block renderer (highlight.js + copy button)
   NoteCommentPanel.tsx    — per-note comment thread panel
   NoteEditor.tsx          — textarea + submit form
+  DueDateInserter.tsx     — editor-toolbar @due tag builder (pure text-splicer)
   PriorityPicker.tsx      — priority dot control
   VisibilityPicker.tsx    — public / admin_only visibility control
 
@@ -39,6 +46,8 @@ hooks/
   useBoardNoteItems.ts    — assembles NoteCardViewModel list
   useBoardSurface.ts      — desktop canvas drag state
   useNoteEditor.ts        — editor open/close + optimistic note
+  useMemoHabits.ts        — ALL habit orchestration: agenda/overview SWR, agenda
+                            enrichment, midnight refetch, detail-panel actions
   useStickyNoteDrag.ts    — shared sticky-note drag physics (board + preview cards)
   useNotifications.ts     — toast notice state
   useElementSize.ts       — ResizeObserver-backed element size
@@ -50,6 +59,13 @@ utils/
 contexts/
   NoteColorThemeContext.tsx — color palette switcher (persisted to localStorage)
 ```
+
+**Shared lib layering（改动时按此分层落位）**：`lib/shanghai-time.ts` 是上海历法
+工具的唯一来源（date key / weekday / midnight）——不要在组件里重新实现；
+`lib/memo-due-tags.ts` = @due tag 解析 + `advanceDueAt`（内容 tag 逐周期推进）；
+`lib/memo-habits.ts` = checklist 解析 + itemKey 签名；`lib/memo-habits-state.ts` =
+纯状态机（时钟可注入，tests/unit/memo-habits-state.test.ts）；
+`lib/memo-habits-server.ts` = 仅 DB 读写。新的派生逻辑写进 state 模块，不要写进 server。
 
 ## Architecture Decisions
 
@@ -260,6 +276,13 @@ VPS crontab (every minute)
 back-filled or long-overdue repeat collapses into a single upcoming fire instead of
 replaying one notification per missed period every tick (bounded by an iteration cap).
 
+**Path 3 retirement is proven safe (audited 2026-06-10).** A read-only DB audit
+found 9 memo rows with a column `due_at` — ALL also carry inline `@due` tags
+(migration leftovers, all `once`), every active one already has `notified_at`
+set, and nothing in the current UI writes the columns. Path 3 + the agenda
+column query + the column-due card badge can be removed in a dedicated change;
+until then they are dead weight, not live behavior.
+
 **`notified_at` belongs to Path 3 only.** Path 1 must not write it (it tracks delivery
 via `notified_dues` + content rewrite); writing it there would falsely mark a
 co-located column `due_at` as already notified. Weekday math for repeats uses the
@@ -291,10 +314,11 @@ The blog container is on `1panel-network` so it can reach ntfy by container name
 
 ### Memo Habits（重复任务）状态机 — non-obvious semantics
 
-习惯系统横跨 `lib/memo-habits.ts`（纯解析，client-safe）、`lib/memo-habits-server.ts`
-（状态机 + Supabase）、`app/api/memo/check-reminders/route.ts`（cron 派发）、
-`app/api/note-boards/memo/habits/*`（complete/delay/occurrence API）。只读单个文件
-会做错以下决定：
+习惯系统横跨 `lib/memo-habits.ts`（纯解析，client-safe）、`lib/memo-habits-state.ts`
+（纯状态机，时钟可注入，有单测）、`lib/memo-habits-server.ts`（仅 DB 读写）、
+`app/api/memo/check-reminders/route.ts`（cron 派发）、`app/api/note-boards/memo/habits/*`
+（complete/delay/occurrence API）、`hooks/useMemoHabits.ts`（客户端编排）。只读单个
+文件会做错以下决定：
 
 **状态语义 — `delayed` 是终态，不是 open 状态。**
 `memo_habit_occurrences.status` 四个落库值的含义：
@@ -328,11 +352,11 @@ delayed = 今天已被推迟走（同前）、pending = 同日改了时间（复
 行按 `due_at` 降序，所以是数组**最后**一个匹配。取最晚会在"今天 + 推迟后继"双 open
 行并存时把完成操作打到未来的 occurrence、隐藏今天的 pending。
 
-**itemKey 的时间签名已规范化为 UTC HH:mm**（`getScheduleSignature`，及
-`note-boards.ts` 中镜像的 `scheduleSig` —— 两处必须同步改）：用
-`new Date(dueAt).toISOString().slice(11,16)` 而非原始字符串 slice，使 `+08:00` 与 `Z`
-两种写法得到同一 key（cron 首次推进会把手写 +08:00 重写成 UTC）。对已存量 UTC 数据
-key 不变。回归测试在 `tests/unit/memo-habits.test.ts`。
+**itemKey 的时间签名已规范化为 UTC HH:mm**（`getScheduleSignature`，从
+`memo-habits.ts` 导出，`note-boards.ts` 的 key 迁移直接导入 —— 全仓库唯一实现，
+不要再写镜像）：用 `new Date(dueAt).toISOString().slice(11,16)` 而非原始字符串
+slice，使 `+08:00` 与 `Z` 两种写法得到同一 key（cron 首次推进会把手写 +08:00 重写成
+UTC）。对已存量 UTC 数据 key 不变。回归测试在 `tests/unit/memo-habits.test.ts`。
 
 **reconcile 在读之前 await**（`getMemoHabitOverview` / `getMemoHabitItemDetail`）：
 客户端在上海午夜恰好 refetch 一次（`scheduleMidnightRefresh`），若用 `after()` 后置

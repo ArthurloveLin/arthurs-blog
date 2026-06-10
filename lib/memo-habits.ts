@@ -112,7 +112,10 @@ export function parseMemoHabitRepeatSpec(spec: string): { repeatMode: MemoHabitR
   return { repeatMode: 'once', repeatDays: null }
 }
 
-function getScheduleSignature(dueAt: string, repeatMode: MemoHabitRepeatMode, repeatDays: number[] | null) {
+// Exported for lib/note-boards.ts (habit key migration on note edit) — there must
+// be exactly ONE signature implementation, or edits silently orphan occurrence
+// history when the two drift.
+export function getScheduleSignature(dueAt: string, repeatMode: MemoHabitRepeatMode, repeatDays: number[] | null) {
   if (repeatMode === 'once') {
     return dueAt
   }
