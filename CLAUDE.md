@@ -89,7 +89,15 @@ Before implementing, **state your interpretation** if a request could be read mu
 
 **Do not start `npm run dev`, `npm run build`, or any server/browser yourself** (no headless Chromium, screenshots, `next dev/start`, etc.). The user runs the app and owns visual verification — leave it to them. On this machine these are also costly: the filesystem is slow (cold compiles take minutes) and Turbopack panics under rapid route churn, and ports 3000/3001 belong to the user's own long-running services.
 
-To verify your work, rely on **static checks only**: `npx tsc --noEmit` and `npx eslint <changed files>` (or `npm run check`). 单元测试一律用 `npm run test:unit` —— 脚本钉死了 `TZ=Asia/Shanghai`，本机系统时区是 UTC，裸跑 `npx vitest run` 会让时区相关用例（如 spotify 时段分桶）假失败。 If a change genuinely needs runtime/visual confirmation, **hand it to the user** with exact steps rather than launching anything. If you ever truly must run a server, ask first and use an explicit isolated port (e.g. `next dev -p 4010`).
+To verify your work, rely on **static checks only**: `npx tsc --noEmit` and `npx eslint <changed files>` (or `npm run check`).
+
+### 准入约定：平时不跑测试
+
+提交准入门槛 = `npm run check`（tsc + eslint）通过，**不包含任何测试**。回归由 nightly 兜底（`nightly-tests.yml` 的 `js-tests` job 每晚跑全部三个 JS/TS runner + pytest 容器套件）。
+
+唯一例外：改动直接触碰**有单测锁定的纯逻辑**（`tests/unit/` 里有对应测试文件的模块，如 `lib/memo-habits*`、`lib/shanghai-time`、`lib/memo-due-tags`）时，顺手跑一下 ~5 秒的单测。UI / 样式 / 文档改动一律不跑。
+
+跑法必须是 `npm run test:unit`，**绝不裸跑 `npx vitest run`** —— 脚本钉死了 `TZ=Asia/Shanghai`，本机系统时区是 UTC，裸跑会让时区相关用例（如 spotify 时段分桶）假失败。 If a change genuinely needs runtime/visual confirmation, **hand it to the user** with exact steps rather than launching anything. If you ever truly must run a server, ask first and use an explicit isolated port (e.g. `next dev -p 4010`).
 
 ### Runtime verification with Playwright (opt-in escalation — ask first)
 
